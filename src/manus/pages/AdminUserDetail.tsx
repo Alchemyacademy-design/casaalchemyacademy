@@ -2,6 +2,9 @@ import { useMemo, useState } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+// The DB types don't yet include `admin_access_audit_log` (migration pending).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db: any = supabase;
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -57,7 +60,7 @@ export default function AdminUserDetail() {
         supabase.from("stripe_subscriptions").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("stripe_payments").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("courses").select("id,title").eq("status", "published").order("sort_order"),
-        supabase.from("admin_access_audit_log").select("*").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(50),
+        db.from("admin_access_audit_log").select("*").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(50),
       ]);
       return {
         profile,
