@@ -20,12 +20,12 @@ export default function Modules() {
   const { user } = useAuth();
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
 
-  const tier = (user as any)?.membershipTier ?? "guest";
+  const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
   const isFullMember = tier === "annual_member" || user?.role === "admin";
 
   const getProgress = (moduleNumber: number, lessonCount: number) => {
     if (!progress || lessonCount === 0) return 0;
-    const done = progress.filter((p: any) => p.moduleId === moduleNumber && p.completed).length;
+    const done = (progress as Array<{ moduleId: number; completed: boolean }>).filter((p) => p.moduleId === moduleNumber && p.completed).length;
     return Math.round((done / lessonCount) * 100);
   };
 

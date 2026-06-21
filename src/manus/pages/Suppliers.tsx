@@ -11,7 +11,7 @@ export default function Suppliers() {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
-  const filtered = suppliers.filter((s: any) => {
+  const filtered = (suppliers as Array<{ room?: string | null; priceTier?: string | null }>).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
     return true;

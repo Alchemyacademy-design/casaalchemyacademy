@@ -183,7 +183,7 @@ export default function Dashboard() {
               {enrolledModules.slice(0, 4).map((module: ModuleRow) => {
                 const moduleProgress = (progress as ProgressRow[]).filter((p) => p.moduleId === module.id);
                 const lessonCount = module.lessonCount ?? 0;
-                const pct = module.lessonCount > 0 ? Math.round((moduleProgress.length / module.lessonCount) * 100) : 0;
+                const pct = lessonCount > 0 ? Math.round((moduleProgress.length / lessonCount) * 100) : 0;
 
                 return (
                   <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = `/mycourses/${module.number}`}>
