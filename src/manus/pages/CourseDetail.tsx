@@ -185,7 +185,7 @@ export default function CourseDetail() {
               </h3>
               <div className="space-y-3">
                 {allModules.map((m: ModuleRow, idx: number) => (
-                  <Link key={m.id} href={`/courses/${m.id}`}>
+                  <Link key={m.id} to={`/courses/${m.id}`}>
                     <button
                       className={`w-full text-left p-3 rounded-lg transition ${
                         m.id === moduleId
