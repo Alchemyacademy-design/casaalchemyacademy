@@ -226,14 +226,39 @@ async function adminStats() {
   };
 }
 async function adminUsers(): Promise<UserAdminRow[]> {
-  const { data, error } = await db.from("profiles").select("*,user_roles(role),memberships(plan_key,status,ends_at)").order("created_at", { ascending: false });
+  const [{ data: profiles, error }, { data: roles }, { data: memberships }] = await Promise.all([
+    db.from("profiles").select("*").order("created_at", { ascending: false }),
+    db.from("user_roles").select("user_id,role"),
+    db.from("memberships").select("user_id,plan_key,status,ends_at"),
+  ]);
   if (error) throw error;
-  return (data as UserAdminRow[] | null) ?? [];
+  const rolesByUser = new Map<string, Array<{ role: string }>>();
+  ((roles as Array<{ user_id: string; role: string }> | null) ?? []).forEach((r) => {
+    const arr = rolesByUser.get(r.user_id) ?? [];
+    arr.push({ role: r.role });
+    rolesByUser.set(r.user_id, arr);
+  });
+  const memByUser = new Map<string, Array<{ plan_key?: string; status?: string; ends_at?: string }>>();
+  ((memberships as Array<{ user_id: string; plan_key?: string; status?: string; ends_at?: string }> | null) ?? []).forEach((m) => {
+    const arr = memByUser.get(m.user_id) ?? [];
+    arr.push({ plan_key: m.plan_key, status: m.status, ends_at: m.ends_at });
+    memByUser.set(m.user_id, arr);
+  });
+  return ((profiles as ProfileRow[] | null) ?? []).map((p) => ({
+    ...p,
+    user_roles: rolesByUser.get(p.id) ?? [],
+    memberships: memByUser.get(p.id) ?? [],
+  })) as UserAdminRow[];
 }
 async function adminAllPosts(): Promise<CommunityPostRow[]> {
-  const { data, error } = await db.from("community_posts").select("*,profiles:author_id(full_name,email)").order("created_at", { ascending: false });
+  const { data, error } = await db.from("community_posts").select("*").order("created_at", { ascending: false });
   if (error) throw error;
-  return (data as CommunityPostRow[] | null) ?? [];
+  const posts = (data as CommunityPostRow[] | null) ?? [];
+  const authorIds = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean))) as string[];
+  if (!authorIds.length) return posts;
+  const { data: profiles } = await db.from("profiles").select("id,full_name,email").in("id", authorIds);
+  const map = new Map(((profiles as ProfileRow[] | null) ?? []).map((p) => [p.id, p]));
+  return posts.map((p) => ({ ...p, profiles: map.get(p.author_id as string) ?? null }));
 }
 async function updateMembership(input?: Input) {
   const data = (input ?? {}) as { userId: string; planKey: string; durationDays?: number };
