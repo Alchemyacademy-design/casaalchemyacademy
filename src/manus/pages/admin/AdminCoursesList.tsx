@@ -60,7 +60,7 @@ export default function AdminCoursesList() {
                 <td className="px-4 py-3 text-xs">{c.access_plan_keys.join(", ") || "—"}</td>
                 <td className="px-4 py-3 text-right">
                   <Button size="sm" variant="ghost" asChild>
-                    <Link to={`/admin/courses/${c.id}`}><Edit3 className="w-4 h-4 mr-1" /> Manage</Link>
+                    <Link to={`/admin/courses/${c.id}`}><Edit3 className="w-4 h-4 mr-1" /> Gerenciar</Link>
                   </Button>
                 </td>
               </tr>
