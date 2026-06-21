@@ -1,283 +1,111 @@
-# Sistema Administrativo Definitivo — Alchemy Academy
 
-Escopo restrito ao projeto atual (Supabase `omzwtfnqffseemrlylwu`, branch `migration/manus-official-to-lovable`). Sem novo Supabase, sem alterar Products/Prices Stripe, sem pagamento real, sem deploy remoto sem confirmação.
+# Painel Administrativo de Conteúdo — Cursos / Módulos / Aulas
 
----
+Escopo desta execução: construir o CRUD admin + importador do `alchemy_content_import_template.json` como **draft**. Sem Stripe. Sem novo banco. Sem alterar schema (as tabelas já têm todos os campos necessários).
 
-## Fase 1 — Auditoria (sem mudanças)
+## Confirmação prévia de schema
 
-Arquivo novo: `docs/ADMIN_SYSTEM_AUDIT.md` com:
-- Confirmação das tabelas: `profiles`, `user_roles`, `memberships`, `course_entitlements`, `membership_plans`, `plan_permissions`, `stripe_customers`, `stripe_subscriptions`, `stripe_payments`, `stripe_checkout_sessions`, `stripe_webhook_events`.
-- Confirmação do enum `app_role` (admin/student).
-- Status atual do usuário `contact@casaalchemystudio.com` em `auth.users` + `user_roles`.
-- Listagem de policies por tabela.
-- Componentes/funções administrativas existentes (`AdminPanel.tsx`, `AdminAnalytics.tsx`, `AdminGuard.tsx`, `GlobalAccessController.tsx`, `useAuth.ts`, `trpc.admin.*`).
-- Operações Stripe atuais (`create-checkout-session`, `stripe-webhook`, `recover-stripe-events`).
-- Lista de arquivos que serão alterados nas fases seguintes.
+Verifiquei `src/integrations/supabase/types.ts`. Tabelas e colunas existentes batem 100% com o que o comando exige:
 
----
+- `public.courses` — slug, title, subtitle, description, cover_image_path, external_landing_url, access_plan_keys, status, sort_order, published_at, archived_at, created_by.
+- `public.course_modules` — course_id, title, description, cover_image_path, access_plan_keys, status, sort_order, published_at, archived_at.
+- `public.lessons` — module_id, title, description, content_text, external_video_url, external_resource_url, duration_seconds, is_preview, status, sort_order, published_at, archived_at.
+- Enum `content_status` (draft/published/archived) já presente.
 
-## Fase 2 — Migration: admin permanente
+**Não vou criar migrations** — apenas se um campo extra (ex.: `legacy_lesson_id`) for indispensável. Como o pack guarda `legacy_*` apenas para auditoria, vou armazenar isso em memória local na tela de importação (e exportar um relatório JSON) em vez de poluir o schema.
 
-`supabase/migrations/20260621_protect_designated_platform_admin.sql`
+## Rotas novas
 
-```sql
-create or replace function public.ensure_designated_platform_admin()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-begin
-  if lower(trim(new.email)) = 'contact@casaalchemystudio.com' then
-    insert into public.user_roles (user_id, role)
-    values (new.id, 'admin'::public.app_role)
-    on conflict (user_id, role) do nothing;
-  end if;
-  return new;
-end;
-$$;
+- `/admin/courses` — lista de cursos (todos os status) com busca, filtro por status, botão "New course", botão "Import Manus".
+- `/admin/courses/new` — formulário de criação.
+- `/admin/courses/:courseId` — edição do curso + lista de módulos (drag-handle de ordem, criar/editar/arquivar inline).
+- `/admin/courses/:courseId/modules/:moduleId` — edição do módulo + lista de aulas (reordenar, criar/editar/arquivar inline).
+- `/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId` — edição completa da aula (campos do comando + checklist de publicação).
+- `/admin/content-import` — importador do JSON Manus.
 
-drop trigger if exists ensure_designated_platform_admin_ins on auth.users;
-create trigger ensure_designated_platform_admin_ins
-after insert on auth.users
-for each row execute function public.ensure_designated_platform_admin();
+Todas atrás de `<AdminGuard>` (já existente, usa role `admin` server-side via `auth-me`). Sem checagem por e-mail no frontend.
 
-drop trigger if exists ensure_designated_platform_admin_upd on auth.users;
-create trigger ensure_designated_platform_admin_upd
-after update of email on auth.users
-for each row execute function public.ensure_designated_platform_admin();
+## Componentes/arquivos novos
 
--- backfill
-insert into public.user_roles (user_id, role)
-select u.id, 'admin'::public.app_role
-from auth.users u
-where lower(trim(u.email)) = 'contact@casaalchemystudio.com'
-on conflict (user_id, role) do nothing;
+```
+src/manus/pages/admin/
+  AdminCoursesList.tsx
+  AdminCourseForm.tsx          // new + edit
+  AdminCourseDetail.tsx        // edit course + módulos
+  AdminModuleDetail.tsx        // edit module + aulas
+  AdminLessonDetail.tsx        // edit lesson
+  AdminContentImport.tsx       // importador JSON
+src/manus/lib/admin-content.ts // helpers supabase: list/create/update/reorder/publish/archive
+src/manus/components/admin/
+  StatusBadge.tsx
+  ReorderableList.tsx          // setas up/down (sem libs extras)
+  PublishChecklist.tsx         // valida antes de "Publish"
+  ThumbnailField.tsx           // upload p/ bucket public-assets + preview + URL manual
+src/manus/data/manus-import.json   // cópia local do alchemy_content_import_template.json
 ```
 
-Não cria membership/entitlement falso.
+Arquivos alterados:
 
----
+- `src/App.tsx` — registrar as 6 rotas.
+- `src/manus/pages/AdminPanel.tsx` — adicionar card "Manage Courses" e "Import Manus content".
+- `src/components/AdminGuard.tsx` — sem mudança funcional (já valida via `useAuth.isAdmin`).
 
-## Fase 3 — Proteção contra rebaixamento
+## CRUD — regras
 
-Na mesma migration:
+- Todas as escritas via cliente Supabase nativo (`@/integrations/supabase/client`), confiando em RLS (`has_role(auth.uid(),'admin')`).
+- `status` muda via ações dedicadas: **Save draft**, **Publish** (seta `published_at=now()`, `archived_at=null`), **Archive** (seta `archived_at=now()`, `status='archived'`), **Restore to draft**.
+- Reordenação: setas ↑/↓ atualizam `sort_order` em transação cliente (update individual; lista pequena, ok).
+- Slug do curso: input + botão "auto" a partir do title; valida unicidade no submit (catch error 23505).
+- `access_plan_keys`: multi-select com enum `membership_plan_key`.
 
-```sql
-create or replace function public.protect_designated_admin_role()
-returns trigger
-language plpgsql
-security definer
-set search_path = public, auth
-as $$
-declare
-  v_protected_id uuid;
-begin
-  select id into v_protected_id
-  from auth.users
-  where lower(trim(email)) = 'contact@casaalchemystudio.com'
-  limit 1;
+## Aulas
 
-  if tg_op = 'DELETE' and old.user_id = v_protected_id and old.role = 'admin' then
-    raise exception 'Cannot remove admin role from designated platform administrator';
-  end if;
-  if tg_op = 'UPDATE' and old.user_id = v_protected_id and old.role = 'admin' and new.role <> 'admin' then
-    raise exception 'Cannot change admin role of designated platform administrator';
-  end if;
-  return coalesce(new, old);
-end;
-$$;
+- Edição completa: title, description, content_text (textarea), external_video_url, external_resource_url, duration_seconds (minutos+segundos), is_preview (toggle), sort_order.
+- **PublishChecklist** bloqueia "Publish" quando:
+  - `external_video_url` vazio OU contém `/manus-storage/` OU `placeholder-video.mp4`.
+  - title vazio.
+- Mostra preview do vídeo (iframe genérico) se URL parece YouTube/Vimeo.
 
-drop trigger if exists protect_designated_admin_role_trg on public.user_roles;
-create trigger protect_designated_admin_role_trg
-before update or delete on public.user_roles
-for each row execute function public.protect_designated_admin_role();
-```
+## Thumbnails
 
----
+- `ThumbnailField` aceita:
+  1. Upload p/ bucket `public-assets` (já existe, público) em `course-covers/`, `module-covers/`, `lesson-covers/` (lessons não têm coluna; só curso/módulo).
+  2. URL manual (caminhos legacy `/manus-storage/...` aceitos mas marcados em vermelho como "missing asset").
+- Renderiza preview e badge de aviso quando o path começa com `/manus-storage/`.
 
-## Fase 4 — Regra única de acesso (frontend)
+## Importador `/admin/content-import`
 
-Revisar:
-- `src/manus/hooks/useAuth.ts` → garantir `isAdmin` derivado de `roles.includes("admin")` e `hasPaidAccess = isAdmin || isMember || hasCourseAccess` ✅ já está; apenas garantir `defaultPath = isAdmin ? '/admin' : ...`.
-- `src/manus/components/GlobalAccessController.tsx` → nunca redirecionar admin para `/plans`.
-- `src/components/AdminGuard.tsx` → ok.
-- Páginas de curso/módulo/aula → liberar quando `isAdmin`.
+Fluxo:
 
-Sem usar e-mail como fonte de autorização.
+1. JSON do pack já embarcado como `src/manus/data/manus-import.json` (também aceita upload `.json` manual para versões futuras).
+2. Mostra **dry-run**: cards de cursos/módulos/aulas que serão criados, com avisos do pack.
+3. Botão "Import as draft" → cria/atualiza por slug+lesson_number:
+   - `courses` upsert por `slug` (status='draft').
+   - `course_modules` insert (1 módulo "Course lessons" por curso, sort_order=1).
+   - `lessons` upsert por `(module_id, sort_order)` com status='draft'.
+4. Nenhuma URL placeholder vai para `external_video_url` — campo fica `null` e a aula entra como draft.
+5. Relatório final no UI + download `import-report.json`: cursos importados, aulas importadas, links faltantes, thumbnails faltantes (paths `/manus-storage/...`), divergências.
 
----
+## Segurança
 
-## Fase 5 — Redirecionamento de admin
+- Admin only via `<AdminGuard>` (server-side role check).
+- Nenhum uso de service role no frontend.
+- Nenhuma checagem por e-mail.
+- RLS já existente nas tabelas controla escrita.
 
-- Pós-login: admin → `/admin` (ou `/dashboard` se preferir manter dashboard). Definir `/admin`.
-- `/plans` para admin: banner "Administrator access is active. No subscription is required." + botões de compra desabilitados.
+## Fora de escopo (próximas fases)
 
----
+- Preencher `links_a_preencher.csv` (Fase 4) — feito pelo admin via UI depois.
+- Recuperar thumbnails reais (Fase 5).
+- Comunidade/Eventos/Workshops/Revista/Fornecedores/Ofertas (Fase 7).
+- Stripe (Fase 8).
 
-## Fase 6 — Painel `Users & Access`
+## Entregáveis no final da execução
 
-Nova seção em `src/manus/pages/AdminPanel.tsx` (ou subpágina `/admin/users/:id`):
-- Lista pesquisável por nome, e-mail, UUID.
-- Detalhe do usuário com avatar, nome, e-mail, user_id, role, created_at, membership (plano/status/source/início/vencimento), Stripe customer/subscription IDs **mascarados** (`cus_***1234`), entitlements ativos, último pagamento. Sem secrets.
+- Rotas criadas (lista acima).
+- Arquivos criados/alterados (lista acima).
+- Resultado do dry-run do importador: 4 cursos / 12 aulas detectadas no pack (com base no JSON anexado).
+- Lista de links faltantes e thumbnails faltantes geradas pelo importador.
+- Resultado de build/typecheck (rodado automaticamente).
 
----
-
-## Fase 7 — Gestão de roles
-
-Botões Promote/Demote chamando Edge Function (Fase 16). Bloqueio explícito para `contact@casaalchemystudio.com`. Confirmação especial para auto-demote. Sem localStorage.
-
----
-
-## Fase 8 — Liberação manual de acesso
-
-Via Edge Function `admin-manage-user-access`:
-- `grant_membership(plan_key in ['monthly_member','annual_member'], starts_at, ends_at, reason)` → `memberships` com `source='manual'`.
-- `grant_course_entitlement(course_id, starts_at, ends_at, reason)` → `course_entitlements` com `source='manual', active=true`.
-- Nunca cria cobrança Stripe.
-
-UI com seleção de curso, datas e motivo opcional.
-
----
-
-## Fase 9 — Revogação segura
-
-Apenas para `source='manual'`:
-- membership → `status='cancelled'`, mantém histórico.
-- entitlement → `active=false`.
-
-Nunca apagar registros financeiros nem `stripe_*`.
-
----
-
-## Fase 10 — Edge Function `admin-manage-stripe-subscription`
-
-`supabase/functions/admin-manage-stripe-subscription/index.ts` com `verify_jwt = true`:
-1. Validar JWT via `getClaims`.
-2. Confirmar role admin no servidor (`user_roles` consultado com service role).
-3. Usar `STRIPE_SECRET_KEY` apenas dentro da function.
-4. Ações: `cancel_at_period_end`, `cancel_immediately`, `resync_subscription`.
-5. Deixar o `stripe-webhook` sincronizar o banco.
-6. Auditoria registrada (Fase 15).
-
----
-
-## Fase 11 — `cancel_at_period_end`
-
-Chama `stripe.subscriptions.update(id, { cancel_at_period_end: true })`. Mensagem: "The subscription will remain active until the end of the current billing period." Audit log.
-
-## Fase 12 — `cancel_immediately`
-
-Exige confirmação digitando o e-mail do alvo. Chama `stripe.subscriptions.cancel(id)`. Sem refund. Sem apagar histórico. Audit log.
-
-## Fase 13 — `resync_subscription`
-
-`stripe.subscriptions.retrieve(id)` → atualiza `stripe_subscriptions` (status, current_period_end, cancel_at_period_end, last_synced_at). Sem criar cobrança.
-
----
-
-## Fase 14 — "Desvincular" decomposto
-
-Sem botão genérico. UI separa em: Revogar acesso manual / Cancel at period end / Cancel immediately / Resync / Remove entitlement / Change role. Bloquear remoção de `stripe_customer_id` / `stripe_subscription_id` enquanto a assinatura Stripe estiver ativa.
-
----
-
-## Fase 15 — Audit log
-
-Migration adicional ou na mesma: `public.admin_access_audit_log`:
-```sql
-create table public.admin_access_audit_log (
-  id bigserial primary key,
-  actor_user_id uuid not null,
-  target_user_id uuid,
-  action text not null,
-  entity_type text,
-  entity_id text,
-  reason text,
-  before_state jsonb,
-  after_state jsonb,
-  created_at timestamptz not null default now()
-);
-grant select on public.admin_access_audit_log to authenticated;
-grant all on public.admin_access_audit_log to service_role;
-alter table public.admin_access_audit_log enable row level security;
-create policy "admin read audit" on public.admin_access_audit_log
-  for select to authenticated using (public.has_role(auth.uid(), 'admin'));
--- writes restritos a service_role via edge functions
-```
-
----
-
-## Fase 16 — Edge Function `admin-manage-user-access`
-
-`supabase/functions/admin-manage-user-access/index.ts`, `verify_jwt = true`. Ações:
-- `grant_membership`
-- `revoke_membership`
-- `grant_course_entitlement`
-- `revoke_course_entitlement`
-- `promote_admin`
-- `demote_admin`
-
-Regras:
-- Executor derivado do JWT (`getClaims`).
-- Validar admin via `user_roles` server-side.
-- Validar IDs, `course_id`, datas.
-- Bloquear demote/revoke do admin principal.
-- Service role apenas dentro da função.
-- Audit log em todas as ações.
-
----
-
-## Fase 17 — UI de usuário admin
-
-`/admin/users/:id` com abas: Overview / Access / Courses / Billing / Audit. Ações com diálogos: explicação, impacto, confirmação, loading, resultado, erro. Sem update otimista. Recarrega dados após cada ação.
-
----
-
-## Fase 18 — Auditoria RLS
-
-Revisar e documentar policies em `docs/ADMIN_SYSTEM_AUDIT.md`:
-- `profiles`, `user_roles`, `memberships`, `course_entitlements`, `stripe_*` → student lê apenas o próprio, admin lê tudo via `has_role`, escrita administrativa só via Edge Function/service role, anon sem acesso.
-- Nenhum `using (true)` para write.
-- Nenhum service role no frontend.
-
-Corrigir policies divergentes em migration anexa, se encontradas.
-
----
-
-## Fase 19 — Testes
-
-`src/test/` (vitest) e `supabase/functions/*/index.test.ts` (Deno) cobrindo os 19 casos listados. Rodar typecheck/test/build/lint e corrigir.
-
----
-
-## Fase 20 — Sem deploy remoto
-
-Nesta execução vou:
-- Criar migrations, Edge Functions, UI, testes.
-- Rodar typecheck/testes locais.
-- Apresentar diff e relatório.
-
-Não vou: `db push`, deploy de Edge Functions, cancelamento Stripe real, alteração real de usuário. Paro e peço confirmação antes de aplicar no Supabase.
-
----
-
-## Relatório final (após implementação)
-
-Vou entregar:
-- Lista de arquivos alterados/criados.
-- Migrations criadas (Fase 2/3/15 e ajustes RLS).
-- Triggers (`ensure_designated_platform_admin_*`, `protect_designated_admin_role_trg`).
-- Edge Functions (`admin-manage-stripe-subscription`, `admin-manage-user-access`).
-- Páginas administrativas (`/admin/users`, `/admin/users/:id` com 5 abas).
-- Ações disponíveis e fluxo de confirmação.
-- Resultado de testes/build/lint.
-- Riscos e operações remotas pendentes.
-- Confirmação: nenhum novo Supabase, nenhum novo banco, nenhum Product/Price Stripe alterado, nenhum pagamento real, nenhum cancelamento real, nenhum secret exposto, `main` não tocada.
-
----
-
-## Confirmação para prosseguir
-
-Aprovando este plano eu começo pela **Fase 1 (auditoria)** + **Fase 2/3/15 (migrations)** + **Fase 16/10 (Edge Functions)** em um primeiro lote, depois UI e testes. Tudo local, sem deploy.
+Aprove para eu começar a implementar.
