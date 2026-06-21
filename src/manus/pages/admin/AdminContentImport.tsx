@@ -102,13 +102,13 @@ export default function AdminContentImport() {
 
   return (
     <AdminShell
-      title="Content Import — Manus"
-      description="Import the Alchemy Academy Manus content pack as draft. Placeholder URLs are stripped; nothing is published automatically."
-      crumbs={[{ label: "Content import" }]}
+      title="Importar catálogo de cursos"
+      description="Suba um JSON de catálogo e gere cursos, módulos e aulas como rascunho. URLs de vídeo precisam ser preenchidas depois; nada é publicado automaticamente."
+      crumbs={[{ label: "Importar conteúdo" }]}
       actions={
         <>
-          <Button variant="outline" onClick={() => navigate("/admin/courses")}>Back to courses</Button>
-          <Button onClick={runImport} disabled={running}><Upload className="w-4 h-4 mr-1" /> {running ? "Importing…" : "Import as draft"}</Button>
+          <Button variant="outline" onClick={() => navigate("/admin/courses")}>Voltar para cursos</Button>
+          <Button onClick={runImport} disabled={running}><Upload className="w-4 h-4 mr-1" /> {running ? "Importando…" : "Importar como rascunho"}</Button>
         </>
       }
     >
