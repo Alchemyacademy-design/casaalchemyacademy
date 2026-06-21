@@ -1,0 +1,606 @@
+{
+  "source": {
+    "database_export": "MANUS_DATABASE_EXPORT (1).sql",
+    "github_repository": "https://github.com/Alchemyacademy-design/plataforma-Alchemy-Academy",
+    "github_file": "client/src/pages/Modules.tsx"
+  },
+  "warnings": [
+    "No real external lesson URLs were found.",
+    "29 of 30 lessons point to placeholder-video.mp4.",
+    "1 lesson points to a private Manus storage MP4 that must be recovered.",
+    "Final UI catalogue and SQL curriculum are inconsistent.",
+    "Import all content as draft and review before publishing."
+  ],
+  "courses": [
+    {
+      "legacy_module_id": 1,
+      "display_number": 1,
+      "slug": "the-path-to-a-colourful-life",
+      "title": "The path to a COLOURFUL life",
+      "subtitle": "Discover how to use the same intricate colour techniques designers rely on, broken down into simple steps, to create a unique space with a clear, intentional outcome.",
+      "description": "Learn the foundations of colour theory and how to apply it to your home design.",
+      "cover_image_path": "/manus-storage/course-colourful_0478abef.png",
+      "status": "draft",
+      "sort_order": 1,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "medium",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Colour fundamentals and theory",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 1,
+              "lesson_number": "1.1",
+              "sort_order": 1,
+              "title": "Reading the Color Wheel and Color Vocabulary",
+              "description": "Learn how to read and interpret the color wheel, identify primary and secondary colors, and understand essential color vocabulary. This foundational lesson equips you with the language and visual tools needed to confidently discuss and apply color theory in your design work.",
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 2,
+              "lesson_number": "1.2",
+              "sort_order": 2,
+              "title": "Warm vs Cool Colors and Color Relationships",
+              "description": "Explore the distinction between warm and cool colors and understand how they interact. Learn about analogous colors (colors that sit next to each other on the color wheel) and complementary colors (colors that sit opposite each other). These relationships form the basis for creating harmonious or dynamic color schemes in your interiors.",
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 3,
+              "lesson_number": "1.3",
+              "sort_order": 3,
+              "title": "Tint, Shade, and Tone: The Building Blocks of Color",
+              "description": "Understand the significance of tint (color + white), shade (color + black), and tone (color + gray). These three concepts are essential for creating depth, sophistication, and visual interest in your color palettes. Learn how manipulating these properties allows you to work with a single color in multiple ways.",
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 2,
+      "display_number": 2,
+      "slug": "the-sacred-bedroom",
+      "title": "The sacred BEDROOM",
+      "subtitle": "Create a bedroom that feels intentional, not accidental — learn the overlooked techniques that designers use to bring everything together.",
+      "description": "Transform your bedroom into a peaceful retreat with colour and design principles.",
+      "cover_image_path": "/manus-storage/course-bedroom_f6b15eed.png",
+      "status": "draft",
+      "sort_order": 2,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Creating your sanctuary",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 4,
+              "lesson_number": "2.1",
+              "sort_order": 1,
+              "title": "Understanding Warm Colors",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 5,
+              "lesson_number": "2.2",
+              "sort_order": 2,
+              "title": "Creating Cozy Spaces",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 6,
+              "lesson_number": "2.3",
+              "sort_order": 3,
+              "title": "Balancing Warm Palettes",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 3,
+      "display_number": 3,
+      "slug": "the-alchemic-kitchen",
+      "title": "The alchemic KITCHEN",
+      "subtitle": "The most expensive space to get wrong is your kitchen — discover the intentional design choices that increase value and make everyday life easier.",
+      "description": "Design a functional and beautiful kitchen space.",
+      "cover_image_path": "/manus-storage/course-kitchen_93724e97.png",
+      "status": "draft",
+      "sort_order": 3,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "The heart of the home",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 7,
+              "lesson_number": "3.1",
+              "sort_order": 1,
+              "title": "Understanding Cool Colors",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 8,
+              "lesson_number": "3.2",
+              "sort_order": 2,
+              "title": "Creating Serene Spaces",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 9,
+              "lesson_number": "3.3",
+              "sort_order": 3,
+              "title": "Sophisticated Cool Designs",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 4,
+      "display_number": 4,
+      "slug": "the-elemental-bathroom",
+      "title": "The elemental BATHROOM",
+      "subtitle": "When every element is permanent, every decision matters — learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home.",
+      "description": "Create a luxurious bathroom experience.",
+      "cover_image_path": "/manus-storage/course-bathroom_fed5d184.png",
+      "status": "draft",
+      "sort_order": 4,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Spa-like spaces",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 10,
+              "lesson_number": "4.1",
+              "sort_order": 1,
+              "title": "The Neutral Palette",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 11,
+              "lesson_number": "4.2",
+              "sort_order": 2,
+              "title": "Layering Neutrals",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 12,
+              "lesson_number": "4.3",
+              "sort_order": 3,
+              "title": "Neutral with Accents",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 5,
+      "display_number": 5,
+      "slug": "the-soulful-living-room",
+      "title": "The soulful LIVING ROOM",
+      "subtitle": "Furniture is the most consequential decision in a living room — and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense.",
+      "description": "Design living areas that bring people together.",
+      "cover_image_path": "/manus-storage/course-living-room_fec0ad04.png",
+      "status": "draft",
+      "sort_order": 5,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Social and comfortable spaces",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 13,
+              "lesson_number": "5.1",
+              "sort_order": 1,
+              "title": "Complementary Theory",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 14,
+              "lesson_number": "5.2",
+              "sort_order": 2,
+              "title": "Dynamic Interiors",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 15,
+              "lesson_number": "5.3",
+              "sort_order": 3,
+              "title": "Balancing Contrast",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 6,
+      "display_number": 6,
+      "slug": "the-crafted-dining-room",
+      "title": "The crafted DINING ROOM",
+      "subtitle": "A dining room should be beautiful enough to linger in and practical enough to live in. You don't have to choose between the two.",
+      "description": "Create inviting dining environments.",
+      "cover_image_path": "/manus-storage/course-dining-room_b319fb05.png",
+      "status": "draft",
+      "sort_order": 6,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Gathering spaces",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 16,
+              "lesson_number": "6.1",
+              "sort_order": 1,
+              "title": "Analogous Theory",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 17,
+              "lesson_number": "6.2",
+              "sort_order": 2,
+              "title": "Harmonious Designs",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 18,
+              "lesson_number": "6.3",
+              "sort_order": 3,
+              "title": "Sophisticated Analogous Palettes",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 7,
+      "display_number": 7,
+      "slug": "catalyst-workspace",
+      "title": "Catalyst WORKSPACE",
+      "subtitle": "A home office shouldn't be an afterthought. Create a designated space that works for your life and looks considered on camera.",
+      "description": "Design a home office that inspires productivity.",
+      "cover_image_path": "/manus-storage/course-workspace_ff50b0d7.png",
+      "status": "draft",
+      "sort_order": 7,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Productive workspaces",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 19,
+              "lesson_number": "7.1",
+              "sort_order": 1,
+              "title": "Monochromatic Fundamentals",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/full_hd(1)_eca21418.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 20,
+              "lesson_number": "7.2",
+              "sort_order": 2,
+              "title": "Texture and Contrast",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 21,
+              "lesson_number": "7.3",
+              "sort_order": 3,
+              "title": "Monochromatic in Practice",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 8,
+      "display_number": 8,
+      "slug": "kids-legacy-draft",
+      "title": "Kids (legacy database only)",
+      "subtitle": "Legacy curriculum record present in the Manus database but absent from the final course catalogue UI.",
+      "description": "Design spaces that grow with your children.",
+      "cover_image_path": null,
+      "status": "archived",
+      "sort_order": 8,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "high",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Fun and functional",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 22,
+              "lesson_number": "8.1",
+              "sort_order": 1,
+              "title": "The 60-30-10 Rule",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 23,
+              "lesson_number": "8.2",
+              "sort_order": 2,
+              "title": "Creating Focal Points",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 24,
+              "lesson_number": "8.3",
+              "sort_order": 3,
+              "title": "Strategic Accents",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 10,
+      "display_number": 9,
+      "slug": "enchanted-outdoors",
+      "title": "Enchanted OUTDOORS",
+      "subtitle": "Your outdoor space should be the most lived-in room in the house. Discover how to create an environment that's social, intentional, and well within reach.",
+      "description": "Design beautiful outdoor areas.",
+      "cover_image_path": "/manus-storage/course-outdoors_879d59b7.png",
+      "status": "draft",
+      "sort_order": 9,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "low",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Extending your living space",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 28,
+              "lesson_number": "10.1",
+              "sort_order": 1,
+              "title": "Current Color Trends",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 29,
+              "lesson_number": "10.2",
+              "sort_order": 2,
+              "title": "Developing Personal Style",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 30,
+              "lesson_number": "10.3",
+              "sort_order": 3,
+              "title": "Timeless Design Principles",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "legacy_module_id": 9,
+      "display_number": 10,
+      "slug": "knowledgeable-cheat-sheets",
+      "title": "Knowledgeable CHEAT SHEETS",
+      "subtitle": "See your home the way a designer does — understanding light, proportion, styling and the invisible rules that make a space feel right.",
+      "description": "Master advanced interior design concepts.",
+      "cover_image_path": "/manus-storage/course-design_1ede2590.png",
+      "status": "draft",
+      "sort_order": 10,
+      "needs_editorial_confirmation": true,
+      "mapping_confidence": "low",
+      "modules": [
+        {
+          "title": "Course lessons",
+          "description": "Advanced design principles",
+          "status": "draft",
+          "sort_order": 1,
+          "lessons": [
+            {
+              "legacy_lesson_id": 25,
+              "lesson_number": "9.1",
+              "sort_order": 1,
+              "title": "Natural Light Effects",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 26,
+              "lesson_number": "9.2",
+              "sort_order": 2,
+              "title": "Artificial Lighting",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            },
+            {
+              "legacy_lesson_id": 27,
+              "lesson_number": "9.3",
+              "sort_order": 3,
+              "title": "Choosing Colors for Your Light",
+              "description": null,
+              "external_video_url": null,
+              "external_resource_url": null,
+              "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+              "status": "draft",
+              "is_preview": false
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
