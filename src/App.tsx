@@ -29,11 +29,12 @@ import PaymentCancel from "@/manus/pages/PaymentCancel";
 import Plans from "@/manus/pages/Plans";
 import PostAuthRedirect from "@/manus/pages/PostAuthRedirect";
 import NotFound from "@/manus/pages/NotFound";
+import AdminGuard from "@/components/AdminGuard";
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <GlobalAccessController />
@@ -60,8 +61,8 @@ export default function App() {
             <Route path="/forgot-password" element={<ResetPassword />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/update-password" element={<UpdatePassword />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/admin/analytics" element={<AdminAnalytics />} />
+            <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
+            <Route path="/admin/analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
