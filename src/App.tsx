@@ -29,11 +29,12 @@ import PaymentCancel from "@/manus/pages/PaymentCancel";
 import Plans from "@/manus/pages/Plans";
 import PostAuthRedirect from "@/manus/pages/PostAuthRedirect";
 import NotFound from "@/manus/pages/NotFound";
+import AdminGuard from "@/components/AdminGuard";
 
 export default function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
           <Toaster />
           <GlobalAccessController />
