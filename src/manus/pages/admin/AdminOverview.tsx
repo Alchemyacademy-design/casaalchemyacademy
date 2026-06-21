@@ -213,13 +213,15 @@ export default function AdminOverview() {
           </h3>
           {isLoading ? (
             <p className="text-sm text-foreground/60">Loading…</p>
-          ) : (data?.recentAudit?.length ?? 0) === 0 ? (
+          ) : !data?.recentAudit?.available ? (
             <p className="text-sm text-foreground/60">
-              No audit entries yet. Apply the Phase 1 migration to enable the audit log.
+              Audit log unavailable ({data?.recentAudit?.reason ?? "unknown"}): {data?.recentAudit?.message ?? "pending migration"}.
             </p>
+          ) : data.recentAudit.rows.length === 0 ? (
+            <p className="text-sm text-foreground/60">No admin activity recorded yet.</p>
           ) : (
             <ul className="space-y-2 text-sm">
-              {data!.recentAudit.map((a) => (
+              {data.recentAudit.rows.map((a) => (
                 <li key={a.id} className="flex justify-between border-b border-border/30 py-1.5">
                   <span className="truncate mr-2">
                     <span className="font-mono text-xs">{a.action}</span>
