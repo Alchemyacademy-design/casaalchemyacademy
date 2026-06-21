@@ -1,184 +1,143 @@
-# Plano — Central Administrativa 100% funcional
+# Plano: Sistema 100% funcional — front ↔ Supabase em todas as áreas
 
-Objetivo: deixar o Admin Center inteiro operando no preview/front-end com dados reais do Supabase, sem mocks, com o e-mail `contact@casaalchemystudio.com` sempre reconhecido como administrador e com todos os botões principais salvando, renderizando e atualizando a UI imediatamente.
+## Estado atual (auditoria rápida)
 
-## Correção imediata já encaminhada
+✅ **Já lendo do Supabase:** `/admin/*` (todas), `/mycourses`, `/courses/:id`, `/community`, `/suppliers`, `/dashboard` (parcial).
 
-- Corrigir o erro que quebrava `/admin/analytics` no gráfico de receita.
-- Garantir que o endpoint de sessão (`auth-me`) reforce automaticamente o papel `admin` quando o usuário logado for `contact@casaalchemystudio.com`.
-- Reexecutar o bootstrap do administrador designado para confirmar que esse usuário já possui role `admin`.
+❌ **Ainda com dados estáticos / desconectado do banco:**
 
-## Fase 1 — Acesso administrativo blindado
+| Página | Tabela alvo | O que falta |
+|---|---|---|
+| `/` Home | `courses` + `live_workshops` (próximos) | `MODULES`, `TESTIMONIALS`, `BENEFITS` hardcoded |
+| `/courses` Guides | `courses` | catálogo com 10 módulos fixos |
+| `/events` | `events` | `UPCOMING_EVENTS`/`PAST_EVENTS` arrays |
+| `/magazine` | `magazine_issues` | `ARCHIVES` array, download fake |
+| `/live-workshops` | `live_workshops` | página estática |
+| `/plans` | `membership_plans` | conteúdo hardcoded |
+| `/profile` | `profiles` + `memberships` | sem leitura/edição real |
+| `/dashboard` | múltiplas | só usa tRPC modules; falta progress real, próximos eventos, certificados |
 
-1. Verificar o fluxo completo de login no preview:
-   - login com `contact@casaalchemystudio.com`;
-   - `auth-me` retorna `roles: ["admin"]`;
-   - `useAuth().isAdmin` fica `true`;
-   - `AdminGuard` libera `/admin`, `/admin/courses`, `/admin/analytics` e demais rotas.
+⚠️ **Risco transversal:** algumas tabelas podem ter `GRANT` / RLS faltando para leitura anônima ou de membro autenticado — confirmamos caso a caso e adicionamos numa única migração.
 
-2. Consolidar fallback seguro:
-   - se o carregamento principal falhar, a leitura direta de `user_roles` continua funcionando;
-   - nenhuma regra usa comparação de e-mail no front-end para liberar admin;
-   - o e-mail designado só é usado no backend para auto-restaurar a role.
+---
 
-3. QA obrigatório:
-   - usuário admin entra direto no Admin Center;
-   - usuário comum recebe 403;
-   - logout/login atualiza permissões sem precisar limpar cache.
+## Fases (executar em ordem)
 
-## Fase 2 — Inventário de telas e botões do Admin Center
+### Fase A — Auditoria de RLS/GRANT (uma migração só)
+- Edge function `admin-audit` (já criada) varre, como admin logado, `SELECT count` em cada tabela exposta no front. Acrescentar leitura como `anon` e como `authenticated` simulando políticas reais.
+- Para cada falha PostgREST/`42501`, gerar uma migração única adicionando:
+  - `GRANT SELECT ON public.<t> TO anon` (apenas tabelas com policy `status='published'` USING true).
+  - `GRANT SELECT, INSERT, UPDATE, DELETE ON public.<t> TO authenticated` quando faltar.
+  - `GRANT ALL ON public.<t> TO service_role` quando faltar.
+- Confirmar que policies de **insert/update/delete** para admin usam `has_role(auth.uid(),'admin')` em: `events`, `live_workshops`, `magazine_issues`, `membership_plans`, `exclusive_deals`, `certificates`, `suppliers`, `supplier_categories`.
 
-Mapear e testar cada rota administrativa:
+### Fase B — Páginas públicas dinâmicas
+- **`/events`**: substituir arrays por `supabase.from('events').select('*').eq('status','published').order('starts_at')`; separar futuros × passados por `starts_at`. Botão "Register" usa `registrations` (já existe RPC `register_for_event`).
+- **`/live-workshops`**: idem com `live_workshops`. Mostrar `join_url` só para usuários com `membership` ativa.
+- **`/magazine`**: ler `magazine_issues` publicadas, link "Read" usa `external_file_url` real.
+- **`/courses` (Guides)**: transformar em catálogo público de cursos lidos de `courses` `status='published'`. Manter o painel "What's included" e o upsell. CTA "Get Casa Consult" abre `SubscribeModal` com o `slug` correto.
+- **`/plans`**: ler `membership_plans` (key, name, description, duration, all_courses, community_access, events_access, active=true), ordenar por `id`. Renderizar features dinâmicas. Botão de assinar continua desativado com mensagem "Stripe em breve" (alinhado à memória).
 
-```text
-/admin
-/admin/courses
-/admin/courses/new
-/admin/courses/:id
-/admin/lessons
-/admin/students
-/admin/events
-/admin/workshops
-/admin/magazine
-/admin/suppliers
-/admin/supplier-categories
-/admin/deals
-/admin/plans
-/admin/certificates
-/admin/analytics
-/admin/diagnostics
-```
+### Fase C — Home dinâmica
+- Manter narrativa/copy, mas:
+  - Seção "Modules"/"Curriculum" lê `courses` publicadas (top 6).
+  - Seção "Próximos workshops" (nova ou no lugar de testimonials) lê 3 próximos `live_workshops` ou `events`.
+  - Botões `Login`/`Signup`/`Get Started` permanecem.
+- Manter `BENEFITS` e `TESTIMONIALS` (dados de marketing imutáveis), porém movê-los para `src/manus/content/home.ts` exportado para fácil futura edição.
 
-Para cada tela:
-- listar botões existentes;
-- identificar se apenas abre modal, salva no Supabase, atualiza lista, navega ou está quebrado;
-- registrar erro real: console, network, RLS, permissão, loading infinito ou renderização vazia.
+### Fase D — Perfil e Dashboard reais
+- **`/profile`**:
+  - Ler `profiles` do usuário (`auth.uid()`); permitir editar `full_name`, `display_name`, `avatar_url`, `country`, `bio` com UPDATE direto.
+  - Mostrar `memberships` ativas (plano, expiração) e cursos com `course_entitlements`.
+  - Botão "Logout".
+- **`/dashboard`**:
+  - Saudação com profile name.
+  - Progresso real: `lesson_progress` agregado por curso (% completo, próxima aula).
+  - Próximos `events` + `live_workshops` agendados.
+  - Certificados emitidos do usuário.
+  - Atalhos: continuar curso, abrir comunidade, ver workshops.
 
-## Fase 3 — Supabase, permissões e renderização
+### Fase E — Comunicação de escrita (botões reais)
+- **Registrar em evento/workshop**: chamar `register_for_event(target_type, target_id)` RPC; refletir estado "Inscrito" com `registrations` do usuário.
+- **Favoritar fornecedor**: `supplier_favorites` insert/delete com toast.
+- **Marcar aula completa**: já funcional em `CourseDetail`.
+- **Comunidade**: postar, responder, reagir — confirmar mutations existentes em `useCommunityData` e adicionar feedback visual de erro RLS (mesmo padrão de `describeError` do `AdminTablePage`).
+- **Editar perfil**: UPDATE em `profiles` com toast amigável.
 
-1. Conferir GRANTs e RLS das tabelas usadas pelo Admin Center:
-   - `courses`, `course_modules`, `lessons`;
-   - `profiles`, `user_roles`, `memberships`, `course_entitlements`;
-   - `events`, `live_workshops`, `magazine_issues`;
-   - `suppliers`, `supplier_categories`, `exclusive_deals`;
-   - `membership_plans`, `certificates`;
-   - tabelas de comunidade já criadas.
+### Fase F — Permissões & visibilidade por plano
+- Helper `useEntitlements()` central que devolve `{ isAdmin, isMember, hasCommunity, hasEvents, courseIds }` a partir de `memberships` + `course_entitlements` + `has_role`.
+- Aplicar em: gates dos vídeos (`CourseDetail`), botão "Join workshop", botão "Register event", `community` (read-only para não membros).
+- Estado `loading` claro, sem flash de "negado" antes da sessão carregar.
 
-2. Regra alvo:
-   - admin pode ler, criar, editar e excluir o conteúdo administrativo quando fizer sentido;
-   - estudante continua limitado por RLS;
-   - `service_role` mantém acesso total para Edge Functions;
-   - sem liberar dados sensíveis publicamente.
+### Fase G — Realtime onde faz sentido
+- Já existe em `community_posts`. Adicionar realtime em `events` e `live_workshops` (admin publica → site refresca via `invalidateQueries`).
+- Habilitar publication: `ALTER PUBLICATION supabase_realtime ADD TABLE public.events, public.live_workshops;` (migração curta).
 
-3. Corrigir renderização:
-   - se o banco retorna dados mas a tela não renderiza, corrigir mapeamento de campos;
-   - se a UI espera campos antigos, adaptar para o schema atual;
-   - se a query está filtrando status errado, ajustar para admin enxergar drafts e published.
+### Fase H — QA end-to-end
+- Roteiro Playwright (script único `e2e-fullsystem.py`) percorre:
+  1. Login admin → cria curso/módulo/aula com vídeo → publica.
+  2. Logout → login como membro de teste → vê o curso em `/mycourses`, abre, marca aula completa.
+  3. Admin cria evento → membro vê em `/events` e clica Register → confirma `registrations` no DB.
+  4. Admin publica workshop, magazine, deal, plano → membro/visitante vê.
+  5. Membro abre comunidade, posta, reage; outro membro recebe via realtime.
+  6. Membro edita perfil → reload mostra valor persistido.
+- Capturar screenshots por etapa e listar falhas.
 
-## Fase 4 — Cursos 100% funcionais
+---
 
-1. `/admin/courses`
-   - listar cursos reais;
-   - botão `New course` cria curso sem loading infinito;
-   - curso recém-criado aparece imediatamente;
-   - editar status, título, slug, descrição, ordem e publicação.
+## Detalhes técnicos
 
-2. `/admin/courses/:id`
-   - salvar cabeçalho do curso;
-   - criar, editar, reordenar e excluir módulos;
-   - criar, editar, reordenar e excluir lessons;
-   - toda ação invalida as queries certas e atualiza a lista sem reload.
+**Convenções a manter**
+- Hook `useAuth()` com `isAdmin`, `session`, `accessReady` — não checar role por email no front.
+- Toda mutation passa por `describeError()` (mesmo padrão do `AdminTablePage`) para mensagens amigáveis com hint de RLS.
+- `useQuery` keys padronizadas `["public", "<table>", filters]` e `["me", "<resource>"]` para invalidação cruzada.
 
-3. `/admin/lessons`
-   - edição em massa de lessons;
-   - status, vídeo, conteúdo, ordem e módulo vinculados corretamente;
-   - erros de RLS ou validação aparecem em toast claro.
+**Arquivos a criar**
+- `src/manus/hooks/useEntitlements.ts`
+- `src/manus/hooks/usePublicContent.ts` (events, workshops, magazine, plans, courses)
+- `src/manus/content/home.ts` (copy marketing)
+- `supabase/migrations/<ts>_grants_and_admin_policies.sql` (apenas o que faltar, gerado pós-auditoria)
+- `supabase/migrations/<ts>_enable_realtime_events_workshops.sql`
 
-## Fase 5 — CRUDs administrativos genéricos
+**Arquivos a reescrever**
+- `src/manus/pages/Home.tsx`
+- `src/manus/pages/Guides.tsx`
+- `src/manus/pages/Events.tsx`
+- `src/manus/pages/Magazine.tsx`
+- `src/manus/pages/LiveWorkshops.tsx`
+- `src/manus/pages/Plans.tsx`
+- `src/manus/pages/Profile.tsx`
+- `src/manus/pages/Dashboard.tsx`
 
-Transformar os CRUDs baseados em `AdminTablePage` em fluxos confiáveis:
+**Fora do escopo (alinhado à memória)**
+- Implementação real de checkout Stripe — botões seguem desativados com mensagem.
+- Mudanças em billing, webhooks, edge functions de pagamento.
 
-- `events`;
-- `live_workshops`;
-- `magazine_issues`;
-- `suppliers`;
-- `supplier_categories`;
-- `exclusive_deals`;
-- `membership_plans`;
-- `certificates`.
+---
 
-Para cada CRUD:
-- botão `New` cria registro válido com defaults corretos;
-- editar salva no Supabase;
-- excluir funciona ou vira soft-delete quando necessário;
-- campos JSON/datetime/boolean não quebram;
-- lista refetch/invalida cache após salvar.
+## Riscos & mitigação (premortem)
 
-## Fase 6 — Estudantes, permissões e acessos
+| Risco | Mitigação |
+|---|---|
+| RLS bloqueando leitura anon de `events`/`magazine`/etc | Auditoria A roda primeiro; migração corrige antes de tocar UI. |
+| Membro sem entitlement vê curso completo | `useEntitlements` centralizado + gate no Player. |
+| Tabelas vazias deixam home/dashboard com cara de "quebrado" | Estados de empty bem desenhados ("Em breve…"). |
+| Realtime explodindo conexões | Subscrição só dentro de `useEffect` com cleanup (regra já no projeto). |
+| Mutation falhando silenciosamente | `describeError` + toast obrigatório em toda mutação. |
+| RLS recursiva via `profiles` | Continuar usando `has_role` SECURITY DEFINER; nunca consultar `profiles`/`user_roles` dentro de uma policy de outra tabela diretamente. |
 
-1. `/admin/students`
-   - listar usuários reais;
-   - puxar roles, memberships e entitlements;
-   - abrir detalhe do estudante.
+---
 
-2. `/admin/users/:id`
-   - conceder/remover assinatura manual;
-   - conceder/remover acesso a curso;
-   - promover/rebaixar admin quando permitido;
-   - impedir remoção do admin designado;
-   - registrar auditoria quando aplicável.
+## Critério de aceite (Phase done)
+1. Nenhum array hardcoded de conteúdo (eventos, workshops, planos, magazine, cursos) nas páginas públicas.
+2. Toda mutation com toast amigável (sucesso/erro classificado).
+3. Roteiro Playwright H passa do início ao fim sem 401/403/RLS.
+4. Admin consegue publicar qualquer recurso e o site público reflete em ≤ 2s (invalidate + realtime onde aplica).
+5. Membro vê apenas o que seu plano libera; não-membro vê apenas o público.
 
-3. Limite de escopo:
-   - Stripe/billing continua fora de escopo até pedido explícito;
-   - botões de assinatura paga ficam desabilitados ou com mensagem clara quando dependerem de billing.
+---
 
-## Fase 7 — Analytics e diagnósticos
+## Ordem de execução sugerida
+A → B (events/magazine/workshops/plans) → D (profile/dashboard) → C (home dinâmica) → E (botões de escrita) → F (gates de plano) → G (realtime) → H (QA).
 
-1. `/admin/analytics`
-   - corrigir gráficos Recharts;
-   - tratar arrays vazios sem quebrar;
-   - mostrar cards e tabelas mesmo com dados parciais;
-   - remover dependência de dados mockados.
-
-2. `/admin/diagnostics`
-   - mostrar sessão, role admin, fonte do acesso e teste `auth-me`;
-   - botão de reteste atualiza o contexto de auth;
-   - mensagens em português ou neutras e acionáveis.
-
-## Fase 8 — Preview QA ponta a ponta
-
-Executar verificação real no navegador:
-
-```text
-Login admin
-→ /admin
-→ /admin/courses
-→ criar curso
-→ abrir curso
-→ criar módulo
-→ criar lesson
-→ voltar lista
-→ confirmar renderização imediata
-→ testar CRUDs principais
-→ abrir analytics
-→ validar sem ErrorBoundary
-```
-
-Também verificar:
-- console sem erros fatais;
-- network sem 401/403 inesperado;
-- nenhuma tela presa em loading infinito;
-- botões principais têm estado loading/success/error;
-- dados criados aparecem no Supabase e no front-end.
-
-## Entrega final
-
-Ao concluir a implementação:
-
-- Admin designado vinculado ao preview e ao front-end via `isAdmin` real.
-- Central administrativa navegável sem bloqueios indevidos.
-- Cursos, módulos e lessons funcionando com criação/edição/renderização imediata.
-- CRUDs administrativos salvando no Supabase.
-- Analytics sem crash.
-- Diagnóstico mostrando claramente se o usuário atual está como admin.
-- Relatório final atualizado com o que foi validado e qualquer pendência real restante.
+Posso começar pela Fase A já — me confirme se topa este escopo ou se prefere ajustar algo antes (por ex. manter `/courses` Guides como marketing puro, ou priorizar `/profile` antes de eventos).
