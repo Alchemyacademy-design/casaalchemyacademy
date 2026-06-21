@@ -10,6 +10,7 @@ import {
   processBillingEvent,
   stripeClient,
   supabaseAdmin,
+  type SupabaseAdmin,
 } from "../_shared/billing-core.ts";
 
 const ANNUAL_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
