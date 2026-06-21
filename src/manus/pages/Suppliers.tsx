@@ -11,11 +11,11 @@ export default function Suppliers() {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
-  const filtered = (suppliers as Array<{ room?: string | null; priceTier?: string | null }>).filter((s) => {
+  const filtered = (suppliers as Array<Record<string, unknown> & { room?: string | null; priceTier?: string | null }>).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
     return true;
-  });
+  }) as Array<Record<string, any>>;
 
   return (
     <MemberLayout>
