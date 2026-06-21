@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Lock, CheckCircle, ArrowRight } from "lucide-react";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 type CourseRow = {
   id: number;
@@ -175,13 +175,13 @@ export default function Modules() {
                       {lessonCount} lesson{lessonCount === 1 ? "" : "s"} {pct > 0 ? `· ${pct}% done` : ""}
                     </span>
                     {!locked ? (
-                      <Link href={`/courses/${c.id}`}>
+                      <Link to={`/courses/${c.id}`}>
                         <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
                           {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
                         </span>
                       </Link>
                     ) : (
-                      <Link href="/#pricing">
+                      <Link to="/#pricing">
                         <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>
                           Unlock <ArrowRight size={12} />
                         </span>

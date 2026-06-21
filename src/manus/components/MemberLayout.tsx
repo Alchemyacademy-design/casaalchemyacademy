@@ -2,7 +2,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Tag, Settings, Users, Gift, Shield } from "lucide-react";
 import { getLoginUrl } from "@/manus/const";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 
 interface MemberLayoutProps {
@@ -13,7 +13,7 @@ interface MemberLayoutProps {
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [location] = useLocation();
+  const location = useLocation().pathname;
   const handleLogout = async () => {
     await logout();
     window.location.assign("/login");

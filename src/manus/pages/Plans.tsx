@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Check, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,7 +28,7 @@ const plans = [
 ];
 
 export default function Plans() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { loading, isAuthenticated, isAdmin, isMember, activeEntitlements, logout } = useAuth();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionChoice>(null);
 

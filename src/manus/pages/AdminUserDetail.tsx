@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 // The DB types don't yet include `admin_access_audit_log` (migration pending).
@@ -31,7 +31,7 @@ import { toast } from "sonner";
 
 export default function AdminUserDetail() {
   const { id: userId = "" } = useParams<{ id: string }>();
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const { isAdmin, loading, user: actor } = useAuth();
   const queryClient = useQueryClient();
 
@@ -85,7 +85,7 @@ export default function AdminUserDetail() {
   const [confirmEmail, setConfirmEmail] = useState("");
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
-  if (!isAdmin) { setLocation("/"); return null; }
+  if (!isAdmin) { navigate("/"); return null; }
   if (!data && !isLoading) return <div className="p-10">User not found.</div>;
 
   const profile = data?.profile;
@@ -188,7 +188,7 @@ export default function AdminUserDetail() {
       <header className="border-b border-border/50 bg-card">
         <div className="container flex items-center justify-between py-6">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/admin")}>
+            <Button variant="ghost" size="sm" onClick={() => navigate("/admin")}>
               <ArrowLeft className="w-4 h-4 mr-1" />
               Back
             </Button>

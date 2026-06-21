@@ -2,7 +2,7 @@ import { useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { getLoginUrl } from "@/manus/const";
 import { Lock } from "lucide-react";
-import { Link, useLocation } from "wouter";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
 
@@ -100,7 +100,7 @@ export default function Home() {
       {/* ── Navigation ── */}
       <nav style={{ backgroundColor: "var(--aa-cream)", borderBottom: "1px solid var(--aa-cream-dark)" }} className="sticky top-0 z-50">
         <div className="container flex items-center justify-between" style={{ height: "64px" }}>
-          <Link href="/">
+          <Link to="/">
             <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "70px", width: "auto" }} />
           </Link>
           <div className="hidden md:flex items-center gap-8">
@@ -117,7 +117,7 @@ export default function Home() {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex flex-row gap-2 items-center">
-                <Link href="/dashboard">
+                <Link to="/dashboard">
                   <span className="btn-gold text-xs py-2 px-5">My Academy</span>
                 </Link>
                 <a href={getLoginUrl()} className="btn-gold text-xs py-2 px-5">Join</a>

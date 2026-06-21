@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { trpc } from "@/manus/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Clock } from "lucide-react";
 
 export default function PaymentSuccess() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
