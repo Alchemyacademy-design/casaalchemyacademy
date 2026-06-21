@@ -255,6 +255,7 @@ function LessonRow({
  * ============================================================ */
 function ModuleSection({
   module,
+  courseId,
   index,
   count,
   onMove,
@@ -262,6 +263,7 @@ function ModuleSection({
   onDeleted,
 }: {
   module: Module;
+  courseId: number;
   index: number;
   count: number;
   onMove: (dir: -1 | 1) => Promise<void>;
@@ -269,6 +271,15 @@ function ModuleSection({
   onDeleted: () => void;
 }) {
   const qc = useQueryClient();
+
+  // Invalidate every view that lists modules/lessons for this course.
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
+    qc.invalidateQueries({ queryKey: ["admin", "course", courseId, "modules"] });
+    qc.invalidateQueries({ queryKey: ["admin", "course", courseId, "all-lessons"] });
+    qc.invalidateQueries({ queryKey: ["admin", "courses-tree"] });
+  };
+
   const { data: lessons = [], refetch } = useQuery({
     queryKey: ["admin", "module-lessons", module.id],
     queryFn: () => listLessons(module.id),
@@ -302,6 +313,7 @@ function ModuleSection({
     try {
       await reorderRecords("lessons", next, lessonById);
       await refetch();
+      invalidateAll();
     } catch (e: unknown) {
       toast.error(`Reorder failed: ${errorMessage(e)}`);
       setOrderedIds(lessons.map((l) => l.id)); // revert
@@ -311,8 +323,10 @@ function ModuleSection({
   const handleAdd = async () => {
     const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
     try {
-      await createLesson(module.id, nextOrder);
+      const created = await createLesson(module.id, nextOrder);
       await refetch();
+      invalidateAll();
+      toast.success(`Lesson "${created.title}" created`);
     } catch (e: unknown) {
       toast.error(errorMessage(e));
     }
@@ -323,6 +337,18 @@ function ModuleSection({
     try {
       await deleteLesson(id);
       await refetch();
+      invalidateAll();
+      toast.success("Lesson deleted");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+    }
+  };
+
+  const saveModule = async (patch: Parameters<typeof updateModule>[1]) => {
+    try {
+      await updateModule(module.id, patch);
+      onChanged();
+      invalidateAll();
     } catch (e: unknown) {
       toast.error(errorMessage(e));
     }
@@ -330,8 +356,7 @@ function ModuleSection({
 
   const toggleStatus = async () => {
     const next: ContentStatus = module.status === "published" ? "draft" : "published";
-    await updateModule(module.id, statusTransition(next));
-    onChanged();
+    await saveModule(statusTransition(next));
   };
 
   return (
@@ -348,23 +373,23 @@ function ModuleSection({
         <div className="flex-1 grid sm:grid-cols-2 gap-3">
           <AutoSaveInput
             value={module.title}
-            onSave={(v) => updateModule(module.id, { title: v }).then(onChanged)}
+            onSave={(v) => saveModule({ title: v })}
             placeholder="Module title"
             className="font-semibold"
           />
           <AutoSaveInput
             value={module.description}
-            onSave={(v) => updateModule(module.id, { description: v.trim() || null }).then(onChanged)}
+            onSave={(v) => saveModule({ description: v.trim() || null })}
             placeholder="Module description"
           />
           <AutoSaveInput
             value={module.cover_image_path}
-            onSave={(v) => updateModule(module.id, { cover_image_path: v.trim() || null }).then(onChanged)}
+            onSave={(v) => saveModule({ cover_image_path: v.trim() || null })}
             placeholder="Module cover image path"
           />
           <AutoSaveInput
             value={String(module.sort_order)}
-            onSave={(v) => updateModule(module.id, { sort_order: Number(v) || 0 }).then(onChanged)}
+            onSave={(v) => saveModule({ sort_order: Number(v) || 0 })}
             placeholder="Module sort order"
           />
         </div>
@@ -373,7 +398,7 @@ function ModuleSection({
         </button>
         <select
           value={module.status}
-          onChange={(e) => updateModule(module.id, statusTransition(e.currentTarget.value as ContentStatus)).then(onChanged)}
+          onChange={(e) => saveModule(statusTransition(e.currentTarget.value as ContentStatus))}
           className="h-8 rounded border bg-background px-2 text-xs"
           aria-label="Module status"
         >
@@ -385,6 +410,8 @@ function ModuleSection({
             try {
               await deleteModule(module.id);
               onDeleted();
+              invalidateAll();
+              toast.success("Module deleted");
             } catch (e: unknown) {
               toast.error(errorMessage(e));
             }
@@ -405,8 +432,8 @@ function ModuleSection({
                   lesson={l}
                   onDelete={() => handleDeleteLesson(l.id)}
                   onChanged={() => {
-                    refetch();
-                    qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
+                    void refetch();
+                    invalidateAll();
                   }}
                 />
               ))}
@@ -420,6 +447,7 @@ function ModuleSection({
     </Card>
   );
 }
+
 
 /* ============================================================
  * Course header card (cover image, title, slug, status)
