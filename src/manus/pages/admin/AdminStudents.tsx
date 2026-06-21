@@ -77,9 +77,9 @@ export default function AdminStudents() {
 
   return (
     <AdminShell
-      title="Alunos"
-      description="Veja perfis, papéis e assinaturas. Gerencie permissões individuais a partir desta lista."
-      crumbs={[{ label: "Alunos" }]}
+      title="Students"
+      description="Browse profiles, roles and subscriptions. Manage individual access from this list."
+      crumbs={[{ label: "Students" }]}
     >
       <Card className="p-4 mb-6">
         <div className="relative">
@@ -87,7 +87,7 @@ export default function AdminStudents() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar por nome, e-mail ou ID"
+            placeholder="Search by name, email or ID"
             className="pl-9"
           />
         </div>
@@ -98,20 +98,20 @@ export default function AdminStudents() {
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr className="text-left">
-                <th className="px-4 py-3 font-medium">Aluno</th>
-                <th className="px-4 py-3 font-medium">E-mail</th>
-                <th className="px-4 py-3 font-medium">Papel</th>
-                <th className="px-4 py-3 font-medium">Assinatura</th>
-                <th className="px-4 py-3 font-medium">Entrou em</th>
+                <th className="px-4 py-3 font-medium">Student</th>
+                <th className="px-4 py-3 font-medium">Email</th>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Subscription</th>
+                <th className="px-4 py-3 font-medium">Joined</th>
                 <th className="px-4 py-3 font-medium" />
               </tr>
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Carregando…</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Loading…</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Nenhum aluno encontrado.</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">No students found.</td></tr>
               )}
               {filtered.map((u) => (
                 <tr key={u.id} className="border-t border-border/40 hover:bg-muted/20">
@@ -124,7 +124,7 @@ export default function AdminStudents() {
                     {u.roles.includes("admin") ? (
                       <span className="inline-flex items-center rounded-full bg-accent/15 text-accent px-2 py-0.5 text-xs">admin</span>
                     ) : (
-                      <span className="text-foreground/60">aluno</span>
+                      <span className="text-foreground/60">student</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -132,7 +132,7 @@ export default function AdminStudents() {
                       <span>
                         {u.membership_plan} · {u.membership_status}
                         {u.membership_ends_at && (
-                          <span className="text-foreground/50 text-xs"> · até {new Date(u.membership_ends_at).toLocaleDateString()}</span>
+                          <span className="text-foreground/50 text-xs"> · until {new Date(u.membership_ends_at).toLocaleDateString()}</span>
                         )}
                       </span>
                     ) : (
@@ -142,7 +142,7 @@ export default function AdminStudents() {
                   <td className="px-4 py-3 text-foreground/70">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right">
                     <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/users/${u.id}`)}>
-                      Gerenciar <ArrowRight className="w-4 h-4 ml-1" />
+                      Manage <ArrowRight className="w-4 h-4 ml-1" />
                     </Button>
                   </td>
                 </tr>

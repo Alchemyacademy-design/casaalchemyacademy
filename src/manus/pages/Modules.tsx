@@ -17,11 +17,12 @@ const MODULES_DATA = [
 ];
 
 export default function Modules() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
 
   const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
-  const isFullMember = tier === "annual_member" || user?.role === "admin";
+  const isFullMember = isAdmin || tier === "annual_member";
+
 
   const getProgress = (moduleNumber: number, lessonCount: number) => {
     if (!progress || lessonCount === 0) return 0;

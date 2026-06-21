@@ -78,34 +78,34 @@ export default function AdminOverview() {
 
   const kpis: Kpi[] = [
     {
-      label: "Cursos publicados",
+      label: "Published courses",
       value: isLoading ? "—" : data?.publishedCourses ?? 0,
-      hint: `${data?.draftCourses ?? 0} em rascunho · ${data?.totalCourses ?? 0} no total`,
+      hint: `${data?.draftCourses ?? 0} draft · ${data?.totalCourses ?? 0} total`,
       icon: BookOpen,
     },
     {
-      label: "Aulas cadastradas",
+      label: "Lessons",
       value: isLoading ? "—" : data?.totalLessons ?? 0,
-      hint: "Em todos os cursos",
+      hint: "Across all courses",
       icon: ListChecks,
     },
     {
-      label: "Alunos",
+      label: "Students",
       value: isLoading ? "—" : data?.students ?? 0,
-      hint: "Perfis registrados",
+      hint: "Registered profiles",
       icon: Users,
     },
     {
-      label: "Aulas sem vídeo",
+      label: "Lessons missing video",
       value: isLoading ? "—" : data?.missingVideos ?? 0,
-      hint: "Cole o link real em Aulas (lote)",
+      hint: "Paste the real URL in Lessons (bulk)",
       icon: AlertTriangle,
       tone: "warning",
     },
     {
-      label: "Capas faltantes",
+      label: "Missing covers",
       value: isLoading ? "—" : data?.missingThumbs ?? 0,
-      hint: "Faça upload em Cursos",
+      hint: "Upload from Courses",
       icon: ImageIcon,
       tone: "warning",
     },
@@ -113,8 +113,8 @@ export default function AdminOverview() {
 
   return (
     <AdminShell
-      title="Visão geral"
-      description="Acompanhe o catálogo, identifique pendências e finalize as publicações da plataforma."
+      title="Overview"
+      description="Track the catalogue, spot pending items and finalise the platform's publications."
     >
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8">
         {kpis.map((k) => (
@@ -125,40 +125,40 @@ export default function AdminOverview() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Editar cursos
+            Edit courses
           </h3>
           <p className="text-sm text-foreground/70 mb-4">
-            Crie módulos e aulas, defina capas, descrições e o status de publicação.
+            Create modules and lessons, set covers, descriptions and publish status.
           </p>
           <Button asChild>
             <Link to="/admin/courses">
-              Abrir cursos <ArrowRight className="w-4 h-4 ml-1" />
+              Open courses <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </Button>
         </Card>
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Atualizar links das aulas
+            Update lesson links
           </h3>
           <p className="text-sm text-foreground/70 mb-4">
-            Cole as URLs reais (YouTube, Vimeo ou MP4) e ajuste títulos em lote.
+            Paste the real URLs (YouTube, Vimeo or MP4) and edit titles in bulk.
           </p>
           <Button asChild variant="outline">
             <Link to="/admin/lessons">
-              Aulas em lote <ArrowRight className="w-4 h-4 ml-1" />
+              Bulk lessons <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </Button>
         </Card>
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Importar catálogo
+            Import catalogue
           </h3>
           <p className="text-sm text-foreground/70 mb-4">
-            Suba um JSON de catálogo e gere automaticamente cursos, módulos e aulas como rascunho.
+            Upload a catalogue JSON to generate courses, modules and lessons as drafts.
           </p>
           <Button asChild variant="outline">
             <Link to="/admin/import">
-              <Upload className="w-4 h-4 mr-1" /> Abrir importador
+              <Upload className="w-4 h-4 mr-1" /> Open importer
             </Link>
           </Button>
         </Card>
