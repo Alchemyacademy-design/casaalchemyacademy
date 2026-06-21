@@ -60,11 +60,19 @@ export default function Plans() {
           </p>
         </div>
 
-        {alreadyHasAccess && (
+        {isAdmin && (
+          <Card className="p-5 mb-8 border-accent/40 bg-accent/5">
+            <p className="text-sm">
+              Administrator access is active. No subscription is required.
+            </p>
+          </Card>
+        )}
+
+        {alreadyHasAccess && !isAdmin && (
           <Card className="p-5 mb-8 border-accent/30">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <p className="text-sm">You already have active access.</p>
-              <Button onClick={() => navigate(isMember || isAdmin ? "/dashboard" : "/mycourses")}>Continue to your content</Button>
+              <Button onClick={() => navigate(isMember ? "/dashboard" : "/mycourses")}>Continue to your content</Button>
             </div>
           </Card>
         )}
@@ -86,8 +94,8 @@ export default function Plans() {
                   </li>
                 ))}
               </ul>
-              <Button className="w-full" onClick={() => setSelectedPlan(plan.key)}>
-                Choose {plan.key === "monthly" ? "monthly" : "annual"}
+              <Button className="w-full" disabled={isAdmin} onClick={() => setSelectedPlan(plan.key)}>
+                {isAdmin ? "Not required for admin" : `Choose ${plan.key === "monthly" ? "monthly" : "annual"}`}
               </Button>
             </Card>
           ))}
@@ -104,7 +112,7 @@ export default function Plans() {
               <li className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />Three months of access</li>
               <li className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />Only the selected course</li>
             </ul>
-            <Button className="w-full" onClick={() => navigate("/courses")}>Choose a course</Button>
+            <Button className="w-full" disabled={isAdmin} onClick={() => navigate("/courses")}>{isAdmin ? "Not required for admin" : "Choose a course"}</Button>
           </Card>
         </div>
 

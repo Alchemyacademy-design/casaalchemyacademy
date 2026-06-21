@@ -24,6 +24,7 @@ import AuthCallback from "@/manus/pages/AuthCallback";
 import UpdatePassword from "@/manus/pages/UpdatePassword";
 import AdminPanel from "@/manus/pages/AdminPanel";
 import AdminAnalytics from "@/manus/pages/AdminAnalytics";
+import AdminUserDetail from "@/manus/pages/AdminUserDetail";
 import PaymentSuccess from "@/manus/pages/PaymentSuccess";
 import PaymentCancel from "@/manus/pages/PaymentCancel";
 import Plans from "@/manus/pages/Plans";
@@ -62,6 +63,7 @@ export default function App() {
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/update-password" element={<UpdatePassword />} />
             <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
+            <Route path="/admin/users/:id" element={<AdminGuard><AdminUserDetail /></AdminGuard>} />
             <Route path="/admin/analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />

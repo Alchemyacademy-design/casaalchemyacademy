@@ -107,11 +107,13 @@ export function useAuth() {
   const isMember = user?.membership?.status === "active" && Boolean(user.membership.ends_at && user.membership.ends_at > new Date().toISOString());
   const hasCourseAccess = activeEntitlements.length > 0;
   const hasPaidAccess = isAdmin || isMember || hasCourseAccess;
-  const defaultPath = isAdmin || isMember
-    ? "/dashboard"
-    : hasCourseAccess
-      ? "/mycourses"
-      : "/plans";
+  const defaultPath = isAdmin
+    ? "/admin"
+    : isMember
+      ? "/dashboard"
+      : hasCourseAccess
+        ? "/mycourses"
+        : "/plans";
 
   const logout = async () => {
     const { error: signOutError } = await supabase.auth.signOut();

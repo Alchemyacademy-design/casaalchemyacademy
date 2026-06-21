@@ -1,1 +1,7 @@
 project_id = "omzwtfnqffseemrlylwu"
+
+[functions.admin-manage-user-access]
+verify_jwt = true
+
+[functions.admin-manage-stripe-subscription]
+verify_jwt = true
