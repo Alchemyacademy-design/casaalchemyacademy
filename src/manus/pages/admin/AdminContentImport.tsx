@@ -102,21 +102,21 @@ export default function AdminContentImport() {
 
   return (
     <AdminShell
-      title="Importar catálogo de cursos"
-      description="Suba um JSON de catálogo e gere cursos, módulos e aulas como rascunho. URLs de vídeo precisam ser preenchidas depois; nada é publicado automaticamente."
-      crumbs={[{ label: "Importar conteúdo" }]}
+      title="Import course catalogue"
+      description="Upload a catalogue JSON to create courses, modules and lessons as drafts. Video URLs must be filled in later; nothing is published automatically."
+      crumbs={[{ label: "Import content" }]}
       actions={
         <>
-          <Button variant="outline" onClick={() => navigate("/admin/courses")}>Voltar para cursos</Button>
-          <Button onClick={runImport} disabled={running}><Upload className="w-4 h-4 mr-1" /> {running ? "Importando…" : "Importar como rascunho"}</Button>
+          <Button variant="outline" onClick={() => navigate("/admin/courses")}>Back to courses</Button>
+          <Button onClick={runImport} disabled={running}><Upload className="w-4 h-4 mr-1" /> {running ? "Importing…" : "Import as draft"}</Button>
         </>
       }
     >
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           <Card className="p-5">
-            <h2 className="font-semibold mb-2">Pré-visualização do catálogo</h2>
-            <p className="text-sm text-foreground/70 mb-3">{stats.totalCourses} cursos · {stats.totalLessons} aulas.</p>
+            <h2 className="font-semibold mb-2">Catalogue preview</h2>
+            <p className="text-sm text-foreground/70 mb-3">{stats.totalCourses} courses · {stats.totalLessons} lessons.</p>
             <input
               type="file"
               accept="application/json"
@@ -136,7 +136,7 @@ export default function AdminContentImport() {
                       <div className="text-xs text-foreground/60 font-mono">{c.slug}</div>
                     </div>
                     {isLegacyAssetPath(c.cover_image_path) && (
-                      <span className="text-xs text-amber-700 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> capa pendente</span>
+                      <span className="text-xs text-amber-700 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> cover pending</span>
                     )}
                   </div>
                   <ul className="mt-2 text-sm space-y-1">
@@ -145,7 +145,7 @@ export default function AdminContentImport() {
                         <span className="text-xs font-mono text-foreground/50 w-10">{l.lesson_number ?? l.sort_order}</span>
                         <span className="flex-1 truncate">{l.title}</span>
                         {(!l.external_video_url || isPlaceholderVideo(l.legacy_video_path)) && (
-                          <span title="Sem URL de vídeo"><AlertTriangle className="w-3 h-3 text-amber-600" /></span>
+                          <span title="No video URL"><AlertTriangle className="w-3 h-3 text-amber-600" /></span>
                         )}
                       </li>
                     ))}
@@ -158,8 +158,8 @@ export default function AdminContentImport() {
           {report && (
             <Card className="p-5 space-y-2">
               <div className="flex items-center justify-between">
-                <h2 className="font-semibold">Relatório da importação</h2>
-                <Button size="sm" variant="outline" onClick={downloadReport}><Download className="w-4 h-4 mr-1" /> Baixar JSON</Button>
+                <h2 className="font-semibold">Import report</h2>
+                <Button size="sm" variant="outline" onClick={downloadReport}><Download className="w-4 h-4 mr-1" /> Download JSON</Button>
               </div>
               <pre className="text-xs bg-muted/40 p-3 rounded overflow-x-auto">{JSON.stringify(report, null, 2)}</pre>
             </Card>
@@ -168,19 +168,19 @@ export default function AdminContentImport() {
 
         <div className="space-y-4">
           <Card className="p-4">
-            <h3 className="font-medium mb-2">Avisos do catálogo</h3>
+            <h3 className="font-medium mb-2">Catalogue warnings</h3>
             <ul className="text-xs text-foreground/70 list-disc pl-4 space-y-1">
               {(pack.warnings ?? []).map((w, i) => <li key={i}>{w}</li>)}
             </ul>
           </Card>
           <Card className="p-4">
-            <h3 className="font-medium mb-2">Vídeos faltantes ({stats.missingLinks.length})</h3>
+            <h3 className="font-medium mb-2">Missing videos ({stats.missingLinks.length})</h3>
             <ul className="text-xs text-foreground/70 max-h-48 overflow-y-auto space-y-1">
               {stats.missingLinks.map((s, i) => <li key={i}>{s}</li>)}
             </ul>
           </Card>
           <Card className="p-4">
-            <h3 className="font-medium mb-2">Capas faltantes ({stats.missingThumbs.length})</h3>
+            <h3 className="font-medium mb-2">Missing covers ({stats.missingThumbs.length})</h3>
             <ul className="text-xs text-foreground/70 space-y-1">
               {stats.missingThumbs.map((s, i) => <li key={i}>{s}</li>)}
             </ul>

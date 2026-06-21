@@ -43,7 +43,7 @@ export default function VideoPreview({ url, className = "" }: Props) {
   if (url.includes("/manus-storage/") || url.includes("placeholder-video")) {
     return (
       <div className={`aspect-video bg-amber-50 border border-amber-200 text-amber-800 rounded flex items-center justify-center text-sm gap-2 ${className}`}>
-        <AlertTriangle className="w-4 h-4" /> URL de placeholder — substitua pelo link real
+        <AlertTriangle className="w-4 h-4" /> Placeholder URL — replace with the real link
       </div>
     );
   }

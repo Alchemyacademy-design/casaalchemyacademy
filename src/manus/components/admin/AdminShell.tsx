@@ -35,12 +35,12 @@ interface Crumb {
 }
 
 const NAV = [
-  { title: "Visão geral", url: "/admin", icon: LayoutDashboard, exact: true },
-  { title: "Cursos", url: "/admin/courses", icon: BookOpen },
-  { title: "Aulas (lote)", url: "/admin/lessons", icon: ListChecks },
-  { title: "Alunos", url: "/admin/students", icon: Users },
-  { title: "Importar conteúdo", url: "/admin/import", icon: Upload },
-  { title: "Métricas", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
+  { title: "Courses", url: "/admin/courses", icon: BookOpen },
+  { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
+  { title: "Students", url: "/admin/students", icon: Users },
+  { title: "Import content", url: "/admin/import", icon: Upload },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];
 
 function AdminSidebarInner() {
@@ -59,14 +59,14 @@ function AdminSidebarInner() {
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-serif text-sm tracking-[0.18em]">CASA ALCHEMY</div>
-              <div className="text-[10px] uppercase tracking-[0.15em] opacity-70">Central ADM</div>
+              <div className="text-[10px] uppercase tracking-[0.15em] opacity-70">Admin Center</div>
             </div>
           )}
         </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Gestão</SidebarGroupLabel>
+          <SidebarGroupLabel>Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV.map((item) => (
@@ -92,10 +92,10 @@ function AdminSidebarInner() {
       <SidebarFooter className="px-2 pb-3">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Voltar à plataforma">
+            <SidebarMenuButton asChild tooltip="Back to platform">
               <NavLink to="/dashboard" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
-                <span>Voltar à plataforma</span>
+                <span>Back to platform</span>
               </NavLink>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -133,7 +133,7 @@ export default function AdminShell({
           <header className="h-14 flex items-center gap-3 border-b border-border/60 bg-card/70 backdrop-blur px-4 sticky top-0 z-30">
             <SidebarTrigger />
             <nav className="flex items-center gap-1 text-xs text-foreground/60">
-              <Link to="/admin" className="hover:text-foreground">Central ADM</Link>
+              <Link to="/admin" className="hover:text-foreground">Admin Center</Link>
               {crumbs.map((c, i) => (
                 <span key={i} className="flex items-center gap-1">
                   <ChevronRight className="w-3 h-3" />
@@ -147,7 +147,7 @@ export default function AdminShell({
             </nav>
             <div className="ml-auto">
               <Button variant="ghost" size="sm" onClick={handleLogout}>
-                <LogOut className="w-4 h-4 mr-1" /> Sair
+                <LogOut className="w-4 h-4 mr-1" /> Sign out
               </Button>
             </div>
           </header>
