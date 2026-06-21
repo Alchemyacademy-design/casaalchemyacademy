@@ -70,6 +70,12 @@ export default function App() {
             <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
             <Route path="/admin/users/:id" element={<AdminGuard><AdminUserDetail /></AdminGuard>} />
             <Route path="/admin/analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
+            <Route path="/admin/courses" element={<AdminGuard><AdminCoursesList /></AdminGuard>} />
+            <Route path="/admin/courses/new" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
+            <Route path="/admin/courses/:id" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
+            <Route path="/admin/courses/:id/modules/:moduleId" element={<AdminGuard><AdminModuleDetail /></AdminGuard>} />
+            <Route path="/admin/courses/:id/modules/:moduleId/lessons/:lessonId" element={<AdminGuard><AdminLessonDetail /></AdminGuard>} />
+            <Route path="/admin/content-import" element={<AdminGuard><AdminContentImport /></AdminGuard>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
             <Route path="/payment/cancel" element={<PaymentCancel />} />
