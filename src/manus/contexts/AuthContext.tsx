@@ -271,10 +271,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+const FALLBACK_AUTH: AuthContextValue = {
+  session: null,
+  user: null,
+  profile: null,
+  roles: [],
+  membership: null,
+  activeEntitlements: [],
+  isAuthenticated: false,
+  isAdmin: false,
+  isMember: false,
+  hasCourseAccess: false,
+  hasPaidAccess: false,
+  authReady: false,
+  accessReady: false,
+  accessSource: null,
+  loading: true,
+  error: null,
+  defaultPath: "/login",
+  refreshAccess: async () => {},
+  refresh: async () => {},
+  logout: async () => {},
+};
+
 export function useAuthContext(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) {
-    throw new Error("useAuthContext must be used within <AuthProvider>");
+    if (import.meta.env.DEV) {
+      console.warn("[auth] useAuthContext called outside <AuthProvider>; returning fallback");
+    }
+    return FALLBACK_AUTH;
   }
   return ctx;
 }
