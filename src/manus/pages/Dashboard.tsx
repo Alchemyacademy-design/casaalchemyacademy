@@ -153,3 +153,58 @@ export default function Dashboard() {
     </MemberLayout>
   );
 }
+
+function fmtDate(iso: string) { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
+function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); }
+
+function ComingUp() {
+  const { isAuthenticated } = useAuth();
+  const { data: workshops = [] } = useUpcomingWorkshops();
+  const { data: events = [] } = useUpcomingEvents();
+  const { data: regs = [] } = useMyRegistrations();
+  const register = useRegisterForTarget();
+  const w = workshops[0];
+  const e = events[0];
+  const wReg = w ? regs.some(r => r.live_workshop_id === w.id) : false;
+  const eReg = e ? regs.some(r => r.event_id === e.id) : false;
+  if (!w && !e) return null;
+
+  return (
+    <div className="mb-12">
+      <h2 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Coming Up</h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {w && (
+          <div className="p-6 rounded-lg" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2"><Calendar size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtDate(w.starts_at)}</span></div>
+              <div className="flex items-center gap-2"><Clock size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtTime(w.starts_at)}{w.ends_at ? ` – ${fmtTime(w.ends_at)}` : ""}</span></div>
+            </div>
+            <h3 className="font-serif text-lg mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{w.title}</h3>
+            <button className="w-full px-4 py-2 rounded text-sm font-medium disabled:opacity-60"
+              style={{ backgroundColor: wReg ? "var(--aa-cream-dark)" : "var(--aa-gold)", color: "var(--aa-cacao)" }}
+              disabled={wReg || register.isPending || !isAuthenticated}
+              onClick={() => register.mutate({ target_type: "live_workshop", target_id: w.id })}>
+              {wReg ? "Registered" : "Register"}
+            </button>
+          </div>
+        )}
+        {e && (
+          <div className="p-6 rounded-lg" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2"><Calendar size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtDate(e.starts_at)}</span></div>
+              <div className="flex items-center gap-2"><Clock size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtTime(e.starts_at)}{e.ends_at ? ` – ${fmtTime(e.ends_at)}` : ""}</span></div>
+            </div>
+            <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{e.title}</h3>
+            {e.description && <p className="text-xs mb-4" style={{ color: "var(--aa-text-light)" }}>{e.description}</p>}
+            <button className="w-full px-4 py-2 rounded text-sm font-medium disabled:opacity-60"
+              style={{ backgroundColor: eReg ? "var(--aa-cream-dark)" : "var(--aa-gold)", color: "var(--aa-cacao)" }}
+              disabled={eReg || register.isPending || !isAuthenticated}
+              onClick={() => register.mutate({ target_type: "event", target_id: e.id })}>
+              {eReg ? "Registered" : "Register"}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
