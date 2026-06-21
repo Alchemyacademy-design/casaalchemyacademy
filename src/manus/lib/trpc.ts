@@ -127,9 +127,23 @@ async function suppliersList(): Promise<SupplierRow[]> {
   }));
 }
 async function communityPosts(): Promise<CommunityPostRow[]> {
-  const { data, error } = await db.from("community_posts").select("*,profiles:author_id(id,full_name,display_name,avatar_path)").eq("status", "published").order("pinned", { ascending: false }).order("last_activity_at", { ascending: false }).limit(100);
+  const { data, error } = await db
+    .from("community_posts")
+    .select("*")
+    .eq("status", "published")
+    .order("pinned", { ascending: false })
+    .order("last_activity_at", { ascending: false })
+    .limit(100);
   if (error) throw error;
-  return (data as CommunityPostRow[] | null) ?? [];
+  const posts = (data as CommunityPostRow[] | null) ?? [];
+  const authorIds = Array.from(new Set(posts.map((p) => p.author_id).filter(Boolean))) as string[];
+  if (!authorIds.length) return posts;
+  const { data: profiles } = await db
+    .from("profiles")
+    .select("id,full_name,display_name,avatar_path")
+    .in("id", authorIds);
+  const map = new Map(((profiles as ProfileRow[] | null) ?? []).map((p) => [p.id, p]));
+  return posts.map((p) => ({ ...p, profiles: map.get(p.author_id as string) ?? null }));
 }
 async function createPost(input?: Input) {
   const user = await requireUser();
