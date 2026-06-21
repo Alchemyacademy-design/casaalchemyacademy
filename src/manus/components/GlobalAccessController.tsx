@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
+
 
 const publicPaths = new Set([
   "/",
