@@ -31,6 +31,11 @@ import Plans from "@/manus/pages/Plans";
 import PostAuthRedirect from "@/manus/pages/PostAuthRedirect";
 import NotFound from "@/manus/pages/NotFound";
 import AdminGuard from "@/components/AdminGuard";
+import AdminCoursesList from "@/manus/pages/admin/AdminCoursesList";
+import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
+import AdminModuleDetail from "@/manus/pages/admin/AdminModuleDetail";
+import AdminLessonDetail from "@/manus/pages/admin/AdminLessonDetail";
+import AdminContentImport from "@/manus/pages/admin/AdminContentImport";
 
 export default function App() {
   return (
