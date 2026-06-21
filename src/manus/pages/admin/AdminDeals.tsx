@@ -22,7 +22,7 @@ export default function AdminDeals() {
         { name: "external_url", label: "External URL", type: "text", hideInTable: true },
         { name: "starts_at", label: "Starts at", type: "datetime", hideInTable: true },
         { name: "ends_at", label: "Ends at", type: "datetime" },
-        { name: "cover_image_path", label: "Cover image path", type: "text", hideInTable: true },
+        
         { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
       ]}
     />

@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-// The DB types don't yet include `admin_access_audit_log` (migration pending).
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db: any = supabase;
+import { fetchAuditSafe, type AuditResult } from "@/manus/lib/admin-audit-safe";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,8 +58,7 @@ export default function AdminUserDetail() {
         supabase.from("stripe_payments").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("courses").select("id,title").eq("status", "published").order("sort_order"),
       ]);
-      const auditRes = await db.from("admin_access_audit_log").select("*").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(50);
-      const audit = (auditRes.data ?? []) as Array<{ id: number; action: string; entity_type: string | null; entity_id: string | null; reason: string | null; created_at: string }>;
+      const audit = await fetchAuditSafe({ targetUserId: userId, limit: 50 });
       return {
         profile,
         roles: (roles ?? []).map((r) => r.role),
@@ -71,7 +68,7 @@ export default function AdminUserDetail() {
         subscription,
         payments: payments ?? [],
         courses: courses ?? [],
-        audit,
+        audit: audit as AuditResult,
       };
     },
   });
@@ -354,18 +351,27 @@ export default function AdminUserDetail() {
 
           <TabsContent value="audit">
             <Card className="p-6">
-              <ul className="space-y-2 text-sm">
-                {(data?.audit ?? []).map((a) => (
-                  <li key={a.id} className="border-b border-border/30 py-2">
-                    <div className="flex justify-between">
-                      <span className="font-medium">{a.action}</span>
-                      <span className="text-xs text-foreground/60">{new Date(a.created_at).toLocaleString()}</span>
-                    </div>
-                    <div className="text-xs text-foreground/60">{a.entity_type} {a.entity_id} {a.reason ? `· ${a.reason}` : ""}</div>
-                  </li>
-                ))}
-                {(data?.audit ?? []).length === 0 && <li className="text-foreground/60">No actions recorded.</li>}
-              </ul>
+              {!data ? (
+                <p className="text-sm text-foreground/60">Loading…</p>
+              ) : !data.audit.available ? (
+                <p className="text-sm text-foreground/60">
+                  Audit log unavailable ({data.audit.reason}): {data.audit.message}.
+                </p>
+              ) : data.audit.rows.length === 0 ? (
+                <p className="text-sm text-foreground/60">No actions recorded for this user.</p>
+              ) : (
+                <ul className="space-y-2 text-sm">
+                  {data.audit.rows.map((a) => (
+                    <li key={a.id} className="border-b border-border/30 py-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{a.action}</span>
+                        <span className="text-xs text-foreground/60">{new Date(a.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className="text-xs text-foreground/60">{a.entity_type} {a.entity_id} {a.reason ? `· ${a.reason}` : ""}</div>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
           </TabsContent>
         </Tabs>

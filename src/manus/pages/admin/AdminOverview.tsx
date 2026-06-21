@@ -17,9 +17,7 @@ import { Button } from "@/components/ui/button";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
 import { isLegacyAssetPath, isPlaceholderVideo } from "@/manus/lib/admin-content";
-// admin_access_audit_log is not in the generated Database types yet.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db: any = supabase;
+import { fetchAuditSafe, type AuditResult } from "@/manus/lib/admin-audit-safe";
 
 interface Kpi {
   label: string;
@@ -99,11 +97,7 @@ export default function AdminOverview() {
           .select("id", { count: "exact", head: true })
           .eq("status", "hidden"),
         supabase.from("lesson_progress").select("watched_percent").limit(5000),
-        db
-          .from("admin_access_audit_log")
-          .select("id,action,entity_type,created_at,actor_user_id,target_user_id")
-          .order("created_at", { ascending: false })
-          .limit(5),
+        fetchAuditSafe({ limit: 5, columns: "id,action,entity_type,created_at,actor_user_id,target_user_id" }),
       ]);
 
       const courses = (coursesRes.data ?? []) as unknown as Array<{ id: number; status: string; cover_image_path: string | null }>;
@@ -137,12 +131,7 @@ export default function AdminOverview() {
         upcomingWorkshops: workshopsRes.data ?? [],
         pendingPosts: pendingPostsCount.count ?? 0,
         avgProgress,
-        recentAudit: (recentAuditRes.data ?? []) as Array<{
-          id: number;
-          action: string;
-          entity_type: string | null;
-          created_at: string;
-        }>,
+        recentAudit: recentAuditRes as AuditResult,
       };
     },
   });
@@ -222,15 +211,17 @@ export default function AdminOverview() {
           <h3 className="font-serif text-lg mb-3 flex items-center gap-2" style={{ color: "var(--aa-olive-dark)" }}>
             <Activity className="w-4 h-4" /> Recent admin activity
           </h3>
-          {isLoading ? (
+          {isLoading || !data ? (
             <p className="text-sm text-foreground/60">Loading…</p>
-          ) : (data?.recentAudit?.length ?? 0) === 0 ? (
+          ) : !data.recentAudit.available ? (
             <p className="text-sm text-foreground/60">
-              No audit entries yet. Apply the Phase 1 migration to enable the audit log.
+              Audit log unavailable ({data.recentAudit.reason}): {data.recentAudit.message}.
             </p>
+          ) : data.recentAudit.rows.length === 0 ? (
+            <p className="text-sm text-foreground/60">No admin activity recorded yet.</p>
           ) : (
             <ul className="space-y-2 text-sm">
-              {data!.recentAudit.map((a) => (
+              {data.recentAudit.rows.map((a) => (
                 <li key={a.id} className="flex justify-between border-b border-border/30 py-1.5">
                   <span className="truncate mr-2">
                     <span className="font-mono text-xs">{a.action}</span>
