@@ -169,15 +169,15 @@ export default function CommunityCenter() {
   if (spacesLoading) {
     return (
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-6 w-6 animate-spin text-[var(--aa-text-light)]" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] bg-background text-foreground">
+    <div className="flex h-[calc(100vh-4rem)] bg-[var(--aa-cream)] text-[var(--aa-text-dark)]">
       {/* ============ Spaces rail ============ */}
-      <aside className="hidden md:flex w-16 flex-col items-center gap-2 border-r border-border/60 bg-muted/30 py-3">
+      <aside className="hidden md:flex w-16 flex-col items-center gap-2 border-r border-[#d8cdbf] bg-[var(--aa-cream-dark)]/60 py-3">
         {spaces.map((s) => {
           const initials = s.name.slice(0, 2).toUpperCase();
           const active = s.id === spaceId;
@@ -188,8 +188,8 @@ export default function CommunityCenter() {
               title={s.name}
               className={`flex h-11 w-11 items-center justify-center rounded-2xl text-sm font-semibold transition-all ${
                 active
-                  ? "rounded-xl bg-primary text-primary-foreground shadow"
-                  : "bg-background text-muted-foreground hover:rounded-xl hover:bg-primary/10 hover:text-foreground"
+                  ? "rounded-xl bg-[var(--aa-gold)] text-[var(--aa-cream)] shadow"
+                  : "bg-[var(--aa-cream)] text-[var(--aa-text-light)] hover:rounded-xl hover:bg-[var(--aa-gold)]/10 hover:text-foreground"
               }`}
             >
               {initials}
@@ -200,7 +200,7 @@ export default function CommunityCenter() {
           <button
             onClick={() => setSpaceDialogOpen(true)}
             title="Novo Space"
-            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-background text-muted-foreground transition-all hover:rounded-xl hover:bg-primary/10 hover:text-foreground"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--aa-cream)] text-[var(--aa-text-light)] transition-all hover:rounded-xl hover:bg-[var(--aa-gold)]/10 hover:text-foreground"
           >
             <Plus className="h-5 w-5" />
           </button>
@@ -208,22 +208,22 @@ export default function CommunityCenter() {
       </aside>
 
       {/* ============ Channels list ============ */}
-      <aside className="hidden lg:flex w-60 flex-col border-r border-border/60 bg-muted/20">
-        <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+      <aside className="hidden lg:flex w-60 flex-col border-r border-[#d8cdbf] bg-[var(--aa-cream-dark)]/40">
+        <div className="flex items-center justify-between border-b border-[#d8cdbf] px-4 py-3">
           <div className="min-w-0">
             <p className="truncate font-serif text-base">{activeSpace?.name ?? "—"}</p>
             {activeSpace?.description && (
-              <p className="truncate text-xs text-muted-foreground">{activeSpace.description}</p>
+              <p className="truncate text-xs text-[var(--aa-text-light)]">{activeSpace.description}</p>
             )}
           </div>
         </div>
         <ScrollArea className="flex-1">
           <div className="space-y-0.5 p-2">
             {channelsLoading && (
-              <p className="px-2 py-3 text-xs text-muted-foreground">Carregando…</p>
+              <p className="px-2 py-3 text-xs text-[var(--aa-text-light)]">Carregando…</p>
             )}
             {!channelsLoading && channels.length === 0 && (
-              <p className="px-2 py-3 text-xs text-muted-foreground">
+              <p className="px-2 py-3 text-xs text-[var(--aa-text-light)]">
                 Nenhum canal ainda{isAdmin ? "." : ". Peça a um admin para criar."}
               </p>
             )}
@@ -238,8 +238,8 @@ export default function CommunityCenter() {
                   }}
                   className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition ${
                     active
-                      ? "bg-primary/15 text-foreground"
-                      : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                      ? "bg-[var(--aa-gold)]/15 text-foreground"
+                      : "text-[var(--aa-text-light)] hover:bg-[var(--aa-cream-dark)]/70 hover:text-foreground"
                   }`}
                 >
                   <Hash className="h-4 w-4 shrink-0 opacity-70" />
@@ -250,7 +250,7 @@ export default function CommunityCenter() {
           </div>
         </ScrollArea>
         {isAdmin && spaceId && (
-          <div className="border-t border-border/60 p-2">
+          <div className="border-t border-[#d8cdbf] p-2">
             <Button
               variant="ghost"
               size="sm"
@@ -265,20 +265,20 @@ export default function CommunityCenter() {
 
       {/* ============ Feed ============ */}
       <main className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+        <header className="flex items-center justify-between border-b border-[#d8cdbf] px-4 py-3">
           <div className="flex items-center gap-2 min-w-0">
-            <Hash className="h-5 w-5 text-muted-foreground" />
+            <Hash className="h-5 w-5 text-[var(--aa-text-light)]" />
             <div className="min-w-0">
               <h1 className="truncate font-serif text-lg leading-tight">
                 {activeChannel?.name ?? "selecione um canal"}
               </h1>
               {activeChannel?.description && (
-                <p className="truncate text-xs text-muted-foreground">{activeChannel.description}</p>
+                <p className="truncate text-xs text-[var(--aa-text-light)]">{activeChannel.description}</p>
               )}
             </div>
           </div>
           {isAdmin && activeChannel && (
-            <span className="hidden md:inline-flex items-center gap-1 text-xs text-muted-foreground">
+            <span className="hidden md:inline-flex items-center gap-1 text-xs text-[var(--aa-text-light)]">
               <Settings2 className="h-3.5 w-3.5" /> admin
             </span>
           )}
@@ -288,11 +288,11 @@ export default function CommunityCenter() {
           <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
             {postsLoading && (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                <Loader2 className="h-5 w-5 animate-spin text-[var(--aa-text-light)]" />
               </div>
             )}
             {!postsLoading && posts.length === 0 && activeChannel && (
-              <div className="rounded-lg border border-dashed border-border/60 p-8 text-center text-sm text-muted-foreground">
+              <div className="rounded-lg border border-dashed border-[#d8cdbf] p-8 text-center text-sm text-[var(--aa-text-light)]">
                 Seja o primeiro a postar em <span className="font-medium">#{activeChannel.name}</span>.
               </div>
             )}
@@ -304,22 +304,22 @@ export default function CommunityCenter() {
               return (
                 <article
                   key={post.id}
-                  className="group rounded-lg border border-border/60 bg-card p-4 transition hover:border-border"
+                  className="group rounded-lg border border-[#d8cdbf] bg-white p-4 transition hover:border-[#d8cdbf]"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <button
                       onClick={() => setOpenPost(post)}
                       className="flex-1 text-left"
                     >
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        {post.pinned && <Pin className="h-3.5 w-3.5 text-primary" />}
+                      <div className="flex items-center gap-2 text-xs text-[var(--aa-text-light)]">
+                        {post.pinned && <Pin className="h-3.5 w-3.5 text-[var(--aa-gold)]" />}
                         <span>{timeAgo(post.created_at)}</span>
-                        {mine && <span className="rounded bg-muted px-1.5 py-0.5">você</span>}
+                        {mine && <span className="rounded bg-[var(--aa-cream-dark)] px-1.5 py-0.5">você</span>}
                       </div>
                       {post.title && (
                         <h3 className="mt-1 font-serif text-base leading-snug">{post.title}</h3>
                       )}
-                      <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground line-clamp-4">
+                      <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--aa-text-light)] line-clamp-4">
                         {post.body}
                       </p>
                     </button>
@@ -364,8 +364,8 @@ export default function CommunityCenter() {
                         }
                         className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition ${
                           r.mine
-                            ? "border-primary/40 bg-primary/10"
-                            : "border-border/60 hover:border-border"
+                            ? "border-[var(--aa-gold)]/40 bg-[var(--aa-gold)]/10"
+                            : "border-[#d8cdbf] hover:border-[#d8cdbf]"
                         }`}
                       >
                         <span>{r.reaction}</span>
@@ -387,7 +387,7 @@ export default function CommunityCenter() {
                                   postId: post.id,
                                 })
                               }
-                              className="rounded-full px-1.5 py-0.5 text-xs opacity-50 hover:bg-muted hover:opacity-100"
+                              className="rounded-full px-1.5 py-0.5 text-xs opacity-50 hover:bg-[var(--aa-cream-dark)] hover:opacity-100"
                               title={`Reagir ${e}`}
                             >
                               {e}
@@ -398,7 +398,7 @@ export default function CommunityCenter() {
                     )}
                     <button
                       onClick={() => setOpenPost(post)}
-                      className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                      className="ml-auto inline-flex items-center gap-1 text-xs text-[var(--aa-text-light)] hover:text-foreground"
                     >
                       <MessageCircle className="h-3.5 w-3.5" />
                       respostas
@@ -412,7 +412,7 @@ export default function CommunityCenter() {
 
         {/* Composer */}
         {activeChannel && userId && (
-          <div className="border-t border-border/60 bg-background p-3">
+          <div className="border-t border-[#d8cdbf] bg-[var(--aa-cream)] p-3">
             <div className="mx-auto max-w-3xl space-y-2">
               <Input
                 placeholder="Título (opcional)"
@@ -451,7 +451,7 @@ export default function CommunityCenter() {
           </div>
         )}
         {activeChannel && !userId && (
-          <div className="border-t border-border/60 p-3 text-center text-sm text-muted-foreground">
+          <div className="border-t border-[#d8cdbf] p-3 text-center text-sm text-[var(--aa-text-light)]">
             Faça login para participar.
           </div>
         )}
@@ -558,7 +558,7 @@ function ThreadPanel({
 
   return (
     <>
-      <SheetHeader className="border-b border-border/60 p-4">
+      <SheetHeader className="border-b border-[#d8cdbf] p-4">
         <div className="flex items-start gap-2">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
             <ArrowLeft className="h-4 w-4" />
@@ -567,7 +567,7 @@ function ThreadPanel({
             <SheetTitle className="font-serif text-base leading-tight truncate">
               {post.title}
             </SheetTitle>
-            <p className="mt-1 whitespace-pre-wrap text-sm text-muted-foreground">{post.body}</p>
+            <p className="mt-1 whitespace-pre-wrap text-sm text-[var(--aa-text-light)]">{post.body}</p>
           </div>
           {(isAdmin || post.author_id === userId) && (
             <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDeletePost}>
@@ -580,18 +580,18 @@ function ThreadPanel({
         <div className="space-y-3 p-4">
           {isLoading && (
             <div className="flex justify-center py-6">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              <Loader2 className="h-5 w-5 animate-spin text-[var(--aa-text-light)]" />
             </div>
           )}
           {!isLoading && replies.length === 0 && (
-            <p className="text-center text-xs text-muted-foreground">Nenhuma resposta ainda.</p>
+            <p className="text-center text-xs text-[var(--aa-text-light)]">Nenhuma resposta ainda.</p>
           )}
           {replies.map((r) => {
             const mine = r.author_id === userId;
             const reactions = reactionsByReply.get(r.id) ?? [];
             return (
-              <div key={r.id} className="rounded-md border border-border/60 bg-card p-3">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div key={r.id} className="rounded-md border border-[#d8cdbf] bg-white p-3">
+                <div className="flex items-center justify-between text-xs text-[var(--aa-text-light)]">
                   <span>{timeAgo(r.created_at)} {mine && "· você"}</span>
                   {(mine || isAdmin) && (
                     <button
@@ -617,7 +617,7 @@ function ThreadPanel({
                         })
                       }
                       className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs ${
-                        rr.mine ? "border-primary/40 bg-primary/10" : "border-border/60"
+                        rr.mine ? "border-[var(--aa-gold)]/40 bg-[var(--aa-gold)]/10" : "border-[#d8cdbf]"
                       }`}
                     >
                       <span>{rr.reaction}</span>
@@ -639,7 +639,7 @@ function ThreadPanel({
                                 replyId: r.id,
                               })
                             }
-                            className="rounded-full px-1.5 py-0.5 text-xs opacity-50 hover:bg-muted hover:opacity-100"
+                            className="rounded-full px-1.5 py-0.5 text-xs opacity-50 hover:bg-[var(--aa-cream-dark)] hover:opacity-100"
                           >
                             {e}
                           </button>
@@ -654,7 +654,7 @@ function ThreadPanel({
         </div>
       </ScrollArea>
       {userId && !post.locked && (
-        <div className="border-t border-border/60 p-3">
+        <div className="border-t border-[#d8cdbf] p-3">
           <Textarea
             placeholder="Responder…"
             value={draft}
