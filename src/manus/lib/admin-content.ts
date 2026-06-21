@@ -119,17 +119,17 @@ export async function uploadCoverImage(file: File, folder: "courses" | "modules"
 
 // ---- Inline CRUD helpers used by the unified course editor ----
 
-export async function updateCourse(id: number, patch: Partial<Course>) {
+export async function updateCourse(id: number, patch: Database["public"]["Tables"]["courses"]["Update"]) {
   const { error } = await supabase.from("courses").update(patch).eq("id", id);
   if (error) throw error;
 }
 
-export async function updateModule(id: number, patch: Partial<Module>) {
+export async function updateModule(id: number, patch: Database["public"]["Tables"]["course_modules"]["Update"]) {
   const { error } = await supabase.from("course_modules").update(patch).eq("id", id);
   if (error) throw error;
 }
 
-export async function updateLesson(id: number, patch: Partial<Lesson>) {
+export async function updateLesson(id: number, patch: Database["public"]["Tables"]["lessons"]["Update"]) {
   const { error } = await supabase.from("lessons").update(patch).eq("id", id);
   if (error) throw error;
 }
