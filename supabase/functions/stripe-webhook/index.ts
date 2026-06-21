@@ -28,7 +28,7 @@ function isUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-async function processAnnualCheckout(supabase: any, stripe: Stripe, event: Stripe.Event) {
+async function processAnnualCheckout(supabase: SupabaseAdmin, stripe: Stripe, event: Stripe.Event) {
   const session = event.data.object as Stripe.Checkout.Session;
   const isAnnual = session.mode === "payment" && session.metadata?.plan_key === "annual_member";
   if (!isAnnual) return false;

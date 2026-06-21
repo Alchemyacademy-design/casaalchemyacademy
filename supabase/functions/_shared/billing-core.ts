@@ -333,7 +333,7 @@ async function paymentForCharge(supabase: SupabaseAdmin, stripe: Stripe, chargeI
   const charge = await stripe.charges.retrieve(chargeId);
   const paymentIntentId = objectId(charge.payment_intent);
 
-  let query = supabase
+  const query = supabase
     .from("stripe_payments")
     .select("stripe_invoice_id, stripe_subscription_id, stripe_payment_intent_id")
     .eq("stripe_charge_id", charge.id);
