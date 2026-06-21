@@ -40,6 +40,7 @@ export default function Signup() {
         email,
         password,
         options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             full_name: fullName,
           },
@@ -57,7 +58,7 @@ export default function Signup() {
       }
 
       if (data.user) {
-        setSuccessMessage("Account created. Check your email and confirm your address before signing in.");
+        setSuccessMessage("Account created. Check your inbox (and spam folder) for a confirmation link before signing in.");
         setFullName("");
         setEmail("");
         setPassword("");

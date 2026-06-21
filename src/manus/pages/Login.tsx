@@ -10,21 +10,35 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setInfo("");
+    setNeedsConfirmation(false);
     setLoading(true);
 
     try {
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim().toLowerCase(),
         password,
       });
 
       if (signInError) {
-        setError(signInError.message);
+        const msg = signInError.message || "";
+        const code = (signInError as { code?: string }).code;
+        if (code === "email_not_confirmed" || /not confirmed/i.test(msg)) {
+          setNeedsConfirmation(true);
+          setError("Your email hasn't been confirmed yet. Check your inbox or resend the confirmation link below.");
+        } else if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) {
+          setNeedsConfirmation(true);
+          setError("Invalid email or password. If you just signed up, please confirm your email first, or reset your password.");
+        } else {
+          setError(msg || "Unable to sign in");
+        }
         return;
       }
 
@@ -34,6 +48,30 @@ export default function Login() {
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      setError("Enter your email above first.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setInfo("");
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email: email.trim().toLowerCase(),
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      });
+      if (resendError) {
+        setError(resendError.message);
+      } else {
+        setInfo("Confirmation email sent. Please check your inbox and spam folder.");
+      }
     } finally {
       setLoading(false);
     }
@@ -68,9 +106,37 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3">
+          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3">
             <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
             <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {info && (
+          <div className="mb-4 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <p className="text-sm text-accent">{info}</p>
+          </div>
+        )}
+
+        {needsConfirmation && (
+          <div className="mb-6 flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResendConfirmation}
+              disabled={loading}
+              className="flex-1"
+            >
+              Resend confirmation email
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/reset-password")}
+              className="flex-1"
+            >
+              Reset password
+            </Button>
           </div>
         )}
 
