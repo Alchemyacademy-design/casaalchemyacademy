@@ -1,9 +1,12 @@
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from "react";
 import { Link as RouterLink, matchPath, useLocation as useRouterLocation, useNavigate, useParams as useRouterParams } from "react-router-dom";
 
+type AnchorProps = { href?: string; className?: string; children?: ReactNode };
+
 export function Link({ href, children, className }: { href: string; children: ReactNode; className?: string }) {
   if (isValidElement(children) && (children as ReactElement).type === "a") {
-    return cloneElement(children as ReactElement<any>, { href, className: className ?? (children as ReactElement<any>).props.className });
+    const el = children as ReactElement<AnchorProps>;
+    return cloneElement(el, { href, className: className ?? el.props.className });
   }
   return <RouterLink to={href} className={className}>{children}</RouterLink>;
 }

@@ -6,7 +6,7 @@ export const STRIPE_API_VERSION = "2026-05-27.dahlia" as const;
 export const MAX_RECOVERY_BATCH_SIZE = 25;
 const ANNUAL_ONE_TIME_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
 
-type SupabaseAdmin = ReturnType<typeof createAdminClient<Database>>;
+export type SupabaseAdmin = ReturnType<typeof createAdminClient<Database>>;
 type TerminalStatus = "processed" | "processed_ignored" | "processed_ignored_stale" | "failed_retryable" | "failed_permanent";
 type InvoiceLineLike = {
   price?: { id?: string } | null;
@@ -333,7 +333,7 @@ async function paymentForCharge(supabase: SupabaseAdmin, stripe: Stripe, chargeI
   const charge = await stripe.charges.retrieve(chargeId);
   const paymentIntentId = objectId(charge.payment_intent);
 
-  let query = supabase
+  const query = supabase
     .from("stripe_payments")
     .select("stripe_invoice_id, stripe_subscription_id, stripe_payment_intent_id")
     .eq("stripe_charge_id", charge.id);

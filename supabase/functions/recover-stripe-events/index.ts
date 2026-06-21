@@ -10,6 +10,7 @@ import {
   MAX_RECOVERY_BATCH_SIZE,
   processBillingEvent,
   stripeClient,
+  type SupabaseAdmin,
 } from "../_shared/billing-core.ts";
 
 const ANNUAL_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
@@ -28,7 +29,7 @@ function isUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
-async function processRecoveredAnnualCheckout(supabase: any, stripe: Stripe, event: Stripe.Event) {
+async function processRecoveredAnnualCheckout(supabase: SupabaseAdmin, stripe: Stripe, event: Stripe.Event) {
   if (
     event.type !== "checkout.session.completed" &&
     event.type !== "checkout.session.async_payment_succeeded" &&

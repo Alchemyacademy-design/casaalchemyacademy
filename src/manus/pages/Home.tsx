@@ -207,7 +207,7 @@ export default function Home() {
             {MODULES.filter(mod => mod.id !== 9).map((mod) => (
               <div key={mod.id} className="module-card-hover relative overflow-hidden group" style={{
                 border: "1px solid var(--aa-cream-dark)",
-                backgroundColor: mod.thumbnail ? "transparent" : ((mod as any).comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),
+                backgroundColor: mod.thumbnail ? "transparent" : ((mod as { comingSoon?: boolean }).comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),
                 padding: "1.75rem",
                 backgroundImage: mod.thumbnail ? `url('${mod.thumbnail}')` : "none",
                 backgroundSize: "cover",
@@ -219,7 +219,7 @@ export default function Home() {
               }}>
                 {mod.thumbnail && <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />}
                 <div className="relative z-10">
-                  {(mod as any).comingSoon === true && (
+                  {(mod as { comingSoon?: boolean }).comingSoon === true && (
                     <div className="absolute top-3 right-3 z-20">
                       <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "var(--aa-olive-light)", color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em" }}>
                         Coming Soon
@@ -230,7 +230,7 @@ export default function Home() {
                     <span className="font-serif text-3xl" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-gold)", fontWeight: 300 }}>
                       {String(mod.id).padStart(2, "0")}
                     </span>
-                    {!mod.available || (mod as any).comingSoon === true ? (
+                    {!mod.available || (mod as { comingSoon?: boolean }).comingSoon === true ? (
                       <Lock size={14} style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-olive-light)", opacity: 0.5, marginTop: "6px" }} />
                     ) : null}
                   </div>

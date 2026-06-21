@@ -11,7 +11,7 @@ export default function Suppliers() {
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
 
-  const filtered = suppliers.filter((s: any) => {
+  const filtered = (suppliers as Array<{ room?: string | null; priceTier?: string | null }>).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
     return true;
@@ -123,7 +123,7 @@ export default function Suppliers() {
               <p>No suppliers match your filters.</p>
             </div>
           ) : (
-            filtered.map((supplier: any) => (
+            (filtered as Array<{ id: string | number; name?: string; room?: string | null; priceTier?: string | null; websiteUrl?: string | null; category?: string | null }>).map((supplier) => (
               <div key={supplier.id} className="p-6 module-card-hover" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
                 <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
                   {supplier.name}

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Star } from "lucide-react";
 import { Link } from "wouter";
+import type { LessonRow, ModuleRow, ProgressRow } from "@/manus/lib/types";
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -30,7 +31,7 @@ export default function CourseDetail() {
 
   const currentLesson = lessons[0];
   const isLessonCompleted = (lessonId: number) => {
-    return progress.some((p: any) => p.lessonId === lessonId && p.completed);
+    return progress.some((p: ProgressRow) => p.lessonId === lessonId && p.completed);
   };
 
   const handleMarkComplete = async () => {
@@ -51,9 +52,9 @@ export default function CourseDetail() {
     );
   }
 
-  const completedCount = progress.filter((p: any) => p.completed).length;
+  const completedCount = progress.filter((p: ProgressRow) => p.completed).length;
   const progressPercent = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
-  const currentModuleNumber = allModules.findIndex((m: any) => m.id === moduleId) + 1;
+  const currentModuleNumber = allModules.findIndex((m: ModuleRow) => m.id === moduleId) + 1;
   const totalModules = allModules.length;
 
   // Course title and module data
@@ -113,7 +114,7 @@ export default function CourseDetail() {
                 Lessons in this module
               </h3>
               <div className="space-y-3">
-                {lessons.map((lesson: any, idx: number) => {
+                {lessons.map((lesson: LessonRow, idx: number) => {
                   const isCompleted = isLessonCompleted(lesson.id);
                   return (
                     <div key={lesson.id} className="flex items-center gap-3 text-foreground/80">
@@ -194,7 +195,7 @@ export default function CourseDetail() {
                 Modules
               </h3>
               <div className="space-y-3">
-                {allModules.map((m: any, idx: number) => (
+                {allModules.map((m: ModuleRow, idx: number) => (
                   <Link key={m.id} href={`/courses/${m.id}`}>
                     <button
                       className={`w-full text-left p-3 rounded-lg transition ${
