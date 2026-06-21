@@ -130,12 +130,13 @@ export default function Dashboard() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {enrolledModules.slice(0, 4).map((module: ModuleRow) => {
+                const courseId = typeof module.course_id === "number" || typeof module.course_id === "string" ? module.course_id : null;
                 const moduleProgress = (progress as ProgressRow[]).filter((p) => p.moduleId === module.id);
                 const lessonCount = module.lessonCount ?? 0;
                 const pct = lessonCount > 0 ? Math.round((moduleProgress.length / lessonCount) * 100) : 0;
 
                 return (
-                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = module.course_id ? `/courses/${module.course_id}` : `/modules/${module.id}`}>
+                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = courseId ? `/courses/${courseId}` : `/modules/${module.id}`}>
                     <div className="flex items-start justify-between mb-3">
                       <span className="font-serif text-2xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>
                         {String(module.number).padStart(2, "0")}
