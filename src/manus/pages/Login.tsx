@@ -50,29 +50,8 @@ export default function Login() {
     }
   };
 
-  const handleResendConfirmation = async () => {
-    if (!email) {
-      setError("Enter your email above first.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setInfo("");
-    try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email: email.trim().toLowerCase(),
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (resendError) {
-        setError(resendError.message);
-      } else {
-        setInfo("Confirmation email sent. Please check your inbox and spam folder.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
 
   const handleGoogleLogin = async () => {
     try {
