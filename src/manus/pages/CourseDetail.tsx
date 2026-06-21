@@ -114,7 +114,7 @@ export default function CourseDetail() {
   const activeLesson = allLessons.find((l) => l.id === activeLessonId) ?? null;
   const activeModule = course?.course_modules.find((m) => m.id === activeLesson?.module_id) ?? null;
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
   const completedIds = useMemo(
     () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
     [progress],
@@ -240,7 +240,7 @@ export default function CourseDetail() {
                     Open resource ↗
                   </a>
                 )}
-                {lessonPlayable(activeLesson) && (
+                {lessonPlayable(activeLesson) && !isAdmin && (
                   <div className="pt-2">
                     <Button
                       variant={completedIds.has(activeLesson.id) ? "outline" : "default"}
