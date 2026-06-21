@@ -95,6 +95,22 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const { data: dbCourses = [] } = usePublishedCourses(12);
+
+  // Prefer DB-published courses; fall back to the static curriculum copy when DB is empty.
+  const displayModules = (dbCourses.length > 0
+    ? dbCourses.map((c: any, i: number) => ({
+        id: c.id ?? i + 1,
+        title: c.title ?? "Untitled",
+        tagline: c.tagline ?? c.description ?? "",
+        lessons: [],
+        available: c.status === "published",
+        thumbnail: c.cover_image_url ?? c.thumbnail_url ?? null,
+        href: `/courses/${c.id}`,
+      }))
+    : MODULES.map((m) => ({ ...m, href: undefined as string | undefined }))
+  ).filter((m: any) => m.id !== 9);
+
 
   return (
     <div style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
