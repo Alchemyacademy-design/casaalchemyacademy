@@ -69,8 +69,9 @@ export default function Activate() {
       setTimeout(() => {
         navigate("/");
       }, 2000);
-    } catch (err: any) {
-      setError(err.message || "Failed to activate account");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to activate account";
+      setError(message);
     } finally {
       setLoading(false);
     }
