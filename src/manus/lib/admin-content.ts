@@ -42,8 +42,9 @@ export async function listCourses() {
 }
 
 export async function getCourse(id: number) {
-  const { data, error } = await supabase.from("courses").select("*").eq("id", id).single();
+  const { data, error } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
   if (error) throw error;
+  if (!data) throw new Error(`Course ${id} not found or not readable (check RLS).`);
   return data;
 }
 

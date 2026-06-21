@@ -5,7 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { useState } from "react";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [isEditingPassword, setIsEditingPassword] = useState(false);
 
   return (
@@ -74,7 +74,7 @@ export default function Profile() {
                   className="px-4 py-2 text-sm"
                   style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", border: "1px solid var(--aa-cream-dark)", fontWeight: 500 }}
                 >
-                  {user?.membershipTier || "Free"}
+                  {isAdmin ? "Administrator — full access" : (user?.membershipTier || "Free")}
                 </div>
               </div>
             </div>

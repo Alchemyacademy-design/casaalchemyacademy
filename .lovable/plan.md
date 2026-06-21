@@ -1,113 +1,86 @@
-# Correção definitiva: login admin + leitura real dos cursos
+# Plano de Correção — Editor, Lista de Cursos e Perfil Admin
 
-## Causa raiz
-1. `useAuth` é instanciado por componente, recriando listener `onAuthStateChange` e refazendo `auth-me` em paralelo. Isso gera estado intermediário onde `isAdmin=false` enquanto a query roda, e `AdminGuard` redireciona o admin para `/dashboard` antes de `auth-me` responder.
-2. `AdminGuard` decide acesso só com `loading` + `isAdmin`, sem distinguir “sessão carregada” de “autorização carregada”.
-3. `AdminCoursesList` faz consulta aninhada `courses → course_modules → lessons` e trata erro como “No courses yet”, escondendo qualquer falha de RLS/GRANT real.
-4. Não existe diagnóstico visível para confirmar role, contagens e estado de `auth-me` quando algo falha.
+Princípio: **toda informação vem do banco Supabase real** (`omzwtfnqffseemrlylwu`). Nenhum dado mock, nenhum fallback de arquivo isolado.
 
-Banco já está correto: 10 cursos / 10 módulos / 30 aulas e `contact@casaalchemystudio.com` com role `admin`. Nada será reimportado e nenhum schema alterado.
+---
 
-## Escopo
-- Apenas frontend + uma edge function nova (`admin-content-catalog`).
-- Sem Stripe, sem migrações de dados, sem novo Supabase, sem Lovable Cloud.
+## Bug 1 — Editor de curso fica em loading infinito ao clicar "Editar"
 
-## Mudanças
+**Causa raiz:** `src/manus/pages/admin/AdminCourseDetail.tsx` (linha 494) não trata `isError` do React Query. `getCourse` (em `src/manus/lib/admin-content.ts:44`) usa `.single()`; quando RLS bloqueia o admin de ler cursos `draft` (ou o id não existe), o erro `PGRST116` é lançado, `data` fica `undefined`, e o componente cai eternamente no ramo `if (!course)` mostrando "Loading course…".
 
-### 1. AuthProvider global único
-- Novo `src/manus/contexts/AuthContext.tsx` com Provider montado uma vez em `src/App.tsx`.
-- Estado central: `session`, `user`, `profile`, `roles`, `membership`, `activeEntitlements`, `isAdmin`, `isMember`, `hasCourseAccess`, `hasPaidAccess`, `authReady`, `accessReady`, `loading`, `error`, `refreshAccess`, `logout`.
-- Um único `onAuthStateChange` e uma única chamada `auth-me` por sessão. `staleTime: 30s`. Invalidação explícita em `SIGNED_IN`, `TOKEN_REFRESHED`, `USER_UPDATED`, `SIGNED_OUT`.
-- `src/manus/hooks/useAuth.ts` reescrito como wrapper fino: `return useContext(AuthContext)`. Mantém a mesma API pública para não quebrar consumidores.
-- Fallback se `auth-me` falhar: consulta autenticada só do próprio usuário em `user_roles` + `profiles`. Falha fechada para não-admin; admin vê estado de erro + retry.
+**Correções:**
+1. `AdminCourseDetail.tsx` ~L494: destruturar `isError` e `error` do `useQuery` para `getCourse`, `getModulesByCourse`, `getLessonsByModule`.
+2. ~L615: adicionar ramo `if (courseError)` antes do `if (!course)`, exibindo a mensagem real do Postgres (`error.message`, `code`, `hint`) — sem esconder o erro.
+3. Trocar `.single()` por `.maybeSingle()` em `getCourse` para diferenciar "linha inexistente" de "erro de permissão".
+4. Garantir via migração SQL que admin lê e edita cursos de qualquer status. Adicionar/ajustar policies em `courses`, `course_modules`, `lessons`:
+   - `SELECT/INSERT/UPDATE/DELETE USING (public.has_role(auth.uid(), 'admin'))` além das policies existentes para alunos.
+5. Validar com `/admin/diagnostics` que o admin recebe os 10 cursos, 10 módulos, 30 aulas direto do banco.
 
-### 2. AdminGuard corrigido
-`src/components/AdminGuard.tsx` passa a usar a máquina de estados:
+---
 
-```text
-!authReady                       -> skeleton
-authReady && !session            -> Navigate("/login")
-authReady && session && !accessReady && !error
-                                 -> "Checking administrator access…"
-accessReady && error             -> painel de erro + Retry
-accessReady && !isAdmin          -> Navigate("/403")
-accessReady && isAdmin           -> children
-```
+## Bug 2 — Lista pública de cursos vazia em `/mycourses` (Modules)
 
-Nunca redirecionar admin enquanto `auth-me` está pendente.
+**Causa raiz:** `src/manus/pages/Modules.tsx` consulta a coluna inexistente `cover_image_url` (linhas 16, 29, 123). A coluna real, usada em todo o resto do projeto e nos dados do banco, é `cover_image_path`. O PostgREST devolve 400, a query falha, `courses` cai no default `[]` e o usuário vê "Nenhum curso".
 
-### 3. Proteção do admin master no backend
-Migração mínima criando trigger em `public.user_roles` que bloqueia `DELETE`/`UPDATE` da linha `role='admin'` quando `lower(trim(auth.users.email)) = 'contact@casaalchemystudio.com'`. Função `SECURITY DEFINER`, search_path fixo. Nenhuma alteração nos dados existentes.
+**Correções:**
+1. Em `src/manus/pages/Modules.tsx`, substituir `cover_image_url` por `cover_image_path` nas 3 ocorrências (tipo, string do `select`, leitura no JSX).
+2. Auditar `Guides.tsx`, `CourseDetail.tsx` e qualquer outra página de catálogo para o mesmo typo — corrigir se existir.
+3. Garantir que a query NÃO depende de `hasCourseAccess`/`isMember` para listar o catálogo público (lista deve aparecer para qualquer usuário autenticado; o gate de acesso é só ao abrir a aula).
 
-### 4. Edge function `admin-content-catalog`
-- `supabase/functions/admin-content-catalog/index.ts`, `verify_jwt = true`.
-- Valida JWT, lê `user_roles` do caller via service role, confirma `admin` no servidor. Nunca confia em flag do cliente.
-- Faz três consultas determinísticas (courses → modules → lessons) e devolve:
+---
 
-```json
-{
-  "courses": [...],
-  "counts": {
-    "courses": 10, "modules": 10, "lessons": 30,
-    "missing_video_urls": n, "draft_courses": n, "published_courses": n
-  }
-}
-```
+## Bug 3 — Admin precisa ter acesso total à plataforma sem plano
 
-- Não escreve dados, não retorna secrets.
+**Causa raiz:** A lógica de roteamento (`GlobalAccessController.tsx:44`) já faz `if (isAdmin) return;` corretamente. O que está errado é cosmético/UX: o `MemberLayout` mostra o rótulo fixo "Member" e o Profile mostra "Free" mesmo para admin, dando a impressão de bloqueio.
 
-### 5. Serviço admin tipado
-`src/manus/services/admin-content.ts` com:
-`getAdminContentCounts`, `getCourses`, `getCourseModules(courseIds)`, `getLessons(moduleIds)`, `getCoursesTree`, `getCourseById`, `updateCourse`, `updateModule`, `updateLesson`. Usa apenas `@/integrations/supabase/client`. Erros tipados (`code`, `message`, `details`, `hint`); distingue “vazio” de “bloqueado”.
+**Correções:**
+1. `src/manus/components/MemberLayout.tsx:167`: trocar o literal `"Member"` por `{isAdmin ? "Admin" : "Member"}` (consumindo `useAuth`).
+2. Revisar cada página da área de membros (`Community`, `Suppliers`, `Events`, `Magazine`, `LiveWorkshops`, `Dashboard`) para garantir que qualquer guard local respeite `isAdmin === true` como bypass (e não exija `isMember`).
+3. Não alterar regra de negócio para alunos pagos — apenas garantir o bypass do admin.
 
-### 6. AdminCoursesList reescrito
-- Fonte primária: edge function `admin-content-catalog`. Fallback: serviço em três etapas com RLS.
-- React Query: `queryKey: ["admin","courses-tree", session.user.id]`, `enabled: authReady && accessReady && isAdmin`, `refetchOnMount: "always"`, `refetchOnWindowFocus: true`, `retry: 2`.
-- Estados: skeleton, erro real (mostra `code/message/details/hint` + Retry), vazio real (“No courses yet” somente em sucesso com zero linhas), sucesso.
-- Cada linha mostra: title, slug, status, sort_order, subtitle, módulos, aulas totais, aulas com vídeo, aulas sem vídeo, thumbnail, botão Manage.
+---
 
-### 7. AdminCourseDetail
-Mantém edição dos registros existentes pelo ID real. Campos editáveis: nome, descrição, thumbnail, ordem, status, `external_video_url`, `external_resource_url`, `duration_seconds`, `is_preview`. Sem recriar curso.
+## Bug 4 — Profile mostra "Free" e nome errado para a admin Lorena Couto
 
-### 8. /admin/content-import com duas abas
-- “Current database”: dados reais via `admin-content-catalog` (cursos, módulos, aulas, status, vídeos faltantes, thumbnails faltantes).
-- “Import package”: preview do `manus-import.json` com aviso “The import package is not the current database. Use this page only to preview or update missing records.”
-- Sem importação automática. Botão de importar fica desabilitado se for duplicar por slug.
+**Causa raiz:**
+- `src/manus/pages/Profile.tsx:77` exibe `user?.membershipTier || "Free"`. Admin não tem linha em `memberships`, então `membershipTier` é `undefined` → renderiza "Free".
+- O nome cai em `user.email` quando `profiles.full_name` está nulo no banco.
 
-### 9. /admin/diagnostics
-Nova rota dentro de `AdminGuard`. Mostra (sem secrets): user_id, email, session exists, authReady, accessReady, roles, isAdmin, Project Ref, status do `auth-me`, contagens (courses/modules/lessons), último erro. Botões: Refresh session, Refresh access, Reload courses, Copy diagnostic report. Nunca exibe access token, anon key ou service role.
+**Correções:**
+1. `Profile.tsx`: importar `isAdmin` do `useAuth` e usar `{isAdmin ? "Admin" : (user?.membershipTier ?? "Free")}`.
+2. Adicionar badge/aviso "Acesso total — Administrador" quando `isAdmin`.
+3. Atualizar a linha real em `public.profiles` da Lorena (via tool de insert/update) para `full_name = 'Lorena Couto'` e `display_name = 'Lorena Couto'` — dado vem do banco, não hard-coded.
+4. Criar/garantir trigger `handle_new_user` em `auth.users` que insere em `public.profiles` copiando `raw_user_meta_data->>'full_name'`, para que novos usuários nunca caiam no fallback de email.
 
-### 10. Higiene de cache/listeners
-Auditoria: `createClient(`, `onAuthStateChange(`, `auth.me`. Garantir uma única origem em cada caso. Remover qualquer listener duplicado em componentes.
+---
 
-## Arquivos a criar
-- `src/manus/contexts/AuthContext.tsx`
-- `src/manus/services/admin-content.ts`
-- `src/manus/pages/admin/AdminDiagnostics.tsx`
-- `supabase/functions/admin-content-catalog/index.ts`
-- Migração: trigger de proteção do admin master em `public.user_roles`
+## Premortem — o que pode dar errado e como evito
 
-## Arquivos a modificar
-- `src/App.tsx` (montar AuthProvider, registrar `/admin/diagnostics`)
-- `src/manus/hooks/useAuth.ts` (vira wrapper do contexto)
-- `src/components/AdminGuard.tsx` (máquina de estados nova)
-- `src/manus/pages/admin/AdminCoursesList.tsx` (consulta determinística + estados de erro reais)
-- `src/manus/pages/admin/AdminCourseDetail.tsx` (somente onde necessário para usar o serviço)
-- `src/manus/pages/admin/ContentImport` (separar “Current DB” x “Import package”)
-- `supabase/config.toml` (`[functions.admin-content-catalog] verify_jwt = true`)
+| Risco | Mitigação |
+|---|---|
+| Policy nova de admin em `courses` causa recursão com `has_role` | `has_role` já é `SECURITY DEFINER` com `search_path` fixo — seguro. Testar `select * from courses` autenticado como admin antes de declarar pronto. |
+| Trocar `cover_image_url` quebra outras telas | Buscar todas as ocorrências (`rg cover_image_url`) antes de editar; só `Modules.tsx` deve ter o typo. |
+| `maybeSingle()` muda comportamento em outros lugares | Aplicar só em `getCourse`; manter `.single()` onde a linha é garantida. |
+| Trigger `handle_new_user` conflita com profiles já existentes | Usar `ON CONFLICT (id) DO NOTHING`. |
+| Admin perde rótulo "Member" quebra UI de aluno comum | Render condicional por `isAdmin`; aluno continua vendo "Member". |
+| Lorena já tem `profiles.full_name` preenchido com outro valor | Antes do update, fazer `SELECT id, full_name, display_name FROM profiles WHERE id = (select id from auth.users where email='contact@casaalchemystudio.com')` e confirmar com a usuária. |
 
-## Critério de aceite
-Logado como `contact@casaalchemystudio.com`:
+---
 
-1. `/admin` abre direto, sem redirect.
-2. `/admin/courses` mostra exatamente: 10 cursos · 10 módulos · 30 aulas.
-3. Cursos draft visíveis para admin; aulas sem vídeo marcadas como Missing.
-4. `/admin/diagnostics` confirma roles=["admin"], `isAdmin=true`, `accessReady=true`, contagens 10/10/30.
-5. `/admin/content-import` separa “Current database” (banco real) de “Import package” (JSON).
-6. Refresh da página e nova aba mantêm acesso admin.
-7. Estudante não acessa `/admin` nem vê drafts.
+## Ordem de execução
 
-Não declaro pronto até esses sete itens passarem visualmente.
+1. Migração SQL: policies de admin em `courses`/`course_modules`/`lessons` + trigger `handle_new_user`.
+2. Update da linha `profiles` da Lorena com `full_name`/`display_name` reais.
+3. Código frontend: `Modules.tsx` (cover_image_path), `AdminCourseDetail.tsx` (isError + maybeSingle), `Profile.tsx` (isAdmin → "Admin"), `MemberLayout.tsx` (label dinâmico).
+4. Validação manual com `contact@casaalchemystudio.com`:
+   - `/admin/courses` → clicar Editar → formulário carrega com módulos e aulas.
+   - `/mycourses` → 10 cursos aparecem com capas.
+   - `/profile` → "Admin" e "Lorena Couto".
+   - Navegar livremente em `/community`, `/events`, etc.
 
-## Fora deste plano
-Stripe, checkout, webhooks, Lovable Cloud, novo Supabase, novo repositório, reimport de cursos, novas tabelas, mudanças de schema além do trigger de proteção do admin master.
+## Critério de pronto
+
+- Editor abre qualquer curso em <2s sem loading infinito, lendo do Supabase real.
+- `/mycourses` lista os 10 cursos reais do banco com capa.
+- Perfil mostra "Admin" e "Lorena Couto" lidos de `profiles`.
+- Nenhuma referência a dado mock ou JSON estático no caminho de leitura.

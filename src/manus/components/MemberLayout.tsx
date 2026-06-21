@@ -164,7 +164,7 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
 
           <div className="p-4 border-t border-border/50 space-y-3">
             <div className="px-4 py-3 rounded-lg bg-secondary/30 border border-secondary/50">
-              <p className="text-xs text-foreground/70 font-semibold uppercase mb-1">Member</p>
+              <p className="text-xs text-foreground/70 font-semibold uppercase mb-1">{isAdmin ? "Admin" : "Member"}</p>
               <p className="text-sm font-medium">{user?.name || "User"}</p>
               <p className="text-xs text-foreground/60">{user?.email}</p>
             </div>
