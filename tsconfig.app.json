@@ -24,9 +24,6 @@
       "@/*": [
         "./src/*"
       ],
-      "wouter": [
-        "./src/compat/wouter.tsx"
-      ],
       "@shared/*": [
         "./src/shared/*"
       ]
