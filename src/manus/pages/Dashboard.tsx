@@ -4,14 +4,16 @@ import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
+import { getCoursesTree } from "@/manus/services/admin-content";
 import { useUpcomingEvents, useUpcomingWorkshops, useRegisterForTarget, useMyRegistrations } from "@/manus/hooks/usePublicContent";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated, isAdmin } = useAuth();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -20,7 +22,25 @@ export default function Dashboard() {
   }, [isAuthenticated, loading, navigate]);
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
-  const { data: modules = [] } = trpc.modules.list.useQuery();
+  const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin });
+  const adminModules = useQuery({
+    queryKey: ["dashboard", "admin-modules"],
+    enabled: isAdmin,
+    queryFn: async (): Promise<ModuleRow[]> => {
+      const catalog = await getCoursesTree();
+      return catalog.courses.flatMap((course) =>
+        course.course_modules.map((module) => ({
+          ...module,
+          course_id: course.id,
+          number: module.sort_order,
+          tagline: module.description ?? undefined,
+          lessonCount: module.lessons.length,
+          isPublished: module.status === "published",
+        })),
+      );
+    },
+  });
+  const modules = isAdmin ? (adminModules.data ?? []) : (memberModules.data ?? []);
 
   if (loading) {
     return (
@@ -115,7 +135,7 @@ export default function Dashboard() {
                 const pct = lessonCount > 0 ? Math.round((moduleProgress.length / lessonCount) * 100) : 0;
 
                 return (
-                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = `/mycourses/${module.number}`}>
+                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = module.course_id ? `/courses/${module.course_id}` : `/modules/${module.id}`}>
                     <div className="flex items-start justify-between mb-3">
                       <span className="font-serif text-2xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>
                         {String(module.number).padStart(2, "0")}
