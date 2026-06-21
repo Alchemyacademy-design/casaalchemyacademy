@@ -4,6 +4,7 @@ import { getLoginUrl } from "@/manus/const";
 import { Lock } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/manus/hooks/useAuth";
+import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
 
 // Organogram-based module structure from reference
 const MODULES = [
