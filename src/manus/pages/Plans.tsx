@@ -63,8 +63,8 @@ export default function Plans() {
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan) => {
               const features = planFeatures(plan);
-              const isMonthly = plan.duration === "monthly" || plan.key === "monthly";
-              const isAnnual = plan.duration === "annual" || plan.key === "annual";
+              const isMonthly = plan.duration === "monthly" || plan.key === "monthly_member";
+              const isAnnual = plan.duration === "annual" || plan.key === "annual_member";
               const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : null;
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
