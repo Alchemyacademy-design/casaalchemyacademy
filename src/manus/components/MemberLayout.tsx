@@ -1,6 +1,6 @@
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Tag, Settings, Users, Gift } from "lucide-react";
+import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Tag, Settings, Users, Gift, Shield } from "lucide-react";
 import { getLoginUrl } from "@/manus/const";
 import { Link, useLocation } from "wouter";
 import { useState } from "react";
@@ -11,7 +11,7 @@ interface MemberLayoutProps {
 }
 
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
-  const { user, loading, isAuthenticated, logout } = useAuth();
+  const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [location] = useLocation();
   const handleLogout = async () => {
