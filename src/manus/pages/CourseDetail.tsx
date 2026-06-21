@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Star } from "lucide-react";
 import { Link } from "wouter";
 import type { LessonRow, ModuleRow, ProgressRow } from "@/manus/lib/types";
+import VideoPreview from "@/manus/components/admin/VideoPreview";
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
@@ -81,22 +82,10 @@ export default function CourseDetail() {
             </h2>
 
             {/* Video Player */}
-            <div className="mb-8 bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
-              {currentLesson.videoUrl && currentLesson.videoUrl.startsWith('/manus-storage') ? (
-                <video
-                  className="w-full h-full"
-                  controls
-                  controlsList="nodownload"
-                >
-                  <source src={currentLesson.videoUrl} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              ) : (
-                <div className="text-center text-white">
-                  <p className="text-lg">Video Placeholder</p>
-                </div>
-              )}
+            <div className="mb-8 rounded-lg overflow-hidden">
+              <VideoPreview url={currentLesson.videoUrl} />
             </div>
+
 
             {/* About this module */}
             <Card className="p-6 mb-8 bg-card border-border/50">
