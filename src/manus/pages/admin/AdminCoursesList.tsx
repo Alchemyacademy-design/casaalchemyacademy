@@ -1,64 +1,37 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Edit3, ChevronDown, ChevronRight, AlertTriangle, Video } from "lucide-react";
+import { Plus, Edit3, ChevronDown, ChevronRight, AlertTriangle, Video, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
-import { supabase } from "@/integrations/supabase/client";
-import { isPlaceholderVideo, type ContentStatus } from "@/manus/lib/admin-content";
-
-type Lesson = {
-  id: number;
-  title: string;
-  sort_order: number;
-  status: ContentStatus;
-  external_video_url: string | null;
-  description: string | null;
-};
-type Module = {
-  id: number;
-  title: string;
-  sort_order: number;
-  lessons: Lesson[];
-};
-type CourseTree = {
-  id: number;
-  title: string;
-  slug: string;
-  status: ContentStatus;
-  sort_order: number;
-  subtitle: string | null;
-  access_plan_keys: string[] | null;
-  course_modules: Module[];
-};
-
-async function listCoursesTree(): Promise<CourseTree[]> {
-  const { data, error } = await supabase
-    .from("courses")
-    .select(
-      "id,title,slug,status,sort_order,subtitle,access_plan_keys,course_modules(id,title,sort_order,lessons(id,title,sort_order,status,external_video_url,description))",
-    )
-    .order("sort_order", { ascending: true });
-  if (error) throw error;
-  const courses = (data ?? []) as unknown as CourseTree[];
-  for (const c of courses) {
-    c.course_modules = (c.course_modules ?? []).sort((a, b) => a.sort_order - b.sort_order);
-    for (const m of c.course_modules) {
-      m.lessons = (m.lessons ?? []).sort((a, b) => a.sort_order - b.sort_order);
-    }
-  }
-  return courses;
-}
+import { useAuth } from "@/manus/hooks/useAuth";
+import {
+  getCoursesTree,
+  isPlaceholderVideo,
+  type AdminCatalog,
+  type AdminCourse,
+  AdminContentError,
+} from "@/manus/services/admin-content";
 
 export default function AdminCoursesList() {
   const navigate = useNavigate();
+  const { authReady, accessReady, isAdmin, session } = useAuth();
   const [openIds, setOpenIds] = useState<Set<number>>(new Set());
-  const { data: courses = [], isLoading, error } = useQuery({
-    queryKey: ["admin", "courses-tree"],
-    queryFn: listCoursesTree,
+
+  const query = useQuery<AdminCatalog>({
+    queryKey: ["admin", "courses-tree", session?.user.id ?? null],
+    queryFn: getCoursesTree,
+    enabled: authReady && accessReady && isAdmin && !!session,
+    retry: 2,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    staleTime: 15_000,
   });
+
+  const catalog = query.data;
+  const courses: AdminCourse[] = catalog?.courses ?? [];
 
   const toggle = (id: number) => {
     setOpenIds((prev) => {
@@ -68,20 +41,6 @@ export default function AdminCoursesList() {
       return next;
     });
   };
-
-  const totalLessons = courses.reduce(
-    (s, c) => s + c.course_modules.reduce((s2, m) => s2 + m.lessons.length, 0),
-    0,
-  );
-  const missingVideos = courses.reduce(
-    (s, c) =>
-      s +
-      c.course_modules.reduce(
-        (s2, m) => s2 + m.lessons.filter((l) => !l.external_video_url || isPlaceholderVideo(l.external_video_url)).length,
-        0,
-      ),
-    0,
-  );
 
   return (
     <AdminShell
@@ -93,33 +52,57 @@ export default function AdminCoursesList() {
           <Button variant="outline" asChild>
             <Link to="/admin/lessons">Bulk lessons</Link>
           </Button>
+          <Button variant="outline" asChild>
+            <Link to="/admin/diagnostics">Diagnostics</Link>
+          </Button>
           <Button onClick={() => navigate("/admin/courses/new")}>
             <Plus className="w-4 h-4 mr-1" /> New course
           </Button>
         </>
       }
     >
-      {!isLoading && (
+      {catalog && (
         <p className="text-xs text-foreground/60 mb-4">
-          {courses.length} courses · {totalLessons} lessons · {missingVideos} pending video URLs
+          {catalog.counts.courses} courses · {catalog.counts.modules} modules · {catalog.counts.lessons} lessons ·{" "}
+          {catalog.counts.missing_video_urls} pending video URLs
+          <span className="ml-2 text-foreground/40">[source: {catalog.source}]</span>
         </p>
       )}
 
-      {error && (
-        <Card className="p-4 mb-4 border-destructive/40 text-sm text-destructive">
-          Failed to load courses: {(error as Error).message}
+      {query.isError && (
+        <Card className="p-4 mb-4 border-destructive/40 text-sm">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="font-medium text-destructive mb-1">Failed to load courses</div>
+              {query.error instanceof AdminContentError ? (
+                <ul className="text-xs space-y-0.5 text-foreground/70 font-mono">
+                  <li>message: {query.error.message}</li>
+                  {query.error.code && <li>code: {query.error.code}</li>}
+                  {query.error.details && <li>details: {query.error.details}</li>}
+                  {query.error.hint && <li>hint: {query.error.hint}</li>}
+                </ul>
+              ) : (
+                <p className="text-xs text-foreground/70">{(query.error as Error).message}</p>
+              )}
+            </div>
+            <Button size="sm" variant="outline" onClick={() => void query.refetch()}>
+              <RefreshCw className="w-3 h-3 mr-1" /> Retry
+            </Button>
+          </div>
         </Card>
       )}
 
       <div className="space-y-3">
-        {isLoading && <Card className="p-6 text-center text-foreground/60">Loading…</Card>}
-        {!isLoading && courses.length === 0 && (
+        {query.isLoading && <Card className="p-6 text-center text-foreground/60">Loading…</Card>}
+
+        {query.isSuccess && courses.length === 0 && (
           <Card className="p-6 text-center text-foreground/60">No courses yet.</Card>
         )}
+
         {courses.map((c) => {
           const open = openIds.has(c.id);
           const lessons = c.course_modules.flatMap((m) => m.lessons);
-          const pendingHere = lessons.filter((l) => !l.external_video_url || isPlaceholderVideo(l.external_video_url)).length;
+          const pendingHere = lessons.filter((l) => isPlaceholderVideo(l.external_video_url)).length;
           return (
             <Card key={c.id} className="overflow-hidden">
               <button
@@ -132,9 +115,12 @@ export default function AdminCoursesList() {
                 <div className="min-w-0 flex-1">
                   <div className="font-medium truncate">{c.title}</div>
                   <div className="text-xs text-foreground/55 font-mono truncate">{c.slug}</div>
+                  {c.subtitle && <div className="text-xs text-foreground/60 truncate italic">{c.subtitle}</div>}
                 </div>
                 <StatusBadge status={c.status} />
-                <span className="text-xs text-foreground/60 hidden md:inline">{lessons.length} lessons</span>
+                <span className="text-xs text-foreground/60 hidden md:inline">
+                  {c.course_modules.length} mod · {lessons.length} lessons
+                </span>
                 {pendingHere > 0 && (
                   <span className="text-xs text-amber-700 flex items-center gap-1">
                     <AlertTriangle className="w-3 h-3" /> {pendingHere} no video
@@ -154,9 +140,6 @@ export default function AdminCoursesList() {
 
               {open && (
                 <div className="border-t border-border/40 bg-muted/10 px-4 py-3">
-                  {c.subtitle && (
-                    <p className="text-xs text-foreground/70 italic mb-3">{c.subtitle}</p>
-                  )}
                   {c.course_modules.length === 0 && (
                     <p className="text-xs text-foreground/55">No modules.</p>
                   )}
@@ -167,7 +150,7 @@ export default function AdminCoursesList() {
                       </div>
                       <ul className="space-y-1">
                         {m.lessons.map((l, idx) => {
-                          const missing = !l.external_video_url || isPlaceholderVideo(l.external_video_url);
+                          const missing = isPlaceholderVideo(l.external_video_url);
                           return (
                             <li key={l.id} className="flex items-center gap-2 text-sm py-1">
                               <span className="text-xs font-mono text-foreground/50 w-10">
@@ -176,7 +159,7 @@ export default function AdminCoursesList() {
                               <span className="flex-1 truncate">{l.title}</span>
                               {missing ? (
                                 <span className="text-xs text-amber-700 flex items-center gap-1" title="No video URL">
-                                  <AlertTriangle className="w-3 h-3" /> no video
+                                  <AlertTriangle className="w-3 h-3" /> missing
                                 </span>
                               ) : (
                                 <span className="text-xs text-emerald-700 flex items-center gap-1" title="Video URL set">
