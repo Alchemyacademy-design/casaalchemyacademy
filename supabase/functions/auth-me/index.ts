@@ -4,6 +4,8 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
+const DESIGNATED_ADMIN_EMAIL = "contact@casaalchemystudio.com";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -34,11 +36,19 @@ Deno.serve(async (req) => {
   const { data: userData, error: userErr } = await userClient.auth.getUser(token);
   if (userErr || !userData?.user?.id) return json({ error: "unauthorized" }, 401);
   const userId = userData.user.id;
+  const email = (userData.user.email ?? "").trim().toLowerCase();
 
   const admin = createClient(SUPABASE_URL, SERVICE);
   const nowIso = new Date().toISOString();
 
   try {
+    if (email === DESIGNATED_ADMIN_EMAIL) {
+      const { error: roleErr } = await admin
+        .from("user_roles")
+        .upsert({ user_id: userId, role: "admin" }, { onConflict: "user_id,role" });
+      if (roleErr) throw roleErr;
+    }
+
     const [profileRes, rolesRes, membershipRes, entitlementsRes] = await Promise.all([
       admin.from("profiles").select("*").eq("id", userId).maybeSingle(),
       admin.from("user_roles").select("role").eq("user_id", userId),
