@@ -1,214 +1,331 @@
-import { useState } from "react";
-import { useParams } from "react-router-dom";
-import { useAuth } from "@/manus/hooks/useAuth";
-import { trpc } from "@/manus/lib/trpc";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, Circle, Lock, PlayCircle } from "lucide-react";
+import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Star } from "lucide-react";
-import { Link } from "react-router-dom";
-import type { LessonRow, ModuleRow, ProgressRow } from "@/manus/lib/types";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { trpc } from "@/manus/lib/trpc";
+import { toast } from "sonner";
+
+type Lesson = {
+  id: number;
+  module_id: number;
+  title: string;
+  description: string | null;
+  content_text: string | null;
+  external_video_url: string | null;
+  external_resource_url: string | null;
+  duration_seconds: number | null;
+  is_preview: boolean | null;
+  status: "draft" | "published" | "archived";
+  sort_order: number;
+};
+
+type Module = {
+  id: number;
+  title: string;
+  description: string | null;
+  status: "draft" | "published" | "archived";
+  sort_order: number;
+  lessons: Lesson[];
+};
+
+type Course = {
+  id: number;
+  title: string;
+  slug: string;
+  subtitle: string | null;
+  description: string | null;
+  cover_image_path: string | null;
+  status: "draft" | "published" | "archived";
+  access_plan_keys: string[] | null;
+  course_modules: Module[];
+};
+
+async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Course | null> {
+  let query = supabase
+    .from("courses")
+    .select(
+      "id,title,slug,subtitle,description,cover_image_path,status,access_plan_keys," +
+        "course_modules(id,title,description,status,sort_order," +
+        "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
+    )
+    .eq("id", id)
+    .order("sort_order", { foreignTable: "course_modules", ascending: true })
+    .order("sort_order", { foreignTable: "course_modules.lessons", ascending: true })
+    .maybeSingle();
+  if (!includeDrafts) query = query.eq("status", "published");
+  const { data, error } = await query;
+  if (error) throw error;
+  if (!data) return null;
+  const course = data as unknown as Course;
+  if (!includeDrafts) {
+    course.course_modules = course.course_modules
+      .filter((m) => m.status === "published")
+      .map((m) => ({ ...m, lessons: m.lessons.filter((l) => l.status === "published") }));
+  }
+  return course;
+}
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
+  const courseId = Number(id);
+  const { isAdmin, user } = useAuth();
+  const qc = useQueryClient();
 
-  const moduleId = parseInt(id || "1");
-
-  // Fetch module and lessons data
-  const { data: module } = trpc.modules.byId.useQuery({ id: moduleId });
-  const { data: lessons = [] } = trpc.lessons.byModule.useQuery({ moduleId });
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
-  const { data: allModules = [] } = trpc.modules.list.useQuery();
-
-  const markLessonMutation = trpc.lessons.markComplete.useMutation({
-    onSuccess: () => {
-      trpc.useUtils().lessons.progress.invalidate();
-    },
+  const { data: course, isLoading, error } = useQuery({
+    queryKey: ["public", "course", courseId, { admin: isAdmin }],
+    queryFn: () => fetchCourseTree(courseId, isAdmin),
+    enabled: Number.isFinite(courseId),
   });
 
-  const currentLesson = lessons[0];
-  const isLessonCompleted = (lessonId: number) => {
-    return progress.some((p: ProgressRow) => p.lessonId === lessonId && p.completed);
-  };
+  const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
+  const isFullMember = isAdmin || tier === "annual_member" || tier === "monthly_member";
+  const accessible =
+    !course ||
+    isFullMember ||
+    !(course.access_plan_keys?.length) ||
+    course.access_plan_keys.includes("free") ||
+    course.access_plan_keys.includes("guest");
 
-  const handleMarkComplete = async () => {
-    if (currentLesson) {
-      try {
-        await markLessonMutation.mutateAsync({ lessonId: currentLesson.id });
-      } catch (error) {
-        console.error("Error marking lesson complete:", error);
-      }
+  const allLessons: Lesson[] = useMemo(
+    () => (course?.course_modules ?? []).flatMap((m) => m.lessons),
+    [course],
+  );
+
+  const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
+  useEffect(() => {
+    if (activeLessonId == null && allLessons.length > 0) {
+      const firstPlayable = allLessons.find((l) => l.is_preview || accessible) ?? allLessons[0];
+      setActiveLessonId(firstPlayable.id);
     }
-  };
+  }, [allLessons, activeLessonId, accessible]);
 
-  if (!module || !currentLesson) {
+  const activeLesson = allLessons.find((l) => l.id === activeLessonId) ?? null;
+  const activeModule = course?.course_modules.find((m) => m.id === activeLesson?.module_id) ?? null;
+
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const completedIds = useMemo(
+    () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
+    [progress],
+  );
+
+  const markLesson = trpc.lessons.markComplete.useMutation({
+    onSuccess: async () => {
+      toast.success("Marked as complete");
+      await qc.invalidateQueries({ queryKey: [["lessons", "progress"]] });
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
+
+  if (!Number.isFinite(courseId)) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-foreground">Loading...</p>
-      </div>
+      <MemberLayout>
+        <div className="p-10 text-sm text-foreground/70">Invalid course id.</div>
+      </MemberLayout>
     );
   }
 
-  const completedCount = progress.filter((p: ProgressRow) => p.completed).length;
-  const progressPercent = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
-  const currentModuleNumber = allModules.findIndex((m: ModuleRow) => m.id === moduleId) + 1;
-  const totalModules = allModules.length;
+  if (isLoading) {
+    return (
+      <MemberLayout>
+        <div className="p-10 text-sm text-foreground/70">Loading course…</div>
+      </MemberLayout>
+    );
+  }
 
-  // Course title and module data
-  const courseTitle = "The Path to a Colourful Life";
-  const moduleTitle = module.title || "Module Title";
+  if (error) {
+    return (
+      <MemberLayout>
+        <div className="p-10 text-sm text-destructive">Failed to load course: {(error as Error).message}</div>
+      </MemberLayout>
+    );
+  }
+
+  if (!course) {
+    return (
+      <MemberLayout>
+        <div className="p-10 text-sm text-foreground/70">
+          Course not found or not published yet.{" "}
+          <Link to="/mycourses" className="underline">Back to courses</Link>
+        </div>
+      </MemberLayout>
+    );
+  }
+
+  const totalLessons = allLessons.length;
+  const completedCount = allLessons.filter((l) => completedIds.has(l.id)).length;
+  const progressPercent = totalLessons === 0 ? 0 : Math.round((completedCount / totalLessons) * 100);
+
+  const lessonPlayable = (l: Lesson) => accessible || l.is_preview;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border/50 bg-card/50 sticky top-0 z-40">
-        <div className="container py-6">
-          <h1 className="text-2xl font-bold mb-1">{courseTitle}</h1>
-          <p className="text-sm text-foreground/70">Module {currentModuleNumber} of {totalModules}</p>
+    <MemberLayout>
+      <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
+        <div className="mb-6">
+          <Link to="/mycourses" className="text-xs inline-flex items-center gap-1 text-foreground/60 hover:text-foreground">
+            <ArrowLeft className="w-3 h-3" /> All courses
+          </Link>
         </div>
-      </div>
 
-      <div className="container py-8">
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Module Title */}
-            <h2 className="text-4xl font-bold mb-8 text-center" style={{ color: "var(--aa-olive-dark)" }}>
-              {moduleTitle}
-            </h2>
-
-            {/* Video Player */}
-            <div className="mb-8 rounded-lg overflow-hidden">
-              <VideoPreview url={currentLesson.videoUrl} />
+        <div className="grid lg:grid-cols-[1fr_320px] gap-8">
+          <div>
+            <div className="mb-6">
+              <p className="section-label mb-2">Course</p>
+              <h1 className="font-serif text-3xl md:text-4xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
+                {course.title}
+              </h1>
+              {course.subtitle && (
+                <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>{course.subtitle}</p>
+              )}
+              {course.status !== "published" && (
+                <span className="inline-block mt-2 text-[10px] uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
+                  {course.status}
+                </span>
+              )}
             </div>
 
+            {!accessible && (
+              <Card className="p-4 mb-6 border-amber-200 bg-amber-50/60 flex items-start gap-3">
+                <Lock className="w-4 h-4 mt-0.5 text-amber-700" />
+                <div className="text-sm text-amber-900">
+                  This course requires a membership.{" "}
+                  <Link to="/#pricing" className="underline">View plans</Link>. Preview lessons are still available.
+                </div>
+              </Card>
+            )}
 
-            {/* About this module */}
-            <Card className="p-6 mb-8 bg-card border-border/50">
-              <h3 className="text-xl font-bold mb-4" style={{ color: "var(--aa-olive-dark)" }}>
-                About this module
-              </h3>
-              <p className="text-foreground/80 leading-relaxed">
-                {module.description || "Discover the trending color palettes that will dominate interior design in 2026. Learn how to incorporate these colors into your spaces for a modern, sophisticated look."}
+            {activeLesson ? (
+              <div className="space-y-4">
+                <div className="rounded-lg overflow-hidden bg-black/90">
+                  {lessonPlayable(activeLesson) ? (
+                    <VideoPreview url={activeLesson.external_video_url} />
+                  ) : (
+                    <div className="aspect-video flex items-center justify-center text-white/80 text-sm">
+                      <Lock className="w-5 h-5 mr-2" /> Locked — upgrade to watch
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-foreground/50">{activeModule?.title}</p>
+                  <h2 className="font-serif text-2xl mt-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
+                    {activeLesson.title}
+                  </h2>
+                  {activeLesson.description && (
+                    <p className="text-sm text-foreground/70 mt-2 leading-relaxed">{activeLesson.description}</p>
+                  )}
+                </div>
+                {activeLesson.content_text && (
+                  <Card className="p-5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
+                    {activeLesson.content_text}
+                  </Card>
+                )}
+                {activeLesson.external_resource_url && (
+                  <a
+                    href={activeLesson.external_resource_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-block text-xs underline text-foreground/70"
+                  >
+                    Open resource ↗
+                  </a>
+                )}
+                {lessonPlayable(activeLesson) && (
+                  <div className="pt-2">
+                    <Button
+                      variant={completedIds.has(activeLesson.id) ? "outline" : "default"}
+                      onClick={() =>
+                        markLesson.mutate({
+                          lessonId: activeLesson.id,
+                          completed: !completedIds.has(activeLesson.id),
+                        })
+                      }
+                      disabled={markLesson.isPending}
+                    >
+                      {completedIds.has(activeLesson.id) ? "Mark as not completed" : "Mark as completed"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Card className="p-6 text-sm text-foreground/60 text-center">
+                This course has no lessons yet.
+              </Card>
+            )}
+          </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs uppercase tracking-wider text-foreground/60">Progress</p>
+                <p className="text-xs font-mono">{progressPercent}%</p>
+              </div>
+              <div className="h-1.5 rounded bg-muted overflow-hidden">
+                <div className="h-full bg-emerald-600 transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
+              <p className="text-[11px] text-foreground/55 mt-2">
+                {completedCount} of {totalLessons} lessons complete
               </p>
             </Card>
 
-            {/* Lessons in this module */}
-            <Card className="p-6 mb-8 bg-card border-border/50">
-              <h3 className="text-xl font-bold mb-4" style={{ color: "var(--aa-olive-dark)" }}>
-                Lessons in this module
-              </h3>
-              <div className="space-y-3">
-                {lessons.map((lesson: LessonRow, idx: number) => {
-                  const isCompleted = isLessonCompleted(lesson.id);
-                  return (
-                    <div key={lesson.id} className="flex items-center gap-3 text-foreground/80">
-                      {isCompleted ? (
-                        <CheckCircle2 className="w-5 h-5 text-accent flex-shrink-0" />
-                      ) : (
-                        <Circle className="w-5 h-5 text-foreground/30 flex-shrink-0" />
-                      )}
-                      <span>{lesson.title}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </Card>
+            {course.course_modules.length === 0 && (
+              <Card className="p-4 text-xs text-foreground/60">No modules published yet.</Card>
+            )}
 
-            {/* Quiz Section */}
-            <Card className="p-6 mb-8 bg-card border-border/50">
-              <h3 className="text-xl font-bold mb-6" style={{ color: "var(--aa-olive-dark)" }}>
-                Quiz: Question 1 of 5
-              </h3>
-              <p className="mb-6 text-foreground font-semibold">Which of these is a trending color for 2026?</p>
-              <div className="space-y-3 mb-8">
-                {[
-                  { letter: "A", text: "Neon Pink" },
-                  { letter: "B", text: "Warm Terracotta" },
-                  { letter: "C", text: "Bright Yellow" },
-                  { letter: "D", text: "Electric Blue" },
-                ].map((option) => (
-                  <button
-                    key={option.letter}
-                    className="w-full text-left p-4 border border-border/50 rounded-lg hover:bg-card/50 transition"
-                  >
-                    <span className="font-semibold">{option.letter})</span> {option.text}
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center justify-between">
-                <button className="text-accent hover:text-accent/80 transition">← Previous</button>
-                <span className="text-foreground/70">1 / 5</span>
-                <button className="text-accent hover:text-accent/80 transition">Next →</button>
-              </div>
-            </Card>
+            {course.course_modules.map((m) => (
+              <Card key={m.id} className="p-3">
+                <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">{m.title}</p>
+                <ul className="space-y-0.5">
+                  {m.lessons.map((l) => {
+                    const done = completedIds.has(l.id);
+                    const playable = lessonPlayable(l);
+                    const active = l.id === activeLessonId;
+                    return (
+                      <li key={l.id}>
+                        <button
+                          onClick={() => setActiveLessonId(l.id)}
+                          className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded text-xs transition ${
+                            active ? "bg-muted font-medium" : "hover:bg-muted/50"
+                          }`}
+                        >
+                          {done ? (
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                          ) : playable ? (
+                            <PlayCircle className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
+                          ) : (
+                            <Lock className="w-3.5 h-3.5 text-foreground/40 shrink-0" />
+                          )}
+                          <span className="truncate flex-1">{l.title}</span>
+                          {l.is_preview && !accessible && (
+                            <span className="text-[9px] uppercase tracking-wider text-emerald-700">free</span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                  {m.lessons.length === 0 && (
+                    <li className="text-[11px] text-foreground/50 px-2 py-1">No lessons.</li>
+                  )}
+                </ul>
+              </Card>
+            ))}
 
-            {/* Rating Section */}
-            <Card className="p-6 bg-card border-border/50">
-              <h3 className="text-xl font-bold mb-6" style={{ color: "var(--aa-olive-dark)" }}>
-                Rate this module
-              </h3>
-              <div className="flex items-center gap-4">
-                <div className="flex gap-2">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <button
-                      key={star}
-                      onMouseEnter={() => setHoverRating(star)}
-                      onMouseLeave={() => setHoverRating(0)}
-                      onClick={() => setRating(star)}
-                      className="transition"
-                    >
-                      <Star
-                        size={32}
-                        className={hoverRating >= star || rating >= star ? "fill-accent text-accent" : "text-foreground/30"}
-                      />
-                    </button>
-                  ))}
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">Your rating: {rating} ★</p>
-                  <p className="text-sm text-foreground/70">5.0 ★ (1 rating)</p>
-                </div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Sidebar - Modules List */}
-          <div className="lg:col-span-1">
-            <Card className="p-6 sticky top-24 bg-card border-border/50">
-              <h3 className="text-lg font-bold mb-6" style={{ color: "var(--aa-olive-dark)" }}>
-                Modules
-              </h3>
-              <div className="space-y-3">
-                {allModules.map((m: ModuleRow, idx: number) => (
-                  <Link key={m.id} to={`/courses/${m.id}`}>
-                    <button
-                      className={`w-full text-left p-3 rounded-lg transition ${
-                        m.id === moduleId
-                          ? "bg-accent/20 border-l-4 border-accent"
-                          : "hover:bg-card border-l-4 border-transparent"
-                      }`}
-                    >
-                      <p className="text-sm font-semibold text-foreground">Module {idx + 1}</p>
-                      <p className="text-xs text-foreground/70 truncate">{m.title}</p>
-                    </button>
-                  </Link>
-                ))}
-                <div className="pt-3 border-t border-border/50">
-                  <button className="w-full text-left p-3 rounded-lg hover:bg-card transition">
-                    <p className="text-sm font-semibold text-foreground">Final Note</p>
-                    <p className="text-xs text-foreground/70">Course Completion & Certificate</p>
-                  </button>
-                </div>
-              </div>
-            </Card>
-          </div>
+            {isAdmin && (
+              <Link
+                to={`/admin/courses/${course.id}`}
+                className="block text-center text-xs underline text-foreground/60"
+              >
+                Manage in admin →
+              </Link>
+            )}
+          </aside>
         </div>
       </div>
-    </div>
+    </MemberLayout>
   );
 }
