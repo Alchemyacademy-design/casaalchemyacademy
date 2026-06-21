@@ -34,7 +34,6 @@ import AdminGuard from "@/components/AdminGuard";
 import AdminCoursesList from "@/manus/pages/admin/AdminCoursesList";
 import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
 import AdminContentImport from "@/manus/pages/admin/AdminContentImport";
-import AdminContentImport from "@/manus/pages/admin/AdminContentImport";
 
 export default function App() {
   return (
