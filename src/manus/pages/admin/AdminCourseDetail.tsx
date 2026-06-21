@@ -28,12 +28,15 @@ import { Textarea } from "@/components/ui/textarea";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
+import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
+import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import {
   createLesson,
   createModule,
   deleteLesson,
   deleteModule,
   getCourse,
+  isPlaceholderVideo,
   listLessons,
   listModules,
   reorderRecords,
@@ -197,9 +200,17 @@ function LessonRow({
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs">Preview</Label>
-            <VideoPreview url={lesson.external_video_url} />
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Preview</Label>
+              <VideoPreview url={lesson.external_video_url} />
+            </div>
+            <LessonVideoUpload
+              lessonId={lesson.id}
+              value={lesson.external_video_url}
+              onUploaded={(v) => save({ external_video_url: v })}
+              onRemoved={() => save({ external_video_url: null })}
+            />
           </div>
         </div>
       )}
@@ -492,6 +503,41 @@ export default function AdminCourseDetail() {
     enabled: !!courseId,
   });
 
+  // All lessons for this course — used by the publish checklist.
+  const { data: allLessons = [] } = useQuery({
+    queryKey: ["admin", "course", courseId, "all-lessons"],
+    queryFn: async () => {
+      const moduleIds = modules.map((m) => m.id);
+      if (!moduleIds.length) return [] as Lesson[];
+      const { data, error } = await supabase
+        .from("lessons")
+        .select("*")
+        .in("module_id", moduleIds);
+      if (error) throw error;
+      return (data ?? []) as Lesson[];
+    },
+    enabled: !!courseId && modules.length > 0,
+  });
+
+  const checklist: ChecklistItem[] = course
+    ? [
+        { label: "Has title", ok: Boolean(course.title?.trim()) },
+        { label: "Has slug", ok: Boolean(course.slug?.trim()) },
+        { label: "Has description", ok: Boolean(course.description?.trim()) },
+        { label: "Has cover image", ok: Boolean(course.cover_image_path) },
+        { label: "At least one module", ok: modules.length > 0 },
+        { label: "All modules have lessons", ok: modules.every((m) => allLessons.some((l) => l.module_id === m.id)) },
+        {
+          label: "All lessons have a video (URL or upload)",
+          ok:
+            allLessons.length > 0 &&
+            allLessons.every(
+              (l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url),
+            ),
+        },
+      ]
+    : [];
+
   // ----- New course form -----
   const [newForm, setNewForm] = useState({ title: "", slug: "" });
   const createCourse = useMutation({
@@ -581,6 +627,18 @@ export default function AdminCourseDetail() {
     >
       <div className="space-y-5">
         <CourseHeader course={course} onChanged={() => refetchCourse()} />
+
+        {course && (
+          <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
+            <div />
+            <PublishChecklist items={checklist} />
+          </div>
+        )}
+        {course && course.status !== "published" && !canPublish(checklist) && (
+          <Card className="p-3 text-xs text-amber-700 border-amber-200 bg-amber-50/50">
+            This course cannot be published yet — complete the checklist above.
+          </Card>
+        )}
 
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Modules &amp; lessons</h2>
