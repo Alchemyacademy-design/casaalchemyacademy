@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { getCoursesTree } from "@/manus/services/admin-content";
 import { Lock, CheckCircle, ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -23,6 +24,11 @@ type CourseRow = {
 };
 
 async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
+  if (includeDrafts) {
+    const catalog = await getCoursesTree();
+    return catalog.courses as unknown as CourseRow[];
+  }
+
   let query = supabase
     .from("courses")
     .select(
@@ -37,7 +43,7 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
 
 export default function Modules() {
   const { user, isAdmin } = useAuth();
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
 
   const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
   const isFullMember = isAdmin || tier === "annual_member";

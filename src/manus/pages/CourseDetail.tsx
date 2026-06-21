@@ -9,6 +9,7 @@ import VideoPreview from "@/manus/components/admin/VideoPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
+import { getCoursesTree } from "@/manus/services/admin-content";
 import { toast } from "sonner";
 
 type Lesson = {
@@ -47,6 +48,11 @@ type Course = {
 };
 
 async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Course | null> {
+  if (includeDrafts) {
+    const catalog = await getCoursesTree();
+    return (catalog.courses.find((course) => course.id === id) as unknown as Course | undefined) ?? null;
+  }
+
   let builder = supabase
     .from("courses")
     .select(
@@ -108,7 +114,7 @@ export default function CourseDetail() {
   const activeLesson = allLessons.find((l) => l.id === activeLessonId) ?? null;
   const activeModule = course?.course_modules.find((m) => m.id === activeLesson?.module_id) ?? null;
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
   const completedIds = useMemo(
     () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
     [progress],
@@ -234,7 +240,7 @@ export default function CourseDetail() {
                     Open resource ↗
                   </a>
                 )}
-                {lessonPlayable(activeLesson) && (
+                {lessonPlayable(activeLesson) && !isAdmin && (
                   <div className="pt-2">
                     <Button
                       variant={completedIds.has(activeLesson.id) ? "outline" : "default"}

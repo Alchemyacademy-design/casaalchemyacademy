@@ -4,14 +4,16 @@ import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
+import { getCoursesTree } from "@/manus/services/admin-content";
 import { useUpcomingEvents, useUpcomingWorkshops, useRegisterForTarget, useMyRegistrations } from "@/manus/hooks/usePublicContent";
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, loading, isAuthenticated } = useAuth();
+  const { user, loading, isAuthenticated, isAdmin } = useAuth();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -19,8 +21,26 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
-  const { data: modules = [] } = trpc.modules.list.useQuery();
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
+  const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin });
+  const adminModules = useQuery({
+    queryKey: ["dashboard", "admin-modules"],
+    enabled: isAdmin,
+    queryFn: async (): Promise<ModuleRow[]> => {
+      const catalog = await getCoursesTree();
+      return catalog.courses.flatMap((course) =>
+        course.course_modules.map((module) => ({
+          ...module,
+          course_id: course.id,
+          number: module.sort_order,
+          tagline: module.description ?? undefined,
+          lessonCount: module.lessons.length,
+          isPublished: module.status === "published",
+        })),
+      );
+    },
+  });
+  const modules = isAdmin ? (adminModules.data ?? []) : (memberModules.data ?? []);
 
   if (loading) {
     return (
@@ -35,7 +55,9 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
-  const enrolledModules = (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
+  const enrolledModules = isAdmin
+    ? (modules as ModuleRow[])
+    : (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
   const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
   const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -50,7 +72,7 @@ export default function Dashboard() {
             {user?.name || "Alchemist"}
           </h1>
           <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            Your membership tier: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{(user as { membershipTier?: string } | null)?.membershipTier || "Free"}</span>
+            Your access: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{isAdmin ? "Administrator" : ((user as { membershipTier?: string } | null)?.membershipTier || "Free")}</span>
           </p>
         </div>
 
@@ -110,12 +132,13 @@ export default function Dashboard() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {enrolledModules.slice(0, 4).map((module: ModuleRow) => {
+                const courseId = typeof module.course_id === "number" || typeof module.course_id === "string" ? module.course_id : null;
                 const moduleProgress = (progress as ProgressRow[]).filter((p) => p.moduleId === module.id);
                 const lessonCount = module.lessonCount ?? 0;
                 const pct = lessonCount > 0 ? Math.round((moduleProgress.length / lessonCount) * 100) : 0;
 
                 return (
-                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = `/mycourses/${module.number}`}>
+                  <div key={module.id} className="p-6 module-card-hover cursor-pointer" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }} onClick={() => window.location.href = courseId ? `/courses/${courseId}` : `/modules/${module.id}`}>
                     <div className="flex items-start justify-between mb-3">
                       <span className="font-serif text-2xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>
                         {String(module.number).padStart(2, "0")}
