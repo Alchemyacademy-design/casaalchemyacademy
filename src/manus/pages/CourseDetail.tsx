@@ -9,6 +9,7 @@ import VideoPreview from "@/manus/components/admin/VideoPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
+import { getCoursesTree } from "@/manus/services/admin-content";
 import { toast } from "sonner";
 
 type Lesson = {
@@ -47,6 +48,11 @@ type Course = {
 };
 
 async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Course | null> {
+  if (includeDrafts) {
+    const catalog = await getCoursesTree();
+    return (catalog.courses.find((course) => course.id === id) as unknown as Course | undefined) ?? null;
+  }
+
   let builder = supabase
     .from("courses")
     .select(
