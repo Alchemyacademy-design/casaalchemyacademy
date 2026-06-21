@@ -43,7 +43,7 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
 
 export default function Modules() {
   const { user, isAdmin } = useAuth();
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
 
   const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
   const isFullMember = isAdmin || tier === "annual_member";
