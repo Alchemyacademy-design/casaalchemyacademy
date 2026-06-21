@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
     // 2. Ensure 'admin' role exists in user_roles (idempotent)
     const { data: existing, error: selErr } = await admin
       .from("user_roles")
-      .select("id, role")
+      .select("role")
       .eq("user_id", target.id);
     if (selErr) throw selErr;
 
