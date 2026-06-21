@@ -29,7 +29,8 @@ const membershipOnlyPrefixes = [
 ];
 
 export default function GlobalAccessController() {
-  const [location, navigate] = useLocation();
+  const { pathname: location } = useLocation();
+  const navigate = useNavigate();
   const { loading, isAuthenticated, isAdmin, isMember, hasCourseAccess } = useAuth();
 
   useEffect(() => {
