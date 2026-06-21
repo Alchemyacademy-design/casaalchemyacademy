@@ -72,7 +72,13 @@ Deno.serve(async (req) => {
         : "Admin role granted. Sign out and sign back in to refresh your session.",
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
+    const message =
+      err instanceof Error
+        ? err.message
+        : typeof err === "object"
+          ? JSON.stringify(err)
+          : String(err);
+    console.error("admin-bootstrap failed:", err);
     return json({ ok: false, error: "bootstrap_failed", message }, 500);
   }
 });
