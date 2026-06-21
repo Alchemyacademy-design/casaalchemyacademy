@@ -786,7 +786,7 @@ export default function AdminCourseDetail() {
       crumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title || "—" }]}
     >
       <div className="space-y-5">
-        <CourseHeader course={course} onChanged={() => refetchCourse()} />
+        <CourseHeader course={course} onChanged={() => { void refetchCourse(); invalidateCourse(); }} />
 
         {course && (
           <div className="grid md:grid-cols-[1fr_320px] gap-4 items-start">
