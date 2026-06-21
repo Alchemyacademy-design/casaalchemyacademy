@@ -50,7 +50,6 @@ export default function AdminUserDetail() {
         { data: subscription },
         { data: payments },
         { data: courses },
-        { data: audit },
       ] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", userId).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", userId),
@@ -60,8 +59,9 @@ export default function AdminUserDetail() {
         supabase.from("stripe_subscriptions").select("*").eq("user_id", userId).order("updated_at", { ascending: false }).limit(1).maybeSingle(),
         supabase.from("stripe_payments").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(20),
         supabase.from("courses").select("id,title").eq("status", "published").order("sort_order"),
-        db.from("admin_access_audit_log").select("*").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(50),
       ]);
+      const auditRes = await db.from("admin_access_audit_log").select("*").eq("target_user_id", userId).order("created_at", { ascending: false }).limit(50);
+      const audit = (auditRes.data ?? []) as Array<{ id: number; action: string; entity_type: string | null; entity_id: string | null; reason: string | null; created_at: string }>;
       return {
         profile,
         roles: (roles ?? []).map((r) => r.role),
@@ -71,7 +71,7 @@ export default function AdminUserDetail() {
         subscription,
         payments: payments ?? [],
         courses: courses ?? [],
-        audit: audit ?? [],
+        audit,
       };
     },
   });
