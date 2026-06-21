@@ -93,81 +93,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Coming Up Section */}
-        <div className="mb-12">
-          <h2 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-            Coming Up
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Next Live Workshop */}
-            <div className="p-6 rounded-lg hover:shadow-lg transition" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} style={{ color: "var(--aa-gold)" }} />
-                  <span className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                    June 15, 2026
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={16} style={{ color: "var(--aa-gold)" }} />
-                  <span className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                    2:00 PM - 3:30 PM
-                  </span>
-                </div>
-              </div>
-              <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-                Color Theory Masterclass
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                with Lorena Couto
-              </p>
-              <button
-                className="w-full px-4 py-2 rounded text-sm font-medium transition"
-                style={{
-                  backgroundColor: "var(--aa-gold)",
-                  color: "var(--aa-cacao)",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                Register
-              </button>
-            </div>
+        {/* Coming Up Section — dynamic */}
+        <ComingUp />
 
-            {/* Next Event */}
-            <div className="p-6 rounded-lg hover:shadow-lg transition" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-              <div className="mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Calendar size={16} style={{ color: "var(--aa-gold)" }} />
-                  <span className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                    June 20, 2026
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={16} style={{ color: "var(--aa-gold)" }} />
-                  <span className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                    6:00 PM - 8:00 PM
-                  </span>
-                </div>
-              </div>
-              <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-                Alchemy Community Gathering
-              </h3>
-              <p className="text-xs mb-4" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-                Network with fellow Alchemists
-              </p>
-              <button
-                className="w-full px-4 py-2 rounded text-sm font-medium transition"
-                style={{
-                  backgroundColor: "var(--aa-gold)",
-                  color: "var(--aa-cacao)",
-                  fontFamily: "'DM Sans', sans-serif",
-                }}
-              >
-                Learn More
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* Certificate Section */}
         <div className="mb-12">
