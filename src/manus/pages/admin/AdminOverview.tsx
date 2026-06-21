@@ -7,30 +7,41 @@ import {
   AlertTriangle,
   Image as ImageIcon,
   ArrowRight,
+  Calendar,
+  Activity,
+  Shield,
+  TrendingUp,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
 import { isLegacyAssetPath, isPlaceholderVideo } from "@/manus/lib/admin-content";
+// admin_access_audit_log is not in the generated Database types yet.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db: any = supabase;
 
 interface Kpi {
   label: string;
   value: number | string;
   hint?: string;
   icon: React.ComponentType<{ className?: string }>;
-  tone?: "default" | "warning";
+  tone?: "default" | "warning" | "good";
 }
 
 function KpiCard({ k }: { k: Kpi }) {
+  const bg =
+    k.tone === "warning"
+      ? "rgba(196,160,90,.15)"
+      : k.tone === "good"
+        ? "rgba(70,120,80,.12)"
+        : "rgba(60,58,42,.08)";
+  const fg = k.tone === "warning" ? "var(--aa-gold)" : "var(--aa-olive-dark)";
   return (
     <Card className="p-5 flex items-start gap-4">
       <div
         className="h-11 w-11 rounded flex items-center justify-center flex-shrink-0"
-        style={{
-          background: k.tone === "warning" ? "rgba(196,160,90,.15)" : "rgba(60,58,42,.08)",
-          color: k.tone === "warning" ? "var(--aa-gold)" : "var(--aa-olive-dark)",
-        }}
+        style={{ background: bg, color: fg }}
       >
         <k.icon className="h-5 w-5" />
       </div>
@@ -47,119 +58,193 @@ function KpiCard({ k }: { k: Kpi }) {
 
 export default function AdminOverview() {
   const { data, isLoading } = useQuery({
-    queryKey: ["admin", "overview"],
+    queryKey: ["admin", "overview", "v2"],
     queryFn: async () => {
-      const [{ data: courses }, { data: lessons }, { count: studentCount }] = await Promise.all([
+      const nowIso = new Date().toISOString();
+      const [
+        coursesRes,
+        modulesRes,
+        lessonsRes,
+        profilesCount,
+        activeMembersCount,
+        eventsRes,
+        workshopsRes,
+        pendingPostsCount,
+        progressRes,
+        recentAuditRes,
+      ] = await Promise.all([
         supabase.from("courses").select("id,status,cover_image_path"),
-        supabase.from("lessons").select("id,status,external_video_url"),
+        supabase.from("course_modules").select("id", { count: "exact", head: true }),
+        supabase.from("lessons").select("id,status,external_video_url,cover_image_path"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
+        supabase
+          .from("memberships")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "active")
+          .gt("ends_at", nowIso),
+        supabase
+          .from("events")
+          .select("id,title,starts_at")
+          .gt("starts_at", nowIso)
+          .order("starts_at", { ascending: true })
+          .limit(3),
+        supabase
+          .from("live_workshops")
+          .select("id,title,starts_at")
+          .gt("starts_at", nowIso)
+          .order("starts_at", { ascending: true })
+          .limit(3),
+        supabase
+          .from("community_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "pending"),
+        supabase.from("lesson_progress").select("watched_percent").limit(5000),
+        db
+          .from("admin_access_audit_log")
+          .select("id,action,entity_type,created_at,actor_user_id,target_user_id")
+          .order("created_at", { ascending: false })
+          .limit(5),
       ]);
-      const publishedCourses = (courses ?? []).filter((c) => c.status === "published").length;
-      const draftCourses = (courses ?? []).filter((c) => c.status === "draft").length;
-      const missingThumbs = (courses ?? []).filter(
-        (c) => !c.cover_image_path || isLegacyAssetPath(c.cover_image_path),
-      ).length;
-      const totalLessons = (lessons ?? []).length;
-      const missingVideos = (lessons ?? []).filter(
-        (l) => !l.external_video_url || isPlaceholderVideo(l.external_video_url),
-      ).length;
+
+      const courses = coursesRes.data ?? [];
+      const lessons = lessonsRes.data ?? [];
+      const progressRows = (progressRes.data ?? []) as Array<{ watched_percent: number | null }>;
+      const avgProgress = progressRows.length
+        ? Math.round(
+            progressRows.reduce((s, p) => s + Number(p.watched_percent ?? 0), 0) /
+              progressRows.length,
+          )
+        : 0;
+
       return {
-        publishedCourses,
-        draftCourses,
-        totalCourses: (courses ?? []).length,
-        totalLessons,
-        missingVideos,
-        missingThumbs,
-        students: studentCount ?? 0,
+        totalCourses: courses.length,
+        publishedCourses: courses.filter((c) => c.status === "published").length,
+        draftCourses: courses.filter((c) => c.status === "draft").length,
+        totalModules: modulesRes.count ?? 0,
+        totalLessons: lessons.length,
+        missingVideos: lessons.filter(
+          (l) => !l.external_video_url || isPlaceholderVideo(l.external_video_url),
+        ).length,
+        missingThumbs: courses.filter(
+          (c) => !c.cover_image_path || isLegacyAssetPath(c.cover_image_path),
+        ).length,
+        missingLessonThumbs: lessons.filter(
+          (l) => !l.cover_image_path || isLegacyAssetPath(l.cover_image_path),
+        ).length,
+        students: profilesCount.count ?? 0,
+        activeMembers: activeMembersCount.count ?? 0,
+        upcomingEvents: eventsRes.data ?? [],
+        upcomingWorkshops: workshopsRes.data ?? [],
+        pendingPosts: pendingPostsCount.count ?? 0,
+        avgProgress,
+        recentAudit: (recentAuditRes.data ?? []) as Array<{
+          id: number;
+          action: string;
+          entity_type: string | null;
+          created_at: string;
+        }>,
       };
     },
   });
 
+  const v = <T,>(value: T | undefined): T | "—" =>
+    isLoading ? ("—" as const) : (value ?? ("—" as const));
+
   const kpis: Kpi[] = [
-    {
-      label: "Published courses",
-      value: isLoading ? "—" : data?.publishedCourses ?? 0,
-      hint: `${data?.draftCourses ?? 0} draft · ${data?.totalCourses ?? 0} total`,
-      icon: BookOpen,
-    },
-    {
-      label: "Lessons",
-      value: isLoading ? "—" : data?.totalLessons ?? 0,
-      hint: "Across all courses",
-      icon: ListChecks,
-    },
-    {
-      label: "Students",
-      value: isLoading ? "—" : data?.students ?? 0,
-      hint: "Registered profiles",
-      icon: Users,
-    },
-    {
-      label: "Lessons missing video",
-      value: isLoading ? "—" : data?.missingVideos ?? 0,
-      hint: "Paste the real URL in Lessons (bulk)",
-      icon: AlertTriangle,
-      tone: "warning",
-    },
-    {
-      label: "Missing covers",
-      value: isLoading ? "—" : data?.missingThumbs ?? 0,
-      hint: "Upload from Courses",
-      icon: ImageIcon,
-      tone: "warning",
-    },
+    { label: "Total profiles", value: v(data?.students), hint: `${v(data?.activeMembers)} active members`, icon: Users },
+    { label: "Courses", value: v(data?.totalCourses), hint: `${data?.publishedCourses ?? 0} published · ${data?.draftCourses ?? 0} draft`, icon: BookOpen },
+    { label: "Modules", value: v(data?.totalModules), hint: `${v(data?.totalLessons)} lessons total`, icon: ListChecks },
+    { label: "Avg. progress", value: isLoading ? "—" : `${data?.avgProgress ?? 0}%`, hint: "Across all lesson_progress rows", icon: TrendingUp, tone: "good" },
+    { label: "Lessons missing video", value: v(data?.missingVideos), hint: "Add URL or upload in Courses / Bulk", icon: AlertTriangle, tone: "warning" },
+    { label: "Missing thumbnails", value: isLoading ? "—" : (data?.missingThumbs ?? 0) + (data?.missingLessonThumbs ?? 0), hint: `${data?.missingThumbs ?? 0} courses · ${data?.missingLessonThumbs ?? 0} lessons`, icon: ImageIcon, tone: "warning" },
+    { label: "Pending posts", value: v(data?.pendingPosts), hint: "Awaiting moderation", icon: Shield, tone: data?.pendingPosts ? "warning" : "default" },
+    { label: "Upcoming events", value: isLoading ? "—" : (data?.upcomingEvents.length ?? 0) + (data?.upcomingWorkshops.length ?? 0), hint: `${data?.upcomingEvents.length ?? 0} events · ${data?.upcomingWorkshops.length ?? 0} workshops`, icon: Calendar },
   ];
 
   return (
-    <AdminShell
-      title="Overview"
-      description="Track the catalogue, spot pending items and finalise the platform's publications."
-    >
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 mb-8">
-        {kpis.map((k) => (
-          <KpiCard key={k.label} k={k} />
-        ))}
+    <AdminShell title="Overview" description="All metrics below come live from Supabase — no mocked data.">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
+        {kpis.map((k) => <KpiCard key={k.label} k={k} />)}
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3 mb-8">
         <Card className="p-5">
-          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Edit courses
-          </h3>
-          <p className="text-sm text-foreground/70 mb-4">
-            Create modules and lessons, set covers, descriptions and publish status.
-          </p>
-          <Button asChild>
-            <Link to="/admin/courses">
-              Open courses <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
+          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>Edit courses</h3>
+          <p className="text-sm text-foreground/70 mb-4">Manage all courses, modules and lessons. Drag-and-drop ordering, inline edit, publish or archive.</p>
+          <Button asChild><Link to="/admin/courses">Open courses <ArrowRight className="w-4 h-4 ml-1" /></Link></Button>
         </Card>
         <Card className="p-5">
-          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Update lesson links
-          </h3>
-          <p className="text-sm text-foreground/70 mb-4">
-            Paste the real URLs (YouTube, Vimeo or MP4) and edit titles in bulk.
-          </p>
-          <Button asChild variant="outline">
-            <Link to="/admin/lessons">
-              Bulk lessons <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
+          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>Bulk lesson editor</h3>
+          <p className="text-sm text-foreground/70 mb-4">Paste video URLs and titles for many lessons at once.</p>
+          <Button asChild variant="outline"><Link to="/admin/lessons">Open bulk editor <ArrowRight className="w-4 h-4 ml-1" /></Link></Button>
         </Card>
         <Card className="p-5">
-          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Catalogue ready
+          <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>Manage students</h3>
+          <p className="text-sm text-foreground/70 mb-4">Grant memberships, course access, promote admins. Every action is audited.</p>
+          <Button asChild variant="outline"><Link to="/admin/students">Open students <ArrowRight className="w-4 h-4 ml-1" /></Link></Button>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card className="p-5">
+          <h3 className="font-serif text-lg mb-3 flex items-center gap-2" style={{ color: "var(--aa-olive-dark)" }}>
+            <Calendar className="w-4 h-4" /> Upcoming events & workshops
           </h3>
-          <p className="text-sm text-foreground/70 mb-4">
-            10 courses · 30 lessons seeded as draft. Add video URLs and publish from <strong>Courses</strong> or <strong>Bulk lessons</strong>.
-          </p>
-          <Button asChild variant="outline">
-            <Link to="/admin/courses">
-              Open courses <ArrowRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
+          {isLoading ? (
+            <p className="text-sm text-foreground/60">Loading…</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {[
+                ...(data?.upcomingEvents ?? []).map((e) => ({ ...e, kind: "event" as const })),
+                ...(data?.upcomingWorkshops ?? []).map((w) => ({ ...w, kind: "workshop" as const })),
+              ]
+                .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+                .slice(0, 6)
+                .map((row) => (
+                  <li key={`${row.kind}-${row.id}`} className="flex justify-between border-b border-border/30 py-1.5">
+                    <span className="truncate mr-2">
+                      <span className="text-xs uppercase tracking-wide text-foreground/50 mr-2">{row.kind}</span>
+                      {row.title}
+                    </span>
+                    <span className="text-xs text-foreground/60 whitespace-nowrap">
+                      {new Date(row.starts_at).toLocaleString()}
+                    </span>
+                  </li>
+                ))}
+              {!(data?.upcomingEvents.length || data?.upcomingWorkshops.length) && (
+                <li className="text-foreground/60">No upcoming items scheduled.</li>
+              )}
+            </ul>
+          )}
+        </Card>
+
+        <Card className="p-5">
+          <h3 className="font-serif text-lg mb-3 flex items-center gap-2" style={{ color: "var(--aa-olive-dark)" }}>
+            <Activity className="w-4 h-4" /> Recent admin activity
+          </h3>
+          {isLoading ? (
+            <p className="text-sm text-foreground/60">Loading…</p>
+          ) : (data?.recentAudit?.length ?? 0) === 0 ? (
+            <p className="text-sm text-foreground/60">
+              No audit entries yet. Apply the Phase 1 migration to enable the audit log.
+            </p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {data!.recentAudit.map((a) => (
+                <li key={a.id} className="flex justify-between border-b border-border/30 py-1.5">
+                  <span className="truncate mr-2">
+                    <span className="font-mono text-xs">{a.action}</span>
+                    {a.entity_type && (
+                      <span className="text-xs text-foreground/50"> · {a.entity_type}</span>
+                    )}
+                  </span>
+                  <span className="text-xs text-foreground/60 whitespace-nowrap">
+                    {new Date(a.created_at).toLocaleString()}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
       </div>
     </AdminShell>
