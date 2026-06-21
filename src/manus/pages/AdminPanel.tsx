@@ -107,7 +107,9 @@ export default function AdminPanel() {
             <h1 className="text-3xl font-bold text-foreground">Admin Panel</h1>
             <p className="text-foreground/70 mt-1">Users &amp; Access</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setLocation("/admin/courses")}>Manage Courses</Button>
+            <Button variant="outline" onClick={() => setLocation("/admin/content-import")}>Import Manus</Button>
             <Button variant="outline" onClick={() => setLocation("/admin/analytics")}>Analytics</Button>
             <Button variant="outline" onClick={handleLogout}>
               <LogOut className="w-4 h-4 mr-2" />
