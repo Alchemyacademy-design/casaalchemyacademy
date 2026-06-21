@@ -38,18 +38,18 @@ export default function AdminCoursesList() {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3">Title</th>
+              <th className="px-4 py-3">Ordem</th>
+              <th className="px-4 py-3">Título</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Plans</th>
+              <th className="px-4 py-3">Planos</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Loading…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Carregando…</td></tr>}
             {!isLoading && courses.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">No courses yet. Create one or import from Manus.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Nenhum curso ainda. Crie um ou importe um catálogo.</td></tr>
             )}
             {courses.map((c) => (
               <tr key={c.id} className="border-t border-border/40 hover:bg-muted/20">
