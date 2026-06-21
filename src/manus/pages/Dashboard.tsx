@@ -21,7 +21,7 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
   const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin });
   const adminModules = useQuery({
     queryKey: ["dashboard", "admin-modules"],
@@ -55,7 +55,9 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
-  const enrolledModules = (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
+  const enrolledModules = isAdmin
+    ? (modules as ModuleRow[])
+    : (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
   const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
   const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -70,7 +72,7 @@ export default function Dashboard() {
             {user?.name || "Alchemist"}
           </h1>
           <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            Your membership tier: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{(user as { membershipTier?: string } | null)?.membershipTier || "Free"}</span>
+            Your access: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{isAdmin ? "Administrator" : ((user as { membershipTier?: string } | null)?.membershipTier || "Free")}</span>
           </p>
         </div>
 
