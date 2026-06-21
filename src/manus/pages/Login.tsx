@@ -42,7 +42,8 @@ export default function Login() {
       }
 
       if (data.session) {
-        setLocation("/dashboard");
+        // Let PostAuthRedirect compute the right destination based on roles.
+        setLocation("/auth/continue");
       }
     } catch (err) {
       setError("An unexpected error occurred");
