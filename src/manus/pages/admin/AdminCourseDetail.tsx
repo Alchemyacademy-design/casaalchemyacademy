@@ -491,10 +491,17 @@ export default function AdminCourseDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { data: course, refetch: refetchCourse } = useQuery({
+  const {
+    data: course,
+    refetch: refetchCourse,
+    isLoading: courseLoading,
+    isError: courseIsError,
+    error: courseError,
+  } = useQuery({
     queryKey: ["admin", "course", courseId],
     queryFn: () => getCourse(courseId!),
     enabled: !!courseId,
+    retry: false,
   });
 
   const { data: modules = [], refetch: refetchModules } = useQuery({
@@ -612,7 +619,26 @@ export default function AdminCourseDetail() {
     );
   }
 
-  if (!course) {
+  if (courseIsError) {
+    const err = courseError as { message?: string; code?: string; hint?: string; details?: string } | null;
+    return (
+      <AdminShell title="Unable to load course" crumbs={[{ label: "Courses", to: "/admin/courses" }]}>
+        <Card className="p-6 max-w-2xl space-y-3 border-destructive/40">
+          <p className="text-sm font-semibold text-destructive">Failed to load course #{courseId}.</p>
+          <p className="text-xs text-foreground/70">{err?.message ?? "Unknown error"}</p>
+          {err?.code && <p className="text-xs font-mono">code: {err.code}</p>}
+          {err?.hint && <p className="text-xs font-mono">hint: {err.hint}</p>}
+          {err?.details && <p className="text-xs font-mono">details: {err.details}</p>}
+          <div className="flex gap-2 pt-2">
+            <Button variant="outline" onClick={() => refetchCourse()}>Retry</Button>
+            <Button variant="outline" onClick={() => navigate("/admin/courses")}>Back to list</Button>
+          </div>
+        </Card>
+      </AdminShell>
+    );
+  }
+
+  if (!course || courseLoading) {
     return (
       <AdminShell title="Loading…" crumbs={[{ label: "Courses", to: "/admin/courses" }]}>
         <p className="text-sm text-foreground/60">Loading course…</p>

@@ -13,7 +13,7 @@ type CourseRow = {
   subtitle: string | null;
   status: "draft" | "published" | "archived";
   sort_order: number;
-  cover_image_url: string | null;
+  cover_image_path: string | null;
   access_plan_keys: string[] | null;
   course_modules: Array<{
     id: number;
@@ -26,7 +26,7 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
   let query = supabase
     .from("courses")
     .select(
-      "id,title,slug,subtitle,status,sort_order,cover_image_url,access_plan_keys,course_modules(id,status,lessons(id,status))",
+      "id,title,slug,subtitle,status,sort_order,cover_image_path,access_plan_keys,course_modules(id,status,lessons(id,status))",
     )
     .order("sort_order", { ascending: true });
   if (!includeDrafts) query = query.eq("status", "published");
@@ -120,7 +120,7 @@ export default function Modules() {
             const accessible = isCourseAccessible(c);
             const locked = !accessible;
             const isDraft = c.status !== "published";
-            const thumbnail = c.cover_image_url ?? undefined;
+            const thumbnail = c.cover_image_path ?? undefined;
 
             return (
               <div
