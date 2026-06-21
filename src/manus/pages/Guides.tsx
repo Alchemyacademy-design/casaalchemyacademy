@@ -1,21 +1,15 @@
 import { getLoginUrl } from "@/manus/const";
-import { trpc } from "@/manus/lib/trpc";
 import { ArrowRight, CheckCircle, Lock } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { Link } from "react-router-dom";
+import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import { useEntitlements } from "@/manus/hooks/useEntitlements";
 
-const MODULES = [
-  { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on, broken down into simple steps, to create a unique space with a clear, intentional outcome." },
-  { number: 2, title: "Bedroom", tagline: "Create a bedroom that feels intentional, not accidental — learn the overlooked techniques that designers use to bring everything together." },
-  { number: 3, title: "Kitchen", tagline: "The most expensive space to get wrong is your kitchen — discover the intentional design choices that increase value and make everyday life easier." },
-  { number: 4, title: "Bathrooms", tagline: "When every element is permanent, every decision matters — learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home." },
-  { number: 5, title: "Living", tagline: "Furniture is the most consequential decision in a living room — and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense." },
-  { number: 6, title: "Dining", tagline: "A dining room should be beautiful enough to linger in and practical enough to live in. You don't have to choose between the two." },
-  { number: 7, title: "Home Office", tagline: "A home office shouldn't be an afterthought. Create a designated space that works for your life and looks considered on camera." },
-  { number: 8, title: "Kids", tagline: "Design a space that works with how kids actually live — not against it." },
-  { number: 9, title: "Outdoors", tagline: "Your outdoor space should be the most lived-in room in the house. Discover how to create an environment that's social, intentional, and well within reach." },
-  { number: 10, title: "All Things Design", tagline: "See your home the way a designer does — understanding light, proportion, styling and the invisible rules that make a space feel right." },
+const STATIC_FALLBACK = [
+  { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on." },
+  { number: 2, title: "Bedroom", tagline: "Create a bedroom that feels intentional, not accidental." },
+  { number: 3, title: "Kitchen", tagline: "The most expensive space to get wrong is your kitchen." },
 ];
 
 const INCLUDED = [
@@ -27,10 +21,28 @@ const INCLUDED = [
 ];
 
 export default function Guides() {
+  const { data: dbCourses = [], isLoading } = usePublishedCourses();
+  const { isAdmin, courseIds, isMember } = useEntitlements();
+
+  const modules = useMemo(() => {
+    if (dbCourses.length > 0) {
+      return dbCourses.map((c: any, i: number) => ({
+        id: c.id,
+        number: c.sort_order ?? i + 1,
+        title: c.title ?? "Untitled",
+        tagline: c.tagline ?? c.description ?? "",
+        href: `/courses/${c.id}`,
+        entitled: isAdmin || isMember || courseIds.includes(Number(c.id)),
+      }));
+    }
+    return STATIC_FALLBACK.map((m) => ({ ...m, id: null as number | null, href: undefined as string | undefined, entitled: false }));
+  }, [dbCourses, isAdmin, isMember, courseIds]);
+
   const [selected, setSelected] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const selectedModule = selected !== null ? MODULES[selected] : null;
+  const selectedModule = selected !== null ? modules[selected] : null;
+
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
