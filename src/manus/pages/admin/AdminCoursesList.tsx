@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus, Upload, Edit3 } from "lucide-react";
+import { Plus, Edit3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import AdminShell from "@/manus/components/admin/AdminShell";
@@ -24,10 +24,6 @@ export default function AdminCoursesList() {
           <Button variant="outline" asChild>
             <Link to="/admin/lessons">Bulk lessons</Link>
           </Button>
-          <Button variant="outline" asChild>
-            <Link to="/admin/import"><Upload className="w-4 h-4 mr-1" /> Import catalogue</Link>
-          </Button>
-
           <Button onClick={() => navigate("/admin/courses/new")}>
             <Plus className="w-4 h-4 mr-1" /> New course
           </Button>
