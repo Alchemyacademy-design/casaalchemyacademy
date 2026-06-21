@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
+import { useUpcomingEvents, useUpcomingWorkshops, useRegisterForTarget, useMyRegistrations } from "@/manus/hooks/usePublicContent";
 
 export default function Dashboard() {
   const navigate = useNavigate();
