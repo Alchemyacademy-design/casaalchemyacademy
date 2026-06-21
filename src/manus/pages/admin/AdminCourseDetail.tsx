@@ -231,22 +231,40 @@ function ModuleSection({
     queryFn: () => listLessons(module.id),
   });
 
+  // Local optimistic order — keeps the list snappy during drag.
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  useEffect(() => {
+    setOrderedIds(lessons.map((l) => l.id));
+  }, [lessons]);
+  const lessonById = new Map(lessons.map((l) => [l.id, l] as const));
+  const orderedLessons = orderedIds.map((id) => lessonById.get(id)).filter(Boolean) as Lesson[];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedIds.indexOf(active.id as number);
+    const newIndex = orderedIds.indexOf(over.id as number);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const next = arrayMove(orderedIds, oldIndex, newIndex);
+    setOrderedIds(next); // optimistic
+    try {
+      await reorderRecords("lessons", next, lessonById);
+      await refetch();
+    } catch (e: any) {
+      toast.error(`Reorder failed: ${e.message}`);
+      setOrderedIds(lessons.map((l) => l.id)); // revert
+    }
+  };
+
   const handleAdd = async () => {
     const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
     try {
       await createLesson(module.id, nextOrder);
-      await refetch();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  };
-
-  const handleMoveLesson = async (i: number, dir: -1 | 1) => {
-    const a = lessons[i];
-    const b = lessons[i + dir];
-    if (!a || !b) return;
-    try {
-      await swapSortOrder("lessons", a, b);
       await refetch();
     } catch (e: any) {
       toast.error(e.message);
