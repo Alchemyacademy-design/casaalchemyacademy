@@ -49,3 +49,21 @@ Without this migration, `events`, `magazine_issues`, `suppliers`, `exclusive_dea
 - Community moderation UI (`community_*`, `moderation_actions`) — tables ready, dedicated UI not built.
 - Quizzes nested editor inside the course editor.
 - Public pages still read seed data from `manus/data/manus-import.json` for fallback; swap to live `useQuery` is Phase 3.
+
+## Update — Community Center (Discord-style, Phases A–D)
+
+- **Tables used**: `community_spaces`, `community_channels`, `community_posts`, `community_replies`, `community_reactions`, `moderation_actions`. No new tables.
+- **Backend (Phase A)**: RLS + GRANTs + author/member policies + `replica identity full` + `supabase_realtime` publication applied via a temporary `community-bootstrap-policies` edge function (now deleted).
+- **Routes**: `/community` → 3-column shell (Spaces rail · Channels list · Feed) with right-side thread Sheet drawer.
+- **Operations**:
+  - Spaces / Channels: create (admin), list (everyone). Update/delete via `admin_full_access`.
+  - Posts: create (auth), soft-delete by author or admin, pin/unpin (admin), realtime insert/update/delete on `channel_id`.
+  - Replies: create / soft-delete, realtime on `post_id`, bumps `last_activity_at`.
+  - Reactions: toggle per emoji per `(user_id, post_id|reply_id, reaction)`.
+  - Moderation: every admin delete of someone else's post/reply writes a row to `moderation_actions`.
+- **Files added**:
+  - `src/manus/hooks/community/useCommunityData.ts`
+  - `src/manus/components/community/CommunityCenter.tsx`
+  - `src/manus/components/community/CommunityDialogs.tsx`
+  - `src/manus/pages/Community.tsx` (rewritten, no more mocks/tRPC)
+- **Pending (Phase E polish)**: per-device unread badges, channel search, attachments via `public-assets`, drag-to-reorder channels, mute/ban UI on top of `moderation_actions`.
