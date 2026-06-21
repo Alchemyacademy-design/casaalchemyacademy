@@ -106,8 +106,8 @@ export default function AdminOverview() {
           .limit(5),
       ]);
 
-      const courses = (coursesRes.data ?? []) as Array<{ id: number; status: string; cover_image_path: string | null }>;
-      const lessons = (lessonsRes.data ?? []) as Array<{ id: number; status: string; external_video_url: string | null; cover_image_path: string | null }>;
+      const courses = (coursesRes.data ?? []) as unknown as Array<{ id: number; status: string; cover_image_path: string | null }>;
+      const lessons = (lessonsRes.data ?? []) as unknown as Array<{ id: number; status: string; external_video_url: string | null; cover_image_path: string | null }>;
       const progressRows = (progressRes.data ?? []) as Array<{ watched_percent: number | null }>;
       const avgProgress = progressRows.length
         ? Math.round(
