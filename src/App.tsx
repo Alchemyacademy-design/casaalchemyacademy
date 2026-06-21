@@ -33,8 +33,6 @@ import NotFound from "@/manus/pages/NotFound";
 import AdminGuard from "@/components/AdminGuard";
 import AdminCoursesList from "@/manus/pages/admin/AdminCoursesList";
 import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
-import AdminModuleDetail from "@/manus/pages/admin/AdminModuleDetail";
-import AdminLessonDetail from "@/manus/pages/admin/AdminLessonDetail";
 import AdminContentImport from "@/manus/pages/admin/AdminContentImport";
 
 export default function App() {
@@ -73,8 +71,6 @@ export default function App() {
             <Route path="/admin/courses" element={<AdminGuard><AdminCoursesList /></AdminGuard>} />
             <Route path="/admin/courses/new" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
             <Route path="/admin/courses/:id" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
-            <Route path="/admin/courses/:id/modules/:moduleId" element={<AdminGuard><AdminModuleDetail /></AdminGuard>} />
-            <Route path="/admin/courses/:id/modules/:moduleId/lessons/:lessonId" element={<AdminGuard><AdminLessonDetail /></AdminGuard>} />
             <Route path="/admin/content-import" element={<AdminGuard><AdminContentImport /></AdminGuard>} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />

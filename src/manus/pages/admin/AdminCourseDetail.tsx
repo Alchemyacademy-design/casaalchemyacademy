@@ -1,28 +1,434 @@
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
 import AdminShell from "@/manus/components/admin/AdminShell";
-import ThumbnailField from "@/manus/components/admin/ThumbnailField";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
-import PublishChecklist, { canPublish } from "@/manus/components/admin/PublishChecklist";
+import VideoPreview from "@/manus/components/admin/VideoPreview";
 import {
+  createLesson,
+  createModule,
+  deleteLesson,
+  deleteModule,
   getCourse,
+  listLessons,
   listModules,
-  PLAN_KEYS,
-  type PlanKey,
   slugify,
   statusTransition,
   swapSortOrder,
+  updateCourse,
+  updateLesson,
+  updateModule,
+  uploadCoverImage,
+  type ContentStatus,
+  type Lesson,
+  type Module,
 } from "@/manus/lib/admin-content";
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
+/* ============================================================
+ * Inline auto-save text input / textarea
+ * ============================================================ */
+function AutoSaveInput({
+  value,
+  onSave,
+  placeholder,
+  className = "",
+  multiline = false,
+  rows = 2,
+}: {
+  value: string | null | undefined;
+  onSave: (v: string) => Promise<void> | void;
+  placeholder?: string;
+  className?: string;
+  multiline?: boolean;
+  rows?: number;
+}) {
+  const [val, setVal] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const initial = useRef(value ?? "");
+  useEffect(() => {
+    setVal(value ?? "");
+    initial.current = value ?? "";
+  }, [value]);
+
+  const commit = async () => {
+    if (val === initial.current) return;
+    setSaving(true);
+    try {
+      await onSave(val);
+      initial.current = val;
+    } catch (e: any) {
+      toast.error(e.message ?? String(e));
+      setVal(initial.current);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const props = {
+    value: val,
+    placeholder,
+    onChange: (e: any) => setVal(e.target.value),
+    onBlur: commit,
+    className: `${className} ${saving ? "opacity-60" : ""}`,
+  };
+
+  return multiline ? <Textarea {...props} rows={rows} /> : <Input {...props} />;
+}
+
+/* ============================================================
+ * Lesson row — title, video URL + live preview, status, reorder, delete
+ * ============================================================ */
+function LessonRow({
+  lesson,
+  index,
+  count,
+  onMove,
+  onDelete,
+  onChanged,
+}: {
+  lesson: Lesson;
+  index: number;
+  count: number;
+  onMove: (dir: -1 | 1) => Promise<void>;
+  onDelete: () => Promise<void>;
+  onChanged: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState(lesson.external_video_url ?? "");
+  useEffect(() => setUrl(lesson.external_video_url ?? ""), [lesson.external_video_url]);
+
+  const save = async (patch: Parameters<typeof updateLesson>[1]) => {
+    await updateLesson(lesson.id, patch);
+    onChanged();
+  };
+
+  const toggleStatus = async () => {
+    const next: ContentStatus = lesson.status === "published" ? "draft" : "published";
+    await updateLesson(lesson.id, statusTransition(next));
+    onChanged();
+  };
+
+  return (
+    <div className="border rounded-lg bg-card">
+      <div className="flex items-center gap-2 p-3">
+        <div className="flex flex-col">
+          <button className="p-0.5 disabled:opacity-20" disabled={index === 0} onClick={() => onMove(-1)} aria-label="Move up">
+            <ArrowUp className="w-3 h-3" />
+          </button>
+          <button className="p-0.5 disabled:opacity-20" disabled={index === count - 1} onClick={() => onMove(1)} aria-label="Move down">
+            <ArrowDown className="w-3 h-3" />
+          </button>
+        </div>
+        <span className="text-xs font-mono text-foreground/50 w-6">{lesson.sort_order}</span>
+        <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 text-left flex items-center gap-2">
+          {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
+          <span className="font-medium truncate">{lesson.title || "Untitled lesson"}</span>
+          {!url && <span className="text-[10px] uppercase tracking-wide text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">no link</span>}
+        </button>
+        <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
+          <StatusBadge status={lesson.status} />
+        </button>
+        <button onClick={onDelete} className="text-red-600 hover:text-red-700 p-1" aria-label="Delete lesson">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      {open && (
+        <div className="border-t p-4 grid md:grid-cols-2 gap-4">
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Title</Label>
+              <AutoSaveInput value={lesson.title} onSave={(v) => save({ title: v })} />
+            </div>
+            <div>
+              <Label className="text-xs">Video URL (YouTube, Vimeo, MP4…)</Label>
+              <AutoSaveInput
+                value={lesson.external_video_url}
+                onSave={(v) => save({ external_video_url: v.trim() || null })}
+                placeholder="https://youtube.com/watch?v=…"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Resource URL (optional)</Label>
+              <AutoSaveInput
+                value={lesson.external_resource_url}
+                onSave={(v) => save({ external_resource_url: v.trim() || null })}
+                placeholder="https://…"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Description</Label>
+              <AutoSaveInput
+                value={lesson.description}
+                multiline
+                rows={3}
+                onSave={(v) => save({ description: v.trim() || null })}
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Preview</Label>
+            <VideoPreview url={lesson.external_video_url} />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ============================================================
+ * Module section with its lessons
+ * ============================================================ */
+function ModuleSection({
+  module,
+  index,
+  count,
+  onMove,
+  onChanged,
+  onDeleted,
+}: {
+  module: Module;
+  index: number;
+  count: number;
+  onMove: (dir: -1 | 1) => Promise<void>;
+  onChanged: () => void;
+  onDeleted: () => void;
+}) {
+  const qc = useQueryClient();
+  const { data: lessons = [], refetch } = useQuery({
+    queryKey: ["admin", "module-lessons", module.id],
+    queryFn: () => listLessons(module.id),
+  });
+
+  const handleAdd = async () => {
+    const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
+    try {
+      await createLesson(module.id, nextOrder);
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleMoveLesson = async (i: number, dir: -1 | 1) => {
+    const a = lessons[i];
+    const b = lessons[i + dir];
+    if (!a || !b) return;
+    try {
+      await swapSortOrder("lessons", a, b);
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleDeleteLesson = async (id: number) => {
+    if (!confirm("Delete this lesson?")) return;
+    try {
+      await deleteLesson(id);
+      await refetch();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const toggleStatus = async () => {
+    const next: ContentStatus = module.status === "published" ? "draft" : "published";
+    await updateModule(module.id, statusTransition(next));
+    onChanged();
+  };
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex flex-col">
+          <button className="p-0.5 disabled:opacity-20" disabled={index === 0} onClick={() => onMove(-1)}>
+            <ArrowUp className="w-3 h-3" />
+          </button>
+          <button className="p-0.5 disabled:opacity-20" disabled={index === count - 1} onClick={() => onMove(1)}>
+            <ArrowDown className="w-3 h-3" />
+          </button>
+        </div>
+        <div className="flex-1 grid sm:grid-cols-2 gap-3">
+          <AutoSaveInput
+            value={module.title}
+            onSave={(v) => updateModule(module.id, { title: v }).then(onChanged)}
+            placeholder="Module title"
+            className="font-semibold"
+          />
+          <AutoSaveInput
+            value={module.description}
+            onSave={(v) => updateModule(module.id, { description: v.trim() || null }).then(onChanged)}
+            placeholder="Module description"
+          />
+        </div>
+        <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
+          <StatusBadge status={module.status} />
+        </button>
+        <button
+          onClick={async () => {
+            if (!confirm("Delete this module and all its lessons?")) return;
+            try {
+              await deleteModule(module.id);
+              onDeleted();
+            } catch (e: any) {
+              toast.error(e.message);
+            }
+          }}
+          className="text-red-600 hover:text-red-700 p-1"
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
+
+      <div className="space-y-2 pl-2 border-l-2 border-border/40 ml-2">
+        {lessons.map((l, i) => (
+          <LessonRow
+            key={l.id}
+            lesson={l}
+            index={i}
+            count={lessons.length}
+            onMove={(dir) => handleMoveLesson(i, dir)}
+            onDelete={() => handleDeleteLesson(l.id)}
+            onChanged={() => {
+              refetch();
+              qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
+            }}
+          />
+        ))}
+        <Button variant="outline" size="sm" onClick={handleAdd}>
+          <Plus className="w-3 h-3 mr-1" /> Add lesson
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+/* ============================================================
+ * Course header card (cover image, title, slug, status)
+ * ============================================================ */
+function CourseHeader({
+  course,
+  onChanged,
+}: {
+  course: import("@/manus/lib/admin-content").Course;
+  onChanged: () => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const onUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const url = await uploadCoverImage(file, "courses");
+      await updateCourse(course.id, { cover_image_path: url });
+      onChanged();
+      toast.success("Cover updated");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const cycleStatus = async (target: ContentStatus) => {
+    await updateCourse(course.id, statusTransition(target));
+    onChanged();
+  };
+
+  return (
+    <Card className="p-5">
+      <div className="grid md:grid-cols-[200px_1fr] gap-5">
+        <div className="space-y-2">
+          <div className="aspect-video bg-muted rounded overflow-hidden border">
+            {course.cover_image_path ? (
+              <img src={course.cover_image_path} alt="" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.opacity = "0.3")} />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-xs text-foreground/40">No cover</div>
+            )}
+          </div>
+          <Button type="button" variant="outline" size="sm" className="w-full" disabled={uploading} onClick={() => fileRef.current?.click()}>
+            <Upload className="w-3 h-3 mr-1" /> {uploading ? "Uploading…" : "Upload cover"}
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onUpload(f);
+              e.target.value = "";
+            }}
+          />
+        </div>
+        <div className="space-y-3">
+          <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-start">
+            <AutoSaveInput
+              value={course.title}
+              onSave={(v) => updateCourse(course.id, { title: v }).then(onChanged)}
+              className="text-lg font-semibold"
+              placeholder="Course title"
+            />
+            <div className="flex items-center gap-2">
+              <StatusBadge status={course.status} />
+              {course.status !== "published" ? (
+                <Button size="sm" onClick={() => cycleStatus("published")}>Publish</Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={() => cycleStatus("draft")}>Unpublish</Button>
+              )}
+            </div>
+          </div>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs">Slug</Label>
+              <AutoSaveInput
+                value={course.slug}
+                onSave={(v) => updateCourse(course.id, { slug: v.trim() || slugify(course.title) }).then(onChanged)}
+                className="font-mono text-xs"
+              />
+            </div>
+            <div>
+              <Label className="text-xs">Sort order</Label>
+              <AutoSaveInput
+                value={String(course.sort_order)}
+                onSave={(v) => updateCourse(course.id, { sort_order: Number(v) || 0 }).then(onChanged)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label className="text-xs">Subtitle</Label>
+            <AutoSaveInput
+              value={course.subtitle}
+              onSave={(v) => updateCourse(course.id, { subtitle: v.trim() || null }).then(onChanged)}
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Description</Label>
+            <AutoSaveInput
+              value={course.description}
+              multiline
+              rows={3}
+              onSave={(v) => updateCourse(course.id, { description: v.trim() || null }).then(onChanged)}
+            />
+          </div>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+/* ============================================================
+ * Page — handles both /new and existing /admin/courses/:id
+ * ============================================================ */
 export default function AdminCourseDetail() {
   const { id } = useParams<{ id: string }>();
   const isNew = id === "new";
@@ -30,7 +436,7 @@ export default function AdminCourseDetail() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const { data: course } = useQuery({
+  const { data: course, refetch: refetchCourse } = useQuery({
     queryKey: ["admin", "course", courseId],
     queryFn: () => getCourse(courseId!),
     enabled: !!courseId,
@@ -42,221 +448,119 @@ export default function AdminCourseDetail() {
     enabled: !!courseId,
   });
 
-  const [form, setForm] = useState({
-    title: "",
-    slug: "",
-    subtitle: "",
-    description: "",
-    cover_image_path: null as string | null,
-    external_landing_url: "",
-    access_plan_keys: [] as PlanKey[],
-    sort_order: 0,
-  });
-
-  useEffect(() => {
-    if (course) {
-      setForm({
-        title: course.title,
-        slug: course.slug,
-        subtitle: course.subtitle ?? "",
-        description: course.description ?? "",
-        cover_image_path: course.cover_image_path,
-        external_landing_url: course.external_landing_url ?? "",
-        access_plan_keys: course.access_plan_keys,
-        sort_order: course.sort_order,
-      });
-    }
-  }, [course]);
-
-  const saveDraft = useMutation({
+  // ----- New course form -----
+  const [newForm, setNewForm] = useState({ title: "", slug: "" });
+  const createCourse = useMutation({
     mutationFn: async () => {
-      const payload = {
-        title: form.title.trim(),
-        slug: form.slug.trim() || slugify(form.title),
-        subtitle: form.subtitle || null,
-        description: form.description || null,
-        cover_image_path: form.cover_image_path,
-        external_landing_url: form.external_landing_url || null,
-        access_plan_keys: form.access_plan_keys,
-        sort_order: form.sort_order || 0,
-      };
-      if (!payload.title) throw new Error("Title is required");
-      if (isNew) {
-        const { data, error } = await supabase.from("courses").insert({ ...payload, status: "draft" }).select().single();
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase.from("courses").update(payload).eq("id", courseId!).select().single();
-        if (error) throw error;
-        return data;
-      }
+      const title = newForm.title.trim();
+      if (!title) throw new Error("Title is required");
+      const slug = newForm.slug.trim() || slugify(title);
+      const { data, error } = await supabase
+        .from("courses")
+        .insert({ title, slug, status: "draft" as const })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
     },
     onSuccess: (data) => {
-      toast.success("Course saved");
+      toast.success("Course created");
       qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-      qc.invalidateQueries({ queryKey: ["admin", "course", data.id] });
-      if (isNew) navigate(`/admin/courses/${data.id}`, { replace: true });
+      navigate(`/admin/courses/${data.id}`, { replace: true });
     },
-    onError: (e: any) => toast.error(e.message ?? String(e)),
+    onError: (e: any) => toast.error(e.message),
   });
 
-  const setStatus = useMutation({
-    mutationFn: async (target: "published" | "archived" | "draft") => {
-      if (!courseId) return;
-      const { error } = await supabase.from("courses").update(statusTransition(target)).eq("id", courseId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      toast.success("Status updated");
-      qc.invalidateQueries({ queryKey: ["admin", "course", courseId] });
-      qc.invalidateQueries({ queryKey: ["admin", "courses"] });
-    },
-    onError: (e: any) => toast.error(e.message ?? String(e)),
-  });
-
-  const createModule = async () => {
+  const handleAddModule = async () => {
     if (!courseId) return;
     const nextOrder = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
-    const { data, error } = await supabase
-      .from("course_modules")
-      .insert({ course_id: courseId, title: "New module", sort_order: nextOrder, status: "draft" })
-      .select()
-      .single();
-    if (error) return toast.error(error.message);
-    navigate(`/admin/courses/${courseId}/modules/${data.id}`);
-  };
-
-  const moveModule = async (index: number, dir: -1 | 1) => {
-    const target = modules[index + dir];
-    const current = modules[index];
-    if (!target || !current) return;
     try {
-      await swapSortOrder("course_modules", current, target);
+      await createModule(courseId, nextOrder);
       await refetchModules();
     } catch (e: any) {
       toast.error(e.message);
     }
   };
 
-  const checklist = [
-    { label: "Title", ok: form.title.trim().length > 0 },
-    { label: "Slug", ok: (form.slug || slugify(form.title)).length > 0 },
-    { label: "Cover image", ok: !!form.cover_image_path },
-    { label: "At least one published module", ok: modules.some((m) => m.status === "published") },
-  ];
+  const handleMoveModule = async (i: number, dir: -1 | 1) => {
+    const a = modules[i];
+    const b = modules[i + dir];
+    if (!a || !b) return;
+    try {
+      await swapSortOrder("course_modules", a, b);
+      await refetchModules();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  if (isNew) {
+    return (
+      <AdminShell title="New course" crumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "New" }]}>
+        <Card className="p-6 max-w-xl space-y-4">
+          <div>
+            <Label>Title</Label>
+            <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} />
+          </div>
+          <div>
+            <Label>Slug</Label>
+            <div className="flex gap-2">
+              <Input
+                value={newForm.slug}
+                onChange={(e) => setNewForm((f) => ({ ...f, slug: e.target.value }))}
+                placeholder={slugify(newForm.title)}
+                className="font-mono text-sm"
+              />
+              <Button type="button" variant="outline" onClick={() => setNewForm((f) => ({ ...f, slug: slugify(f.title) }))}>Auto</Button>
+            </div>
+          </div>
+          <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending}>
+            Create course
+          </Button>
+        </Card>
+      </AdminShell>
+    );
+  }
+
+  if (!course) {
+    return (
+      <AdminShell title="Loading…" crumbs={[{ label: "Courses", to: "/admin/courses" }]}>
+        <p className="text-sm text-foreground/60">Loading course…</p>
+      </AdminShell>
+    );
+  }
 
   return (
     <AdminShell
-      title={isNew ? "New course" : course?.title ?? "Course"}
-      crumbs={[{ label: "Courses", to: "/admin/courses" }, { label: isNew ? "New" : course?.title ?? "—" }]}
-      actions={
-        <>
-          {!isNew && course && <StatusBadge status={course.status} />}
-          <Button onClick={() => saveDraft.mutate()} disabled={saveDraft.isPending}>Save</Button>
-          {!isNew && course?.status !== "published" && (
-            <Button variant="secondary" disabled={!canPublish(checklist)} onClick={() => setStatus.mutate("published")}>Publish</Button>
-          )}
-          {!isNew && course?.status === "published" && (
-            <Button variant="outline" onClick={() => setStatus.mutate("draft")}>Unpublish</Button>
-          )}
-          {!isNew && course?.status !== "archived" && (
-            <Button variant="outline" onClick={() => setStatus.mutate("archived")}>Archive</Button>
-          )}
-        </>
-      }
+      title={course.title || "Course"}
+      crumbs={[{ label: "Courses", to: "/admin/courses" }, { label: course.title || "—" }]}
     >
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
-          <Card className="p-5 space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Title</Label>
-                <Input value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Slug</Label>
-                <div className="flex gap-2">
-                  <Input value={form.slug} onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))} placeholder={slugify(form.title)} />
-                  <Button type="button" variant="outline" onClick={() => setForm((f) => ({ ...f, slug: slugify(f.title) }))}>Auto</Button>
-                </div>
-              </div>
-            </div>
-            <div>
-              <Label>Subtitle</Label>
-              <Input value={form.subtitle} onChange={(e) => setForm((f) => ({ ...f, subtitle: e.target.value }))} />
-            </div>
-            <div>
-              <Label>Description</Label>
-              <Textarea rows={4} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
-            </div>
-            <ThumbnailField
-              value={form.cover_image_path}
-              onChange={(v) => setForm((f) => ({ ...f, cover_image_path: v }))}
-              folder="courses"
-            />
-            <div>
-              <Label>External landing URL (optional)</Label>
-              <Input value={form.external_landing_url} onChange={(e) => setForm((f) => ({ ...f, external_landing_url: e.target.value }))} />
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <Label>Sort order</Label>
-                <Input type="number" value={form.sort_order} onChange={(e) => setForm((f) => ({ ...f, sort_order: Number(e.target.value) }))} />
-              </div>
-              <div>
-                <Label>Access plans</Label>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {PLAN_KEYS.map((k) => {
-                    const active = form.access_plan_keys.includes(k);
-                    return (
-                      <button
-                        key={k}
-                        type="button"
-                        onClick={() =>
-                          setForm((f) => ({
-                            ...f,
-                            access_plan_keys: active ? f.access_plan_keys.filter((x) => x !== k) : [...f.access_plan_keys, k],
-                          }))
-                        }
-                        className={`text-xs px-2 py-1 rounded-full border ${active ? "bg-accent text-accent-foreground border-accent" : "bg-background"}`}
-                      >
-                        {k}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </Card>
+      <div className="space-y-5">
+        <CourseHeader course={course} onChanged={() => refetchCourse()} />
 
-          {!isNew && (
-            <Card className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold">Modules</h2>
-                <Button size="sm" onClick={createModule}><Plus className="w-4 h-4 mr-1" /> Add module</Button>
-              </div>
-              {modules.length === 0 && <p className="text-sm text-foreground/60">No modules yet.</p>}
-              <ul className="divide-y">
-                {modules.map((m, idx) => (
-                  <li key={m.id} className="py-2 flex items-center gap-3">
-                    <div className="flex flex-col">
-                      <button className="p-1 disabled:opacity-30" disabled={idx === 0} onClick={() => moveModule(idx, -1)}><ArrowUp className="w-3 h-3" /></button>
-                      <button className="p-1 disabled:opacity-30" disabled={idx === modules.length - 1} onClick={() => moveModule(idx, 1)}><ArrowDown className="w-3 h-3" /></button>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{m.title}</div>
-                      <div className="text-xs text-foreground/60">order {m.sort_order}</div>
-                    </div>
-                    <StatusBadge status={m.status} />
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/courses/${courseId}/modules/${m.id}`)}>Open</Button>
-                  </li>
-                ))}
-              </ul>
-            </Card>
-          )}
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Modules &amp; lessons</h2>
+          <Button onClick={handleAddModule}><Plus className="w-4 h-4 mr-1" /> Add module</Button>
         </div>
+
+        {modules.length === 0 && (
+          <Card className="p-6 text-sm text-foreground/60 text-center">
+            No modules yet. Click <strong>Add module</strong> to start.
+          </Card>
+        )}
+
         <div className="space-y-4">
-          <PublishChecklist items={checklist} />
+          {modules.map((m, i) => (
+            <ModuleSection
+              key={m.id}
+              module={m}
+              index={i}
+              count={modules.length}
+              onMove={(dir) => handleMoveModule(i, dir)}
+              onChanged={() => refetchModules()}
+              onDeleted={() => refetchModules()}
+            />
+          ))}
         </div>
       </div>
     </AdminShell>

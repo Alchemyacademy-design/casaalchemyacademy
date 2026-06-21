@@ -1,111 +1,82 @@
+## Objetivo
 
-# Painel Administrativo de Conteúdo — Cursos / Módulos / Aulas
+Reestruturar a área administrativa para ficar simples e direta, garantir que o admin tenha acesso total à plataforma (membros, comunidade, cursos), e renderizar imediatamente o conteúdo do pacote Manus com thumbnails e player de vídeo funcionando.
 
-Escopo desta execução: construir o CRUD admin + importador do `alchemy_content_import_template.json` como **draft**. Sem Stripe. Sem novo banco. Sem alterar schema (as tabelas já têm todos os campos necessários).
+## 1. Acesso total do administrador
 
-## Confirmação prévia de schema
+Hoje o `GlobalAccessController` já libera tudo para `isAdmin`, mas há páginas (CourseDetail, Modules, Community, etc.) que ainda checam `isMember`/`hasCourseAccess` localmente. Vou auditar e adicionar bypass `isAdmin` em todos os guards de página/conteúdo (mycourses, courses/:id, community, suppliers, events, magazine, live-workshops, dashboard) para que o admin veja **tudo publicado ou em draft**, sem precisar de assinatura.
 
-Verifiquei `src/integrations/supabase/types.ts`. Tabelas e colunas existentes batem 100% com o que o comando exige:
+Também: no `GlobalAccessController`, permitir que admin acesse rotas `/admin/*` sem qualquer checagem de plano.
 
-- `public.courses` — slug, title, subtitle, description, cover_image_path, external_landing_url, access_plan_keys, status, sort_order, published_at, archived_at, created_by.
-- `public.course_modules` — course_id, title, description, cover_image_path, access_plan_keys, status, sort_order, published_at, archived_at.
-- `public.lessons` — module_id, title, description, content_text, external_video_url, external_resource_url, duration_seconds, is_preview, status, sort_order, published_at, archived_at.
-- Enum `content_status` (draft/published/archived) já presente.
+## 2. Importação automática do Manus (sem clicar em botão)
 
-**Não vou criar migrations** — apenas se um campo extra (ex.: `legacy_lesson_id`) for indispensável. Como o pack guarda `legacy_*` apenas para auditoria, vou armazenar isso em memória local na tela de importação (e exportar um relatório JSON) em vez de poluir o schema.
+- Substituir `src/manus/data/manus-import.json` pelo conteúdo do novo `alchemy_content_import_template.json` enviado (10 cursos, 30 aulas).
+- Disparar a edge function `manus-import` automaticamente uma vez, persistindo cursos/módulos/aulas como `draft`.
+- Subir as 9 thumbnails reais (`/manus-storage/course-*.png`) extraídas do ZIP para o bucket `public-assets/courses/` e gravar a URL pública em `courses.cover_image_path`.
+- Gerar `import-report.json` em `/mnt/documents/` com: cursos/módulos/aulas criados, links faltantes (todas as 30 aulas com `external_video_url` nulo), thumbnails OK vs. faltantes.
 
-## Rotas novas
+## 3. Admin de conteúdo simplificado — uma tela só por curso
 
-- `/admin/courses` — lista de cursos (todos os status) com busca, filtro por status, botão "New course", botão "Import Manus".
-- `/admin/courses/new` — formulário de criação.
-- `/admin/courses/:courseId` — edição do curso + lista de módulos (drag-handle de ordem, criar/editar/arquivar inline).
-- `/admin/courses/:courseId/modules/:moduleId` — edição do módulo + lista de aulas (reordenar, criar/editar/arquivar inline).
-- `/admin/courses/:courseId/modules/:moduleId/lessons/:lessonId` — edição completa da aula (campos do comando + checklist de publicação).
-- `/admin/content-import` — importador do JSON Manus.
+Substituir o fluxo atual de 3 níveis (curso → módulo → aula em páginas separadas) por **uma página única** `/admin/courses/:id` no estilo planilha/acordeão:
 
-Todas atrás de `<AdminGuard>` (já existente, usa role `admin` server-side via `auth-me`). Sem checagem por e-mail no frontend.
-
-## Componentes/arquivos novos
-
-```
-src/manus/pages/admin/
-  AdminCoursesList.tsx
-  AdminCourseForm.tsx          // new + edit
-  AdminCourseDetail.tsx        // edit course + módulos
-  AdminModuleDetail.tsx        // edit module + aulas
-  AdminLessonDetail.tsx        // edit lesson
-  AdminContentImport.tsx       // importador JSON
-src/manus/lib/admin-content.ts // helpers supabase: list/create/update/reorder/publish/archive
-src/manus/components/admin/
-  StatusBadge.tsx
-  ReorderableList.tsx          // setas up/down (sem libs extras)
-  PublishChecklist.tsx         // valida antes de "Publish"
-  ThumbnailField.tsx           // upload p/ bucket public-assets + preview + URL manual
-src/manus/data/manus-import.json   // cópia local do alchemy_content_import_template.json
+```text
+┌─ Curso: The path to a COLOURFUL life ──────────────────────┐
+│  [thumb] título  | slug | status [Draft▾] | [Publicar]    │
+│  subtítulo / descrição (inline edit)                        │
+│  ▼ Módulo 1: Course lessons                    [+ Aula]    │
+│     ├─ 1.1  Reading the Color Wheel                         │
+│     │      Título:        [____________]                    │
+│     │      Link do vídeo: [____________] [▶ preview]        │
+│     │      Thumbnail:     [upload] [preview]                │
+│     │      Status: ●Draft  ○Published   [↑][↓][🗑]          │
+│     ├─ 1.2  Warm vs Cool Colors  ...                        │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-Arquivos alterados:
+Características:
+- Edição **inline com auto-save** (debounce 600 ms) — sem botão "Salvar" em cada campo.
+- Preview de vídeo embutido ao lado do input: aceita YouTube, Vimeo, MP4 direto, com detecção automática.
+- Upload de thumbnail por drag-and-drop direto no card da aula (vai para `public-assets/lessons/`).
+- Botões `↑ ↓` para reordenar aulas (usa `swapSortOrder`).
+- Toggle Draft/Published por aula, módulo e curso.
+- `/admin/courses` continua sendo a lista geral; `/admin/courses/new` cria curso e redireciona para a tela única.
 
-- `src/App.tsx` — registrar as 6 rotas.
-- `src/manus/pages/AdminPanel.tsx` — adicionar card "Manage Courses" e "Import Manus content".
-- `src/components/AdminGuard.tsx` — sem mudança funcional (já valida via `useAuth.isAdmin`).
+Remover as páginas separadas `AdminModuleDetail.tsx` e `AdminLessonDetail.tsx` (consolidadas na tela única).
 
-## CRUD — regras
+## 4. Importador como página leve
 
-- Todas as escritas via cliente Supabase nativo (`@/integrations/supabase/client`), confiando em RLS (`has_role(auth.uid(),'admin')`).
-- `status` muda via ações dedicadas: **Save draft**, **Publish** (seta `published_at=now()`, `archived_at=null`), **Archive** (seta `archived_at=now()`, `status='archived'`), **Restore to draft**.
-- Reordenação: setas ↑/↓ atualizam `sort_order` em transação cliente (update individual; lista pequena, ok).
-- Slug do curso: input + botão "auto" a partir do title; valida unicidade no submit (catch error 23505).
-- `access_plan_keys`: multi-select com enum `membership_plan_key`.
+`/admin/content-import` vira só um relatório: mostra o `import-report.json`, lista os 30 links faltantes e 9 thumbnails (já resolvidas), com botão "Re-sincronizar Manus" caso o usuário queira rodar de novo. Sem fluxo de wizard.
 
-## Aulas
+## 5. Renderização para alunos/admin
 
-- Edição completa: title, description, content_text (textarea), external_video_url, external_resource_url, duration_seconds (minutos+segundos), is_preview (toggle), sort_order.
-- **PublishChecklist** bloqueia "Publish" quando:
-  - `external_video_url` vazio OU contém `/manus-storage/` OU `placeholder-video.mp4`.
-  - title vazio.
-- Mostra preview do vídeo (iframe genérico) se URL parece YouTube/Vimeo.
+`CourseDetail` e `ModuleDetail` já existem — vou ajustar para:
+- Mostrar player do `external_video_url` (YouTube/Vimeo iframe ou `<video>` nativo).
+- Usar `cover_image_path` real.
+- Admin vê aulas em qualquer status; alunos só `published`.
 
-## Thumbnails
+## Arquivos afetados
 
-- `ThumbnailField` aceita:
-  1. Upload p/ bucket `public-assets` (já existe, público) em `course-covers/`, `module-covers/`, `lesson-covers/` (lessons não têm coluna; só curso/módulo).
-  2. URL manual (caminhos legacy `/manus-storage/...` aceitos mas marcados em vermelho como "missing asset").
-- Renderiza preview e badge de aviso quando o path começa com `/manus-storage/`.
+**Criar/reescrever:**
+- `src/manus/pages/admin/AdminCourseDetail.tsx` — nova tela única com módulos+aulas inline.
+- `src/manus/components/admin/LessonRow.tsx` — linha editável com auto-save, preview de vídeo, upload de thumb.
+- `src/manus/components/admin/VideoPreview.tsx` — detector YouTube/Vimeo/MP4.
+- `src/manus/lib/admin-content.ts` — adicionar `updateLessonPartial`, `uploadLessonThumbnail`, helpers de auto-save.
+- `src/manus/data/manus-import.json` — substituir pelo template novo.
+- `supabase/functions/manus-import/index.ts` — adicionar upload das 9 thumbnails reais do ZIP (passadas como base64 no payload ou pré-uploadadas pelo sandbox para o bucket).
 
-## Importador `/admin/content-import`
+**Editar:**
+- `src/App.tsx` — remover rotas de módulo/aula separadas.
+- `src/manus/components/GlobalAccessController.tsx` — admin pula todas as checagens (já parcial).
+- Páginas membro (`Modules`, `ModuleDetail`, `Community`, `Suppliers`, `Events`, `Magazine`, `LiveWorkshops`, `Dashboard`) — bypass `isAdmin` em qualquer guard local de plano.
+- `src/manus/pages/CourseDetail.tsx` / `ModuleDetail.tsx` — player real + admin vê drafts.
+- `src/manus/pages/admin/AdminContentImport.tsx` — virar página de relatório.
 
-Fluxo:
+**Remover:**
+- `src/manus/pages/admin/AdminModuleDetail.tsx`
+- `src/manus/pages/admin/AdminLessonDetail.tsx`
 
-1. JSON do pack já embarcado como `src/manus/data/manus-import.json` (também aceita upload `.json` manual para versões futuras).
-2. Mostra **dry-run**: cards de cursos/módulos/aulas que serão criados, com avisos do pack.
-3. Botão "Import as draft" → cria/atualiza por slug+lesson_number:
-   - `courses` upsert por `slug` (status='draft').
-   - `course_modules` insert (1 módulo "Course lessons" por curso, sort_order=1).
-   - `lessons` upsert por `(module_id, sort_order)` com status='draft'.
-4. Nenhuma URL placeholder vai para `external_video_url` — campo fica `null` e a aula entra como draft.
-5. Relatório final no UI + download `import-report.json`: cursos importados, aulas importadas, links faltantes, thumbnails faltantes (paths `/manus-storage/...`), divergências.
+## Fora de escopo
 
-## Segurança
-
-- Admin only via `<AdminGuard>` (server-side role check).
-- Nenhum uso de service role no frontend.
-- Nenhuma checagem por e-mail.
-- RLS já existente nas tabelas controla escrita.
-
-## Fora de escopo (próximas fases)
-
-- Preencher `links_a_preencher.csv` (Fase 4) — feito pelo admin via UI depois.
-- Recuperar thumbnails reais (Fase 5).
-- Comunidade/Eventos/Workshops/Revista/Fornecedores/Ofertas (Fase 7).
-- Stripe (Fase 8).
-
-## Entregáveis no final da execução
-
-- Rotas criadas (lista acima).
-- Arquivos criados/alterados (lista acima).
-- Resultado do dry-run do importador: 4 cursos / 12 aulas detectadas no pack (com base no JSON anexado).
-- Lista de links faltantes e thumbnails faltantes geradas pelo importador.
-- Resultado de build/typecheck (rodado automaticamente).
-
-Aprove para eu começar a implementar.
+- Stripe (explicitamente adiado).
+- Mudanças no schema do Supabase (uso só as colunas existentes).
+- Preencher os 30 links faltantes — isso depende do usuário colar as URLs reais; o admin já facilita esse trabalho.

@@ -104,7 +104,7 @@ export async function swapSortOrder<T extends { id: number; sort_order: number }
   if (e2) throw e2;
 }
 
-export async function uploadCoverImage(file: File, folder: "courses" | "modules"): Promise<string> {
+export async function uploadCoverImage(file: File, folder: "courses" | "modules" | "lessons"): Promise<string> {
   const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
   const key = `${folder}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from("public-assets").upload(key, file, {
@@ -116,3 +116,51 @@ export async function uploadCoverImage(file: File, folder: "courses" | "modules"
   const { data } = supabase.storage.from("public-assets").getPublicUrl(key);
   return data.publicUrl;
 }
+
+// ---- Inline CRUD helpers used by the unified course editor ----
+
+export async function updateCourse(id: number, patch: Database["public"]["Tables"]["courses"]["Update"]) {
+  const { error } = await supabase.from("courses").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateModule(id: number, patch: Database["public"]["Tables"]["course_modules"]["Update"]) {
+  const { error } = await supabase.from("course_modules").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updateLesson(id: number, patch: Database["public"]["Tables"]["lessons"]["Update"]) {
+  const { error } = await supabase.from("lessons").update(patch).eq("id", id);
+  if (error) throw error;
+}
+
+export async function createModule(courseId: number, sortOrder: number, title = "New module") {
+  const { data, error } = await supabase
+    .from("course_modules")
+    .insert({ course_id: courseId, title, sort_order: sortOrder, status: "draft" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson") {
+  const { data, error } = await supabase
+    .from("lessons")
+    .insert({ module_id: moduleId, title, sort_order: sortOrder, status: "draft" })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteModule(id: number) {
+  const { error } = await supabase.from("course_modules").delete().eq("id", id);
+  if (error) throw error;
+}
+
+export async function deleteLesson(id: number) {
+  const { error } = await supabase.from("lessons").delete().eq("id", id);
+  if (error) throw error;
+}
+
