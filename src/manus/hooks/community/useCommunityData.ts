@@ -4,7 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
 export type CommunitySpace = Database["public"]["Tables"]["community_spaces"]["Row"];
+export type CommunitySpaceUpdate = Database["public"]["Tables"]["community_spaces"]["Update"];
 export type CommunityChannel = Database["public"]["Tables"]["community_channels"]["Row"];
+export type CommunityChannelUpdate = Database["public"]["Tables"]["community_channels"]["Update"];
 export type CommunityPost = Database["public"]["Tables"]["community_posts"]["Row"];
 export type CommunityReply = Database["public"]["Tables"]["community_replies"]["Row"];
 export type CommunityReaction = Database["public"]["Tables"]["community_reactions"]["Row"];
