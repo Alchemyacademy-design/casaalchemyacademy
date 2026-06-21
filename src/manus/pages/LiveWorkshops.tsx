@@ -39,7 +39,7 @@ export default function LiveWorkshops() {
       <div
         className="p-6 md:p-10 min-h-screen"
         style={{
-          backgroundImage: 'url(/manus-storage/lorena_rawhstudios-4(1)_7a4583ed.webp)',
+          backgroundImage: 'url(/img/workshop-1.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           backgroundAttachment: 'fixed',
@@ -88,7 +88,7 @@ export default function LiveWorkshops() {
                         style={{
                           width: "120px",
                           height: "120px",
-                          backgroundImage: 'url(/manus-storage/lorena_rawhstudios-6(1)_48d1a0a3.webp)',
+                          backgroundImage: 'url(/img/workshop-2.jpg)',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           borderRadius: '8px',
@@ -152,7 +152,7 @@ export default function LiveWorkshops() {
                         style={{
                           width: "120px",
                           height: "120px",
-                          backgroundImage: 'url(/manus-storage/lorena_rawhstudios-6(1)_48d1a0a3.webp)',
+                          backgroundImage: 'url(/img/workshop-2.jpg)',
                           backgroundSize: 'cover',
                           backgroundPosition: 'center',
                           borderRadius: '8px',

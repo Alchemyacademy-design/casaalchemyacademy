@@ -437,7 +437,7 @@ export default function Home() {
           {/* Photo - Full Height Left */}
           <div style={{ overflow: "hidden" }}>
             <img
-              src="/manus-storage/lorena_rawhstudios-24(1)_8682a5d3.webp"
+              src="/img/lorena.jpg"
               alt="Lorena Couto"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
