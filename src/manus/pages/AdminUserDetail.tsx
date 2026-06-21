@@ -351,9 +351,11 @@ export default function AdminUserDetail() {
 
           <TabsContent value="audit">
             <Card className="p-6">
-              {!data?.audit.available ? (
+              {!data ? (
+                <p className="text-sm text-foreground/60">Loading…</p>
+              ) : !data.audit.available ? (
                 <p className="text-sm text-foreground/60">
-                  Audit log unavailable ({data?.audit.reason ?? "unknown"}): {data?.audit.message ?? "pending"}.
+                  Audit log unavailable ({data.audit.reason}): {data.audit.message}.
                 </p>
               ) : data.audit.rows.length === 0 ? (
                 <p className="text-sm text-foreground/60">No actions recorded for this user.</p>
