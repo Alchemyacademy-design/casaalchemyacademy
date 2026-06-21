@@ -28,12 +28,15 @@ import { Textarea } from "@/components/ui/textarea";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
+import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
+import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import {
   createLesson,
   createModule,
   deleteLesson,
   deleteModule,
   getCourse,
+  isPlaceholderVideo,
   listLessons,
   listModules,
   reorderRecords,
@@ -197,9 +200,17 @@ function LessonRow({
               />
             </div>
           </div>
-          <div>
-            <Label className="text-xs">Preview</Label>
-            <VideoPreview url={lesson.external_video_url} />
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Preview</Label>
+              <VideoPreview url={lesson.external_video_url} />
+            </div>
+            <LessonVideoUpload
+              lessonId={lesson.id}
+              value={lesson.external_video_url}
+              onUploaded={(v) => save({ external_video_url: v })}
+              onRemoved={() => save({ external_video_url: null })}
+            />
           </div>
         </div>
       )}
