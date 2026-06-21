@@ -58,7 +58,7 @@ export function useCreateSpace() {
 export function useUpdateSpace() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: number; patch: Partial<CommunitySpace> }) => {
+    mutationFn: async (input: { id: number; patch: CommunitySpaceUpdate }) => {
       const { data, error } = await supabase
         .from("community_spaces")
         .update(input.patch)
@@ -128,7 +128,7 @@ export function useCreateChannel(spaceId: number | null) {
 export function useUpdateChannel(spaceId: number | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: { id: number; patch: Partial<CommunityChannel> }) => {
+    mutationFn: async (input: { id: number; patch: CommunityChannelUpdate }) => {
       const { data, error } = await supabase
         .from("community_channels")
         .update(input.patch)
