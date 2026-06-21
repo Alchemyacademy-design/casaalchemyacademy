@@ -22,8 +22,12 @@ export default function AdminCoursesList() {
       actions={
         <>
           <Button variant="outline" asChild>
+            <Link to="/admin/lessons">Bulk lessons</Link>
+          </Button>
+          <Button variant="outline" asChild>
             <Link to="/admin/content-import"><Upload className="w-4 h-4 mr-1" /> Import Manus</Link>
           </Button>
+
           <Button onClick={() => navigate("/admin/courses/new")}>
             <Plus className="w-4 h-4 mr-1" /> New course
           </Button>

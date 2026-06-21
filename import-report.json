@@ -1,0 +1,294 @@
+{
+  "generated_at": "2026-06-21T17:42:52.760Z",
+  "warnings": [
+    "No real external lesson URLs were found.",
+    "29 of 30 lessons point to placeholder-video.mp4.",
+    "1 lesson points to a private Manus storage MP4 that must be recovered.",
+    "Final UI catalogue and SQL curriculum are inconsistent.",
+    "Import all content as draft and review before publishing."
+  ],
+  "courses_upserted": 10,
+  "modules_upserted": 10,
+  "lessons_upserted": 30,
+  "missing_video_links": [
+    {
+      "course": "the-path-to-a-colourful-life",
+      "lesson_number": "1.1",
+      "sort_order": 1,
+      "title": "Reading the Color Wheel and Color Vocabulary",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-path-to-a-colourful-life",
+      "lesson_number": "1.2",
+      "sort_order": 2,
+      "title": "Warm vs Cool Colors and Color Relationships",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-path-to-a-colourful-life",
+      "lesson_number": "1.3",
+      "sort_order": 3,
+      "title": "Tint, Shade, and Tone: The Building Blocks of Color",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-sacred-bedroom",
+      "lesson_number": "2.1",
+      "sort_order": 1,
+      "title": "Understanding Warm Colors",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-sacred-bedroom",
+      "lesson_number": "2.2",
+      "sort_order": 2,
+      "title": "Creating Cozy Spaces",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-sacred-bedroom",
+      "lesson_number": "2.3",
+      "sort_order": 3,
+      "title": "Balancing Warm Palettes",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-alchemic-kitchen",
+      "lesson_number": "3.1",
+      "sort_order": 1,
+      "title": "Understanding Cool Colors",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-alchemic-kitchen",
+      "lesson_number": "3.2",
+      "sort_order": 2,
+      "title": "Creating Serene Spaces",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-alchemic-kitchen",
+      "lesson_number": "3.3",
+      "sort_order": 3,
+      "title": "Sophisticated Cool Designs",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-elemental-bathroom",
+      "lesson_number": "4.1",
+      "sort_order": 1,
+      "title": "The Neutral Palette",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-elemental-bathroom",
+      "lesson_number": "4.2",
+      "sort_order": 2,
+      "title": "Layering Neutrals",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-elemental-bathroom",
+      "lesson_number": "4.3",
+      "sort_order": 3,
+      "title": "Neutral with Accents",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-soulful-living-room",
+      "lesson_number": "5.1",
+      "sort_order": 1,
+      "title": "Complementary Theory",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-soulful-living-room",
+      "lesson_number": "5.2",
+      "sort_order": 2,
+      "title": "Dynamic Interiors",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-soulful-living-room",
+      "lesson_number": "5.3",
+      "sort_order": 3,
+      "title": "Balancing Contrast",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-crafted-dining-room",
+      "lesson_number": "6.1",
+      "sort_order": 1,
+      "title": "Analogous Theory",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-crafted-dining-room",
+      "lesson_number": "6.2",
+      "sort_order": 2,
+      "title": "Harmonious Designs",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "the-crafted-dining-room",
+      "lesson_number": "6.3",
+      "sort_order": 3,
+      "title": "Sophisticated Analogous Palettes",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "catalyst-workspace",
+      "lesson_number": "7.1",
+      "sort_order": 1,
+      "title": "Monochromatic Fundamentals",
+      "legacy_video_path": "/manus-storage/full_hd(1)_eca21418.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "catalyst-workspace",
+      "lesson_number": "7.2",
+      "sort_order": 2,
+      "title": "Texture and Contrast",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "catalyst-workspace",
+      "lesson_number": "7.3",
+      "sort_order": 3,
+      "title": "Monochromatic in Practice",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "kids-legacy-draft",
+      "lesson_number": "8.1",
+      "sort_order": 1,
+      "title": "The 60-30-10 Rule",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "kids-legacy-draft",
+      "lesson_number": "8.2",
+      "sort_order": 2,
+      "title": "Creating Focal Points",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "kids-legacy-draft",
+      "lesson_number": "8.3",
+      "sort_order": 3,
+      "title": "Strategic Accents",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "enchanted-outdoors",
+      "lesson_number": "10.1",
+      "sort_order": 1,
+      "title": "Current Color Trends",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "enchanted-outdoors",
+      "lesson_number": "10.2",
+      "sort_order": 2,
+      "title": "Developing Personal Style",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "enchanted-outdoors",
+      "lesson_number": "10.3",
+      "sort_order": 3,
+      "title": "Timeless Design Principles",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "knowledgeable-cheat-sheets",
+      "lesson_number": "9.1",
+      "sort_order": 1,
+      "title": "Natural Light Effects",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "knowledgeable-cheat-sheets",
+      "lesson_number": "9.2",
+      "sort_order": 2,
+      "title": "Artificial Lighting",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    },
+    {
+      "course": "knowledgeable-cheat-sheets",
+      "lesson_number": "9.3",
+      "sort_order": 3,
+      "title": "Choosing Colors for Your Light",
+      "legacy_video_path": "/manus-storage/placeholder-video.mp4",
+      "status": "PENDING"
+    }
+  ],
+  "missing_thumbnails": [
+    {
+      "course": "the-path-to-a-colourful-life",
+      "legacy_path": "/manus-storage/course-colourful_0478abef.png"
+    },
+    {
+      "course": "the-sacred-bedroom",
+      "legacy_path": "/manus-storage/course-bedroom_f6b15eed.png"
+    },
+    {
+      "course": "the-alchemic-kitchen",
+      "legacy_path": "/manus-storage/course-kitchen_93724e97.png"
+    },
+    {
+      "course": "the-elemental-bathroom",
+      "legacy_path": "/manus-storage/course-bathroom_fed5d184.png"
+    },
+    {
+      "course": "the-soulful-living-room",
+      "legacy_path": "/manus-storage/course-living-room_fec0ad04.png"
+    },
+    {
+      "course": "the-crafted-dining-room",
+      "legacy_path": "/manus-storage/course-dining-room_b319fb05.png"
+    },
+    {
+      "course": "catalyst-workspace",
+      "legacy_path": "/manus-storage/course-workspace_ff50b0d7.png"
+    },
+    {
+      "course": "enchanted-outdoors",
+      "legacy_path": "/manus-storage/course-outdoors_879d59b7.png"
+    },
+    {
+      "course": "knowledgeable-cheat-sheets",
+      "legacy_path": "/manus-storage/course-design_1ede2590.png"
+    }
+  ],
+  "errors": []
+}
