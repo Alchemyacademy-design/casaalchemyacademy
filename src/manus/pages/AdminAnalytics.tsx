@@ -116,10 +116,11 @@ export default function AdminAnalytics() {
                       <LineChart data={revenueQuery.data.dailyRevenue}>
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip formatter={(value) => `$${value}`} />
+                        <YAxis yAxisId="left" />
+                        <YAxis yAxisId="right" orientation="right" allowDecimals={false} />
+                        <Tooltip formatter={(value, name) => name === "Purchases" ? value : `$${value}`} />
                         <Legend />
-                        <Line type="monotone" dataKey="total" stroke="#8b5cf6" name="Revenue ($)" />
+                        <Line type="monotone" dataKey="total" stroke="#8b5cf6" name="Revenue ($)" yAxisId="left" />
                         <Line type="monotone" dataKey="count" stroke="#ec4899" name="Purchases" yAxisId="right" />
                       </LineChart>
                     </ResponsiveContainer>
