@@ -31,7 +31,13 @@ export interface AuthUser extends User {
   activeEntitlements?: ActiveEntitlement[];
 }
 
-function mergeUser(user: User, profileData: any): AuthUser {
+interface MeData {
+  profile?: AuthUser["profile"];
+  membership?: AuthUser["membership"];
+  activeEntitlements?: ActiveEntitlement[];
+  roles?: string[];
+}
+function mergeUser(user: User, profileData: MeData | undefined | null): AuthUser {
   const profile = profileData?.profile ?? null;
   const membership = profileData?.membership ?? null;
   const activeEntitlements = profileData?.activeEntitlements ?? [];
