@@ -106,19 +106,23 @@ function AutoSaveInput({
  * ============================================================ */
 function LessonRow({
   lesson,
-  index,
-  count,
-  onMove,
   onDelete,
   onChanged,
 }: {
   lesson: Lesson;
-  index: number;
-  count: number;
-  onMove: (dir: -1 | 1) => Promise<void>;
   onDelete: () => Promise<void>;
   onChanged: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: lesson.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 50 : "auto" as const,
+  };
+
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState(lesson.external_video_url ?? "");
   useEffect(() => setUrl(lesson.external_video_url ?? ""), [lesson.external_video_url]);
@@ -135,16 +139,17 @@ function LessonRow({
   };
 
   return (
-    <div className="border rounded-lg bg-card">
+    <div ref={setNodeRef} style={style} className="border rounded-lg bg-card">
       <div className="flex items-center gap-2 p-3">
-        <div className="flex flex-col">
-          <button className="p-0.5 disabled:opacity-20" disabled={index === 0} onClick={() => onMove(-1)} aria-label="Move up">
-            <ArrowUp className="w-3 h-3" />
-          </button>
-          <button className="p-0.5 disabled:opacity-20" disabled={index === count - 1} onClick={() => onMove(1)} aria-label="Move down">
-            <ArrowDown className="w-3 h-3" />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="p-1 text-foreground/40 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
         <span className="text-xs font-mono text-foreground/50 w-6">{lesson.sort_order}</span>
         <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 text-left flex items-center gap-2">
           {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
