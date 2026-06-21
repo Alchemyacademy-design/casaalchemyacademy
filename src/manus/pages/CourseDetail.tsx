@@ -5,7 +5,7 @@ import { trpc } from "@/manus/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Star } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { LessonRow, ModuleRow, ProgressRow } from "@/manus/lib/types";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
 
