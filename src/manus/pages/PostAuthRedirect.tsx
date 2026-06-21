@@ -1,15 +1,15 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { useAuth } from "@/manus/hooks/useAuth";
 
 export default function PostAuthRedirect() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
   const { loading, isAuthenticated, defaultPath } = useAuth();
 
   useEffect(() => {
     if (loading) return;
-    navigate(isAuthenticated ? defaultPath : "/login");
+    navigate(isAuthenticated ? defaultPath : "/login", { replace: true });
   }, [defaultPath, isAuthenticated, loading, navigate]);
 
   return (

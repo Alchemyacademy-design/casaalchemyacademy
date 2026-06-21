@@ -189,7 +189,6 @@ export default function AdminLessonsBulk() {
       actions={
         <>
           <Link to="/admin/courses"><Button variant="outline">Courses</Button></Link>
-          <Link to="/admin/content-import"><Button variant="outline">Import</Button></Link>
           <Button onClick={saveAll} disabled={!dirtyCount}>
             <Save className="w-4 h-4 mr-1" /> Save changes ({dirtyCount})
           </Button>

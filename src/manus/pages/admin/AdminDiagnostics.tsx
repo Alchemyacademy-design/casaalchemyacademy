@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, RefreshCw } from "lucide-react";
 import AdminShell from "@/manus/components/admin/AdminShell";
@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getCoursesTree, type AdminCatalog } from "@/manus/services/admin-content";
 
 const PROJECT_REF = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string | undefined) ?? "—";
+const MASTER_ADMIN_EMAIL = "contact@casaalchemystudio.com";
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -32,7 +33,7 @@ export default function AdminDiagnostics() {
     refetchOnMount: "always",
   });
 
-  const pingAuthMe = async () => {
+  const pingAuthMe = useCallback(async () => {
     setAuthMeChecking(true);
     try {
       const { error } = await supabase.functions.invoke("auth-me", { method: "POST" });
@@ -42,11 +43,11 @@ export default function AdminDiagnostics() {
     } finally {
       setAuthMeChecking(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     if (auth.session) void pingAuthMe();
-  }, [auth.session?.access_token]);
+  }, [auth.session, pingAuthMe]);
 
   const report = {
     user_id: auth.session?.user.id ?? null,
@@ -63,9 +64,17 @@ export default function AdminDiagnostics() {
     catalog_source: catalog.data?.source ?? null,
     error: auth.error ?? (catalog.error instanceof Error ? catalog.error.message : null),
   };
+  const signedInWithDifferentAccount = Boolean(
+    report.email && report.email.toLowerCase() !== MASTER_ADMIN_EMAIL,
+  );
 
   return (
     <AdminShell title="Diagnostics" description="Admin authorization + content catalog health." crumbs={[{ label: "Diagnostics" }]}>
+      {signedInWithDifferentAccount && (
+        <Card className="p-4 mb-4 border-amber-300 bg-amber-50 text-sm text-amber-900">
+          You are signed in with a different account.
+        </Card>
+      )}
       <div className="grid gap-4 md:grid-cols-2">
         <Card className="p-4">
           <h3 className="font-serif text-lg mb-3">Authorization</h3>

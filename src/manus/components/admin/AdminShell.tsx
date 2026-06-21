@@ -7,6 +7,7 @@ import {
   ListChecks,
   Users,
   BarChart3,
+  Activity,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -38,6 +39,7 @@ const NAV = [
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
   { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
   { title: "Students", url: "/admin/students", icon: Users },
+  { title: "Diagnostics", url: "/admin/diagnostics", icon: Activity },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];
 
