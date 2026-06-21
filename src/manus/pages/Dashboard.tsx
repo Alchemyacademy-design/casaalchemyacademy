@@ -5,7 +5,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
 
 export default function Dashboard() {
