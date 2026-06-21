@@ -4,7 +4,9 @@ import { getLoginUrl } from "@/manus/const";
 import { Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
+
 
 // Organogram-based module structure from reference
 const MODULES = [
