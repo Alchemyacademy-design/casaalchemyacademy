@@ -1874,6 +1874,13 @@ export type Database = {
     }
     Functions: {
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       internal_activate_validated_stripe_price: {
         Args: {
           p_expected_course_id: number
