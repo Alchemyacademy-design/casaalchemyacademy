@@ -35,15 +35,12 @@ export default function Signup() {
     }
 
     try {
-      // Sign up with Supabase Auth
       const { data, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email.trim().toLowerCase(),
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-          data: {
-            full_name: fullName,
-          },
+          data: { full_name: fullName },
         },
       });
 
@@ -52,18 +49,22 @@ export default function Signup() {
         return;
       }
 
+      // Email confirmation disabled — session is returned immediately.
       if (data.session) {
         setLocation("/dashboard");
         return;
       }
 
-      if (data.user) {
-        setSuccessMessage("Account created. Check your inbox (and spam folder) for a confirmation link before signing in.");
-        setFullName("");
-        setEmail("");
-        setPassword("");
-        setConfirmPassword("");
+      // Fallback: if no session, sign in straight away with the same credentials.
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+      if (signInError) {
+        setError(signInError.message);
+        return;
       }
+      setLocation("/dashboard");
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);

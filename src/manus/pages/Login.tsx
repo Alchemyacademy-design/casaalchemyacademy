@@ -30,12 +30,9 @@ export default function Login() {
       if (signInError) {
         const msg = signInError.message || "";
         const code = (signInError as { code?: string }).code;
-        if (code === "email_not_confirmed" || /not confirmed/i.test(msg)) {
+        if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) {
           setNeedsConfirmation(true);
-          setError("Your email hasn't been confirmed yet. Check your inbox or resend the confirmation link below.");
-        } else if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) {
-          setNeedsConfirmation(true);
-          setError("Invalid email or password. If you just signed up, please confirm your email first, or reset your password.");
+          setError("Invalid email or password. Try again or reset your password below.");
         } else {
           setError(msg || "Unable to sign in");
         }
@@ -53,29 +50,8 @@ export default function Login() {
     }
   };
 
-  const handleResendConfirmation = async () => {
-    if (!email) {
-      setError("Enter your email above first.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setInfo("");
-    try {
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email: email.trim().toLowerCase(),
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
-      });
-      if (resendError) {
-        setError(resendError.message);
-      } else {
-        setInfo("Confirmation email sent. Please check your inbox and spam folder.");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
 
   const handleGoogleLogin = async () => {
     try {
@@ -119,21 +95,12 @@ export default function Login() {
         )}
 
         {needsConfirmation && (
-          <div className="mb-6 flex flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResendConfirmation}
-              disabled={loading}
-              className="flex-1"
-            >
-              Resend confirmation email
-            </Button>
+          <div className="mb-6">
             <Button
               type="button"
               variant="outline"
               onClick={() => setLocation("/reset-password")}
-              className="flex-1"
+              className="w-full"
             >
               Reset password
             </Button>
