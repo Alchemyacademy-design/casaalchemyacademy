@@ -2,21 +2,21 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { CertificateSection } from "@/manus/components/CertificateSection";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
-import { Link } from "wouter";
+import { useNavigate } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
 
 export default function Dashboard() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const { user, loading, isAuthenticated } = useAuth();
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      setLocation("/login");
+      navigate("/login");
     }
-  }, [isAuthenticated, loading, setLocation]);
+  }, [isAuthenticated, loading, navigate]);
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
   const { data: modules = [] } = trpc.modules.list.useQuery();

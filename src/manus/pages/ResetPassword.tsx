@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function ResetPassword() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -33,7 +33,7 @@ export default function ResetPassword() {
 
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        setLocation("/login");
+        navigate("/login");
       }, 3000);
     } catch (err) {
       setError("An unexpected error occurred");
@@ -105,7 +105,7 @@ export default function ResetPassword() {
         <p className="text-center text-sm text-foreground/70">
           Remember your password?{" "}
           <button
-            onClick={() => setLocation("/login")}
+            onClick={() => navigate("/login")}
             className="text-accent hover:text-accent/80 font-medium transition"
           >
             Sign in

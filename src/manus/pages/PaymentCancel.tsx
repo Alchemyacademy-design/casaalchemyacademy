@@ -1,10 +1,10 @@
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
 
 export default function PaymentCancel() {
-  const [, navigate] = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-50">

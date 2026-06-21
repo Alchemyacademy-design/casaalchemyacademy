@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function Signup() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +51,7 @@ export default function Signup() {
 
       // Email confirmation disabled — session is returned immediately.
       if (data.session) {
-        setLocation("/dashboard");
+        navigate("/dashboard");
         return;
       }
 
@@ -64,7 +64,7 @@ export default function Signup() {
         setError(signInError.message);
         return;
       }
-      setLocation("/dashboard");
+      navigate("/dashboard");
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);
@@ -233,7 +233,7 @@ export default function Signup() {
         <p className="text-center text-sm text-foreground/70">
           Already have an account?{" "}
           <button
-            onClick={() => setLocation("/login")}
+            onClick={() => navigate("/login")}
             className="text-accent hover:text-accent/80 font-medium transition"
           >
             Sign in

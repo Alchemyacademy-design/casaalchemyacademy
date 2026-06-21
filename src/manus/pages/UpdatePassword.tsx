@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Lock, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function UpdatePassword() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
@@ -48,7 +48,7 @@ export default function UpdatePassword() {
 
       // Redirect to login after 2 seconds
       setTimeout(() => {
-        setLocation("/login");
+        navigate("/login");
       }, 2000);
     } catch (err) {
       setError("An unexpected error occurred");

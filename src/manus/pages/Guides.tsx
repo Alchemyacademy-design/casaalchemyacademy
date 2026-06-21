@@ -3,7 +3,7 @@ import { trpc } from "@/manus/lib/trpc";
 import { ArrowRight, CheckCircle, Lock } from "lucide-react";
 import { useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
-import { Link } from "wouter";
+import { Link } from "react-router-dom";
 
 const MODULES = [
   { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on, broken down into simple steps, to create a unique space with a clear, intentional outcome." },
@@ -37,7 +37,7 @@ export default function Guides() {
       {/* Header */}
       <header style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
         <div className="container flex items-center justify-between py-5">
-          <Link href="/">
+          <Link to="/">
             <div className="cursor-pointer">
               <div className="font-serif text-xl tracking-widest" style={{ color: "var(--aa-olive-dark)", letterSpacing: "0.2em" }}>
                 ALCHEMY ACADEMY
@@ -48,7 +48,7 @@ export default function Guides() {
             </div>
           </Link>
           <div className="flex items-center gap-4">
-            <Link href="/">
+            <Link to="/">
               <span className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
                 ← Back
               </span>
@@ -157,7 +157,7 @@ export default function Guides() {
                 <p className="text-xs leading-relaxed mb-4" style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                   Join the full Academy from $39.50/month and unlock all modules, community, events, and supplier directory.
                 </p>
-                <Link href="/#pricing">
+                <Link to="/#pricing">
                   <button className="btn-cream text-xs py-2 px-4 w-full flex items-center justify-center gap-2">
                     View Membership Plans <ArrowRight size={12} />
                   </button>

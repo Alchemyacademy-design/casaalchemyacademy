@@ -3,13 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
-import { Link, useLocation, useRoute } from "wouter";
+import { Link, useMatch } from "react-router-dom";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
 
 
 export default function ModuleDetail() {
-  const [, params] = useRoute("/modules/:id");
+  const match = useMatch("/modules/:id"); const params = match?.params as Record<string,string> | undefined;
   const moduleId = params?.id ? parseInt(params.id) : 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
 
@@ -47,7 +47,7 @@ export default function ModuleDetail() {
         {/* Header */}
         <div className="border-b border-border/50 bg-card/50 sticky top-0 z-40">
           <div className="container py-6">
-            <Link href="/modules">
+            <Link to="/modules">
               <a className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4">
                 <ChevronLeft className="w-4 h-4" />
                 Back to Modules
