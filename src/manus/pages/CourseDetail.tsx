@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Star } from "lucide-react";
 import { Link } from "wouter";
+import type { LessonRow, ModuleRow, ProgressRow } from "@/manus/lib/types";
 
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
