@@ -277,7 +277,11 @@ function ModuleSection({
   // Local optimistic order — keeps the list snappy during drag.
   const [orderedIds, setOrderedIds] = useState<number[]>([]);
   useEffect(() => {
-    setOrderedIds(lessons.map((l) => l.id));
+    setOrderedIds((prev) => {
+      const next = lessons.map((l) => l.id);
+      if (prev.length === next.length && prev.every((v, i) => v === next[i])) return prev;
+      return next;
+    });
   }, [lessons]);
   const lessonById = new Map(lessons.map((l) => [l.id, l] as const));
   const orderedLessons = orderedIds.map((id) => lessonById.get(id)).filter(Boolean) as Lesson[];
