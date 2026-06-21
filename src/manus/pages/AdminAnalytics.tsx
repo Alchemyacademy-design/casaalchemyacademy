@@ -144,7 +144,7 @@ export default function AdminAnalytics() {
                             outerRadius={100}
                             label
                           >
-                            {revenueQuery.data.revenueByType.map((_, index) => (
+                            {(revenueQuery.data?.revenueByType ?? []).map((_, index) => (
                               <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
@@ -227,7 +227,7 @@ export default function AdminAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {accessQuery.data.mostAccessedModules.map((module, idx) => (
+                        {(accessQuery.data?.mostAccessedModules ?? []).map((module, idx) => (
                           <div key={idx} className="flex justify-between items-center">
                             <span className="text-sm text-slate-600">Module {module.moduleId}</span>
                             <div className="flex items-center gap-2">
@@ -280,7 +280,7 @@ export default function AdminAnalytics() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {allUsersQuery.data.map((user) => (
+                        {(allUsersQuery.data ?? []).map((user) => (
                           <tr key={user.id} className="hover:bg-slate-50 transition">
                             <td className="px-4 py-3 text-slate-900 font-medium">{user.name || "N/A"}</td>
                             <td className="px-4 py-3 text-slate-600 text-xs">{user.email}</td>
@@ -381,7 +381,7 @@ export default function AdminAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {userAnalyticsQuery.data.purchases.map((purchase, idx) => (
+                        {(userAnalyticsQuery.data?.purchases ?? []).map((purchase, idx) => (
                           <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 rounded">
                             <div>
                               <p className="font-medium text-slate-900">{purchase.purchaseType}</p>
@@ -423,8 +423,8 @@ export default function AdminAnalytics() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2">
-                        {userAnalyticsQuery.data.quizResults.length > 0 ? (
-                          userAnalyticsQuery.data.quizResults.map((result, idx) => (
+                        {(userAnalyticsQuery.data?.quizResults ?? []).length > 0 ? (
+                          (userAnalyticsQuery.data?.quizResults ?? []).map((result, idx) => (
                             <div key={idx} className="flex justify-between items-center">
                               <span className="text-sm text-slate-600">Module {result.moduleId}</span>
                               <span
@@ -445,14 +445,14 @@ export default function AdminAnalytics() {
                 </div>
 
                 {/* Recent Activity */}
-                {userAnalyticsQuery.data.activityLog.length > 0 && (
+                {(userAnalyticsQuery.data?.activityLog ?? []).length > 0 && (
                   <Card className="bg-white shadow-lg">
                     <CardHeader>
                       <CardTitle>Recent Activity</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {userAnalyticsQuery.data.activityLog.map((activity, idx) => (
+                        {(userAnalyticsQuery.data?.activityLog ?? []).map((activity, idx) => (
                           <div key={idx} className="flex justify-between items-center text-sm p-2 bg-slate-50 rounded">
                             <span className="text-slate-600">{activity.activityType}</span>
                             <span className="text-xs text-slate-500">

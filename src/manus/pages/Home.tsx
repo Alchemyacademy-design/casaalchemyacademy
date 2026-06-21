@@ -4,6 +4,7 @@ import { getLoginUrl } from "@/manus/const";
 import { Lock } from "lucide-react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/manus/hooks/useAuth";
+import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
 
 // Organogram-based module structure from reference
 const MODULES = [
@@ -437,9 +438,9 @@ export default function Home() {
           {/* Photo - Full Height Left */}
           <div style={{ overflow: "hidden" }}>
             <img
-              src="/img/lorena.jpg"
-              alt="Lorena Couto"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              src={lorenaPhoto.url}
+              alt="Lorena Couto, founder of Casa Alchemy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
             />
           </div>
           {/* Text - Right Side */}
