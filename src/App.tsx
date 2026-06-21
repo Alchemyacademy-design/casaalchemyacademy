@@ -38,6 +38,14 @@ import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
 import AdminLessonsBulk from "@/manus/pages/admin/AdminLessonsBulk";
 import AdminStudents from "@/manus/pages/admin/AdminStudents";
 import AdminDiagnostics from "@/manus/pages/admin/AdminDiagnostics";
+import AdminEvents from "@/manus/pages/admin/AdminEvents";
+import AdminWorkshops from "@/manus/pages/admin/AdminWorkshops";
+import AdminMagazine from "@/manus/pages/admin/AdminMagazine";
+import AdminSuppliers from "@/manus/pages/admin/AdminSuppliers";
+import AdminSupplierCategories from "@/manus/pages/admin/AdminSupplierCategories";
+import AdminDeals from "@/manus/pages/admin/AdminDeals";
+import AdminPlans from "@/manus/pages/admin/AdminPlans";
+import AdminCertificates from "@/manus/pages/admin/AdminCertificates";
 
 
 export default function App() {
@@ -82,6 +90,14 @@ export default function App() {
             <Route path="/admin/lessons" element={<AdminGuard><AdminLessonsBulk /></AdminGuard>} />
             <Route path="/admin/students" element={<AdminGuard><AdminStudents /></AdminGuard>} />
             <Route path="/admin/diagnostics" element={<AdminGuard><AdminDiagnostics /></AdminGuard>} />
+            <Route path="/admin/events" element={<AdminGuard><AdminEvents /></AdminGuard>} />
+            <Route path="/admin/workshops" element={<AdminGuard><AdminWorkshops /></AdminGuard>} />
+            <Route path="/admin/magazine" element={<AdminGuard><AdminMagazine /></AdminGuard>} />
+            <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
+            <Route path="/admin/supplier-categories" element={<AdminGuard><AdminSupplierCategories /></AdminGuard>} />
+            <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />
+            <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
+            <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
 
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
