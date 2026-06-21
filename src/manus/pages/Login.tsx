@@ -106,9 +106,37 @@ export default function Login() {
         </div>
 
         {error && (
-          <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3">
+          <div className="mb-4 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3">
             <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
             <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
+        {info && (
+          <div className="mb-4 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <p className="text-sm text-accent">{info}</p>
+          </div>
+        )}
+
+        {needsConfirmation && (
+          <div className="mb-6 flex flex-col sm:flex-row gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResendConfirmation}
+              disabled={loading}
+              className="flex-1"
+            >
+              Resend confirmation email
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setLocation("/reset-password")}
+              className="flex-1"
+            >
+              Reset password
+            </Button>
           </div>
         )}
 
