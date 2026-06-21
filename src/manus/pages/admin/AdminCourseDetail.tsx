@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -47,11 +47,17 @@ import {
   updateLesson,
   updateModule,
   uploadCoverImage,
+  PLAN_KEYS,
+  STATUSES,
   type ContentStatus,
   type Lesson,
   type Module,
 } from "@/manus/lib/admin-content";
 import { supabase } from "@/integrations/supabase/client";
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 /* ============================================================
  * Inline auto-save text input / textarea
@@ -85,8 +91,8 @@ function AutoSaveInput({
     try {
       await onSave(val);
       initial.current = val;
-    } catch (e: any) {
-      toast.error(e.message ?? String(e));
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
       setVal(initial.current);
     } finally {
       setSaving(false);
@@ -96,7 +102,7 @@ function AutoSaveInput({
   const props = {
     value: val,
     placeholder,
-    onChange: (e: any) => setVal(e.target.value),
+      onChange: (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setVal(e.target.value),
     onBlur: commit,
     className: `${className} ${saving ? "opacity-60" : ""}`,
   };
@@ -162,6 +168,14 @@ function LessonRow({
         <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
           <StatusBadge status={lesson.status} />
         </button>
+        <select
+          value={lesson.status}
+          onChange={(e) => save(statusTransition(e.currentTarget.value as ContentStatus))}
+          className="h-8 rounded border bg-background px-2 text-xs"
+          aria-label="Lesson status"
+        >
+          {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+        </select>
         <button onClick={onDelete} className="text-red-600 hover:text-red-700 p-1" aria-label="Delete lesson">
           <Trash2 className="w-4 h-4" />
         </button>
@@ -183,6 +197,10 @@ function LessonRow({
               />
             </div>
             <div>
+              <Label className="text-xs">Content text</Label>
+              <AutoSaveInput value={lesson.content_text} multiline rows={4} onSave={(v) => save({ content_text: v.trim() || null })} />
+            </div>
+            <div>
               <Label className="text-xs">Resource URL (optional)</Label>
               <AutoSaveInput
                 value={lesson.external_resource_url}
@@ -199,6 +217,20 @@ function LessonRow({
                 onSave={(v) => save({ description: v.trim() || null })}
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Duration seconds</Label>
+                <AutoSaveInput value={String(lesson.duration_seconds ?? "")} onSave={(v) => save({ duration_seconds: v.trim() ? Number(v) : null })} />
+              </div>
+              <div>
+                <Label className="text-xs">Sort order</Label>
+                <AutoSaveInput value={String(lesson.sort_order)} onSave={(v) => save({ sort_order: Number(v) || 0 })} />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-xs text-foreground/70">
+              <input type="checkbox" checked={Boolean(lesson.is_preview)} onChange={(e) => save({ is_preview: e.currentTarget.checked })} />
+              Preview lesson
+            </label>
           </div>
           <div className="space-y-3">
             <div>
@@ -266,8 +298,8 @@ function ModuleSection({
     try {
       await reorderRecords("lessons", next, lessonById);
       await refetch();
-    } catch (e: any) {
-      toast.error(`Reorder failed: ${e.message}`);
+    } catch (e: unknown) {
+      toast.error(`Reorder failed: ${errorMessage(e)}`);
       setOrderedIds(lessons.map((l) => l.id)); // revert
     }
   };
@@ -277,8 +309,8 @@ function ModuleSection({
     try {
       await createLesson(module.id, nextOrder);
       await refetch();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     }
   };
 
@@ -287,8 +319,8 @@ function ModuleSection({
     try {
       await deleteLesson(id);
       await refetch();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     }
   };
 
@@ -321,18 +353,36 @@ function ModuleSection({
             onSave={(v) => updateModule(module.id, { description: v.trim() || null }).then(onChanged)}
             placeholder="Module description"
           />
+          <AutoSaveInput
+            value={module.cover_image_path}
+            onSave={(v) => updateModule(module.id, { cover_image_path: v.trim() || null }).then(onChanged)}
+            placeholder="Module cover image path"
+          />
+          <AutoSaveInput
+            value={String(module.sort_order)}
+            onSave={(v) => updateModule(module.id, { sort_order: Number(v) || 0 }).then(onChanged)}
+            placeholder="Module sort order"
+          />
         </div>
         <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
           <StatusBadge status={module.status} />
         </button>
+        <select
+          value={module.status}
+          onChange={(e) => updateModule(module.id, statusTransition(e.currentTarget.value as ContentStatus)).then(onChanged)}
+          className="h-8 rounded border bg-background px-2 text-xs"
+          aria-label="Module status"
+        >
+          {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+        </select>
         <button
           onClick={async () => {
             if (!confirm("Delete this module and all its lessons?")) return;
             try {
               await deleteModule(module.id);
               onDeleted();
-            } catch (e: any) {
-              toast.error(e.message);
+            } catch (e: unknown) {
+              toast.error(errorMessage(e));
             }
           }}
           className="text-red-600 hover:text-red-700 p-1"
@@ -387,8 +437,8 @@ function CourseHeader({
       await updateCourse(course.id, { cover_image_path: url });
       onChanged();
       toast.success("Cover updated");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     } finally {
       setUploading(false);
     }
@@ -435,6 +485,14 @@ function CourseHeader({
             />
             <div className="flex items-center gap-2">
               <StatusBadge status={course.status} />
+              <select
+                value={course.status}
+                onChange={(e) => cycleStatus(e.currentTarget.value as ContentStatus)}
+                className="h-9 rounded border bg-background px-2 text-xs"
+                aria-label="Course status"
+              >
+                {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+              </select>
               {course.status !== "published" ? (
                 <Button size="sm" onClick={() => cycleStatus("published")}>Publish</Button>
               ) : (
@@ -465,6 +523,38 @@ function CourseHeader({
               value={course.subtitle}
               onSave={(v) => updateCourse(course.id, { subtitle: v.trim() || null }).then(onChanged)}
             />
+          </div>
+          <div>
+            <Label className="text-xs">Cover image path</Label>
+            <AutoSaveInput
+              value={course.cover_image_path}
+              onSave={(v) => updateCourse(course.id, { cover_image_path: v.trim() || null }).then(onChanged)}
+              className="font-mono text-xs"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Access plan keys</Label>
+            <div className="flex flex-wrap gap-3 pt-2">
+              {PLAN_KEYS.map((key) => {
+                const checked = (course.access_plan_keys ?? []).includes(key);
+                return (
+                  <label key={key} className="flex items-center gap-2 text-xs text-foreground/70">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        const current = course.access_plan_keys ?? [];
+                        const next = e.currentTarget.checked
+                          ? Array.from(new Set([...current, key]))
+                          : current.filter((item) => item !== key);
+                        void updateCourse(course.id, { access_plan_keys: next }).then(onChanged);
+                      }}
+                    />
+                    {key}
+                  </label>
+                );
+              })}
+            </div>
           </div>
           <div>
             <Label className="text-xs">Description</Label>
@@ -565,7 +655,7 @@ export default function AdminCourseDetail() {
       qc.invalidateQueries({ queryKey: ["admin", "courses"] });
       navigate(`/admin/courses/${data.id}`, { replace: true });
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: unknown) => toast.error(errorMessage(e)),
   });
 
   const handleAddModule = async () => {
@@ -574,8 +664,8 @@ export default function AdminCourseDetail() {
     try {
       await createModule(courseId, nextOrder);
       await refetchModules();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     }
   };
 
@@ -586,8 +676,8 @@ export default function AdminCourseDetail() {
     try {
       await swapSortOrder("course_modules", a, b);
       await refetchModules();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
     }
   };
 

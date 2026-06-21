@@ -1,9 +1,9 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 
 export default function AuthCallback() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     let mounted = true;
@@ -21,10 +21,10 @@ export default function AuthCallback() {
         if (error) throw error;
 
         if (!mounted) return;
-        setLocation(data.session ? "/dashboard" : "/login");
+        navigate(data.session ? "/auth/continue" : "/login", { replace: true });
       } catch (error) {
         console.error("Auth callback error:", error);
-        if (mounted) setLocation("/login");
+        if (mounted) navigate("/login", { replace: true });
       }
     };
 
@@ -32,7 +32,7 @@ export default function AuthCallback() {
     return () => {
       mounted = false;
     };
-  }, [setLocation]);
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center">

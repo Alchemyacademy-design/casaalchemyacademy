@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useLocation } from "wouter";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, AlertCircle } from "lucide-react";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -43,7 +43,7 @@ export default function Login() {
 
       if (data.session) {
         // Let PostAuthRedirect compute the right destination based on roles.
-        setLocation("/auth/continue");
+        navigate("/auth/continue", { replace: true });
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -102,7 +102,7 @@ export default function Login() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => setLocation("/reset-password")}
+              onClick={() => navigate("/reset-password")}
               className="w-full"
             >
               Reset password
@@ -196,7 +196,7 @@ export default function Login() {
         <p className="text-center text-sm text-foreground/70">
           Don't have an account?{" "}
           <button
-            onClick={() => setLocation("/signup")}
+            onClick={() => navigate("/signup")}
             className="text-accent hover:text-accent/80 font-medium transition"
           >
             Sign up
@@ -206,7 +206,7 @@ export default function Login() {
         {/* Reset Password Link */}
         <p className="text-center text-sm text-foreground/70 mt-4">
           <button
-            onClick={() => setLocation("/reset-password")}
+            onClick={() => navigate("/reset-password")}
             className="text-accent hover:text-accent/80 font-medium transition"
           >
             Forgot password?

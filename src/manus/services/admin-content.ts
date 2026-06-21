@@ -5,7 +5,7 @@ export type CourseRow = Database["public"]["Tables"]["courses"]["Row"];
 export type ModuleRow = Database["public"]["Tables"]["course_modules"]["Row"];
 export type LessonRow = Database["public"]["Tables"]["lessons"]["Row"];
 
-export interface AdminLesson extends LessonRow {}
+export type AdminLesson = LessonRow;
 export interface AdminModule extends ModuleRow {
   lessons: AdminLesson[];
 }
@@ -41,6 +41,22 @@ export class AdminContentError extends Error {
     this.hint = opts.hint;
     this.source = opts.source;
   }
+}
+
+function messageOf(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (err && typeof err === "object" && "message" in err) return String((err as { message?: unknown }).message);
+  return String(err ?? "unknown error");
+}
+
+function normalizeFunctionError(source: string, err: unknown): AdminContentError {
+  const e = err as { code?: string; message?: string; details?: string; hint?: string } | null | undefined;
+  return new AdminContentError(`${source}: ${messageOf(err)}`, {
+    code: e?.code,
+    details: e?.details,
+    hint: e?.hint,
+    source,
+  });
 }
 
 function wrapPgError(prefix: string, err: { code?: string; message?: string; details?: string; hint?: string } | null | undefined): AdminContentError {
@@ -137,23 +153,35 @@ async function getCoursesTreeViaRls(): Promise<AdminCatalog> {
   return { courses: tree, counts: computeCounts(tree), source: "rls" };
 }
 
-async function getCoursesTreeViaEdge(): Promise<AdminCatalog | null> {
-  try {
-    const { data, error } = await supabase.functions.invoke("admin-content-catalog", { method: "POST" });
-    if (error) return null;
-    if (!data || typeof data !== "object") return null;
-    const payload = data as { courses?: AdminCourse[]; counts?: AdminContentCounts };
-    if (!Array.isArray(payload.courses) || !payload.counts) return null;
-    return { courses: payload.courses, counts: payload.counts, source: "edge" };
-  } catch {
-    return null;
+async function getCoursesTreeViaEdge(): Promise<AdminCatalog> {
+  const { data, error } = await supabase.functions.invoke("admin-content-catalog", { method: "POST" });
+  if (error) throw normalizeFunctionError("admin-content-catalog", error);
+  if (!data || typeof data !== "object") {
+    throw new AdminContentError("admin-content-catalog: empty or invalid response", { source: "admin-content-catalog" });
   }
+  const payload = data as { courses?: AdminCourse[]; counts?: AdminContentCounts };
+  if (!Array.isArray(payload.courses) || !payload.counts) {
+    throw new AdminContentError("admin-content-catalog: response missing courses or counts", { source: "admin-content-catalog" });
+  }
+  return { courses: payload.courses, counts: payload.counts, source: "edge" };
 }
 
 export async function getCoursesTree(): Promise<AdminCatalog> {
-  const edge = await getCoursesTreeViaEdge();
-  if (edge) return edge;
-  return getCoursesTreeViaRls();
+  try {
+    return await getCoursesTreeViaEdge();
+  } catch (edgeError) {
+    try {
+      return await getCoursesTreeViaRls();
+    } catch (rlsError) {
+      const rls = rlsError as AdminContentError;
+      throw new AdminContentError(`${messageOf(edgeError)}; fallback failed: ${messageOf(rlsError)}`, {
+        code: rls.code,
+        details: rls.details,
+        hint: rls.hint,
+        source: "edge+rls",
+      });
+    }
+  }
 }
 
 export async function getAdminContentCounts(): Promise<AdminContentCounts> {

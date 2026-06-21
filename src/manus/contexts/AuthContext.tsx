@@ -59,6 +59,17 @@ export interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function normalizeRoles(input: unknown): string[] {
+  if (!Array.isArray(input)) return [];
+  return Array.from(
+    new Set(
+      input
+        .map((role) => String(role).trim().toLowerCase())
+        .filter(Boolean),
+    ),
+  );
+}
+
 function mergeUser(user: User, access: AccessData | null): AuthUser {
   const profile = access?.profile ?? null;
   const membership = access?.membership ?? null;
@@ -87,7 +98,7 @@ async function loadAccessViaEdge(): Promise<AccessData | null> {
   const payload = data as Record<string, unknown>;
   return {
     profile: (payload.profile as AccessData["profile"]) ?? null,
-    roles: ((payload.roles as string[] | undefined) ?? []).map((r) => String(r)),
+    roles: normalizeRoles(payload.roles),
     membership: (payload.membership as AccessData["membership"]) ?? null,
     activeEntitlements: (payload.activeEntitlements as ActiveEntitlement[]) ?? [],
     source: "auth-me",
@@ -117,7 +128,7 @@ async function loadAccessViaFallback(userId: string): Promise<AccessData> {
   if (rolesRes.error) throw rolesRes.error;
   return {
     profile: (profileRes.data as AccessData["profile"]) ?? null,
-    roles: ((rolesRes.data as Array<{ role: string }> | null) ?? []).map((r) => r.role),
+    roles: normalizeRoles(((rolesRes.data as Array<{ role: string }> | null) ?? []).map((r) => r.role)),
     membership: ((membershipRes.data as Array<NonNullable<AccessData["membership"]>> | null) ?? [])[0] ?? null,
     activeEntitlements: ((entitlementsRes.data as ActiveEntitlement[] | null) ?? []),
     source: "fallback",
@@ -259,14 +270,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authReady,
       accessReady: accessReady || !session,
       accessSource: access?.source ?? null,
-      loading: !authReady || (!!session && accessLoading && !accessReady),
+      loading: !authReady || (!!session && !accessReady),
       error,
       defaultPath,
       refreshAccess,
       refresh: refreshAccess,
       logout,
     };
-  }, [session, access, authReady, accessReady, accessLoading, error, refreshAccess, logout]);
+  }, [session, access, authReady, accessReady, error, refreshAccess, logout]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { getCoursesTree } from "@/manus/services/admin-content";
 
 export type ContentStatus = Database["public"]["Enums"]["content_status"];
 export type PlanKey = Database["public"]["Enums"]["membership_plan_key"];
@@ -10,6 +11,11 @@ export const STATUSES: ContentStatus[] = ["draft", "published", "archived"];
 export type Course = Database["public"]["Tables"]["courses"]["Row"];
 export type Module = Database["public"]["Tables"]["course_modules"]["Row"];
 export type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
+
+async function findCourseInCatalog(courseId: number) {
+  const catalog = await getCoursesTree();
+  return catalog.courses.find((course) => course.id === courseId) ?? null;
+}
 
 export function slugify(input: string): string {
   return input
@@ -43,8 +49,16 @@ export async function listCourses() {
 
 export async function getCourse(id: number) {
   const { data, error } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
-  if (error) throw error;
-  if (!data) throw new Error(`Course ${id} not found or not readable (check RLS).`);
+  if (error) {
+    const fallback = await findCourseInCatalog(id);
+    if (fallback) return fallback;
+    throw error;
+  }
+  if (!data) {
+    const fallback = await findCourseInCatalog(id);
+    if (fallback) return fallback;
+    throw new Error(`Course ${id} not found or not readable (check RLS).`);
+  }
   return data;
 }
 
@@ -54,7 +68,13 @@ export async function listModules(courseId: number) {
     .select("*")
     .eq("course_id", courseId)
     .order("sort_order", { ascending: true });
-  if (error) throw error;
+  if (error || !data?.length) {
+    const fallback = await findCourseInCatalog(courseId);
+    if (fallback) {
+      return fallback.course_modules.map(({ lessons: _lessons, ...module }) => module) as Module[];
+    }
+    if (error) throw error;
+  }
   return data ?? [];
 }
 
@@ -70,7 +90,12 @@ export async function listLessons(moduleId: number) {
     .select("*")
     .eq("module_id", moduleId)
     .order("sort_order", { ascending: true });
-  if (error) throw error;
+  if (error || !data?.length) {
+    const catalog = await getCoursesTree();
+    const module = catalog.courses.flatMap((course) => course.course_modules).find((item) => item.id === moduleId);
+    if (module) return module.lessons as Lesson[];
+    if (error) throw error;
+  }
   return data ?? [];
 }
 
