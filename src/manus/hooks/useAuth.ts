@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
+import { queryClient } from "@/manus/lib/query-client";
 import type { Session, User } from "@supabase/supabase-js";
 
 export interface ActiveEntitlement {
@@ -82,6 +83,9 @@ export function useAuth() {
       setSession(nextSession);
       setSessionLoading(false);
       setError(null);
+      // Force re-fetch of auth.me on every session change so admin roles
+      // appear immediately after sign-in (no stale empty-roles cache).
+      queryClient.invalidateQueries({ queryKey: ["auth.me"] });
     });
 
     return () => {
