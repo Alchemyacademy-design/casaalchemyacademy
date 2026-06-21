@@ -35,6 +35,7 @@ import AdminCoursesList from "@/manus/pages/admin/AdminCoursesList";
 import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
 import AdminContentImport from "@/manus/pages/admin/AdminContentImport";
 import AdminLessonsBulk from "@/manus/pages/admin/AdminLessonsBulk";
+import AdminStudents from "@/manus/pages/admin/AdminStudents";
 
 
 export default function App() {
