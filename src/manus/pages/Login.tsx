@@ -116,21 +116,12 @@ export default function Login() {
         )}
 
         {needsConfirmation && (
-          <div className="mb-6 flex flex-col sm:flex-row gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleResendConfirmation}
-              disabled={loading}
-              className="flex-1"
-            >
-              Resend confirmation email
-            </Button>
+          <div className="mb-6">
             <Button
               type="button"
               variant="outline"
               onClick={() => setLocation("/reset-password")}
-              className="flex-1"
+              className="w-full"
             >
               Reset password
             </Button>
