@@ -5,7 +5,7 @@ import { ArrowLeft, Download } from "lucide-react";
 const CURRENT_ISSUE = {
   title: "Winter 2026",
   date: "December 2025 - February 2026",
-  videoUrl: "/manus-storage/Winter26(1)_a8a1dfca.mp4",
+  videoUrl: "",
   description: "Discover the latest trends in winter interior design, cozy color palettes, and how to create warm, inviting spaces during the colder months. Join Lorena as she explores layering techniques, textile selection, and creating ambiance with lighting.",
 };
 
@@ -14,10 +14,10 @@ const ARCHIVES = [
     id: 1,
     title: "Autumn 2026",
     date: "March - June 2026",
-    fileUrl: "/manus-storage/Autumn26_72d46f26.pdf",
+    fileUrl: "#",
     fileType: "PDF",
     fileSize: "56 MB",
-    thumbnail: "/manus-storage/Autumn26winter26(2)_4494b1e7.png",
+    thumbnail: "/img/magazine-cover.jpg",
   },
 ];
 

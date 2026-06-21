@@ -11,55 +11,55 @@ const MODULES = [
     id: 1, title: "The path to a COLOURFUL life", tagline: "Discover how to use the same intricate colour techniques designers rely on, broken down into simple steps, to create a unique space with a clear, intentional outcome.",
     lessons: ["Top Colours 2026", "Colour drenching explained", "Tone on tone and how to master it", "The 60-30-10 rule", "The psychology of colours", "Monochrome like a master", "Not every white is the same"],
     available: true,
-    thumbnail: "/manus-storage/course-colourful_0478abef.png",
+    thumbnail: "/img/course-colour.jpg",
   },
   {
     id: 2, title: "The sacred BEDROOM", tagline: "Create a bedroom that feels intentional, not accidental — learn the overlooked techniques that designers use to bring everything together.",
     lessons: ["Bedroom Master Guide", "Bed Master Guide: Hotel Bed Revealed", "Minimalist x Maximalist", "Mixing prints", "Learning to layer", "Understanding fabrics"],
     available: false,
-    thumbnail: "/manus-storage/course-bedroom_f6b15eed.png",
+    thumbnail: "/img/course-bedroom.jpg",
   },
   {
     id: 3, title: "The alchemic KITCHEN", tagline: "The most expensive space to get wrong is your kitchen — discover the intentional design choices that increase value and make everyday life easier.",
     lessons: ["Layout styles", "Do's and Don'ts of an efficient kitchen", "Types of storage", "Style communication", "Ergonomics", "Lighting: task x atmosphere", "Special sinks", "Integrated appliances"],
     available: false,
-    thumbnail: "/manus-storage/course-kitchen_93724e97.png",
+    thumbnail: "/img/course-kitchen.jpg",
   },
   {
     id: 4, title: "The elemental BATHROOM", tagline: "When every element is permanent, every decision matters — learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home.",
     lessons: ["The poetic licence of the powder room", "Shower layouts", "Bathtub guide", "Fixtures", "Spa logic", "Materials you should know about"],
     available: false,
-    thumbnail: "/manus-storage/course-bathroom_fed5d184.png",
+    thumbnail: "/img/course-bathroom.jpg",
   },
   {
     id: 5, title: "The soulful LIVING ROOM", tagline: "Furniture is the most consequential decision in a living room — and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense.",
     lessons: ["Fireplaces master guide", "Rugs: materials and proportions", "Artwork and other decorative matters", "Lighting: layers and zones", "Open plan living: zoning without walls", "Sofa guide", "Weight, proportion and harmony"],
     available: false,
-    thumbnail: "/manus-storage/course-living-room_fec0ad04.png",
+    thumbnail: "/img/course-living.jpg",
   },
   {
     id: 6, title: "The crafted DINING ROOM", tagline: "A dining room should be beautiful enough to linger in and practical enough to live in. You don't have to choose between the two.",
     lessons: ["The perfect chair", "How to pair table x chairs x pendant", "Copa"],
     available: false,
-    thumbnail: "/manus-storage/course-dining-room_b319fb05.png",
+    thumbnail: "/img/course-dining.jpg",
   },
   {
     id: 7, title: "Catalyst WORKSPACE", tagline: "A home office shouldn't be an afterthought. Create a designated space that works for your life and looks considered on camera.",
     lessons: ["6 steps to quickly put it together", "Storage ideas", "Acoustics matter", "Background as a branding opportunity"],
     available: false,
-    thumbnail: "/manus-storage/course-workspace_ff50b0d7.png",
+    thumbnail: "/img/course-workspace.jpg",
   },
   {
     id: 8, title: "Enchanted OUTDOORS", tagline: "Your outdoor space should be the most lived-in room in the house. Discover how to create an environment that's social, intentional, and well within reach.",
     lessons: ["Privacy, shade, shelter", "Make it fun", "Indoor-outdoor connection", "Landscaping principals", "Alfrescos"],
     available: false,
-    thumbnail: "/manus-storage/course-outdoors_879d59b7.png",
+    thumbnail: "/img/course-outdoors.jpg",
   },
   {
     id: 9, title: "Knowledgeable CHEAT SHEETS", tagline: "See your home the way a designer does — understanding light, proportion, styling and the invisible rules that make a space feel right.",
     lessons: ["Biophilic design", "Lighting temperature", "Circadian design", "Visual weight and balance", "Negative space", "Aging with grace", "Clutter and cognitive load", "What's your style?"],
     available: false,
-    thumbnail: "/manus-storage/course-design_d8e9f2c1.png",
+    thumbnail: "/img/course-design.jpg",
   },
 ];
 
@@ -100,7 +100,7 @@ export default function Home() {
       <nav style={{ backgroundColor: "var(--aa-cream)", borderBottom: "1px solid var(--aa-cream-dark)" }} className="sticky top-0 z-50">
         <div className="container flex items-center justify-between" style={{ height: "64px" }}>
           <Link href="/">
-            <img src="/manus-storage/ChatGPTImageMay28,2026,02_23_38PM_d92336be.png" alt="Alchemy Academy" style={{ height: "70px", width: "auto" }} />
+            <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "70px", width: "auto" }} />
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {[
@@ -137,7 +137,7 @@ export default function Home() {
       {/* ── Hero ── */}
       <section className="relative overflow-hidden" style={{ minHeight: "92vh", backgroundColor: "#000000" }}>
         <div className="absolute inset-0" style={{
-          backgroundImage: "url('/manus-storage/1773829887312_bwrm-012_701918d0.webp')",
+          backgroundImage: "url('/img/hero.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
           opacity: 0.5,
@@ -245,7 +245,7 @@ export default function Home() {
             {/* Membership Perks Card */}
             <div style={{
               border: "1px solid var(--aa-cream-dark)",
-              backgroundImage: "url('/manus-storage/UCP02507_9dc7ae55.webp')",
+              backgroundImage: "url('/img/perks.jpg')",
               backgroundSize: "cover",
               backgroundPosition: "center",
               minHeight: "280px",
@@ -294,7 +294,7 @@ export default function Home() {
       </section>
 
       {/* ── Offers ── */}
-      <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: "url('/manus-storage/pasted_file_ivbYTD_spacely-ai-standard-20260421025614-g1nu3_952874c9.png')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
+      <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: "url('/img/offers-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.7)", zIndex: 1 }}></div>
         <div style={{ position: "relative", zIndex: 2 }}>
         <div className="container">
@@ -408,7 +408,7 @@ export default function Home() {
                 style={{ display: "flex", alignItems: "center" }}
               >
                 <img
-                  src="/manus-storage/casa_logo_transparent_548fff23.png"
+                  src="/img/casa-logo.svg"
                   alt="Casa"
                   style={{ height: "70px", objectFit: "contain" }}
                 />
@@ -421,7 +421,7 @@ export default function Home() {
                 style={{ display: "flex", alignItems: "center" }}
               >
                 <img
-                  src="/manus-storage/lighthouse_logo_transparent_9d1d352d.png"
+                  src="/img/lighthouse-logo.svg"
                   alt="Lighthouse for the Community"
                   style={{ height: "70px", objectFit: "contain" }}
                 />
@@ -437,7 +437,7 @@ export default function Home() {
           {/* Photo - Full Height Left */}
           <div style={{ overflow: "hidden" }}>
             <img
-              src="/manus-storage/lorena_rawhstudios-24(1)_8682a5d3.webp"
+              src="/img/lorena.jpg"
               alt="Lorena Couto"
               style={{ width: "100%", height: "100%", objectFit: "cover" }}
             />
@@ -514,7 +514,7 @@ export default function Home() {
         <div className="container">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             <div>
-              <img src="/manus-storage/ChatGPTImageMay28,2026,02_23_38PM_d92336be.png" alt="Alchemy Academy" style={{ height: "150px", width: "auto", marginBottom: "1rem" }} />
+              <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "150px", width: "auto", marginBottom: "1rem" }} />
             </div>
             <div>
               <p className="text-xs mb-3" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>Navigation</p>

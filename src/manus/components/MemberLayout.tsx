@@ -125,7 +125,7 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
         <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 sticky top-0 h-screen">
           <div className="p-6 border-b border-border/50 flex justify-center relative z-10 bg-card/50">
             <a href="/" className="hover:opacity-80 transition">
-              <img src="/manus-storage/ChatGPTImageMay28,2026,02_23_38PM_d92336be.png" alt="Alchemy Academy" style={{ height: "100px", width: "auto" }} />
+              <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "100px", width: "auto" }} />
             </a>
           </div>
 
