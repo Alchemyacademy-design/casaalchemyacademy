@@ -6,7 +6,6 @@ import {
   Users,
   AlertTriangle,
   Image as ImageIcon,
-  Upload,
   ArrowRight,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -151,14 +150,14 @@ export default function AdminOverview() {
         </Card>
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>
-            Import catalogue
+            Catalogue ready
           </h3>
           <p className="text-sm text-foreground/70 mb-4">
-            Upload a catalogue JSON to generate courses, modules and lessons as drafts.
+            10 courses · 30 lessons seeded as draft. Add video URLs and publish from <strong>Courses</strong> or <strong>Bulk lessons</strong>.
           </p>
           <Button asChild variant="outline">
-            <Link to="/admin/import">
-              <Upload className="w-4 h-4 mr-1" /> Open importer
+            <Link to="/admin/courses">
+              Open courses <ArrowRight className="w-4 h-4 ml-1" />
             </Link>
           </Button>
         </Card>

@@ -6,7 +6,6 @@ import {
   BookOpen,
   ListChecks,
   Users,
-  Upload,
   BarChart3,
   Settings,
   LogOut,
@@ -39,7 +38,6 @@ const NAV = [
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
   { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
   { title: "Students", url: "/admin/students", icon: Users },
-  { title: "Import content", url: "/admin/import", icon: Upload },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];
 
