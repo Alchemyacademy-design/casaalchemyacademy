@@ -1,21 +1,30 @@
 import MemberLayout from "@/manus/components/MemberLayout";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Heart } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { useMySupplierFavorites, useToggleSupplierFavorite } from "@/manus/hooks/usePublicContent";
 
 const PRICE_TIERS = ["budget", "mid", "investment"];
 const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "dining", "office", "outdoor"];
 
 export default function Suppliers() {
+  const { user } = useAuth();
   const { data: suppliers = [] } = trpc.suppliers.publicList.useQuery();
+  const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
+  const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [showFavOnly, setShowFavOnly] = useState(false);
 
-  const filtered = (suppliers as Array<Record<string, unknown> & { room?: string | null; priceTier?: string | null }>).filter((s) => {
+  const favSet = new Set(favorites);
+  const filtered = (suppliers as Array<Record<string, unknown> & { id?: number; room?: string | null; priceTier?: string | null }>).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
+    if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
   }) as Array<Record<string, any>>;
+
 
   return (
     <MemberLayout>
