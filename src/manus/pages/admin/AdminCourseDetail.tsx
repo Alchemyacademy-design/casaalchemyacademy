@@ -331,20 +331,23 @@ function ModuleSection({
       </div>
 
       <div className="space-y-2 pl-2 border-l-2 border-border/40 ml-2">
-        {lessons.map((l, i) => (
-          <LessonRow
-            key={l.id}
-            lesson={l}
-            index={i}
-            count={lessons.length}
-            onMove={(dir) => handleMoveLesson(i, dir)}
-            onDelete={() => handleDeleteLesson(l.id)}
-            onChanged={() => {
-              refetch();
-              qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
-            }}
-          />
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {orderedLessons.map((l) => (
+                <LessonRow
+                  key={l.id}
+                  lesson={l}
+                  onDelete={() => handleDeleteLesson(l.id)}
+                  onChanged={() => {
+                    refetch();
+                    qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
         <Button variant="outline" size="sm" onClick={handleAdd}>
           <Plus className="w-3 h-3 mr-1" /> Add lesson
         </Button>
