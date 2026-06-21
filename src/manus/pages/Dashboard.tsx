@@ -11,13 +11,16 @@ import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, loading, isAuthenticated } = useAuth();
-  
+
   useEffect(() => {
     if (!loading && !isAuthenticated) {
       setLocation("/login");
     }
   }, [isAuthenticated, loading, setLocation]);
-  
+
+  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
+  const { data: modules = [] } = trpc.modules.list.useQuery();
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -28,11 +31,8 @@ export default function Dashboard() {
       </div>
     );
   }
-  
+
   if (!isAuthenticated) return null;
-  
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
-  const { data: modules = [] } = trpc.modules.list.useQuery();
 
   const enrolledModules = (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
   const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
