@@ -690,12 +690,21 @@ export default function AdminCourseDetail() {
     onError: (e: unknown) => toast.error(errorMessage(e)),
   });
 
+  const invalidateCourse = () => {
+    qc.invalidateQueries({ queryKey: ["admin", "course", courseId] });
+    qc.invalidateQueries({ queryKey: ["admin", "course", courseId, "modules"] });
+    qc.invalidateQueries({ queryKey: ["admin", "course", courseId, "all-lessons"] });
+    qc.invalidateQueries({ queryKey: ["admin", "courses-tree"] });
+  };
+
   const handleAddModule = async () => {
     if (!courseId) return;
     const nextOrder = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
     try {
-      await createModule(courseId, nextOrder);
+      const created = await createModule(courseId, nextOrder);
       await refetchModules();
+      invalidateCourse();
+      toast.success(`Module "${created.title}" created`);
     } catch (e: unknown) {
       toast.error(errorMessage(e));
     }
@@ -708,10 +717,13 @@ export default function AdminCourseDetail() {
     try {
       await swapSortOrder("course_modules", a, b);
       await refetchModules();
+      invalidateCourse();
     } catch (e: unknown) {
       toast.error(errorMessage(e));
     }
   };
+
+
 
   if (isNew) {
     return (
