@@ -7,13 +7,13 @@ import { Card } from "@/components/ui/card";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
 import { supabase } from "@/integrations/supabase/client";
-import { isPlaceholderVideo } from "@/manus/lib/admin-content";
+import { isPlaceholderVideo, type ContentStatus } from "@/manus/lib/admin-content";
 
 type Lesson = {
   id: number;
   title: string;
   sort_order: number;
-  status: string;
+  status: ContentStatus;
   external_video_url: string | null;
   description: string | null;
 };
@@ -27,7 +27,7 @@ type CourseTree = {
   id: number;
   title: string;
   slug: string;
-  status: string;
+  status: ContentStatus;
   sort_order: number;
   subtitle: string | null;
   access_plan_keys: string[] | null;
