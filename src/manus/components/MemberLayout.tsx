@@ -46,6 +46,7 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
   }
 
   const navItems = [
+    ...(isAdmin ? [{ label: "Admin Center", href: "/admin", icon: Shield }] : []),
     { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { label: "Courses", href: "/mycourses", icon: BookOpen },
     { label: "Live Workshops", href: "/live-workshops", icon: Calendar },
