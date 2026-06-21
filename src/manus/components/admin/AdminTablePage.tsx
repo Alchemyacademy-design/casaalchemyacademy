@@ -154,6 +154,77 @@ export default function AdminTablePage(props: AdminTablePageProps) {
     for (const k of publicInvalidateKeys) qc.invalidateQueries({ queryKey: k });
   };
 
+  const describeError = (
+    e: unknown,
+    op: "save" | "delete",
+  ): { title: string; description: string } => {
+    const err = e as {
+      message?: string;
+      code?: string;
+      hint?: string;
+      details?: string;
+      status?: number;
+    };
+    const raw = err?.message ?? "Unknown error";
+    const code = err?.code ?? "";
+    const msg = raw.toLowerCase();
+    const opLabel = op === "save" ? "save" : "delete";
+
+    // Permission / RLS
+    if (
+      code === "42501" ||
+      code === "PGRST301" ||
+      msg.includes("row-level security") ||
+      msg.includes("rls") ||
+      msg.includes("permission denied") ||
+      msg.includes("not allowed")
+    ) {
+      return {
+        title: `Cannot ${opLabel} — permission denied`,
+        description:
+          `Your role is not allowed to ${opLabel} rows in "${table}". ` +
+          `This usually means the admin RLS policy or table GRANT is missing. ` +
+          `Sign out/in to refresh your admin role, then retry. Raw: ${raw}`,
+      };
+    }
+    // Auth
+    if (err?.status === 401 || code === "PGRST302" || msg.includes("jwt")) {
+      return {
+        title: "Session expired",
+        description: "Please sign in again and retry.",
+      };
+    }
+    // Unique / FK / not-null
+    if (code === "23505" || msg.includes("duplicate key")) {
+      return {
+        title: "Duplicate value",
+        description: `A row with the same unique field already exists. ${err?.details ?? raw}`,
+      };
+    }
+    if (code === "23503" || msg.includes("foreign key")) {
+      return {
+        title: "Linked record missing",
+        description: `A referenced record does not exist or is still in use. ${err?.details ?? raw}`,
+      };
+    }
+    if (code === "23502" || msg.includes("null value in column")) {
+      return {
+        title: "Missing required field",
+        description: err?.details ?? raw,
+      };
+    }
+    if (code === "22P02" || msg.includes("invalid input syntax")) {
+      return {
+        title: "Invalid value",
+        description: `One of the fields has an invalid format. ${err?.details ?? raw}`,
+      };
+    }
+    return {
+      title: `Failed to ${opLabel}`,
+      description: err?.hint ? `${raw} — ${err.hint}` : raw,
+    };
+  };
+
   const saveMutation = useMutation({
     mutationFn: async (record: Record<string, unknown>) => {
       const payload: Record<string, unknown> = {};
@@ -178,8 +249,8 @@ export default function AdminTablePage(props: AdminTablePageProps) {
       invalidateAll();
     },
     onError: (e: unknown) => {
-      const err = e as { message?: string; code?: string; hint?: string; details?: string };
-      toast.error(`Save failed: ${err.message ?? "unknown error"}${err.hint ? ` — ${err.hint}` : ""}`);
+      const { title, description } = describeError(e, "save");
+      toast.error(title, { description });
     },
   });
 
@@ -193,7 +264,10 @@ export default function AdminTablePage(props: AdminTablePageProps) {
       toast.success("Deleted");
       invalidateAll();
     },
-    onError: (e: unknown) => toast.error(`Delete failed: ${(e as Error).message}`),
+    onError: (e: unknown) => {
+      const { title, description } = describeError(e, "delete");
+      toast.error(title, { description });
+    },
   });
 
   const visibleRows = useMemo(() => {
