@@ -75,118 +75,30 @@ export default function AdminContentImport() {
 
   const runImport = async () => {
     setRunning(true);
-    const result = {
-      coursesUpserted: 0,
-      modulesUpserted: 0,
-      lessonsUpserted: 0,
-      missingLinks: [] as string[],
-      missingThumbnails: [] as string[],
-      warnings: pack.warnings ?? [],
-      errors: [] as string[],
-    };
     try {
-      for (const c of pack.courses) {
-        const slug = c.slug || slugify(c.title);
-        // Upsert course by slug
-        const { data: existing } = await supabase.from("courses").select("id").eq("slug", slug).maybeSingle();
-        let courseId: number;
-        const coursePayload = {
-          slug,
-          title: c.title,
-          subtitle: c.subtitle ?? null,
-          description: c.description ?? null,
-          cover_image_path: c.cover_image_path ?? null,
-          sort_order: c.sort_order ?? 0,
-          status: "draft" as const,
-        };
-        if (existing) {
-          const { error } = await supabase.from("courses").update(coursePayload).eq("id", existing.id);
-          if (error) throw error;
-          courseId = existing.id;
-        } else {
-          const { data, error } = await supabase.from("courses").insert(coursePayload).select("id").single();
-          if (error) throw error;
-          courseId = data.id;
-        }
-        result.coursesUpserted++;
-        if (isLegacyAssetPath(c.cover_image_path)) result.missingThumbnails.push(`${slug} → ${c.cover_image_path}`);
-
-        for (const m of c.modules) {
-          // Upsert module by (course_id, sort_order)
-          const { data: existMod } = await supabase
-            .from("course_modules")
-            .select("id")
-            .eq("course_id", courseId)
-            .eq("sort_order", m.sort_order)
-            .maybeSingle();
-          let moduleId: number;
-          const modPayload = {
-            course_id: courseId,
-            title: m.title,
-            description: m.description ?? null,
-            sort_order: m.sort_order ?? 1,
-            status: "draft" as const,
-          };
-          if (existMod) {
-            const { error } = await supabase.from("course_modules").update(modPayload).eq("id", existMod.id);
-            if (error) throw error;
-            moduleId = existMod.id;
-          } else {
-            const { data, error } = await supabase.from("course_modules").insert(modPayload).select("id").single();
-            if (error) throw error;
-            moduleId = data.id;
-          }
-          result.modulesUpserted++;
-
-          for (const l of m.lessons) {
-            const safeVideoUrl = l.external_video_url && !isPlaceholderVideo(l.external_video_url) ? l.external_video_url : null;
-            if (!safeVideoUrl) result.missingLinks.push(`${slug} · ${l.lesson_number ?? l.sort_order} ${l.title}`);
-            const lessonPayload = {
-              module_id: moduleId,
-              title: l.title,
-              description: l.description ?? null,
-              external_video_url: safeVideoUrl,
-              external_resource_url: l.external_resource_url ?? null,
-              sort_order: l.sort_order,
-              is_preview: !!l.is_preview,
-              status: "draft" as const,
-            };
-            const { data: existLesson } = await supabase
-              .from("lessons")
-              .select("id")
-              .eq("module_id", moduleId)
-              .eq("sort_order", l.sort_order)
-              .maybeSingle();
-            if (existLesson) {
-              const { error } = await supabase.from("lessons").update(lessonPayload).eq("id", existLesson.id);
-              if (error) throw error;
-            } else {
-              const { error } = await supabase.from("lessons").insert(lessonPayload);
-              if (error) throw error;
-            }
-            result.lessonsUpserted++;
-          }
-        }
-      }
-      toast.success(`Imported ${result.coursesUpserted} courses, ${result.lessonsUpserted} lessons as draft`);
+      const { data, error } = await supabase.functions.invoke("manus-import", { body: { pack } });
+      if (error) throw error;
+      setReport(data);
+      toast.success(`Imported ${data?.courses_upserted ?? 0} courses · ${data?.lessons_upserted ?? 0} lessons (draft)`);
     } catch (e: any) {
-      result.errors.push(e.message ?? String(e));
-      toast.error(`Import error: ${e.message}`);
+      toast.error(`Import error: ${e.message ?? String(e)}`);
+      setReport({ errors: [e.message ?? String(e)] });
     } finally {
-      setReport(result);
       setRunning(false);
     }
   };
+
 
   const downloadReport = () => {
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `manus-import-report-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `import-report.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
+
 
   return (
     <AdminShell
