@@ -18,7 +18,6 @@ export default function AdminEvents() {
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
         { name: "slug", label: "Slug", type: "text", required: true },
-        { name: "subtitle", label: "Subtitle", type: "text", hideInTable: true },
         { name: "description", label: "Description", type: "textarea", hideInTable: true },
         { name: "starts_at", label: "Starts at", type: "datetime", required: true },
         { name: "ends_at", label: "Ends at", type: "datetime", hideInTable: true },

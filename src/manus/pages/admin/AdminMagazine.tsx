@@ -21,7 +21,7 @@ export default function AdminMagazine() {
         { name: "description", label: "Description", type: "textarea", hideInTable: true },
         { name: "external_file_url", label: "PDF / file URL", type: "text", required: true },
         { name: "cover_image_path", label: "Cover image path", type: "text", hideInTable: true },
-        { name: "published_at", label: "Published at", type: "datetime" },
+        { name: "published_on", label: "Published on", type: "datetime" },
         { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
       ]}
     />

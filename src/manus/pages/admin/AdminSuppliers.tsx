@@ -24,7 +24,7 @@ export default function AdminSuppliers() {
         { name: "email", label: "Email", type: "text", hideInTable: true },
         { name: "phone", label: "Phone", type: "text", hideInTable: true },
         { name: "website_url", label: "Website", type: "text", hideInTable: true },
-        { name: "cover_image_path", label: "Cover image path", type: "text", hideInTable: true },
+        { name: "logo_image_path", label: "Logo image path", type: "text", hideInTable: true },
         { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
       ]}
     />
