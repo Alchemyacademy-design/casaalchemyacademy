@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.admin-content-catalog]
 verify_jwt = true
+
+[functions.admin-audit]
+verify_jwt = true
