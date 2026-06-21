@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/manus/components/ErrorBoundary";
 import GlobalAccessController from "@/manus/components/GlobalAccessController";
 import { ThemeProvider } from "@/manus/contexts/ThemeContext";
+import { AuthProvider } from "@/manus/contexts/AuthContext";
 import Home from "@/manus/pages/Home";
 import Modules from "@/manus/pages/Modules";
 import ModuleDetail from "@/manus/pages/ModuleDetail";
@@ -36,12 +37,14 @@ import AdminCourseDetail from "@/manus/pages/admin/AdminCourseDetail";
 
 import AdminLessonsBulk from "@/manus/pages/admin/AdminLessonsBulk";
 import AdminStudents from "@/manus/pages/admin/AdminStudents";
+import AdminDiagnostics from "@/manus/pages/admin/AdminDiagnostics";
 
 
 export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
+        <AuthProvider>
         <TooltipProvider>
           <Toaster />
           <GlobalAccessController />
@@ -78,6 +81,7 @@ export default function App() {
             <Route path="/admin/import" element={<Navigate to="/admin/courses" replace />} />
             <Route path="/admin/lessons" element={<AdminGuard><AdminLessonsBulk /></AdminGuard>} />
             <Route path="/admin/students" element={<AdminGuard><AdminStudents /></AdminGuard>} />
+            <Route path="/admin/diagnostics" element={<AdminGuard><AdminDiagnostics /></AdminGuard>} />
 
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />
@@ -86,6 +90,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
