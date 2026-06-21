@@ -5,3 +5,9 @@ verify_jwt = true
 
 [functions.admin-manage-stripe-subscription]
 verify_jwt = true
+
+[functions.admin-bootstrap]
+verify_jwt = false
+
+[functions.auth-me]
+verify_jwt = true
