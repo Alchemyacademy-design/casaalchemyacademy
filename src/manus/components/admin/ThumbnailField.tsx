@@ -43,7 +43,7 @@ export default function ThumbnailField({ value, onChange, folder, label = "Cover
           {legacy && (
             <div className="flex items-start gap-1 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
               <AlertTriangle className="w-3 h-3 mt-0.5" />
-              <span>Legacy Manus path — asset must be re-uploaded.</span>
+              <span>Capa legada — é necessário re-fazer upload.</span>
             </div>
           )}
         </div>
