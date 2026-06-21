@@ -47,11 +47,9 @@ export default function ModuleDetail() {
         {/* Header */}
         <div className="border-b border-border/50 bg-card/50 sticky top-0 z-40">
           <div className="container py-6">
-            <Link to="/modules">
-              <a className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4">
-                <ChevronLeft className="w-4 h-4" />
-                Back to Modules
-              </a>
+            <Link to="/modules" className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4">
+              <ChevronLeft className="w-4 h-4" />
+              Back to Modules
             </Link>
             <h1 className="text-3xl font-bold mb-2">{module?.title}</h1>
             <div className="flex items-center gap-4">
