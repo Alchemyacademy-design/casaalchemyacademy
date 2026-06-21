@@ -2,7 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, GripVertical, Plus, Trash2, Upload } from "lucide-react";
+import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +36,7 @@ import {
   getCourse,
   listLessons,
   listModules,
+  reorderRecords,
   slugify,
   statusTransition,
   swapSortOrder,
@@ -88,19 +106,23 @@ function AutoSaveInput({
  * ============================================================ */
 function LessonRow({
   lesson,
-  index,
-  count,
-  onMove,
   onDelete,
   onChanged,
 }: {
   lesson: Lesson;
-  index: number;
-  count: number;
-  onMove: (dir: -1 | 1) => Promise<void>;
   onDelete: () => Promise<void>;
   onChanged: () => void;
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: lesson.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.6 : 1,
+    zIndex: isDragging ? 50 : "auto" as const,
+  };
+
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState(lesson.external_video_url ?? "");
   useEffect(() => setUrl(lesson.external_video_url ?? ""), [lesson.external_video_url]);
@@ -117,16 +139,17 @@ function LessonRow({
   };
 
   return (
-    <div className="border rounded-lg bg-card">
+    <div ref={setNodeRef} style={style} className="border rounded-lg bg-card">
       <div className="flex items-center gap-2 p-3">
-        <div className="flex flex-col">
-          <button className="p-0.5 disabled:opacity-20" disabled={index === 0} onClick={() => onMove(-1)} aria-label="Move up">
-            <ArrowUp className="w-3 h-3" />
-          </button>
-          <button className="p-0.5 disabled:opacity-20" disabled={index === count - 1} onClick={() => onMove(1)} aria-label="Move down">
-            <ArrowDown className="w-3 h-3" />
-          </button>
-        </div>
+        <button
+          type="button"
+          className="p-1 text-foreground/40 hover:text-foreground cursor-grab active:cursor-grabbing touch-none"
+          aria-label="Drag to reorder"
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="w-4 h-4" />
+        </button>
         <span className="text-xs font-mono text-foreground/50 w-6">{lesson.sort_order}</span>
         <button onClick={() => setOpen((o) => !o)} className="flex-1 min-w-0 text-left flex items-center gap-2">
           {open ? <ChevronDown className="w-4 h-4 shrink-0" /> : <ChevronRight className="w-4 h-4 shrink-0" />}
@@ -208,22 +231,40 @@ function ModuleSection({
     queryFn: () => listLessons(module.id),
   });
 
+  // Local optimistic order — keeps the list snappy during drag.
+  const [orderedIds, setOrderedIds] = useState<number[]>([]);
+  useEffect(() => {
+    setOrderedIds(lessons.map((l) => l.id));
+  }, [lessons]);
+  const lessonById = new Map(lessons.map((l) => [l.id, l] as const));
+  const orderedLessons = orderedIds.map((id) => lessonById.get(id)).filter(Boolean) as Lesson[];
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = orderedIds.indexOf(active.id as number);
+    const newIndex = orderedIds.indexOf(over.id as number);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const next = arrayMove(orderedIds, oldIndex, newIndex);
+    setOrderedIds(next); // optimistic
+    try {
+      await reorderRecords("lessons", next, lessonById);
+      await refetch();
+    } catch (e: any) {
+      toast.error(`Reorder failed: ${e.message}`);
+      setOrderedIds(lessons.map((l) => l.id)); // revert
+    }
+  };
+
   const handleAdd = async () => {
     const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
     try {
       await createLesson(module.id, nextOrder);
-      await refetch();
-    } catch (e: any) {
-      toast.error(e.message);
-    }
-  };
-
-  const handleMoveLesson = async (i: number, dir: -1 | 1) => {
-    const a = lessons[i];
-    const b = lessons[i + dir];
-    if (!a || !b) return;
-    try {
-      await swapSortOrder("lessons", a, b);
       await refetch();
     } catch (e: any) {
       toast.error(e.message);
@@ -290,20 +331,23 @@ function ModuleSection({
       </div>
 
       <div className="space-y-2 pl-2 border-l-2 border-border/40 ml-2">
-        {lessons.map((l, i) => (
-          <LessonRow
-            key={l.id}
-            lesson={l}
-            index={i}
-            count={lessons.length}
-            onMove={(dir) => handleMoveLesson(i, dir)}
-            onDelete={() => handleDeleteLesson(l.id)}
-            onChanged={() => {
-              refetch();
-              qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
-            }}
-          />
-        ))}
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={orderedIds} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {orderedLessons.map((l) => (
+                <LessonRow
+                  key={l.id}
+                  lesson={l}
+                  onDelete={() => handleDeleteLesson(l.id)}
+                  onChanged={() => {
+                    refetch();
+                    qc.invalidateQueries({ queryKey: ["admin", "module-lessons", module.id] });
+                  }}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
         <Button variant="outline" size="sm" onClick={handleAdd}>
           <Plus className="w-3 h-3 mr-1" /> Add lesson
         </Button>
