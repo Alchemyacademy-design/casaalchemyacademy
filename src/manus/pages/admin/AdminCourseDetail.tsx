@@ -816,13 +816,21 @@ export default function AdminCourseDetail() {
             <ModuleSection
               key={m.id}
               module={m}
+              courseId={courseId!}
               index={i}
               count={modules.length}
               onMove={(dir) => handleMoveModule(i, dir)}
-              onChanged={() => refetchModules()}
-              onDeleted={() => refetchModules()}
+              onChanged={() => {
+                void refetchModules();
+                invalidateCourse();
+              }}
+              onDeleted={() => {
+                void refetchModules();
+                invalidateCourse();
+              }}
             />
           ))}
+
         </div>
       </div>
     </AdminShell>
