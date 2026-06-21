@@ -211,11 +211,11 @@ export default function AdminOverview() {
           <h3 className="font-serif text-lg mb-3 flex items-center gap-2" style={{ color: "var(--aa-olive-dark)" }}>
             <Activity className="w-4 h-4" /> Recent admin activity
           </h3>
-          {isLoading ? (
+          {isLoading || !data ? (
             <p className="text-sm text-foreground/60">Loading…</p>
-          ) : !data?.recentAudit?.available ? (
+          ) : !data.recentAudit.available ? (
             <p className="text-sm text-foreground/60">
-              Audit log unavailable ({data?.recentAudit?.reason ?? "unknown"}): {data?.recentAudit?.message ?? "pending migration"}.
+              Audit log unavailable ({data.recentAudit.reason}): {data.recentAudit.message}.
             </p>
           ) : data.recentAudit.rows.length === 0 ? (
             <p className="text-sm text-foreground/60">No admin activity recorded yet.</p>
