@@ -16,20 +16,20 @@ export default function AdminCoursesList() {
 
   return (
     <AdminShell
-      title="Courses"
-      description="Create, edit, order and publish courses, modules and lessons."
-      crumbs={[{ label: "Courses" }]}
+      title="Cursos"
+      description="Crie, edite, ordene e publique cursos, módulos e aulas."
+      crumbs={[{ label: "Cursos" }]}
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link to="/admin/lessons">Bulk lessons</Link>
+            <Link to="/admin/lessons">Aulas em lote</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/admin/content-import"><Upload className="w-4 h-4 mr-1" /> Import Manus</Link>
+            <Link to="/admin/import"><Upload className="w-4 h-4 mr-1" /> Importar catálogo</Link>
           </Button>
 
           <Button onClick={() => navigate("/admin/courses/new")}>
-            <Plus className="w-4 h-4 mr-1" /> New course
+            <Plus className="w-4 h-4 mr-1" /> Novo curso
           </Button>
         </>
       }
@@ -38,18 +38,18 @@ export default function AdminCoursesList() {
         <table className="w-full text-sm">
           <thead className="bg-muted/40 text-left">
             <tr>
-              <th className="px-4 py-3">Order</th>
-              <th className="px-4 py-3">Title</th>
+              <th className="px-4 py-3">Ordem</th>
+              <th className="px-4 py-3">Título</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3">Plans</th>
+              <th className="px-4 py-3">Planos</th>
               <th className="px-4 py-3" />
             </tr>
           </thead>
           <tbody>
-            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Loading…</td></tr>}
+            {isLoading && <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Carregando…</td></tr>}
             {!isLoading && courses.length === 0 && (
-              <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">No courses yet. Create one or import from Manus.</td></tr>
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Nenhum curso ainda. Crie um ou importe um catálogo.</td></tr>
             )}
             {courses.map((c) => (
               <tr key={c.id} className="border-t border-border/40 hover:bg-muted/20">
@@ -60,7 +60,7 @@ export default function AdminCoursesList() {
                 <td className="px-4 py-3 text-xs">{c.access_plan_keys.join(", ") || "—"}</td>
                 <td className="px-4 py-3 text-right">
                   <Button size="sm" variant="ghost" asChild>
-                    <Link to={`/admin/courses/${c.id}`}><Edit3 className="w-4 h-4 mr-1" /> Manage</Link>
+                    <Link to={`/admin/courses/${c.id}`}><Edit3 className="w-4 h-4 mr-1" /> Gerenciar</Link>
                   </Button>
                 </td>
               </tr>
