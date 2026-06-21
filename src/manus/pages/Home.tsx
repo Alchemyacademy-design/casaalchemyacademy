@@ -4,7 +4,9 @@ import { getLoginUrl } from "@/manus/const";
 import { Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
+
 
 // Organogram-based module structure from reference
 const MODULES = [
@@ -93,6 +95,22 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const { data: dbCourses = [] } = usePublishedCourses(12);
+
+  // Prefer DB-published courses; fall back to the static curriculum copy when DB is empty.
+  const displayModules = (dbCourses.length > 0
+    ? dbCourses.map((c: any, i: number) => ({
+        id: c.id ?? i + 1,
+        title: c.title ?? "Untitled",
+        tagline: c.tagline ?? c.description ?? "",
+        lessons: [],
+        available: c.status === "published",
+        thumbnail: c.cover_image_url ?? c.thumbnail_url ?? null,
+        href: `/courses/${c.id}`,
+      }))
+    : MODULES.map((m) => ({ ...m, href: undefined as string | undefined }))
+  ).filter((m: any) => m.id !== 9);
+
 
   return (
     <div style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
@@ -205,10 +223,10 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {MODULES.filter(mod => mod.id !== 9).map((mod) => (
+            {displayModules.map((mod: any) => (
               <div key={mod.id} className="module-card-hover relative overflow-hidden group" style={{
                 border: "1px solid var(--aa-cream-dark)",
-                backgroundColor: mod.thumbnail ? "transparent" : ((mod as { comingSoon?: boolean }).comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),
+                backgroundColor: mod.thumbnail ? "transparent" : (mod.comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),
                 padding: "1.75rem",
                 backgroundImage: mod.thumbnail ? `url('${mod.thumbnail}')` : "none",
                 backgroundSize: "cover",
@@ -220,7 +238,7 @@ export default function Home() {
               }}>
                 {mod.thumbnail && <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />}
                 <div className="relative z-10">
-                  {(mod as { comingSoon?: boolean }).comingSoon === true && (
+                  {mod.comingSoon === true && (
                     <div className="absolute top-3 right-3 z-20">
                       <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "var(--aa-olive-light)", color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em" }}>
                         Coming Soon
@@ -229,9 +247,9 @@ export default function Home() {
                   )}
                   <div className="flex items-start justify-between mb-4">
                     <span className="font-serif text-3xl" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-gold)", fontWeight: 300 }}>
-                      {String(mod.id).padStart(2, "0")}
+                      {String(typeof mod.id === "number" ? mod.id : (displayModules.indexOf(mod) + 1)).padStart(2, "0")}
                     </span>
-                    {!mod.available || (mod as { comingSoon?: boolean }).comingSoon === true ? (
+                    {!mod.available || mod.comingSoon === true ? (
                       <Lock size={14} style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-olive-light)", opacity: 0.5, marginTop: "6px" }} />
                     ) : null}
                   </div>
@@ -239,10 +257,15 @@ export default function Home() {
                   <p className="text-xs mb-4 leading-relaxed" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{mod.tagline}</p>
                 </div>
                 <div className="relative z-10 mt-4">
-                  <button onClick={() => setSubscribeModal("guide")} style={{ background: "none", border: "1px solid var(--aa-cream)", color: "var(--aa-cream)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", width: "100%", textTransform: "uppercase", letterSpacing: "0.05em" }}>Buy Now</button>
+                  {mod.href && mod.available ? (
+                    <Link to={mod.href} style={{ display: "block", background: "none", border: "1px solid var(--aa-cream)", color: "var(--aa-cream)", textAlign: "center", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", width: "100%", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>View Course</Link>
+                  ) : (
+                    <button onClick={() => setSubscribeModal("guide")} style={{ background: "none", border: "1px solid var(--aa-cream)", color: "var(--aa-cream)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", width: "100%", textTransform: "uppercase", letterSpacing: "0.05em" }}>Buy Now</button>
+                  )}
                 </div>
               </div>
             ))}
+
             {/* Membership Perks Card */}
             <div style={{
               border: "1px solid var(--aa-cream-dark)",

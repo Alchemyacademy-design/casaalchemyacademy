@@ -1,21 +1,15 @@
 import { getLoginUrl } from "@/manus/const";
-import { trpc } from "@/manus/lib/trpc";
 import { ArrowRight, CheckCircle, Lock } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { Link } from "react-router-dom";
+import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import { useEntitlements } from "@/manus/hooks/useEntitlements";
 
-const MODULES = [
-  { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on, broken down into simple steps, to create a unique space with a clear, intentional outcome." },
-  { number: 2, title: "Bedroom", tagline: "Create a bedroom that feels intentional, not accidental — learn the overlooked techniques that designers use to bring everything together." },
-  { number: 3, title: "Kitchen", tagline: "The most expensive space to get wrong is your kitchen — discover the intentional design choices that increase value and make everyday life easier." },
-  { number: 4, title: "Bathrooms", tagline: "When every element is permanent, every decision matters — learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home." },
-  { number: 5, title: "Living", tagline: "Furniture is the most consequential decision in a living room — and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense." },
-  { number: 6, title: "Dining", tagline: "A dining room should be beautiful enough to linger in and practical enough to live in. You don't have to choose between the two." },
-  { number: 7, title: "Home Office", tagline: "A home office shouldn't be an afterthought. Create a designated space that works for your life and looks considered on camera." },
-  { number: 8, title: "Kids", tagline: "Design a space that works with how kids actually live — not against it." },
-  { number: 9, title: "Outdoors", tagline: "Your outdoor space should be the most lived-in room in the house. Discover how to create an environment that's social, intentional, and well within reach." },
-  { number: 10, title: "All Things Design", tagline: "See your home the way a designer does — understanding light, proportion, styling and the invisible rules that make a space feel right." },
+const STATIC_FALLBACK = [
+  { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on." },
+  { number: 2, title: "Bedroom", tagline: "Create a bedroom that feels intentional, not accidental." },
+  { number: 3, title: "Kitchen", tagline: "The most expensive space to get wrong is your kitchen." },
 ];
 
 const INCLUDED = [
@@ -27,10 +21,28 @@ const INCLUDED = [
 ];
 
 export default function Guides() {
+  const { data: dbCourses = [], isLoading } = usePublishedCourses();
+  const { isAdmin, courseIds, isMember } = useEntitlements();
+
+  const modules = useMemo(() => {
+    if (dbCourses.length > 0) {
+      return dbCourses.map((c: any, i: number) => ({
+        id: c.id,
+        number: c.sort_order ?? i + 1,
+        title: c.title ?? "Untitled",
+        tagline: c.tagline ?? c.description ?? "",
+        href: `/courses/${c.id}`,
+        entitled: isAdmin || isMember || courseIds.includes(Number(c.id)),
+      }));
+    }
+    return STATIC_FALLBACK.map((m) => ({ ...m, id: null as number | null, href: undefined as string | undefined, entitled: false }));
+  }, [dbCourses, isAdmin, isMember, courseIds]);
+
   const [selected, setSelected] = useState<number | null>(null);
   const [showModal, setShowModal] = useState(false);
 
-  const selectedModule = selected !== null ? MODULES[selected] : null;
+  const selectedModule = selected !== null ? modules[selected] : null;
+
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
@@ -80,28 +92,35 @@ export default function Guides() {
               Select a module
             </h2>
             <div className="space-y-2">
-              {MODULES.map((mod, idx) => (
-                <button key={idx} onClick={() => setSelected(idx)}
-                  className="w-full text-left p-4 flex items-center gap-4 transition-all module-card-hover"
-                  style={{
-                    border: `1px solid ${selected === idx ? "var(--aa-gold)" : "var(--aa-cream-dark)"}`,
-                    backgroundColor: selected === idx ? "var(--aa-white)" : "var(--aa-cream)",
-                  }}>
-                  <span className="font-serif text-lg flex-shrink-0 w-8"
-                    style={{ color: "var(--aa-gold)", opacity: selected === idx ? 1 : 0.5 }}>
-                    {String(mod.number).padStart(2, "0")}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: selected === idx ? 500 : 400 }}>
-                      {mod.title}
+              {isLoading && modules.length === 0 ? (
+                <p className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>Loading…</p>
+              ) : (
+                modules.map((mod, idx) => (
+                  <button key={mod.id ?? idx} onClick={() => setSelected(idx)}
+                    className="w-full text-left p-4 flex items-center gap-4 transition-all module-card-hover"
+                    style={{
+                      border: `1px solid ${selected === idx ? "var(--aa-gold)" : "var(--aa-cream-dark)"}`,
+                      backgroundColor: selected === idx ? "var(--aa-white)" : "var(--aa-cream)",
+                    }}>
+                    <span className="font-serif text-lg flex-shrink-0 w-8"
+                      style={{ color: "var(--aa-gold)", opacity: selected === idx ? 1 : 0.5 }}>
+                      {String(mod.number).padStart(2, "0")}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: selected === idx ? 500 : 400 }}>
+                        {mod.title}
+                      </div>
+                      <div className="text-xs mt-0.5 truncate" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+                        {mod.tagline}
+                      </div>
                     </div>
-                    <div className="text-xs mt-0.5 truncate" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                      {mod.tagline}
-                    </div>
-                  </div>
-                  {selected === idx && <CheckCircle size={16} style={{ color: "var(--aa-gold)", flexShrink: 0 }} />}
-                </button>
-              ))}
+                    {mod.entitled && (
+                      <span className="text-xs px-2 py-0.5" style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>Unlocked</span>
+                    )}
+                    {selected === idx && <CheckCircle size={16} style={{ color: "var(--aa-gold)", flexShrink: 0 }} />}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -131,20 +150,28 @@ export default function Guides() {
                   <span className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>$59</span>
                   <span className="text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif" }}>per guide · 1 year access</span>
                 </div>
-                <button
-                  onClick={() => selectedModule && setShowModal(true)}
-                  className={`btn-gold w-full flex items-center justify-center gap-2 ${!selectedModule ? "opacity-50 cursor-not-allowed" : ""}`}
-                  disabled={!selectedModule}>
-                  {selectedModule ? (
-                    <>Get Casa Consult — $59 <ArrowRight size={14} /></>
-                  ) : (
-                    <><Lock size={14} /> Select a module first</>
-                  )}
-                </button>
+                {selectedModule?.entitled && selectedModule.href ? (
+                  <Link to={selectedModule.href} className="btn-gold w-full flex items-center justify-center gap-2">
+                    Open course <ArrowRight size={14} />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => selectedModule && setShowModal(true)}
+                    className={`btn-gold w-full flex items-center justify-center gap-2 ${!selectedModule ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={!selectedModule}>
+                    {selectedModule ? (
+                      <>Get Casa Consult — $59 <ArrowRight size={14} /></>
+                    ) : (
+                      <><Lock size={14} /> Select a module first</>
+                    )}
+                  </button>
+                )}
                 <p className="text-xs mt-2 text-center" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
                   Secure payment via Stripe
                 </p>
               </div>
+
+
 
               {/* Upsell */}
               <div className="p-5" style={{ backgroundColor: "var(--aa-olive-dark)" }}>

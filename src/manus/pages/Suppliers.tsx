@@ -1,21 +1,30 @@
 import MemberLayout from "@/manus/components/MemberLayout";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Heart } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { useMySupplierFavorites, useToggleSupplierFavorite } from "@/manus/hooks/usePublicContent";
 
 const PRICE_TIERS = ["budget", "mid", "investment"];
 const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "dining", "office", "outdoor"];
 
 export default function Suppliers() {
+  const { user } = useAuth();
   const { data: suppliers = [] } = trpc.suppliers.publicList.useQuery();
+  const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
+  const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [showFavOnly, setShowFavOnly] = useState(false);
 
-  const filtered = (suppliers as Array<Record<string, unknown> & { room?: string | null; priceTier?: string | null }>).filter((s) => {
+  const favSet = new Set(favorites);
+  const filtered = (suppliers as Array<Record<string, unknown> & { id?: number; room?: string | null; priceTier?: string | null }>).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
+    if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
   }) as Array<Record<string, any>>;
+
 
   return (
     <MemberLayout>
@@ -116,6 +125,27 @@ export default function Suppliers() {
           </div>
         </div>
 
+        {/* Favourites toggle */}
+        {user && (
+          <div className="mb-6">
+            <button
+              onClick={() => setShowFavOnly((v) => !v)}
+              className="text-xs px-3 py-2 inline-flex items-center gap-2"
+              style={{
+                backgroundColor: showFavOnly ? "var(--aa-gold)" : "var(--aa-white)",
+                color: "var(--aa-olive-dark)",
+                border: "1px solid var(--aa-cream-dark)",
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 500,
+                letterSpacing: "0.08em",
+                textTransform: "uppercase",
+              }}
+            >
+              <Heart size={12} fill={showFavOnly ? "currentColor" : "none"} /> My favourites ({favorites.length})
+            </button>
+          </div>
+        )}
+
         {/* Suppliers Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.length === 0 ? (
@@ -123,36 +153,52 @@ export default function Suppliers() {
               <p>No suppliers match your filters.</p>
             </div>
           ) : (
-            (filtered as Array<Record<string, any>>).map((supplier) => (
-              <div key={supplier.id} className="p-6 module-card-hover" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-                <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-                  {supplier.name}
-                </h3>
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {supplier.room && (
-                    <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
-                      {supplier.room}
-                    </span>
+            (filtered as Array<Record<string, any>>).map((supplier) => {
+              const sid = Number(supplier.id);
+              const isFav = favSet.has(sid);
+              return (
+                <div key={supplier.id} className="p-6 module-card-hover relative" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
+                  {user && (
+                    <button
+                      onClick={() => toggleFav.mutate({ supplier_id: sid, currentlyFavorited: isFav })}
+                      disabled={toggleFav.isPending}
+                      className="absolute top-3 right-3 p-1"
+                      aria-label={isFav ? "Remove favourite" : "Save favourite"}
+                      style={{ background: "transparent", border: "none", cursor: "pointer", color: isFav ? "var(--aa-gold)" : "var(--aa-text-light)" }}
+                    >
+                      <Heart size={16} fill={isFav ? "currentColor" : "none"} />
+                    </button>
                   )}
-                  {supplier.priceTier && (
-                    <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
-                      {supplier.priceTier}
-                    </span>
+                  <h3 className="font-serif text-lg mb-2 pr-8" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
+                    {supplier.name}
+                  </h3>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {supplier.room && (
+                      <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
+                        {supplier.room}
+                      </span>
+                    )}
+                    {supplier.priceTier && (
+                      <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
+                        {supplier.priceTier}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+                    {supplier.description}
+                  </p>
+                  {supplier.websiteUrl && (
+                    <a href={supplier.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                      Visit <ExternalLink size={12} />
+                    </a>
                   )}
                 </div>
-                <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                  {supplier.description}
-                </p>
-                {supplier.websiteUrl && (
-                  <a href={supplier.websiteUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                    Visit <ExternalLink size={12} />
-                  </a>
-                )}
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
+
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between mt-12 pt-6 border-t border-border/50">
           <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">
