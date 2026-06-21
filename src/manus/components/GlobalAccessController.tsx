@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
+
 
 const publicPaths = new Set([
   "/",
@@ -28,7 +29,8 @@ const membershipOnlyPrefixes = [
 ];
 
 export default function GlobalAccessController() {
-  const [location, navigate] = useLocation();
+  const { pathname: location } = useLocation();
+  const navigate = useNavigate();
   const { loading, isAuthenticated, isAdmin, isMember, hasCourseAccess } = useAuth();
 
   useEffect(() => {
