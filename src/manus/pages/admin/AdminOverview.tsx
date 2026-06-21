@@ -97,7 +97,7 @@ export default function AdminOverview() {
         supabase
           .from("community_posts")
           .select("id", { count: "exact", head: true })
-          .eq("status", "pending"),
+          .eq("status", "hidden"),
         supabase.from("lesson_progress").select("watched_percent").limit(5000),
         db
           .from("admin_access_audit_log")
@@ -106,8 +106,8 @@ export default function AdminOverview() {
           .limit(5),
       ]);
 
-      const courses = coursesRes.data ?? [];
-      const lessons = lessonsRes.data ?? [];
+      const courses = (coursesRes.data ?? []) as Array<{ id: number; status: string; cover_image_path: string | null }>;
+      const lessons = (lessonsRes.data ?? []) as Array<{ id: number; status: string; external_video_url: string | null; cover_image_path: string | null }>;
       const progressRows = (progressRes.data ?? []) as Array<{ watched_percent: number | null }>;
       const avgProgress = progressRows.length
         ? Math.round(
