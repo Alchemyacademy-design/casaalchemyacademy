@@ -30,7 +30,9 @@ export default function Login() {
       if (signInError) {
         const msg = signInError.message || "";
         const code = (signInError as { code?: string }).code;
-        if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) {
+        if (code === "email_not_confirmed" || /not confirmed/i.test(msg)) {
+          setError("Your account is awaiting confirmation. Please contact support.");
+        } else if (code === "invalid_credentials" || /invalid login credentials/i.test(msg)) {
           setNeedsConfirmation(true);
           setError("Invalid email or password. Try again or reset your password below.");
         } else {

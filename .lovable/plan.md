@@ -1,52 +1,37 @@
-## Objetivo
-Deixar o projeto Alchemy Academy 100% funcional no Lovable, resolvendo os erros reais que aparecem no console/rede e ajustando o design para a identidade editorial (creme, oliva, dourado) sem criar novo backend ou novo projeto Supabase.
+## Diagnóstico
 
-## Problemas detectados nos logs de rede
+Olhando os network logs do Supabase, o problema do login está claro:
 
-1. `GET /rest/v1/profiles?select=*,user_roles(role),memberships(...)` → **PGRST200**: PostgREST não encontra o foreign key entre `profiles` e `user_roles`. A consulta usada em `adminUsers()` e `useAuth` faz embed implícito que o schema atual não suporta.
-2. `HEAD /rest/v1/profiles`, `memberships`, `community_posts` → **401**: chamadas disparadas antes do login (AdminAnalytics carregando sem sessão) e sem GRANT a `anon`.
-3. `GET /rest/v1/stripe_payments?status=eq.paid` → **42501 permission denied for anon** — query roda no AdminAnalytics e sem sessão de admin.
-4. Aviso React Router v7 futures flags (cosmético).
-5. Duas árvores de UI coexistem (`src/pages/*` legado + `src/manus/pages/*` ativo). Layout/Design tokens divergem; o `App.tsx` usa apenas a árvore Manus, mas a paleta editorial creme/oliva/dourado vive na árvore legada (`src/index.css` + `src/components/Layout.tsx`).
+1. **Signup retorna 200 mas SEM sessão** — a resposta inclui `confirmation_sent_at` e `role: ""` (vazio), indicando que o usuário foi criado mas **não confirmado**.
+2. **Login retorna `invalid_credentials`** — o Supabase devolve esse código (em vez de `email_not_confirmed`) quando a opção *"Confirm email"* está ativa E o usuário ainda não confirmou. É o comportamento padrão atual do GoTrue por segurança.
+3. Ou seja: **a confirmação de e-mail ainda está habilitada no projeto Supabase remoto**, apesar de ter sido desativada na intenção. O usuário `contact@casaalchemystudio.com` existe mas está com `email_confirmed_at = null`, por isso nunca consegue entrar.
 
-## Plano de correção (somente frontend)
+O front-end está correto — o problema é 100% de configuração + estado do usuário no Supabase.
 
-### 1. Corrigir consultas tRPC-facade que dependem de FK inexistente
-Em `src/manus/lib/trpc.ts`:
-- `authMe()`: já faz queries separadas — confirmar que não usa embed; ok.
-- `adminUsers()`: substituir o embed `profiles(*,user_roles(role),memberships(...))` por 3 queries paralelas e merge em memória por `user_id`. Elimina o PGRST200.
-- `adminAllPosts()`: trocar o embed `profiles:author_id(full_name,email)` por fetch separado dos autores únicos e merge em memória.
-- `communityPosts()`: mesmo tratamento (embed `profiles:author_id` falha sem FK declarada no cache).
+## Plano
 
-### 2. Guardar rotas admin para não dispararem queries sem sessão
-Em `src/manus/components/GlobalAccessController.tsx` e nas páginas `AdminPanel`/`AdminAnalytics`:
-- Adicionar early-return e `enabled: isAdmin` nos `useQuery` para que `stripe_payments`, `profiles`, `memberships` só sejam buscados quando `roles.includes("admin")` e sessão presente.
-- Redirecionar `/admin*` para `/login` quando não autenticado.
+### 1. Confirmar manualmente o usuário existente
+Criar uma migration SQL que marca como confirmado qualquer usuário já cadastrado que esteja pendente, incluindo o `contact@casaalchemystudio.com`:
 
-### 3. Unificar design no padrão editorial (creme · oliva · dourado)
-- Manter `src/index.css` (paleta editorial já definida) como fonte única de tokens.
-- Auditar `src/manus/contexts/ThemeContext.tsx` (default `dark`) → trocar para `light` editorial e remover overrides que escurecem o tema.
-- Garantir que `src/manus/components/MemberLayout.tsx` e páginas Manus usem somente tokens semânticos (`bg-background`, `text-primary`, `text-accent`, `font-serif`) — substituir quaisquer `bg-black`/`text-white` hardcoded.
-- Aplicar tipografia `Cormorant Garamond` (display) + `Inter` (body) já configurada em `tailwind.config.ts`/`index.css`.
-- Reusar o cabeçalho/rodapé do `src/components/Layout.tsx` (legado) como base do `MemberLayout` para garantir consistência.
+```sql
+update auth.users
+set email_confirmed_at = coalesce(email_confirmed_at, now()),
+    confirmed_at      = coalesce(confirmed_at, now())
+where email_confirmed_at is null;
+```
 
-### 4. Remover árvore duplicada que confunde manutenção
-- Deletar `src/pages/{Community,Course,Dashboard,Events,Lesson,Login,Magazine,MyCourses,PaymentCancel,PaymentSuccess,Plans,Profile,Signup,Suppliers}.tsx` (não referenciados pelo `App.tsx`).
-- Manter apenas `src/pages/Index.tsx` e `src/pages/NotFound.tsx` se ainda referenciados; senão remover também.
-- Manter `src/components/Layout.tsx` e `src/hooks/useAuth.tsx` apenas se usados pelo `MemberLayout` unificado; caso contrário, remover.
+Isso destrava o login imediato com a senha já cadastrada (`S3nh@S3gur@!`).
 
-### 5. Pequenos polimentos
-- Silenciar warnings React Router v7 com `future={{ v7_startTransition: true, v7_relativeSplatPath: true }}` no `<BrowserRouter>` em `src/main.tsx`.
-- Conferir tratamento de erro nos `useQuery` que dependem de admin (toast amigável em vez de erro silencioso).
+### 2. Garantir que a confirmação de e-mail está desativada
+Pedir confirmação visual no painel: **Authentication → Sign In / Up → "Confirm email" = OFF**. Vou abrir o link direto no final do plano. Se essa flag continuar ligada, novos cadastros voltarão a falhar do mesmo jeito.
 
-## O que NÃO será feito
-- Não criar nenhuma tabela, migration, função SQL, edge function ou projeto Supabase.
-- Não tocar nas funções/edge functions já deployadas.
-- Não alterar `src/integrations/supabase/{client,types}.ts`.
-- Não adicionar GRANTs no banco (qualquer ajuste de permissão fica como item pendente para o usuário aplicar manualmente no SQL Editor).
+### 3. Ajustar mensagens de erro do front
+No `Login.tsx`, quando o Supabase devolver `invalid_credentials`, mostrar uma mensagem mais útil que mencione tanto "senha incorreta" quanto "conta ainda não confirmada — fale com o admin", em vez de só sugerir reset.
 
-## Resultado esperado
-- Página inicial e dashboard carregam sem 400/401 visíveis.
-- Login redireciona corretamente: admin/membership → `/dashboard`, entitlement → `/mycourses`, demais → `/plans`.
-- Identidade visual única e editorial em todas as telas autenticadas.
-- Árvore de código sem páginas duplicadas.
+### 4. Validar fim a fim
+Após aplicar a migration, fazer login com `contact@casaalchemystudio.com` / `S3nh@S3gur@!` e confirmar redirect para `/dashboard` (ou `/plans`, conforme o `GlobalAccessController`).
+
+## O que NÃO vou mexer
+- Hook `useAuth`, `GlobalAccessController`, rotas, design — estão corretos.
+- Signup flow — já está pronto para o cenário sem confirmação.
+- Tabelas, roles, RLS — fora do escopo deste bug.
