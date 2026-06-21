@@ -1,70 +1,59 @@
-# Pre-mortem — Tornar o sistema 100% real e conectado ao banco
 
-Objetivo: cada página, botão e seção deve ler/escrever no Supabase com as permissões (RLS + GRANT) corretas, sem dados hardcoded; admin enxerga tudo, membros enxergam o que têm direito, visitantes enxergam o público.
+# Fase 0 + Fase 1 — Baseline e Fundação Técnica
 
-## Riscos identificados (pre-mortem)
+Trabalho restrito a este projeto Lovable (repo `Alchemyacademy-design/alchemy-academy-preview`, Supabase `omzwtfnqffseemrlylwu`, admin `contact@casaalchemystudio.com`). Sem novas migrations, sem mexer em Stripe, sem refazer páginas existentes.
 
-1. **Páginas com dados estáticos restantes** — `Home.tsx` (MODULES/BENEFITS/TESTIMONIALS) e `Guides.tsx` (catálogo de cursos) ainda usam arrays locais.
-2. **GRANT/RLS lacunares** — várias tabelas podem estar sem `GRANT SELECT TO anon` para conteúdo público (events, live_workshops, magazine_issues, courses publicados, membership_plans, exclusive_deals, suppliers, supplier_categories) ou sem `INSERT/UPDATE/DELETE TO authenticated` para admin via `has_role`.
-3. **Botões “mudos”** — alguns CTAs ainda navegam sem persistir (favoritar fornecedor, registrar em workshop, marcar lição concluída em telas antigas).
-4. **Realtime ausente** em events/live_workshops/community → conteúdo não atualiza sem reload.
-5. **Entitlements espalhados** — cada página recalcula acesso; falta hook único `useEntitlements()`.
-6. **Sem QA end-to-end** garantindo que admin cria → membro vê → registra → progresso persiste.
+## Resultados de pré-checagem já confirmados
 
-## Plano de execução (8 fases sequenciais, aprovação única)
+- Commit atual: `8be9822` (branch de edição). React Router 6.30.1 já é a única dependência de routing.
+- **Wouter**: `rg wouter src/ package.json` retorna zero. Nada para remover hoje — o relatório apenas registrará a ausência e adicionará um lint guard (`no-restricted-imports: ["wouter"]`) para impedir reintrodução.
+- **AdminUserDetail**: já usa `react-router-dom` (`useNavigate`, `useParams`). Sem conversão pendente; documentar.
+- **`subtitle` inexistente**: confirmado no `types.ts` — `events` e `live_workshops` não têm `subtitle`; apenas `courses` tem. Páginas a corrigir: `AdminEvents.tsx` (remover) e `AdminWorkshops.tsx` (remover). `AdminCourseDetail` / `AdminCoursesList` continuam usando `subtitle` corretamente.
+- **`admin_access_audit_log`**: tabela ausente; já referenciada em `AdminOverview.tsx` e `AdminUserDetail.tsx` via `db: any`. Atualmente "silencia" via `?? []`, mas mistura erro com vazio — endurecer para detectar `code === '42P01'` / `PGRST205` e tratar como "auditoria indisponível" sem quebrar a página nem mostrar lista falsa.
 
-### Fase A — Auditoria RLS + GRANT (migração única)
-- Rodar `admin-audit` para listar tabelas/colunas/policies atuais.
-- Migração que garante, por tabela pública:
-  - `GRANT SELECT TO anon` apenas em: `courses`, `course_modules`, `lessons` (filtrando `status='published'` via policy), `events`, `live_workshops`, `magazine_issues`, `membership_plans`, `exclusive_deals`, `suppliers`, `supplier_categories`, `community_spaces`, `community_channels`.
-  - `GRANT SELECT, INSERT, UPDATE, DELETE TO authenticated` em todas as tabelas de usuário (`profiles`, `memberships`, `registrations`, `lesson_progress`, `quiz_*`, `supplier_favorites`, `community_posts/replies/reactions`, `certificates`).
-  - `GRANT ALL TO service_role` em tudo.
-- Policies admin via `has_role(auth.uid(),'admin')` para INSERT/UPDATE/DELETE em todas tabelas de conteúdo.
+## Fase 0 — Baseline (somente leitura)
 
-### Fase B — Hook central `useEntitlements()`
-- Retorna `{ isAdmin, isMember, hasCommunity, hasEvents, hasWorkshops, courseIds[], planKey }` a partir de `user_roles` + `memberships` ativas + `course_entitlements`.
-- Substitui checagens ad-hoc em Plans, CourseDetail, LiveWorkshops, Community.
+1. Rodar e capturar saídas brutas: `tsc --noEmit`, `bunx vitest run`, build (via harness), `bun run lint` (se existir script; senão `bunx eslint .`).
+2. Auditar todas as páginas em `src/manus/pages/admin/` cruzando cada `field.name` contra colunas reais em `src/integrations/supabase/types.ts`. Produzir tabela de incompatibilidades.
+3. Verificar via UI/Diagnostics atual: session/roles/isAdmin e contagens de catálogo (courses/modules/lessons).
+4. Escrever `docs/PHASE_0_REPORT.md` com: identidade do projeto, commit, resultados crus dos comandos, mapa de telas/rotas/Edge Functions, lista de mocks/botões mudos remanescentes, e a tabela de incompatibilidades de campo.
 
-### Fase C — Home dinâmica
-- `Home.tsx`: módulos puxam de `courses` (top 6 publicados); workshops próximos de `live_workshops`; eventos de `events`.
-- Copy estática (BENEFITS, TESTIMONIALS) movida para `src/manus/content/home.ts` (mantida, mas isolada).
+## Fase 1 — Fundação técnica (edições mínimas)
 
-### Fase D — Guides (`/courses`) catálogo real
-- Lista de cursos publicados do Supabase com badge de acesso (Free/Plus/Pro), botão “Acessar” se entitled ou “Ver Planos”.
+Edições focadas, sem refatorar lógica de negócio:
 
-### Fase E — Botões reais
-- `Suppliers`: favoritar grava em `supplier_favorites`.
-- `LiveWorkshops`/`Events`: já registram via `register_for_event`; adicionar “Cancelar inscrição”.
-- `CourseDetail`: confirmar `markComplete` + criação automática de `certificates` ao 100%.
-- `Community`: confirmar create post/reply/reaction com `describeError()`.
+1. **`src/manus/pages/admin/AdminEvents.tsx`** — remover o campo `subtitle` da config `fields`.
+2. **`src/manus/pages/admin/AdminWorkshops.tsx`** — remover o campo `subtitle` da config `fields`.
+3. **Outros campos incompatíveis** detectados na Fase 0 — corrigir cada um na própria página admin (apenas remover/renomear chave; sem mudar UX). Antes de aplicar, listar a alteração no chat e no relatório.
+4. **`AdminOverview.tsx` + `AdminUserDetail.tsx`** — extrair helper local `fetchAuditSafe()` que executa o select e, em caso de erro com código de tabela inexistente, retorna `{ available: false, rows: [] }`. UI mostra um aviso "Audit log not provisioned yet" em vez de tabela vazia, e nunca lança.
+5. **Padronizar status de query nas telas afetadas** (Overview, UserDetail, e qualquer outra encontrada na auditoria): distinguir `isLoading` (skeleton), `error` (mensagem `describeError`), `data.length === 0` (estado vazio explícito) e sucesso. Não introduzir novos componentes; usar os já existentes em `AdminShell` e shadcn.
+6. **Guard anti-Wouter**: adicionar regra em `eslint.config.js`:
+   ```
+   "no-restricted-imports": ["error", { "paths": [{ "name": "wouter", "message": "Use react-router-dom." }] }]
+   ```
+7. **AuthProvider, AdminGuard, cliente Supabase**: nenhuma mudança (já corretos). Apenas verificar e documentar.
+8. Re-rodar typecheck/lint/testes/build; abrir `/admin/diagnostics` autenticado como master admin e verificar:
+   - session = yes
+   - roles inclui `admin`
+   - isAdmin = true
+   - courses = 10 / modules = 10 / lessons = 30
+9. Escrever `docs/PHASE_1_REPORT.md` com: arquivos alterados, diffs conceituais, campos removidos/corrigidos, comportamento da auditoria ausente, resultado final dos 4 checks do diagnóstico, status de typecheck/test/build/lint, e pendências para a Fase 2 (cursos/módulos/aulas: archive vs delete, checklist de publicação, bulk editor, thumbnails, validação de URL externa).
 
-### Fase F — Realtime
-- Migração: `ALTER PUBLICATION supabase_realtime ADD TABLE` para `events`, `live_workshops`, `registrations`, `community_posts`, `community_replies`, `community_reactions`, `lesson_progress`.
-- Subscriptions já existentes em `usePublicContent` e `useCommunityData` cobrem o front.
+## Fora de escopo nesta execução
 
-### Fase G — Admin polish
-- Confirmar que cada AdminXxx faz invalidate da query pública correspondente após save/publish.
-- Toggle “publicado” unificado em todas as listas.
+- Stripe (qualquer arquivo).
+- Migrations SQL (incluindo criação de `admin_access_audit_log` — apenas pendência documentada).
+- Refatorar `AdminTablePage` para archive em vez de delete (Fase 2).
+- Remover mocks da área de membros (Fase 3).
+- Camada `src/manus/services/*` consolidada (Fase 2+).
 
-### Fase H — QA end-to-end
-- Script Playwright único: login admin → cria curso+módulo+aula+workshop+evento+magazine → publica → logout → login membro → vê tudo → registra workshop → marca aula concluída → confere certificado → edita perfil. Screenshots em cada passo.
+## Critérios de aceite
 
-## Entregáveis
-- 1 migração (Fase A) + 1 migração (Fase F).
-- Novo hook `useEntitlements.ts`.
-- Reescritas: `Home.tsx`, `Guides.tsx`.
-- Ajustes pontuais: `Suppliers.tsx`, `CourseDetail.tsx`, admin pages para invalidate.
-- Script `/tmp/browser/qa_full/` com prints.
+- `bun run typecheck`, `bunx vitest run`, build e lint passam.
+- Zero imports de `wouter` + regra ESLint bloqueando reintrodução.
+- `AdminEvents` e `AdminWorkshops` não enviam mais `subtitle`.
+- Falha de auditoria não derruba `/admin` nem `/admin/users/:id`.
+- `/admin/diagnostics` exibe os 6 valores esperados.
+- `docs/PHASE_0_REPORT.md` e `docs/PHASE_1_REPORT.md` criados com todas as seções pedidas.
 
-## Fora de escopo
-- Stripe/checkout real (mantém disabled com mensagem).
-- Migração de dados legados / seeds.
-- Novas features visuais — apenas conectar o que existe.
-
-## Critério de sucesso
-- `rg "const (MODULES|TESTIMONIALS|BENEFITS|UPCOMING|PAST|ARCHIVES)" src/manus/pages/` → vazio.
-- Admin cria conteúdo e ele aparece para o membro sem reload.
-- Nenhum toast “permission denied” em fluxos válidos.
-- Playwright QA passa 100%.
-
-Pronto para eu executar Fase A (auditoria + migração de GRANTs)?
+Parar após a Fase 1 e aguardar revisão.
