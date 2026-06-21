@@ -12,11 +12,9 @@ export default function Profile() {
     <MemberLayout>
       <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
         {/* Back Button */}
-        <Link to="/dashboard">
-          <a className="flex items-center gap-2 mb-8 text-sm" style={{ color: "var(--aa-text-mid)" }}>
-            <ArrowLeft size={16} />
-            <span>Back to Dashboard</span>
-          </a>
+        <Link to="/dashboard" className="flex items-center gap-2 mb-8 text-sm" style={{ color: "var(--aa-text-mid)" }}>
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
         </Link>
 
         {/* Header */}
