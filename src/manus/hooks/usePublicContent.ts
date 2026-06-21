@@ -273,3 +273,47 @@ export function useMyMemberships() {
     },
   });
 }
+
+/* ===== Supplier favourites ===== */
+export function useMySupplierFavorites(userId: string | null | undefined) {
+  return useQuery({
+    queryKey: ["me", "supplier_favorites", userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<number[]> => {
+      const { data, error } = await supabase.from("supplier_favorites").select("supplier_id").eq("user_id", userId!);
+      if (error) throw error;
+      return (data ?? []).map((r: any) => Number(r.supplier_id)).filter(Boolean);
+    },
+  });
+}
+
+export function useToggleSupplierFavorite(userId: string | null | undefined) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ supplier_id, currentlyFavorited }: { supplier_id: number; currentlyFavorited: boolean }) => {
+      if (!userId) throw new Error("Sign in to save favourites");
+      if (currentlyFavorited) {
+        const { error } = await supabase
+          .from("supplier_favorites")
+          .delete()
+          .eq("user_id", userId)
+          .eq("supplier_id", supplier_id);
+        if (error) throw error;
+        return { removed: true };
+      }
+      const { error } = await supabase
+        .from("supplier_favorites")
+        .insert({ user_id: userId, supplier_id });
+      if (error) throw error;
+      return { added: true };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["me", "supplier_favorites"] });
+    },
+    onError: (e) => {
+      const d = describeError(e, "save favourite");
+      toast.error(d.title, { description: d.description });
+    },
+  });
+}
+
