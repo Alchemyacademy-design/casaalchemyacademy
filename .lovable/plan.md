@@ -1,58 +1,51 @@
-# Plano — Padronizar idioma do admin (EN) e liberar acesso total ao admin
+## Goal
 
-A plataforma e a home estão em **inglês**. O admin foi escrito em português, criando inconsistência. Além disso, alguns pontos da área de membros ainda gating por `entitlement`/`membership` sem checar `isAdmin`, então um admin logado pode esbarrar em telas de "comprar". Os cursos importados já estão no banco (10 cursos / 30 aulas, `status=draft`, sem vídeo) — você preencherá os links manualmente em `/admin/courses/:id` e `/admin/lessons`.
+Remover o fluxo de "Importar catálogo" da Central de Administração e entregar a estrutura real dos 10 cursos / 30 aulas já pronta dentro do banco, para que o administrador apenas edite título, descrição e link de cada aula em `/admin/courses/:id`.
 
-## 1. Padronização de idioma (PT → EN) na Central ADM
+## 1. Remover o importador da UI
 
-Sem mudar layout nem design tokens. Apenas strings.
+- `src/manus/pages/admin/AdminOverview.tsx` — remover o card "Import catalogue" / "Open importer".
+- `src/manus/pages/admin/AdminCoursesList.tsx` — remover o botão "Import catalogue" do header de ações.
+- `src/manus/components/admin/AdminShell.tsx` — remover o item "Import content" da navegação lateral.
+- `src/App.tsx` — remover a rota `/admin/import` e o import de `AdminContentImport`.
+- Apagar `src/manus/pages/admin/AdminContentImport.tsx` (não é mais usado).
 
-- `src/manus/components/admin/AdminShell.tsx`
-  - "Central ADM" → "Admin Center"
-  - "Gestão" → "Manage"
-  - "Visão geral" → "Overview"
-  - "Cursos" → "Courses"
-  - "Aulas (lote)" → "Lessons (bulk)"
-  - "Alunos" → "Students"
-  - "Importar conteúdo" → "Import content"
-  - "Métricas" → "Analytics"
-  - "Voltar à plataforma" → "Back to platform"
-  - "Sair" → "Sign out"
-- `AdminOverview.tsx` — títulos KPI, alertas, descrições para EN.
-- `AdminCoursesList.tsx` — "Cursos", "Crie, edite…", "Novo curso", "Aulas em lote", "Importar catálogo", colunas (Ordem/Título/Slug/Status/Planos/Gerenciar), empty state.
-- `AdminCourseDetail.tsx` — abas Detalhes / Módulos & aulas / Pré-visualização, botões Salvar/Publicar/Testar link, mensagens da checklist.
-- `AdminLessonsBulk.tsx` — filtros ("Sem vídeo", "Sem thumb"), colunas, ações em lote.
-- `AdminContentImport.tsx` — "Importar catálogo de cursos", badges (duplicado, sem thumb, sem vídeo), resumo created/updated/ignored/errors.
-- `AdminStudents.tsx` — colunas e ações.
-- `AdminPanel.tsx` — qualquer texto restante.
-- `StatusBadge.tsx`, `PublishChecklist.tsx`, `ThumbnailField.tsx`, `VideoPreview.tsx` — labels e mensagens.
+A edge function `manus-import` e o JSON `src/manus/data/manus-import.json` ficam no repositório (a migração abaixo os consome uma única vez como seed), mas sem nenhum ponto de entrada na UI.
 
-Mantemos os enums internos (`draft`, `published`) intactos — só os rótulos exibidos mudam.
+## 2. Popular o catálogo real no banco
 
-## 2. Liberar acesso total ao admin na área de membros
+Os dados reais (10 cursos, ordem, slugs, módulos e aulas com numeração `N.x`) que você colou são exatamente os que já estão em `src/manus/data/manus-import.json`. Vou usar esse arquivo como fonte e aplicar via migração SQL idempotente para garantir que:
 
-Garantir que todo gating de plano respeite `isAdmin`.
+- Os 10 cursos existem com `slug`, `title`, `subtitle`, `description`, `sort_order` corretos e `status='draft'`.
+- O curso **Kids (legacy database only)** fica com `status='draft'` e `is_hidden=true` (oculto na área de membros, visível só para admin).
+- Cada curso tem 1 módulo "Main" e 3 lessons com `lesson_number` (`1.1`…`10.3`), `title`, `description` herdada do JSON, `status='draft'`, `external_video_url=null`.
+- `sort_order` das aulas segue a numeração (1.1 → 1, 1.2 → 2, 1.3 → 3).
+- A operação é `INSERT ... ON CONFLICT (slug) DO UPDATE` para cursos e `ON CONFLICT (course_id, sort_order)` para aulas — rodar de novo não duplica.
 
-- `src/manus/pages/Modules.tsx` — já cobre admin via `user?.role === "admin"`. Confirmar e estender para `roles?.includes("admin")` (usar diretamente `isAdmin` do `useAuth`).
-- `src/manus/pages/ModuleDetail.tsx` — auditar e abrir todos os módulos/aulas quando `isAdmin` (sem checar entitlement).
-- `src/manus/pages/CourseDetail.tsx` — admin sempre vê conteúdo do curso (mesmo `draft`/sem vídeo, com aviso "Coming soon").
-- `src/manus/pages/Guides.tsx`, `Magazine.tsx`, `Community.tsx`, `Suppliers.tsx`, `Events.tsx`, `LiveWorkshops.tsx`, `Dashboard.tsx` — qualquer paywall/CTA "Subscribe" oculto quando `isAdmin`.
-- `GlobalAccessController.tsx` já libera admin no nível de rota — manter.
-- `MemberLayout.tsx` — quando `isAdmin`, adicionar link "Admin Center" no topo da sidebar.
+Nenhum link de vídeo é definido aqui. Nenhuma thumbnail é alterada. Nada é publicado.
 
-Critério: logado como admin, eu clico em qualquer item do menu (Dashboard, Courses, Magazine, Events, Community, Suppliers, Live Workshops, My courses, qualquer curso) e o conteúdo abre sem redirect para `/plans` e sem overlay de "locked".
+## 3. Edição inline em `/admin/courses/:id`
 
-## 3. Cursos importados visíveis na plataforma
+A página `AdminCourseDetail.tsx` já existe e já permite editar título, descrição, link de vídeo e ordem por módulo/aula. Após a seed, basta:
 
-Já implementado anteriormente (`Guides` consome `courses` published; My courses consome entitlements). Para admin, listar **todos** os cursos (inclusive `draft`), com tag "Draft" — assim você abre, edita pelo `/admin/courses/:id` e vê o resultado em tempo real. Sem mexer no schema.
+- Confirmar que `AdminCoursesList` lista todos os 10 cursos (incluindo `draft` e o Kids oculto, com badge "Hidden").
+- Confirmar que `AdminLessonsBulk` mostra as 30 aulas com filtros "No video" / "No cover".
+- Pequeno ajuste em `AdminCoursesList` para mostrar um badge "Hidden" quando `is_hidden=true`, para o curso Kids.
 
-## Fora de escopo
+## 4. Texto do AdminOverview
 
-- Importação de novos links de vídeo (você preencherá manualmente).
-- Stripe / planos / billing.
-- Mudanças de schema, RLS ou edge functions.
-- Redesign visual — apenas strings.
+No espaço onde estava o card "Import catalogue", colocar um aviso curto:
+
+> "Catalogue seeded with 10 courses · 30 lessons (draft). Add video URLs and publish from **Courses** or **Bulk lessons**."
+
+## Out of scope
+
+- Vídeos / thumbnails (você preenche manualmente).
+- Schema novo, RLS, Stripe, planos.
+- Redesign visual.
 
 ## Entrega
 
-- Arquivos editados (lista acima).
-- Build verde e navegação validada como admin nas rotas `/dashboard`, `/mycourses`, `/courses`, `/courses/:id`, `/magazine`, `/community`, `/events`, `/suppliers`, `/live-workshops`, `/admin/*`.
+- Arquivos editados/removidos listados acima.
+- Migração SQL idempotente aplicada para os 10 cursos / 30 aulas em `draft`.
+- Build verde; `/admin/courses` mostra os 10 cursos prontos para edição; nenhuma rota `/admin/import` permanece.
