@@ -437,9 +437,9 @@ export default function Home() {
           {/* Photo - Full Height Left */}
           <div style={{ overflow: "hidden" }}>
             <img
-              src="/img/lorena.jpg"
-              alt="Lorena Couto"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
+              src={lorenaPhoto.url}
+              alt="Lorena Couto, founder of Casa Alchemy"
+              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
             />
           </div>
           {/* Text - Right Side */}
