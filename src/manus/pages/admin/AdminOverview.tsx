@@ -17,9 +17,7 @@ import { Button } from "@/components/ui/button";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
 import { isLegacyAssetPath, isPlaceholderVideo } from "@/manus/lib/admin-content";
-// admin_access_audit_log is not in the generated Database types yet.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db: any = supabase;
+import { fetchAuditSafe, type AuditResult } from "@/manus/lib/admin-audit-safe";
 
 interface Kpi {
   label: string;
@@ -99,11 +97,7 @@ export default function AdminOverview() {
           .select("id", { count: "exact", head: true })
           .eq("status", "hidden"),
         supabase.from("lesson_progress").select("watched_percent").limit(5000),
-        db
-          .from("admin_access_audit_log")
-          .select("id,action,entity_type,created_at,actor_user_id,target_user_id")
-          .order("created_at", { ascending: false })
-          .limit(5),
+        fetchAuditSafe({ limit: 5, columns: "id,action,entity_type,created_at,actor_user_id,target_user_id" }),
       ]);
 
       const courses = (coursesRes.data ?? []) as unknown as Array<{ id: number; status: string; cover_image_path: string | null }>;
@@ -137,12 +131,7 @@ export default function AdminOverview() {
         upcomingWorkshops: workshopsRes.data ?? [],
         pendingPosts: pendingPostsCount.count ?? 0,
         avgProgress,
-        recentAudit: (recentAuditRes.data ?? []) as Array<{
-          id: number;
-          action: string;
-          entity_type: string | null;
-          created_at: string;
-        }>,
+        recentAudit: recentAuditRes as AuditResult,
       };
     },
   });
