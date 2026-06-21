@@ -164,3 +164,25 @@ export async function deleteLesson(id: number) {
   if (error) throw error;
 }
 
+
+// Bulk reorder: assign sequential sort_order 1..N to the supplied IDs.
+// Only updates rows whose order actually changed (skips writes when stable).
+export async function reorderRecords(
+  table: "courses" | "course_modules" | "lessons",
+  orderedIds: number[],
+  currentById: Map<number, { sort_order: number }>,
+) {
+  const updates: Promise<unknown>[] = [];
+  orderedIds.forEach((id, idx) => {
+    const next = idx + 1;
+    const current = currentById.get(id)?.sort_order;
+    if (current !== next) {
+      updates.push(
+        supabase.from(table).update({ sort_order: next }).eq("id", id).then(({ error }) => {
+          if (error) throw error;
+        }),
+      );
+    }
+  });
+  await Promise.all(updates);
+}
