@@ -47,19 +47,19 @@ type Course = {
 };
 
 async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Course | null> {
-  let query = supabase
+  let builder = supabase
     .from("courses")
     .select(
       "id,title,slug,subtitle,description,cover_image_path,status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
         "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
     )
-    .eq("id", id)
+    .eq("id", id);
+  if (!includeDrafts) builder = builder.eq("status", "published");
+  const { data, error } = await builder
     .order("sort_order", { foreignTable: "course_modules", ascending: true })
     .order("sort_order", { foreignTable: "course_modules.lessons", ascending: true })
     .maybeSingle();
-  if (!includeDrafts) query = query.eq("status", "published");
-  const { data, error } = await query;
   if (error) throw error;
   if (!data) return null;
   const course = data as unknown as Course;
