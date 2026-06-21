@@ -172,15 +172,16 @@ export async function reorderRecords(
   orderedIds: number[],
   currentById: Map<number, { sort_order: number }>,
 ) {
-  const updates: Promise<unknown>[] = [];
+  const updates: Promise<void>[] = [];
   orderedIds.forEach((id, idx) => {
     const next = idx + 1;
     const current = currentById.get(id)?.sort_order;
     if (current !== next) {
       updates.push(
-        supabase.from(table).update({ sort_order: next }).eq("id", id).then(({ error }) => {
+        (async () => {
+          const { error } = await supabase.from(table).update({ sort_order: next }).eq("id", id);
           if (error) throw error;
-        }),
+        })(),
       );
     }
   });
