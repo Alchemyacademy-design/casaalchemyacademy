@@ -16,20 +16,20 @@ export default function AdminCoursesList() {
 
   return (
     <AdminShell
-      title="Courses"
-      description="Create, edit, order and publish courses, modules and lessons."
-      crumbs={[{ label: "Courses" }]}
+      title="Cursos"
+      description="Crie, edite, ordene e publique cursos, módulos e aulas."
+      crumbs={[{ label: "Cursos" }]}
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link to="/admin/lessons">Bulk lessons</Link>
+            <Link to="/admin/lessons">Aulas em lote</Link>
           </Button>
           <Button variant="outline" asChild>
-            <Link to="/admin/content-import"><Upload className="w-4 h-4 mr-1" /> Import Manus</Link>
+            <Link to="/admin/import"><Upload className="w-4 h-4 mr-1" /> Importar catálogo</Link>
           </Button>
 
           <Button onClick={() => navigate("/admin/courses/new")}>
-            <Plus className="w-4 h-4 mr-1" /> New course
+            <Plus className="w-4 h-4 mr-1" /> Novo curso
           </Button>
         </>
       }
