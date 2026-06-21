@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
 import { Link } from "wouter";
+import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
@@ -33,9 +34,9 @@ export default function Dashboard() {
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 });
   const { data: modules = [] } = trpc.modules.list.useQuery();
 
-  const enrolledModules = modules.filter((m: any) => progress.some((p: any) => p.moduleId === m.id));
-  const totalLessons = modules.reduce((sum: number, m: any) => sum + (m.lessonCount || 0), 0);
-  const completedLessons = progress.filter((p: any) => p.completed).length;
+  const enrolledModules = (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
+  const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
+  const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
 
   return (
@@ -48,7 +49,7 @@ export default function Dashboard() {
             {user?.name || "Alchemist"}
           </h1>
           <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            Your membership tier: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{(user as any)?.membershipTier || "Free"}</span>
+            Your membership tier: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{(user as { membershipTier?: string } | null)?.membershipTier || "Free"}</span>
           </p>
         </div>
 
@@ -179,8 +180,9 @@ export default function Dashboard() {
               Continue Learning
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {enrolledModules.slice(0, 4).map((module: any) => {
-                const moduleProgress = progress.filter((p: any) => p.moduleId === module.id);
+              {enrolledModules.slice(0, 4).map((module: ModuleRow) => {
+                const moduleProgress = (progress as ProgressRow[]).filter((p) => p.moduleId === module.id);
+                const lessonCount = module.lessonCount ?? 0;
                 const pct = module.lessonCount > 0 ? Math.round((moduleProgress.length / module.lessonCount) * 100) : 0;
 
                 return (
