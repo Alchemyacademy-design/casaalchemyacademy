@@ -92,28 +92,35 @@ export default function Guides() {
               Select a module
             </h2>
             <div className="space-y-2">
-              {MODULES.map((mod, idx) => (
-                <button key={idx} onClick={() => setSelected(idx)}
-                  className="w-full text-left p-4 flex items-center gap-4 transition-all module-card-hover"
-                  style={{
-                    border: `1px solid ${selected === idx ? "var(--aa-gold)" : "var(--aa-cream-dark)"}`,
-                    backgroundColor: selected === idx ? "var(--aa-white)" : "var(--aa-cream)",
-                  }}>
-                  <span className="font-serif text-lg flex-shrink-0 w-8"
-                    style={{ color: "var(--aa-gold)", opacity: selected === idx ? 1 : 0.5 }}>
-                    {String(mod.number).padStart(2, "0")}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: selected === idx ? 500 : 400 }}>
-                      {mod.title}
+              {isLoading && modules.length === 0 ? (
+                <p className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>Loading…</p>
+              ) : (
+                modules.map((mod, idx) => (
+                  <button key={mod.id ?? idx} onClick={() => setSelected(idx)}
+                    className="w-full text-left p-4 flex items-center gap-4 transition-all module-card-hover"
+                    style={{
+                      border: `1px solid ${selected === idx ? "var(--aa-gold)" : "var(--aa-cream-dark)"}`,
+                      backgroundColor: selected === idx ? "var(--aa-white)" : "var(--aa-cream)",
+                    }}>
+                    <span className="font-serif text-lg flex-shrink-0 w-8"
+                      style={{ color: "var(--aa-gold)", opacity: selected === idx ? 1 : 0.5 }}>
+                      {String(mod.number).padStart(2, "0")}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: selected === idx ? 500 : 400 }}>
+                        {mod.title}
+                      </div>
+                      <div className="text-xs mt-0.5 truncate" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+                        {mod.tagline}
+                      </div>
                     </div>
-                    <div className="text-xs mt-0.5 truncate" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                      {mod.tagline}
-                    </div>
-                  </div>
-                  {selected === idx && <CheckCircle size={16} style={{ color: "var(--aa-gold)", flexShrink: 0 }} />}
-                </button>
-              ))}
+                    {mod.entitled && (
+                      <span className="text-xs px-2 py-0.5" style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>Unlocked</span>
+                    )}
+                    {selected === idx && <CheckCircle size={16} style={{ color: "var(--aa-gold)", flexShrink: 0 }} />}
+                  </button>
+                ))
+              )}
             </div>
           </div>
 
@@ -143,20 +150,28 @@ export default function Guides() {
                   <span className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>$59</span>
                   <span className="text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif" }}>per guide · 1 year access</span>
                 </div>
-                <button
-                  onClick={() => selectedModule && setShowModal(true)}
-                  className={`btn-gold w-full flex items-center justify-center gap-2 ${!selectedModule ? "opacity-50 cursor-not-allowed" : ""}`}
-                  disabled={!selectedModule}>
-                  {selectedModule ? (
-                    <>Get Casa Consult — $59 <ArrowRight size={14} /></>
-                  ) : (
-                    <><Lock size={14} /> Select a module first</>
-                  )}
-                </button>
+                {selectedModule?.entitled && selectedModule.href ? (
+                  <Link to={selectedModule.href} className="btn-gold w-full flex items-center justify-center gap-2">
+                    Open course <ArrowRight size={14} />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={() => selectedModule && setShowModal(true)}
+                    className={`btn-gold w-full flex items-center justify-center gap-2 ${!selectedModule ? "opacity-50 cursor-not-allowed" : ""}`}
+                    disabled={!selectedModule}>
+                    {selectedModule ? (
+                      <>Get Casa Consult — $59 <ArrowRight size={14} /></>
+                    ) : (
+                      <><Lock size={14} /> Select a module first</>
+                    )}
+                  </button>
+                )}
                 <p className="text-xs mt-2 text-center" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
                   Secure payment via Stripe
                 </p>
               </div>
+
+
 
               {/* Upsell */}
               <div className="p-5" style={{ backgroundColor: "var(--aa-olive-dark)" }}>
