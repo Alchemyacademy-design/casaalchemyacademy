@@ -94,6 +94,18 @@ export default function CommunityCenter({
 
   const { data: channels = [], isLoading: channelsLoading } = useChannels(spaceId);
 
+  // Deep-link: if initialChannelSlug, find matching channel across spaces and select it.
+  const [deepLinkApplied, setDeepLinkApplied] = useState(false);
+  useEffect(() => {
+    if (deepLinkApplied || !initialChannelSlug || spaces.length === 0) return;
+    // Try in current space first
+    const inCurrent = channels.find((c) => c.slug === initialChannelSlug);
+    if (inCurrent) {
+      setChannelId(inCurrent.id);
+      setDeepLinkApplied(true);
+    }
+  }, [initialChannelSlug, channels, spaces, deepLinkApplied]);
+
   useEffect(() => {
     if (!channels.length) {
       setChannelId(null);
@@ -118,9 +130,17 @@ export default function CommunityCenter({
     }
   }, [spaceId, channelId]);
 
-  const { data: posts = [], isLoading: postsLoading } = usePosts(channelId);
+  // Reset pagination/search when channel changes
+  useEffect(() => {
+    setPostsLimit(20);
+    setSearch("");
+    setFilter("all");
+  }, [channelId]);
+
+  const { data: posts = [], isLoading: postsLoading } = usePosts(channelId, postsLimit);
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { data: postReactions = [] } = usePostReactions(postIds);
+
 
   const createPost = useCreatePost(channelId, userId);
   const deletePost = useDeletePost(channelId);
