@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
 import { getCoursesTree } from "@/manus/services/admin-content";
+import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
 import { toast } from "sonner";
 
 type Lesson = {
@@ -80,7 +81,7 @@ async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Cour
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const courseId = Number(id);
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
   const qc = useQueryClient();
 
   const { data: course, isLoading, error } = useQuery({
@@ -90,36 +91,39 @@ export default function CourseDetail() {
     staleTime: 2 * 60 * 1000,
   });
 
-  const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
-  const isFullMember = isAdmin || tier === "annual_member" || tier === "monthly_member";
-  const accessible =
-    !course ||
-    isFullMember ||
-    !(course.access_plan_keys?.length) ||
-    course.access_plan_keys.includes("free") ||
-    course.access_plan_keys.includes("guest");
+  const accessState = {
+    isAdmin,
+    isMember,
+    hasCourseAccess,
+    entitlementCourseIds: (activeEntitlements ?? []).map((e) => Number(e.course_id)).filter(Boolean),
+  };
+  const accessible = !course || canAccessCourse(course.id, course.access_plan_keys, accessState);
 
   const allLessons: Lesson[] = useMemo(
     () => (course?.course_modules ?? []).flatMap((m) => m.lessons),
     [course],
   );
 
+  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
+  const completedIds = useMemo(
+    () => new Set(progress.filter((p: { completed: boolean; lessonId: number }) => p.completed).map((p) => p.lessonId)),
+    [progress],
+  );
+
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   useEffect(() => {
     if (activeLessonId == null && allLessons.length > 0) {
-      const firstPlayable = allLessons.find((l) => l.is_preview || accessible) ?? allLessons[0];
+      const resume = pickResumeLessonId(allLessons, progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>);
+      const firstPlayable = allLessons.find((l) => l.id === resume && (l.is_preview || accessible))
+        ?? allLessons.find((l) => l.is_preview || accessible)
+        ?? allLessons[0];
       setActiveLessonId(firstPlayable.id);
     }
-  }, [allLessons, activeLessonId, accessible]);
+  }, [allLessons, activeLessonId, accessible, progress]);
 
   const activeLesson = allLessons.find((l) => l.id === activeLessonId) ?? null;
   const activeModule = course?.course_modules.find((m) => m.id === activeLesson?.module_id) ?? null;
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
-  const completedIds = useMemo(
-    () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
-    [progress],
-  );
 
   const markLesson = trpc.lessons.markComplete.useMutation({
     onSuccess: async () => {
