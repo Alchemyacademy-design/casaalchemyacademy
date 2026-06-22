@@ -1,59 +1,54 @@
+# PLANO MASTER — ALCHEMY ACADEMY
 
-# Fase 0 + Fase 1 — Baseline e Fundação Técnica
+Fonte: mensagem do usuário em 2026-06-22. Este arquivo é o plano de upgrade oficial.
+Execução por ordem; cada fase termina com relatório + typecheck + testes + build + lint + pendências.
 
-Trabalho restrito a este projeto Lovable (repo `Alchemyacademy-design/alchemy-academy-preview`, Supabase `omzwtfnqffseemrlylwu`, admin `contact@casaalchemystudio.com`). Sem novas migrations, sem mexer em Stripe, sem refazer páginas existentes.
+## Regras imutáveis
+- Repo: `Alchemyacademy-design/alchemy-academy-preview`, branch `main`.
+- Supabase: `omzwtfnqffseemrlylwu`. Plano gratuito — sem hospedar vídeo pesado.
+- Admin master: `contact@casaalchemystudio.com` (role `admin` protegida).
+- Banco: NÃO criar tabelas/colunas/enums, NÃO alterar RLS, NÃO migrations. Tudo no schema atual.
+- Funções faltantes de schema → `docs/FUTURE_SCHEMA_BACKLOG.md`, nunca fingir pronto.
+- Stripe: última fase. Até lá, sem secrets/Products/Prices/Checkout/webhook.
+- Idioma: preservar o idioma de cada tela. Não misturar pt/en.
+- Identidade visual: Instrument Serif (títulos), Manrope (texto). Paleta Sandstone/Cacao/Chocolate/Terracotta/Avocado/Moss/White. Sem azul/roxo/gradiente SaaS.
 
-## Resultados de pré-checagem já confirmados
+## Performance / plano gratuito
+- Paginação 20, select colunas mínimas, lazy loading por rota, React Query cache, dedup, refetch só após mutation.
+- Caches: auth 30s • catálogo 5min • curso 2min • admin 1min • eventos/workshops 2min • revista/fornecedores 5min • comunidade 30s.
+- Vídeos via `external_video_url` / link externo. Nada de polling. Realtime só onde valha a pena.
 
-- Commit atual: `8be9822` (branch de edição). React Router 6.30.1 já é a única dependência de routing.
-- **Wouter**: `rg wouter src/ package.json` retorna zero. Nada para remover hoje — o relatório apenas registrará a ausência e adicionará um lint guard (`no-restricted-imports: ["wouter"]`) para impedir reintrodução.
-- **AdminUserDetail**: já usa `react-router-dom` (`useNavigate`, `useParams`). Sem conversão pendente; documentar.
-- **`subtitle` inexistente**: confirmado no `types.ts` — `events` e `live_workshops` não têm `subtitle`; apenas `courses` tem. Páginas a corrigir: `AdminEvents.tsx` (remover) e `AdminWorkshops.tsx` (remover). `AdminCourseDetail` / `AdminCoursesList` continuam usando `subtitle` corretamente.
-- **`admin_access_audit_log`**: tabela ausente; já referenciada em `AdminOverview.tsx` e `AdminUserDetail.tsx` via `db: any`. Atualmente "silencia" via `?? []`, mas mistura erro com vazio — endurecer para detectar `code === '42P01'` / `PGRST205` e tratar como "auditoria indisponível" sem quebrar a página nem mostrar lista falsa.
+## Fases
+- Fase 0 — Baseline (concluída → `docs/PHASE_0_REPORT.md`)
+- Fase 1 — Confiabilidade/perf (concluída → `docs/PHASE_1_REPORT.md`)
+- Fase 2 — Experiência de aprendizagem premium (Dashboard, My Courses, Course, Lesson, Learning Path derivado)
+- Fase 3 — Comunidade integrada (canais reais + botões Share/Ask/Discuss derivados)
+- Fase 4 — Gamificação elegante derivada (milestones calculados, sem novas tabelas)
+- Fase 5 — Eventos, Workshops, Magazine, Suppliers, Deals
+- Fase 6 — Central admin sem código (CRUDs completos no schema atual)
+- Fase 7 — Analytics educacionais derivadas (sem event tracking novo)
+- Fase 8 — Mobile + PWA (manifest, drawer, responsivo). Sem offline/push/app nativo.
+- Fase 9 — Busca global leve (debounce 300ms, mínimo 2 chars, paginada)
+- Fase 10 — Diferenciais: Guided Journey, Weekly Focus, Continue, Smart Empty, Course Readiness
+- Fase 11 — Backlog que exige schema → `docs/FUTURE_SCHEMA_BACKLOG.md`
+- Fase 12 — QA (5 perfis × 13 telas × 4 viewports + persistência + performance)
+- Fase 13 — Stripe (somente após tudo aprovado)
 
-## Fase 0 — Baseline (somente leitura)
+## Ordem de execução no Lovable
+1. Fases 0+1 ✅
+2. Fase 2 ← próxima
+3. Fase 3
+4. Fase 4
+5. Fase 5
+6. Fase 6
+7. Fase 7
+8. Fases 8+9
+9. Fase 10
+10. Fase 12
+11. Stripe
 
-1. Rodar e capturar saídas brutas: `tsc --noEmit`, `bunx vitest run`, build (via harness), `bun run lint` (se existir script; senão `bunx eslint .`).
-2. Auditar todas as páginas em `src/manus/pages/admin/` cruzando cada `field.name` contra colunas reais em `src/integrations/supabase/types.ts`. Produzir tabela de incompatibilidades.
-3. Verificar via UI/Diagnostics atual: session/roles/isAdmin e contagens de catálogo (courses/modules/lessons).
-4. Escrever `docs/PHASE_0_REPORT.md` com: identidade do projeto, commit, resultados crus dos comandos, mapa de telas/rotas/Edge Functions, lista de mocks/botões mudos remanescentes, e a tabela de incompatibilidades de campo.
+## Regra de conclusão de qualquer mutation
+Gravar → confirmar → invalidar cache → refetch → persistir após refresh → aparecer em segunda aba.
 
-## Fase 1 — Fundação técnica (edições mínimas)
-
-Edições focadas, sem refatorar lógica de negócio:
-
-1. **`src/manus/pages/admin/AdminEvents.tsx`** — remover o campo `subtitle` da config `fields`.
-2. **`src/manus/pages/admin/AdminWorkshops.tsx`** — remover o campo `subtitle` da config `fields`.
-3. **Outros campos incompatíveis** detectados na Fase 0 — corrigir cada um na própria página admin (apenas remover/renomear chave; sem mudar UX). Antes de aplicar, listar a alteração no chat e no relatório.
-4. **`AdminOverview.tsx` + `AdminUserDetail.tsx`** — extrair helper local `fetchAuditSafe()` que executa o select e, em caso de erro com código de tabela inexistente, retorna `{ available: false, rows: [] }`. UI mostra um aviso "Audit log not provisioned yet" em vez de tabela vazia, e nunca lança.
-5. **Padronizar status de query nas telas afetadas** (Overview, UserDetail, e qualquer outra encontrada na auditoria): distinguir `isLoading` (skeleton), `error` (mensagem `describeError`), `data.length === 0` (estado vazio explícito) e sucesso. Não introduzir novos componentes; usar os já existentes em `AdminShell` e shadcn.
-6. **Guard anti-Wouter**: adicionar regra em `eslint.config.js`:
-   ```
-   "no-restricted-imports": ["error", { "paths": [{ "name": "wouter", "message": "Use react-router-dom." }] }]
-   ```
-7. **AuthProvider, AdminGuard, cliente Supabase**: nenhuma mudança (já corretos). Apenas verificar e documentar.
-8. Re-rodar typecheck/lint/testes/build; abrir `/admin/diagnostics` autenticado como master admin e verificar:
-   - session = yes
-   - roles inclui `admin`
-   - isAdmin = true
-   - courses = 10 / modules = 10 / lessons = 30
-9. Escrever `docs/PHASE_1_REPORT.md` com: arquivos alterados, diffs conceituais, campos removidos/corrigidos, comportamento da auditoria ausente, resultado final dos 4 checks do diagnóstico, status de typecheck/test/build/lint, e pendências para a Fase 2 (cursos/módulos/aulas: archive vs delete, checklist de publicação, bulk editor, thumbnails, validação de URL externa).
-
-## Fora de escopo nesta execução
-
-- Stripe (qualquer arquivo).
-- Migrations SQL (incluindo criação de `admin_access_audit_log` — apenas pendência documentada).
-- Refatorar `AdminTablePage` para archive em vez de delete (Fase 2).
-- Remover mocks da área de membros (Fase 3).
-- Camada `src/manus/services/*` consolidada (Fase 2+).
-
-## Critérios de aceite
-
-- `bun run typecheck`, `bunx vitest run`, build e lint passam.
-- Zero imports de `wouter` + regra ESLint bloqueando reintrodução.
-- `AdminEvents` e `AdminWorkshops` não enviam mais `subtitle`.
-- Falha de auditoria não derruba `/admin` nem `/admin/users/:id`.
-- `/admin/diagnostics` exibe os 6 valores esperados.
-- `docs/PHASE_0_REPORT.md` e `docs/PHASE_1_REPORT.md` criados com todas as seções pedidas.
-
-Parar após a Fase 1 e aguardar revisão.
+## Estado atual
+- Plano salvo. Fase 1 entregue. Próximo passo aguarda aprovação: iniciar Execução 2 = Fase 2.
