@@ -508,6 +508,17 @@ export default function CommunityCenter({
                 </article>
               );
             })}
+            {!postsLoading && canLoadMore && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPostsLimit((n) => n + 20)}
+                >
+                  Carregar mais
+                </Button>
+              </div>
+            )}
           </div>
         </ScrollArea>
 
