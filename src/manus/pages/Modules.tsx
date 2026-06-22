@@ -94,19 +94,19 @@ export default function Modules() {
           <h1 className="font-serif text-3xl md:text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
             Courses Available
           </h1>
-          <p className="text-sm max-w-xl" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+          <p className="text-sm max-w-xl" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
             {isAdmin
               ? "Admin preview: drafts are visible to you only. Students see published courses."
-              : isFullMember
+              : hasAnyPaidAccess
               ? "You have full access to all modules. Work through them at your own pace."
               : "You have access to free modules. Upgrade to unlock the full curriculum."}
           </p>
         </div>
 
-        {!isFullMember && (
+        {!hasAnyPaidAccess && (
           <div className="mb-8 p-4 rounded-lg border border-border/50" style={{ backgroundColor: "var(--aa-gold-light)" }}>
             <p className="text-sm" style={{ color: "var(--aa-olive-dark)" }}>
-              Upgrade to access all modules and unlock the complete curriculum.
+              <Link to="/plans" className="underline">Upgrade</Link> to access all modules and unlock the complete curriculum.
             </p>
           </div>
         )}
