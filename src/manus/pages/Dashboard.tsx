@@ -21,7 +21,7 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
   const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin, staleTime: 5 * 60 * 1000 });
   const adminModules = useQuery({
     queryKey: ["dashboard", "admin-modules"],
@@ -56,9 +56,16 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
+  // Show all accessible courses/modules, prioritising the ones the user has touched.
+  const allModules = modules as ModuleRow[];
+  const startedIds = new Set((progress as ProgressRow[]).map((p) => p.moduleId));
   const enrolledModules = isAdmin
-    ? (modules as ModuleRow[])
-    : (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
+    ? allModules
+    : [
+        ...allModules.filter((m) => startedIds.has(m.id)),
+        ...allModules.filter((m) => !startedIds.has(m.id)),
+      ];
+
   const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
   const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
