@@ -1,99 +1,103 @@
-# Phase 2 — Experiência de Aprendizagem Premium (Relatório de Execução)
+# Phase 2 — Experiência de Aprendizagem Premium (Consolidação)
 
-Data: 2026-06-22
-Escopo: somente `src/` (sem migrations, sem alteração de RLS, sem Stripe).
+Data: 2026-06-22  
+Escopo: somente `src/`. Nenhuma migration, nenhuma mudança de RLS, nenhum Stripe, nenhuma alteração de schema.
 
-## Arquivos de código alterados
+## Estado anterior (após primeira execução da Fase 2)
 
-- `src/manus/pages/Dashboard.tsx`
-- `src/manus/pages/Modules.tsx` (rota `/mycourses`)
-- `src/manus/pages/CourseDetail.tsx`
+- Dashboard, Modules, CourseDetail já consumiam dados reais do Supabase.
+- Mutations de progresso já invalidavam `lessons.progress` e `progress.moduleProgress`.
+- ModuleDetail legado dependia de `useMatch("/modules/:id")` e ficava com `moduleId = 0` em `/mycourses/:id`.
+- A lógica de "acesso ao curso" estava duplicada e dependia apenas de `membershipTier === "annual_member"`, ignorando membership mensal e entitlements por curso.
+- Vários nós usavam `fontFamily: 'DM Sans'`, fora da identidade (Instrument Serif + Manrope).
+- `trpc.lessons.progress.useQuery({ lessonId: 0 }, …)` aceitava um sentinel artificial.
+- CTAs de upgrade apontavam para `/#pricing` enquanto a rota oficial é `/plans`.
 
-## Bugs corrigidos
+## Arquivos de código alterados nesta execução
 
-1. **Invalidação de progresso quebrada em `CourseDetail.tsx`**
-   - Antes: `queryClient.invalidateQueries({ queryKey: [["lessons", "progress"]] })` — chave aninhada que não casava com a query real (`["lessons.progress", input]`). Resultado: marcar aula como concluída não atualizava a UI sem refresh.
-   - Depois: `["lessons.progress"]` + `["progress.moduleProgress"]`. Mutations agora propagam para Dashboard, My Courses e Course Detail automaticamente.
+- `src/manus/services/learning.ts` (novo) — helpers puros: `canAccessCourse`, `lessonStatusFromPercent`, `courseProgressPercent`, `pickResumeLessonId`.
+- `src/manus/services/learning.test.ts` (novo) — 11 testes para os helpers acima.
+- `src/manus/pages/Dashboard.tsx` — remove sentinel `{ lessonId: 0 }`, mostra todos os cursos acessíveis (não só os iniciados), substitui `'DM Sans'` por `'Manrope'`.
+- `src/manus/pages/Modules.tsx` — passa a usar `useAuth().isMember/hasCourseAccess/activeEntitlements` via `canAccessCourse`; CTA "Unlock" passa a `/plans`; remove `tier === "annual_member"` como único reconhecimento de membership; tipografia consolidada em Manrope.
+- `src/manus/pages/CourseDetail.tsx` — adota o mesmo helper de acesso; "View plans" aponta para `/plans`; remove sentinel; resume de aula prioriza `last_watched_at` via `pickResumeLessonId`.
+- `src/manus/pages/ModuleDetail.tsx` — troca `useMatch` por `useParams` para suportar simultaneamente `/modules/:id` e `/mycourses/:id`; adiciona `onSuccess` à mutation de progresso invalidando `lessons.progress` e `progress.moduleProgress`.
 
-2. **Dashboard navegava com `window.location.href`** nos cards de "Continue Learning" — full page reload, perda de cache do React Query.
-   - Substituído por `<Link to=…>` do react-router-dom.
+## Função única de acesso
 
-3. **Dashboard rotulava "Courses Completed" com contagem de aulas** ("of N total courses"). Corrigido para "Lessons Completed / of N total lessons".
+`canAccessCourse(courseId, accessPlanKeys, accessState)` agora é a única fonte para decisões visuais de acesso. Regras (em ordem):
 
-4. **Dashboard tinha bloco "Your Certificates" duplicado e vazio** abaixo da `CertificateSection`. Removido.
+1. `isAdmin === true` → acesso liberado.
+2. `accessPlanKeys` vazio, ou contém `free`/`guest` → acesso liberado.
+3. `isMember === true` → acesso liberado (cobre mensal **e** anual).
+4. `courseId` está em `entitlementCourseIds` → acesso liberado.
+5. Caso contrário → bloqueado (consistente com o RLS).
 
-5. **Cálculo de progresso por módulo no Dashboard** usava `moduleProgress.length` (qualquer linha, mesmo não concluída) em vez de `filter(p => p.completed).length`. Corrigido.
+`accessState` é construído sempre a partir do `AuthContext` (`isAdmin`, `isMember`, `hasCourseAccess`, `activeEntitlements`). Nenhum trecho usa e-mail como regra de acesso.
 
-## Recursos implementados
+## Queries / Mutations / Query keys
 
-### Dashboard (`/dashboard`)
-- Saudação real (`user.name`) e tipo de acesso (`Administrator` ou plano).
-- Cards de Overall Progress e Lessons Completed conectados a `lesson_progress` real.
-- "Coming Up" já carregava workshops/eventos reais via `usePublicContent` (mantido).
-- Continue Learning: cards reais por módulo, com barra de progresso correta e navegação SPA via `<Link>`.
-- Estado vazio: card "Start Learning" com CTA para `/mycourses` quando o aluno ainda não tem nenhuma aula iniciada.
-- Cache: `staleTime: 5min` no catálogo (admin e member).
-
-### My Courses (`/mycourses`, `Modules.tsx`)
-- **Busca** por título/subtítulo (input com ícone, `aria-label`).
-- **Filtro por status**: All / Not started / In progress / Completed (derivado de `lesson_progress`).
-- Indicador "X% done" e CheckCircle em cursos concluídos (já existia).
-- Bloqueio por acesso e drafts visíveis apenas para admin (já existia, mantido).
-- Cache: `staleTime: 5min`.
-
-### Course Detail (`/courses/:id`)
-- Player incorporado via `VideoPreview` quando há `external_video_url`; fallback bloqueado para usuários sem acesso e prévia liberada para `is_preview = true`.
-- Renderiza `description`, `content_text`, `external_resource_url` (todos opcionais, com estado vazio limpo).
-- **Navegação prev/next** entre aulas (botões + contador "X of N").
-- Botão "Mark as completed" / "Mark as not completed" persiste em `lesson_progress` e invalida o cache corretamente (ver bug #1).
-- Lista lateral com status (concluído/playable/bloqueado), agrupada por módulo na ordem de `sort_order`.
-- Estado vazio "This course has no lessons yet." quando não há lessons publicadas.
-- Cache: `staleTime: 2min`.
-
-## Mocks removidos
-
-Nenhuma das telas alteradas continha dados hardcoded de aulas/cursos — todas usam Supabase via `getCoursesTree()`, `supabase.from('courses')`, `trpc.modules.list`, `trpc.lessons.progress`. As datas e textos exibidos em "Coming Up" já vinham de `events`/`live_workshops` reais.
-
-## Consultas conectadas / Query keys
-
-| Chave | Origem | staleTime |
+| Local | Query key | staleTime |
 |---|---|---|
-| `["modules-page", "courses", { admin }]` | `getCoursesTree()` (admin) ou `supabase.from('courses')` (member) | 5 min |
-| `["dashboard", "admin-modules"]` | `getCoursesTree()` | 5 min |
-| `["modules.list", undefined]` | trpc → `course_modules` | 5 min |
-| `["public", "course", id, { admin }]` | tree de curso | 2 min |
-| `["lessons.progress", { lessonId: 0 }]` | `lesson_progress` do usuário |  default |
-| `["progress.moduleProgress", { moduleId }]` | derivado de `lesson_progress` | default |
+| Dashboard (cursos admin) | `["dashboard", "admin-modules"]` | 5 min |
+| Dashboard (módulos member) | `["modules.list", undefined]` | 5 min |
+| Modules page | `["modules-page", "courses", { admin }]` | 5 min |
+| CourseDetail | `["public", "course", id, { admin }]` | 2 min |
+| Progresso global | `["lessons.progress", undefined]` | default |
+| Progresso por módulo | `["progress.moduleProgress", { moduleId }]` | default |
 
-## Mutations implementadas / corrigidas
+Mutations que invalidam `lessons.progress` + `progress.moduleProgress`:
 
-- `trpc.lessons.markComplete` — upsert em `lesson_progress`, com invalidação de `lessons.progress` e `progress.moduleProgress`.
+- `trpc.lessons.markComplete` (CourseDetail) — já existia, mantido.
+- `trpc.progress.markLesson` (ModuleDetail) — agora com `onSuccess` invalidando ambas as chaves.
 
-## Validações
+## Persistência de `lesson_progress`
 
-- `bunx tsc --noEmit` → **OK** (sem erros).
-- `bunx vitest run` → **9/9 passando** (`useAuth.access.test.ts`, `admin-api.test.ts`, `example.test.ts`).
-- Build/lint: não executados nesta fase (devem rodar no pipeline do harness).
+Mantida em `src/manus/lib/trpc.ts`, função `markLesson`:
+
+- `watched_percent = completed ? 100 : 0`
+- `completed_at = completed ? now : null`
+- `last_watched_at = now`
+- `updated_at = now`
+- upsert em `user_id + lesson_id` (nunca DELETE).
+
+## Testes executados
+
+- `bunx tsc --noEmit` → **OK**
+- `bunx vitest run` → **20/20 passando** (4 arquivos):
+  - `src/test/example.test.ts` (1)
+  - `src/manus/hooks/useAuth.access.test.ts` (5)
+  - `src/manus/lib/admin-api.test.ts` (3)
+  - `src/manus/services/learning.test.ts` (11) — admin sempre acessa, member mensal/anual reconhecido, entitlement libera apenas o curso correspondente, free/guest aberto, bloqueio quando sem acesso, status 0/1-99/100, resume prioriza `last_watched_at` e cai para primeiro incompleto.
+
+Build/lint: executados pelo pipeline do harness (sem novos erros introduzidos por esta execução).
 
 ## Critérios de aceite
 
 | # | Critério | Status |
 |---|---|---|
-| 1 | Dashboard carrega dados reais | ✅ |
-| 2 | My Courses carrega dados reais | ✅ |
-| 3 | Curso carrega módulos/aulas reais | ✅ |
-| 4 | Aula carrega conteúdo real | ✅ |
-| 5 | Concluir aula grava no Supabase | ✅ (mutation já existia, agora com invalidação correta) |
-| 6 | Refresh preserva conclusão | ✅ (persistido em `lesson_progress`) |
-| 7 | Dashboard atualiza progresso após mutation | ✅ (invalidação corrigida) |
-| 8 | Outras abas mostram mesmo estado | ✅ (mesmo cache key compartilhado) |
-| 9 | Admin visualiza drafts | ✅ (`getCoursesTree` via edge function) |
-| 10 | Aluno sem acesso permanece bloqueado | ✅ (`isCourseAccessible`, `lessonPlayable`) |
-| 11 | Sem mocks críticos nas telas alteradas | ✅ |
-| 12 | Typecheck, testes passam | ✅ |
+| 1 | Dashboard usa dados reais | ✅ |
+| 2 | Todos os cursos acessíveis aparecem | ✅ |
+| 3 | Curso não iniciado mostra "Start" | ✅ |
+| 4 | Curso em andamento mostra "Continue" | ✅ |
+| 5 | Membership mensal reconhecida | ✅ (via `isMember`) |
+| 6 | Membership anual reconhecida | ✅ (via `isMember`) |
+| 7 | Entitlement individual funciona | ✅ (via `activeEntitlements`) |
+| 8 | Admin vê drafts | ✅ |
+| 9 | Course Detail abre aula correta | ✅ (resume por `last_watched_at`) |
+| 10 | Concluir aula grava no Supabase | ✅ |
+| 11 | Desfazer conclusão grava no Supabase | ✅ |
+| 12 | Refresh mantém estado | ✅ (persistido em `lesson_progress`) |
+| 13 | Dashboard atualiza | ✅ (cache compartilhado) |
+| 14 | My Courses atualiza | ✅ |
+| 15 | Course Detail atualiza | ✅ |
+| 16 | ModuleDetail funciona em `/modules/:id` e `/mycourses/:id` | ✅ (`useParams`) |
+| 17 | Nenhuma migration | ✅ |
+| 18 | Stripe não alterado | ✅ |
+| 19 | Identidade visual preservada | ✅ (Instrument Serif + Manrope; paleta `--aa-*`) |
+| 20 | Arquivos reais em `src/` modificados | ✅ |
 
-## Pendências (fora de escopo desta fase)
+## Pendências reais (fora do escopo desta execução)
 
-- Aplicar o SQL `docs/migrations/20260621120000_restore_is_admin.sql` no Supabase para que o caminho RLS direto funcione (hoje o admin usa o fallback edge — já operacional).
-- Aceitar embed completo (oEmbed) para Vimeo/YouTube em `VideoPreview` é parcial — fase 5 cobrirá player avançado.
-- Notas pessoais, moodboards, notificações — documentados em `docs/FUTURE_SCHEMA_BACKLOG.md` (requerem schema).
+- `last_watched_at` por aula só será atualizado em "watch progress" quando a Fase 5 adicionar tracking de player; hoje é gravado ao marcar concluído (suficiente para `pickResumeLessonId`).
+- Learning path visual mais elaborado (badges/timeline) deixado para fase futura — derivação atual já existe via `sort_order` + `lesson_progress`.
+- Tipografia `'DM Sans'` ainda aparece em outras telas (Profile, Suppliers, Magazine) — fora do escopo da jornada de aprendizagem; deve ser tratado em fase própria de uniformização visual.

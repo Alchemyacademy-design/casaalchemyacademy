@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getCoursesTree } from "@/manus/services/admin-content";
+import { canAccessCourse } from "@/manus/services/learning";
 import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+
 
 type CourseRow = {
   id: number;
@@ -43,13 +45,18 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
 }
 
 export default function Modules() {
-  const { user, isAdmin } = useAuth();
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
+  const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
+  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
 
-  const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
-  const isFullMember = isAdmin || tier === "annual_member";
+  const accessState = {
+    isAdmin,
+    isMember,
+    hasCourseAccess,
+    entitlementCourseIds: (activeEntitlements ?? []).map((e) => Number(e.course_id)).filter(Boolean),
+  };
+  const hasAnyPaidAccess = isAdmin || isMember || hasCourseAccess;
 
-  const { data: courses = [], isLoading, error } = useQuery({
+  const { data: courses = [], isLoading, error, refetch } = useQuery({
     queryKey: ["modules-page", "courses", { admin: isAdmin }],
     queryFn: () => fetchCourses(isAdmin),
     staleTime: 5 * 60 * 1000,
@@ -66,8 +73,6 @@ export default function Modules() {
 
   const getProgress = (courseId: number, lessonCount: number) => {
     if (!progress || lessonCount === 0) return 0;
-    // moduleId in progress rows = lessons.module_id; we approximate by counting
-    // any completed lessons attached to modules of this course.
     const moduleIds = new Set(
       (courses.find((c) => c.id === courseId)?.course_modules ?? []).map((m) => m.id),
     );
@@ -77,13 +82,9 @@ export default function Modules() {
     return Math.round((done / lessonCount) * 100);
   };
 
-  const isCourseAccessible = (c: CourseRow) => {
-    if (isFullMember) return true;
-    const keys = c.access_plan_keys ?? [];
-    if (keys.length === 0) return true; // free
-    if (keys.includes("free") || keys.includes("guest")) return true;
-    return false;
-  };
+  const isCourseAccessible = (c: CourseRow) =>
+    canAccessCourse(c.id, c.access_plan_keys, accessState);
+
 
   return (
     <MemberLayout>
@@ -93,19 +94,19 @@ export default function Modules() {
           <h1 className="font-serif text-3xl md:text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
             Courses Available
           </h1>
-          <p className="text-sm max-w-xl" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+          <p className="text-sm max-w-xl" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
             {isAdmin
               ? "Admin preview: drafts are visible to you only. Students see published courses."
-              : isFullMember
+              : hasAnyPaidAccess
               ? "You have full access to all modules. Work through them at your own pace."
               : "You have access to free modules. Upgrade to unlock the full curriculum."}
           </p>
         </div>
 
-        {!isFullMember && (
+        {!hasAnyPaidAccess && (
           <div className="mb-8 p-4 rounded-lg border border-border/50" style={{ backgroundColor: "var(--aa-gold-light)" }}>
             <p className="text-sm" style={{ color: "var(--aa-olive-dark)" }}>
-              Upgrade to access all modules and unlock the complete curriculum.
+              <Link to="/plans" className="underline">Upgrade</Link> to access all modules and unlock the complete curriculum.
             </p>
           </div>
         )}
@@ -147,7 +148,7 @@ export default function Modules() {
                   style={{
                     backgroundColor: statusFilter === s ? "var(--aa-gold)" : "white",
                     color: statusFilter === s ? "var(--aa-cacao)" : "var(--aa-text-mid)",
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "'Manrope', sans-serif",
                     letterSpacing: "0.05em",
                   }}
                 >
@@ -201,7 +202,7 @@ export default function Modules() {
                       className="text-sm font-semibold"
                       style={{
                         color: thumbnail ? "white" : "var(--aa-gold)",
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: "'Manrope', sans-serif",
                         letterSpacing: "0.08em",
                       }}
                     >
@@ -209,7 +210,7 @@ export default function Modules() {
                     </span>
                     <div className="flex items-center gap-2 mt-1">
                       {isDraft && (
-                        <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.5)", color: "white", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>
+                        <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.5)", color: "white", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
                           Draft
                         </span>
                       )}
@@ -226,24 +227,24 @@ export default function Modules() {
                     {c.title}
                   </h3>
                   {c.subtitle && (
-                    <p className="text-xs mb-4 flex-1 leading-relaxed" style={{ color: thumbnail ? "rgba(255,255,255,0.9)" : "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+                    <p className="text-xs mb-4 flex-1 leading-relaxed" style={{ color: thumbnail ? "rgba(255,255,255,0.9)" : "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
                       {c.subtitle}
                     </p>
                   )}
 
                   <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xs" style={{ color: thumbnail ? "rgba(255,255,255,0.8)" : "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                    <span className="text-xs" style={{ color: thumbnail ? "rgba(255,255,255,0.8)" : "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
                       {lessonCount} lesson{lessonCount === 1 ? "" : "s"} {pct > 0 ? `· ${pct}% done` : ""}
                     </span>
                     {!locked ? (
                       <Link to={`/courses/${c.id}`}>
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
+                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
                           {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
                         </span>
                       </Link>
                     ) : (
-                      <Link to="/#pricing">
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>
+                      <Link to="/plans">
+                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
                           Unlock <ArrowRight size={12} />
                         </span>
                       </Link>

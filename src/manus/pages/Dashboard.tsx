@@ -21,7 +21,7 @@ export default function Dashboard() {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
   const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin, staleTime: 5 * 60 * 1000 });
   const adminModules = useQuery({
     queryKey: ["dashboard", "admin-modules"],
@@ -56,9 +56,16 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
+  // Show all accessible courses/modules, prioritising the ones the user has touched.
+  const allModules = modules as ModuleRow[];
+  const startedIds = new Set((progress as ProgressRow[]).map((p) => p.moduleId));
   const enrolledModules = isAdmin
-    ? (modules as ModuleRow[])
-    : (modules as ModuleRow[]).filter((m) => (progress as ProgressRow[]).some((p) => p.moduleId === m.id));
+    ? allModules
+    : [
+        ...allModules.filter((m) => startedIds.has(m.id)),
+        ...allModules.filter((m) => !startedIds.has(m.id)),
+      ];
+
   const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
   const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
@@ -72,7 +79,7 @@ export default function Dashboard() {
           <h1 className="font-serif text-3xl md:text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
             {user?.name || "Alchemist"}
           </h1>
-          <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+          <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
             Your access: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{isAdmin ? "Administrator" : ((user as { membershipTier?: string } | null)?.membershipTier || "Free")}</span>
           </p>
         </div>
@@ -83,7 +90,7 @@ export default function Dashboard() {
           <div className="p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                   Overall Progress
                 </p>
                 <p className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
@@ -101,7 +108,7 @@ export default function Dashboard() {
           <div className="p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
             <div className="flex items-start justify-between mb-4">
               <div>
-                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
+                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
                   Lessons Completed
                 </p>
                 <p className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
@@ -110,7 +117,7 @@ export default function Dashboard() {
               </div>
               <BookOpen size={24} style={{ color: "var(--aa-gold)" }} />
             </div>
-            <p className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
               of {totalLessons} total lessons
             </p>
           </div>
@@ -151,7 +158,7 @@ export default function Dashboard() {
                       <span className="font-serif text-2xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>
                         {String(module.number).padStart(2, "0")}
                       </span>
-                      <span className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      <span className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
                         {pct}% done
                       </span>
                     </div>
@@ -161,7 +168,7 @@ export default function Dashboard() {
                     <div className="h-1 w-full mb-3" style={{ backgroundColor: "var(--aa-cream-dark)" }}>
                       <div className="h-1" style={{ width: `${pct}%`, backgroundColor: "var(--aa-gold)" }} />
                     </div>
-                    <div className="flex items-center gap-1 text-xs" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
+                    <div className="flex items-center gap-1 text-xs" style={{ color: "var(--aa-olive-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
                       {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
                     </div>
                   </Link>
@@ -174,13 +181,13 @@ export default function Dashboard() {
             <h2 className="font-serif text-2xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
               Start Learning
             </h2>
-            <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif" }}>
               Explore the curriculum and begin your journey.
             </p>
             <Link
               to="/mycourses"
               className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded"
-              style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-cacao)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
+              style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-cacao)", fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}
             >
               Browse courses <ArrowRight size={14} />
             </Link>
