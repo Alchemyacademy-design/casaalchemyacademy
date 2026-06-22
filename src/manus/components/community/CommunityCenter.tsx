@@ -31,7 +31,6 @@ import {
 import {
   dedupePostPages,
   filterPosts,
-  POSTS_PAGE_SIZE,
   resolveDeepLinkChannel,
 } from "@/manus/services/community-deeplink";
 import { CreateSpaceDialog, CreateChannelDialog } from "./CommunityDialogs";
