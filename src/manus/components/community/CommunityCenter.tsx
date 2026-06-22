@@ -169,8 +169,37 @@ export default function CommunityCenter({
   }, [postReactions, userId]);
 
   /* ---------------- Composer state ---------------- */
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState("");
+  const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
+  const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
+  const [draftPrefilled, setDraftPrefilled] = useState(
+    !!(initialDraftTitle || initialDraftBody),
+  );
+
+  // Re-apply prefill if it arrives after mount or after channel switch
+  useEffect(() => {
+    if (!initialDraftTitle && !initialDraftBody) return;
+    if (draftPrefilled) return;
+    setDraftTitle(initialDraftTitle ?? "");
+    setDraftBody(initialDraftBody ?? "");
+    setDraftPrefilled(true);
+  }, [initialDraftTitle, initialDraftBody, draftPrefilled]);
+
+  /* ---------------- Search + filter ---------------- */
+  const filteredPosts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return posts.filter((p) => {
+      if (filter === "pinned" && !p.pinned) return false;
+      if (filter === "mine" && p.author_id !== userId) return false;
+      if (q) {
+        const hay = `${p.title ?? ""}\n${p.body ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [posts, search, filter, userId]);
+
+  const canLoadMore = posts.length >= postsLimit;
+
 
   const handlePost = async () => {
     if (!draftBody.trim()) return;
