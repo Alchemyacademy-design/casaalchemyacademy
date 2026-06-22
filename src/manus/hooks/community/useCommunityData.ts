@@ -170,6 +170,7 @@ export function usePosts(channelId: number | null, limit: number = 20) {
         .is("deleted_at", null)
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(limit);
       if (error) throw error;
       return data ?? [];
@@ -198,8 +199,10 @@ export function usePosts(channelId: number | null, limit: number = 20) {
 
 /**
  * Cursor-less, page-based infinite pagination over community_posts using
- * `.range(from, to)`. Page size is fixed at POSTS_PAGE_SIZE. Realtime on the
- * active channel invalidates the whole prefix so refetch reconstructs pages.
+ * `.range(from, to)`. Page size is fixed at POSTS_PAGE_SIZE. The final
+ * `.order("id", { ascending: false })` makes the order deterministic when
+ * multiple rows share the same `last_activity_at`, so pages never omit
+ * nor duplicate records.
  */
 export function usePostsInfinite(channelId: number | null) {
   const qc = useQueryClient();
@@ -220,6 +223,7 @@ export function usePostsInfinite(channelId: number | null) {
         .is("deleted_at", null)
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
+        .order("id", { ascending: false })
         .range(from, to);
       if (error) throw error;
       return data ?? [];
@@ -249,22 +253,43 @@ export function usePostsInfinite(channelId: number | null) {
 }
 
 /**
- * Single-shot lookup of a channel by slug. Used by deep-links so we don't
- * need to scan every space. Honours RLS — a slug the caller cannot read
- * resolves to null.
+ * Single-shot lookup of a channel by slug, optionally scoped to a space slug.
+ * `community_channels` is UNIQUE(space_id, slug) — the slug is NOT globally
+ * unique, so we cannot rely on `.maybeSingle()` across spaces. When `spaceSlug`
+ * is provided we resolve the space first and filter `space_id`; otherwise we
+ * pick the first match deterministically (smallest space_id, smallest id) so
+ * the result is stable. Honours RLS — a row the caller cannot read is null.
  */
-export function useChannelBySlug(slug: string | null | undefined) {
+export function useChannelBySlug(
+  slug: string | null | undefined,
+  spaceSlug?: string | null,
+) {
   return useQuery({
-    queryKey: ["community", "channel-by-slug", slug ?? ""],
+    queryKey: ["community", "channel-by-slug", spaceSlug ?? "", slug ?? ""],
     enabled: !!slug,
     queryFn: async () => {
-      const { data, error } = await supabase
+      let spaceId: number | null = null;
+      if (spaceSlug) {
+        const { data: space, error: spaceErr } = await supabase
+          .from("community_spaces")
+          .select("id")
+          .eq("slug", spaceSlug)
+          .maybeSingle();
+        if (spaceErr) throw spaceErr;
+        if (!space) return null;
+        spaceId = space.id;
+      }
+      let q = supabase
         .from("community_channels")
         .select("id, slug, space_id")
         .eq("slug", slug!)
-        .maybeSingle();
+        .order("space_id", { ascending: true })
+        .order("id", { ascending: true })
+        .limit(1);
+      if (spaceId != null) q = q.eq("space_id", spaceId);
+      const { data, error } = await q;
       if (error) throw error;
-      return data ?? null;
+      return (data && data[0]) ?? null;
     },
   });
 }

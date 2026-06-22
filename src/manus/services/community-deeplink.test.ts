@@ -153,3 +153,38 @@ describe("buildLessonShareBody", () => {
     expect(body.startsWith("Hello")).toBe(true);
   });
 });
+
+/* ----------------- Deterministic ordering on tie ----------------- */
+import { comparePostsForFeed, paginateFeed } from "./community-deeplink";
+
+describe("comparePostsForFeed + paginateFeed (deterministic on tie)", () => {
+  const sameTs = "2026-06-22T12:00:00Z";
+  const rows = Array.from({ length: 45 }, (_, i) => ({
+    id: i + 1,
+    pinned: false,
+    last_activity_at: sameTs,
+  }));
+
+  it("pins float to the top, ties broken by id desc", () => {
+    const mixed = [
+      { id: 1, pinned: false, last_activity_at: sameTs },
+      { id: 2, pinned: true, last_activity_at: sameTs },
+      { id: 3, pinned: true, last_activity_at: sameTs },
+    ];
+    const sorted = [...mixed].sort(comparePostsForFeed);
+    expect(sorted.map((r) => r.id)).toEqual([3, 2, 1]);
+  });
+
+  it("pages never omit nor duplicate when last_activity_at ties", () => {
+    const pages = paginateFeed(rows, 20);
+    expect(pages.length).toBe(3);
+    const allIds = pages.flat().map((p) => p.id);
+    expect(allIds.length).toBe(45);
+    expect(new Set(allIds).size).toBe(45);
+    // Page boundary IDs are stable across runs because of the id-desc tiebreak
+    expect(pages[0][0].id).toBe(45);
+    expect(pages[0][19].id).toBe(26);
+    expect(pages[1][0].id).toBe(25);
+    expect(pages[2].at(-1)?.id).toBe(1);
+  });
+});

@@ -6,7 +6,7 @@ import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Share2, HelpCircle, Me
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -50,13 +50,21 @@ export default function ModuleDetail() {
   });
 
   // Restore lesson selection from #lesson-<id> hash when valid for THIS module.
+  // Tracks the last hash we already applied so the effect does NOT fight with
+  // user navigation (clicks on a different lesson, Previous, Next…).
+  const appliedHashRef = useRef<string | null>(null);
   useEffect(() => {
     if (!lessons.length) return;
-    const fromHash = parseLessonHash(location.hash, lessons);
-    if (fromHash && fromHash !== activeLessonId) {
+    const hash = location.hash || "";
+    if (appliedHashRef.current === hash) return;
+    const fromHash = parseLessonHash(hash, lessons);
+    appliedHashRef.current = hash;
+    if (fromHash) {
       setActiveLessonId(fromHash);
     }
-  }, [lessons, location.hash, activeLessonId]);
+    // Intentionally NOT depending on activeLessonId — otherwise clicking
+    // another lesson would re-apply the hash and trap the user.
+  }, [lessons, location.hash]);
 
 
   const activeLesson = activeLessonId

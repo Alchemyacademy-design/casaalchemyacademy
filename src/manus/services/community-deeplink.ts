@@ -123,3 +123,39 @@ export function buildLessonShareBody(input: {
     `Lesson link: ${input.lessonUrl}`
   );
 }
+
+/* ----------------------------- Feed ordering ----------------------------- */
+
+/**
+ * Pure mirror of the SQL `.order("pinned", desc).order("last_activity_at", desc)
+ * .order("id", desc)` used by `usePostsInfinite`. Exposed as a helper so the
+ * ordering contract can be unit-tested independently of Supabase.
+ */
+export function comparePostsForFeed<
+  T extends { pinned: boolean; last_activity_at: string | null; id: number },
+>(a: T, b: T): number {
+  // pinned first (true > false)
+  if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+  const ta = a.last_activity_at ?? "";
+  const tb = b.last_activity_at ?? "";
+  if (ta !== tb) return ta < tb ? 1 : -1;
+  // tiebreaker: id desc
+  if (a.id !== b.id) return a.id < b.id ? 1 : -1;
+  return 0;
+}
+
+/**
+ * Slice a sorted feed into pages of `pageSize`. Guarantees no omissions or
+ * duplications even when many posts share `last_activity_at` (the `id` tie
+ * breaker in `comparePostsForFeed` makes the order total).
+ */
+export function paginateFeed<
+  T extends { pinned: boolean; last_activity_at: string | null; id: number },
+>(rows: T[], pageSize: number = POSTS_PAGE_SIZE): T[][] {
+  const sorted = [...rows].sort(comparePostsForFeed);
+  const pages: T[][] = [];
+  for (let i = 0; i < sorted.length; i += pageSize) {
+    pages.push(sorted.slice(i, i + pageSize));
+  }
+  return pages;
+}
