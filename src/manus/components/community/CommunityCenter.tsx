@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2, Search, Filter } from "lucide-react";
 
 import { useAuth } from "@/manus/hooks/useAuth";
