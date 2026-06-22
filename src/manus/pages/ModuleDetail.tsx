@@ -200,14 +200,25 @@ export default function ModuleDetail() {
                   {/* Community actions */}
                   {(() => {
                     const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
-                    const courseTitle = module?.title ?? "this course";
+                    const courseTitle =
+                      (courseRow as { title?: string } | null | undefined)?.title ??
+                      "this course";
+                    const moduleTitle = module?.title ?? "this module";
                     const lessonTitle = activeLesson.title;
                     const buildLink = (
                       channel: string,
                       title: string,
-                      body: string,
-                    ) =>
-                      `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                      intro: string,
+                    ) => {
+                      const body = buildLessonShareBody({
+                        courseTitle,
+                        moduleTitle,
+                        lessonTitle,
+                        lessonUrl,
+                        intro,
+                      });
+                      return `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                    };
                     return (
                       <Card className="p-4 flex flex-wrap gap-2 items-center">
                         <span className="text-sm text-foreground/70 mr-2">
@@ -215,9 +226,9 @@ export default function ModuleDetail() {
                         </span>
                         <Link
                           to={buildLink(
-                            "project-sharing",
+                            "projects",
                             `My progress on "${lessonTitle}"`,
-                            `I just finished "${lessonTitle}" in ${courseTitle}.\n\nLesson: ${lessonUrl}`,
+                            `I just finished "${lessonTitle}".`,
                           )}
                         >
                           <Button variant="outline" size="sm">
@@ -226,9 +237,9 @@ export default function ModuleDetail() {
                         </Link>
                         <Link
                           to={buildLink(
-                            "ask-lorena",
+                            "questions",
                             `Question about "${lessonTitle}"`,
-                            `Course: ${courseTitle}\nLesson: ${lessonTitle} (${lessonUrl})\n\nMy question: `,
+                            `I have a question about this lesson:`,
                           )}
                         >
                           <Button variant="outline" size="sm">
@@ -237,9 +248,9 @@ export default function ModuleDetail() {
                         </Link>
                         <Link
                           to={buildLink(
-                            "general-discussion",
+                            "general",
                             `Discussing "${lessonTitle}"`,
-                            `Let's discuss "${lessonTitle}" from ${courseTitle}.\nLesson: ${lessonUrl}\n\n`,
+                            `Let's discuss this lesson:`,
                           )}
                         >
                           <Button variant="outline" size="sm">
