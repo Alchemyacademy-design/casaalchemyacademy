@@ -3,15 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Share2, HelpCircle, MessageSquare } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  buildLessonShareBody,
+  parseLessonHash,
+} from "@/manus/services/community-deeplink";
 
 
 export default function ModuleDetail() {
   const params = useParams<{ id: string }>();
+  const location = useLocation();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const qc = useQueryClient();
@@ -25,6 +31,32 @@ export default function ModuleDetail() {
       await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
     },
   });
+
+  // Course title via the existing module.course_id relation (no schema change).
+  const courseId: number | null =
+    (module as { course_id?: number | null } | undefined)?.course_id ?? null;
+  const { data: courseRow } = useQuery({
+    queryKey: ["course-title", courseId],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id,title")
+        .eq("id", courseId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Restore lesson selection from #lesson-<id> hash when valid for THIS module.
+  useEffect(() => {
+    if (!lessons.length) return;
+    const fromHash = parseLessonHash(location.hash, lessons);
+    if (fromHash && fromHash !== activeLessonId) {
+      setActiveLessonId(fromHash);
+    }
+  }, [lessons, location.hash, activeLessonId]);
 
 
   const activeLesson = activeLessonId
