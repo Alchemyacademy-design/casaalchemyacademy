@@ -22,10 +22,11 @@ export default function Dashboard() {
   }, [isAuthenticated, loading, navigate]);
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
-  const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin });
+  const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin, staleTime: 5 * 60 * 1000 });
   const adminModules = useQuery({
     queryKey: ["dashboard", "admin-modules"],
     enabled: isAdmin,
+    staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<ModuleRow[]> => {
       const catalog = await getCoursesTree();
       return catalog.courses.flatMap((course) =>
