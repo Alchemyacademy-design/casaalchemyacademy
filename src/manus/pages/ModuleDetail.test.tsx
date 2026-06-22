@@ -12,10 +12,10 @@ vi.mock("@/manus/components/MemberLayout", () => ({
 }));
 
 // trpc proxy — every page that imports it gets the same mocked surface
-const moduleByIdMock = vi.fn();
-const lessonsByModuleMock = vi.fn();
-const moduleProgressMock = vi.fn(() => []);
-const markLessonMock = vi.fn(() => Promise.resolve({ success: true }));
+const moduleByIdMock = vi.fn((..._args: unknown[]) => null as unknown);
+const lessonsByModuleMock = vi.fn((..._args: unknown[]) => [] as unknown[]);
+const moduleProgressMock = vi.fn((..._args: unknown[]) => [] as unknown[]);
+const markLessonMock = vi.fn((..._args: unknown[]) => Promise.resolve({ success: true }));
 
 vi.mock("@/manus/lib/trpc", () => ({
   trpc: {
