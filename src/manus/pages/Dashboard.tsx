@@ -97,12 +97,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Courses Completed */}
+          {/* Lessons Completed */}
           <div className="p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
             <div className="flex items-start justify-between mb-4">
               <div>
                 <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  Courses Completed
+                  Lessons Completed
                 </p>
                 <p className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
                   {completedLessons}
@@ -111,7 +111,7 @@ export default function Dashboard() {
               <BookOpen size={24} style={{ color: "var(--aa-gold)" }} />
             </div>
             <p className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
-              of {totalLessons} total courses
+              of {totalLessons} total lessons
             </p>
           </div>
         </div>
