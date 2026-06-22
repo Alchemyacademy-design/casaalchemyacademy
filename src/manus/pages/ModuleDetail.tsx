@@ -64,7 +64,6 @@ export default function ModuleDetail() {
     }
     // Intentionally NOT depending on activeLessonId — otherwise clicking
     // another lesson would re-apply the hash and trap the user.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lessons, location.hash]);
 
 
