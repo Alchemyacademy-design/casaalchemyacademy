@@ -165,6 +165,60 @@ export default function ModuleDetail() {
                     </Card>
                   )}
 
+                  {/* Community actions */}
+                  {(() => {
+                    const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
+                    const courseTitle = module?.title ?? "this course";
+                    const lessonTitle = activeLesson.title;
+                    const buildLink = (
+                      channel: string,
+                      title: string,
+                      body: string,
+                    ) =>
+                      `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                    return (
+                      <Card className="p-4 flex flex-wrap gap-2 items-center">
+                        <span className="text-sm text-foreground/70 mr-2">
+                          Bring this lesson to the community:
+                        </span>
+                        <Link
+                          to={buildLink(
+                            "project-sharing",
+                            `My progress on "${lessonTitle}"`,
+                            `I just finished "${lessonTitle}" in ${courseTitle}.\n\nLesson: ${lessonUrl}`,
+                          )}
+                        >
+                          <Button variant="outline" size="sm">
+                            <Share2 className="w-4 h-4 mr-2" /> Share your progress
+                          </Button>
+                        </Link>
+                        <Link
+                          to={buildLink(
+                            "ask-lorena",
+                            `Question about "${lessonTitle}"`,
+                            `Course: ${courseTitle}\nLesson: ${lessonTitle} (${lessonUrl})\n\nMy question: `,
+                          )}
+                        >
+                          <Button variant="outline" size="sm">
+                            <HelpCircle className="w-4 h-4 mr-2" /> Ask the community
+                          </Button>
+                        </Link>
+                        <Link
+                          to={buildLink(
+                            "general-discussion",
+                            `Discussing "${lessonTitle}"`,
+                            `Let's discuss "${lessonTitle}" from ${courseTitle}.\nLesson: ${lessonUrl}\n\n`,
+                          )}
+                        >
+                          <Button variant="outline" size="sm">
+                            <MessageSquare className="w-4 h-4 mr-2" /> Discuss this lesson
+                          </Button>
+                        </Link>
+                      </Card>
+                    );
+                  })()}
+
+
                   {/* Navigation */}
                   <div className="flex items-center justify-between pt-8 border-t border-border/50">
                     {previousLesson ? (
