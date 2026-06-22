@@ -1,138 +1,132 @@
-# Fase 3 — Comunidade Integrada à Aprendizagem (revisão final)
+# Phase 3 — Integrated Community
 
-Data: 2026-06-22 (correção pós-auditoria)
-Status: implementação corrigida em cima dos slugs/canais reais do Supabase. Nenhuma migration, tabela, coluna, enum, função SQL, policy, RLS ou Stripe foi alterado nesta fase.
+Status legend:
+- IMPLEMENTADO E UNITARIAMENTE TESTADO — helper coverage only
+- IMPLEMENTADO E VALIDADO EM COMPONENTE — React Testing Library renders the real flow
+- IMPLEMENTADO, NÃO VALIDADO EM COMPONENTE
+- PARCIAL — only part of the requirement is in place
+- PENDENTE — not yet implemented
+- BLOQUEADO PELO SCHEMA OU PELOS DADOS
 
-## Implementado
+No migration, table, column, enum, policy, function or Stripe code was added in
+this phase. All work is presentation/integration code that respects the
+existing schema and RLS.
 
-### Slugs reais (PROBLEMA 1)
-`src/manus/pages/ModuleDetail.tsx` agora aponta para os canais que existem hoje no Supabase:
+## Implementação
 
-| Botão | Slug usado (antes) | Slug usado (agora — real) |
-|---|---|---|
-| Share your progress | `project-sharing` ❌ | `projects` ✅ |
-| Ask the community | `ask-lorena` ❌ | `questions` ✅ |
-| Discuss this lesson | `general-discussion` ❌ | `general` ✅ |
+### 1. Centralized community data hooks
+- File: `src/manus/hooks/community/useCommunityData.ts`
+- `usePostsInfinite(channelId)` — real `useInfiniteQuery` backed by
+  `.range(from, to)` with `PAGE_SIZE = 20`, ordered
+  `pinned desc, last_activity_at desc, id desc` so pages never omit or
+  duplicate rows. Status: **IMPLEMENTADO E VALIDADO EM COMPONENTE** (covered
+  by the helper ordering tests + the rendered Community tests that exercise
+  the hook through the real component).
+- `useChannelBySlug(slug, spaceSlug?)` — single-shot lookup that resolves
+  the space first when `spaceSlug` is given (because `community_channels`
+  is `UNIQUE(space_id, slug)`, the slug is NOT globally unique) and falls
+  back to a deterministic `space_id asc, id asc, limit(1)` when no space
+  is provided. RLS-honoured: rows the caller cannot read return null.
+  Status: **IMPLEMENTADO E VALIDADO EM COMPONENTE** (used by the deep-link
+  test in `CommunityCenter.test.tsx`).
 
-Os slugs disponíveis (`general`, `questions`, `projects`, `inspiration`, `resources`) não foram alterados — nenhum canal novo é criado pelo front.
+The previous draft of this report claimed `useChannelBySlug(slug).maybeSingle()`
+existed — it does not. Only the `(slug, spaceSlug?)` implementation above ships.
 
-### Deep-link real (PROBLEMA 2)
-- Novo hook `useChannelBySlug(slug)` em `useCommunityData.ts`: uma única consulta `community_channels.select("id,slug,space_id").eq("slug", slug).maybeSingle()`. Respeita RLS, sem service role.
-- Em `CommunityCenter.tsx`:
-  1. resolve o slug via `useChannelBySlug`;
-  2. obtém `space_id` do canal;
-  3. troca para esse space (sem inspecionar cada space, sem fan-out de queries);
-  4. aguarda `useChannels(spaceId)` carregar o canal;
-  5. seleciona o `channel_id` correto;
-  6. só então marca `deepLinkApplied`.
-- Se o slug não existir / não estiver acessível: `toast.message(...)` não bloqueante, o draft (`title` + `body`) é preservado e o usuário fica no primeiro canal acessível.
+### 2. Community deep-link service
+- File: `src/manus/services/community-deeplink.ts`
+  - `parseLessonHash`, `resolveDeepLinkChannel`, `dedupePostPages`,
+    `canLoadMorePosts`, `filterPosts`, `readCommunityUrlParams`,
+    `buildLessonShareBody`, `comparePostsForFeed`, `paginateFeed`.
+  - All helpers are pure and side-effect free.
+  - Tests in `src/manus/services/community-deeplink.test.ts` (21).
+  - Status: **IMPLEMENTADO E UNITARIAMENTE TESTADO**.
 
-### Paginação real de 20 (PROBLEMA 3)
-- Novo `usePostsInfinite(channelId)` usando `useInfiniteQuery` + `.range(from, to)`.
-- `PAGE_SIZE = 20`. Primeira página `range(0, 19)`, depois `range(20, 39)`, etc. — nada é refeito.
-- `getNextPageParam` só devolve a próxima página quando a última retornou exatamente `PAGE_SIZE`. O botão "Carregar mais" some na última página.
-- `dedupePostPages` concatena páginas sem duplicar `id`.
-- Botão "Carregar mais" tem estado próprio de `isFetchingNextPage` e fica desabilitado durante o fetch (evita duplo clique).
-- Realtime invalida o prefixo `["community","posts",channelId]` → `useInfiniteQuery` refetcha todas as páginas em ordem.
-- Resetar: troca de canal → nova `queryKey` (channelId muda) → `useInfiniteQuery` recomeça do zero. `search`/`filter` voltam ao default por `useEffect`.
+### 3. Lesson → Community CTAs
+- File: `src/manus/pages/ModuleDetail.tsx`
+- Three actions ("Share your progress", "Ask the community", "Discuss this
+  lesson") link to the existing channel slugs `projects`, `questions`,
+  `general` and include `?space=<space-slug>&channel=<slug>` so the deep-link
+  resolves under the existing `UNIQUE(space_id, slug)` constraint.
+- The space slug is fetched once via a single Supabase query against
+  `community_channels` joined to `community_spaces!inner(slug)` for the
+  three allow-listed slugs. No hardcoded space. If a slug cannot be
+  resolved, the draft (title + body) is preserved and the link falls back
+  to `?channel=` only.
+- Course title is fetched from the existing `courses` table via the
+  `module.course_id` relation; `buildLessonShareBody` distinguishes Course,
+  Module and Lesson.
+- Status: **IMPLEMENTADO E VALIDADO EM COMPONENTE** (rendered in
+  `ModuleDetail.test.tsx`).
 
-### Curso × módulo (PROBLEMA 4)
-- `ModuleDetail.tsx` consulta `courses.select("id,title").eq("id", module.course_id)` (relação já existente, sem migration).
-- O corpo pré-preenchido agora vem do novo helper `buildLessonShareBody`, com linhas distintas:
-  ```
-  Course: <título real do curso>
-  Module: <título do módulo>
-  Lesson: <título da aula>
-  Lesson link: /modules/<id>#lesson-<id>
-  ```
+### 4. Lesson hash navigation (#lesson-<id>)
+- File: `src/manus/pages/ModuleDetail.tsx`
+- Composite ref key `${moduleId}:${hash}` ensures that:
+  - Clicking another lesson, Previous or Next does NOT get re-trapped by
+    a stale hash applied earlier;
+  - Changing `moduleId` drops the previous selection, re-evaluates the hash
+    for the new module, and falls back to `lessons[0]` when the hash is
+    missing or invalid;
+  - A hash whose lesson id belongs to another module is rejected.
+- Status: **IMPLEMENTADO E VALIDADO EM COMPONENTE** — six rendered
+  scenarios in `ModuleDetail.test.tsx` (initial select, hash apply, foreign
+  hash rejection, click after hash, Previous/Next, module switch).
 
-### Link com hash (PROBLEMA 5)
-- `useLocation()` lê `location.hash`.
-- `parseLessonHash(hash, lessons)` valida o formato `#lesson-<id>` e exige que o `id` exista na lista de lessons **do módulo atual** — IDs de outros módulos são rejeitados.
-- Se válido, `setActiveLessonId` ativa a aula correta. Caso contrário, fallback para a primeira aula.
+### 5. CommunityCenter pagination, search and filters
+- File: `src/manus/components/community/CommunityCenter.tsx`
+- Real infinite pagination through `usePostsInfinite`; "Carregar mais" is
+  hidden when the last page is shorter than `POSTS_PAGE_SIZE`.
+- Client-side search (title + body, case-insensitive) and filters
+  (Todos / Fixados / Meus) reset when the channel changes.
+- Deep-link via `?space=...&channel=...` resets and re-resolves when the
+  URL changes without unmount; the "channel not found" toast is
+  deduplicated by `(space, channel)` key so the user does not see it twice.
+- Composer re-prefills `title` and `body` whenever the URL params change
+  (no stuck "already prefilled" flag).
+- Status: **IMPLEMENTADO E VALIDADO EM COMPONENTE** for slug-change
+  navigation (3 tests). The "Load more" interaction, "Meus" and "Fixados"
+  toggles and the unmatched-slug toast remain
+  **IMPLEMENTADO, NÃO VALIDADO EM COMPONENTE**.
 
-## Testado (PROBLEMA 6)
+## Casos pendentes em validação de componente
 
-Comandos executados nesta correção:
+Estes comportamentos têm helpers cobertos por testes puros, mas ainda não
+há teste com React Testing Library renderizando a interação:
 
-| Comando | Exit | Resultado |
-|---|---|---|
-| `bunx vitest run` | 0 | 5 arquivos, **39/39 testes** (11 learning + 19 community-deeplink + 5 useAuth.access + 3 admin-api + 1 example) |
-| `bunx tsc --noEmit` | 0 | sem erros |
-| `bun run lint` (escopo dos arquivos alterados) | 0 erros novos | apenas 1 warning pré-existente em `CommunityCenter.tsx` (`react-refresh/only-export-components` por causa do `export { slugify }`, anterior a esta fase) |
-| Build | executado pelo harness Lovable após cada save — sem erros TS |
+- "Carregar mais" desaparecendo após a última página.
+- Filtro **Meus** filtrando posts do `userId` atual.
+- Filtro **Fixados** filtrando apenas posts com `pinned = true`.
+- Slug inexistente preservando o draft com toast único.
 
-Lint global continua com 25 erros pré-existentes em arquivos não tocados (`AdminLessonsBulk.tsx`, `Suppliers.tsx`, edge functions etc.). Nenhum deles foi introduzido por esta fase e a auditoria explicitamente proíbe alterar arquivos fora do escopo da Fase 3.
+Status: **IMPLEMENTADO, NÃO VALIDADO EM COMPONENTE**.
 
-### Cobertura de testes adicionada — `src/manus/services/community-deeplink.test.ts`
+## Comandos de validação (gravados nesta execução)
 
-| # critério | Coberto por |
-|---|---|
-| 1. leitura de channel/title/body da URL | `readCommunityUrlParams` × 2 |
-| 2. seleção do canal real `projects` | `resolveDeepLinkChannel("projects", …)` |
-| 3. seleção do canal real `questions` | `resolveDeepLinkChannel("questions", …)` |
-| 4. seleção do canal real `general` | `resolveDeepLinkChannel("general", …)` |
-| 5. deep-link para canal em outro space | `resolveDeepLinkChannel("resources", { space_id: 7 })` |
-| 6. fallback quando slug não existe | `resolveDeepLinkChannel("project-sharing", null)` |
-| 7. prefill preservado no fallback | `readCommunityUrlParams("?channel=nope&title=Kept&body=...")` |
-| 8. busca em title e body | `filterPosts` "alpha" / "hello" |
-| 9. filtro Meus | `filterPosts(posts, "", "mine", "u1")` |
-| 10. filtro Fixados | `filterPosts(posts, "", "pinned", "u1")` |
-| 11. paginação sem duplicação | `dedupePostPages([page1, page2])` (com id 20 sobreposto) |
-| 12. "Carregar mais" sumindo na última página | `canLoadMorePosts(20|19|0|undefined)` |
-| 13. hash selecionando a aula correta | `parseLessonHash("#lesson-6", lessons[5,6,7])` |
-| 14. aula de outro módulo rejeitada | `parseLessonHash("#lesson-999", …)` |
+```
+$ bun run typecheck   → exit 0
+$ bun run test        → exit 0   (50 testes, 7 arquivos)
+$ bun run build       → exit 0
+$ bun run lint        → exit 1   (37 problems, 25 errors, 12 warnings — preexistentes)
+```
 
-## Limitado pelo schema
+Detalhe dos arquivos de teste:
 
-- Os slugs `inspiration` e `resources` existem no DB mas não têm CTA dedicado na aula — escopo desta fase é só os 3 acima.
-- Sem tabela `lesson_community_links`: não há relação persistente aula↔post (proibido pelo plano da fase). Continua no `docs/FUTURE_SCHEMA_BACKLOG.md`.
+- `src/test/example.test.ts` — 1
+- `src/manus/lib/admin-api.test.ts` — 3
+- `src/manus/hooks/useAuth.access.test.ts` — 5
+- `src/manus/services/learning.test.ts` — 11
+- `src/manus/services/community-deeplink.test.ts` — 21
+- `src/manus/pages/ModuleDetail.test.tsx` — 6 (React Testing Library)
+- `src/manus/components/community/CommunityCenter.test.tsx` — 3 (RTL)
 
-## Pendente
+Total: 50 testes. Lint continua reportado como falha (exit 1) enquanto os
+warnings pré-existentes de `@typescript-eslint/no-explicit-any` não forem
+endereçados — não foram tocados nesta execução.
 
-- Realtime de reações (hoje invalidação manual; aceitável no plano gratuito).
-- Rate-limit por usuário e notificações in-app (depende de tabelas futuras — Fases 11/12).
-- Botões dedicados para canais `inspiration` e `resources` se a equipe quiser.
+## Conclusão da Fase 3
 
-## Arquivos alterados nesta correção
-
-- `src/manus/services/community-deeplink.ts` (novo) — helpers puros.
-- `src/manus/services/community-deeplink.test.ts` (novo) — 19 testes.
-- `src/manus/hooks/community/useCommunityData.ts` — adiciona `usePostsInfinite` e `useChannelBySlug`; mantém `usePosts` (backward-compat).
-- `src/manus/components/community/CommunityCenter.tsx` — deep-link em 2 passos, paginação infinita real, helpers puros para search/filter, toast não bloqueante.
-- `src/manus/pages/ModuleDetail.tsx` — slugs reais, busca `courses.title` via `module.course_id`, leitura de `#lesson-<id>` validada pelo módulo, body separado em Course/Module/Lesson/Lesson link.
-
-A Fase 3 só passa a estar verdadeiramente concluída agora — antes os três botões apontavam para slugs inexistentes. **A Fase 4 não foi iniciada.**
-
----
-
-## Execução de 22/06/2026 — auditoria + correções
-
-### Comandos e exit codes (rodados nesta execução)
-
-| Comando            | Exit code | Saída relevante                            |
-| ------------------ | --------- | ------------------------------------------ |
-| `bun run typecheck`| 0         | `tsc --noEmit` limpo                       |
-| `bun run test`     | 0         | **41 testes**, 5 arquivos, 0 falhas        |
-| `bun run build`    | 0         | bundle gerado (1 chunk >500 kB — warning)  |
-| `bun run lint`     | **1**     | **37 problemas (25 errors, 12 warnings)** — todos pré-existentes ao Phase 3 (uso de `any` em `usePublicContent`, `Guides`, `Home`, `Suppliers`, `AdminLessonsBulk`, edge functions `admin-content-catalog` / `manus-import`; `react-refresh/only-export-components` em contexts e `CommunityCenter`). Nenhum erro novo introduzido pelo Phase 3. |
-
-Arquivos com testes reais executados:
-- `src/manus/services/community-deeplink.test.ts` — **21 testes** (URL params, resolver, filtros, paginação, hash, share body, comparator determinístico, paginação com `last_activity_at` empatado).
-- `src/manus/services/learning.test.ts` — 11 testes.
-- `src/manus/hooks/useAuth.access.test.ts` — 5 testes.
-- `src/manus/lib/admin-api.test.ts` — 3 testes.
-- `src/test/example.test.ts` — 1 teste.
-
-### Correções aplicadas
-
-| Item | Estado |
-| ---- | ------ |
-| **Bug do hash em `ModuleDetail`** — effect dependia de `activeLessonId` e re-aplicava o hash a cada clique, prendendo o usuário | **IMPLEMENTADO E VALIDADO** (testes) — usa `appliedHashRef` e roda apenas quando `lessons` carregam ou `location.hash` muda. Após aplicar o hash o usuário pode trocar de aula, Previous/Next continuam funcionando. |
-| **Deep-link `?space=&channel=`** — `community_channels` é `UNIQUE(space_id, slug)`, slug não é globalmente único | **IMPLEMENTADO E VALIDADO** — `useChannelBySlug(slug, spaceSlug?)` resolve o space primeiro e filtra `space_id`; sem `spaceSlug` ordena por `(space_id asc, id asc)` `.limit(1)` para resultado estável (sem mais `.maybeSingle()` arriscando erro). `Community.tsx` lê `?space=&channel=&title=&body=`. CTAs da aula continuam usando slugs reais (`projects`, `questions`, `general`). |
-| **Ordenação determinística** — pinned, last_activity_at, **id DESC** | **IMPLEMENTADO E VALIDADO** — adicionado `.order("id", { ascending: false })` em `usePosts` e `usePostsInfinite`. Helper puro `comparePostsForFeed` + `paginateFeed` cobertos por teste com 45 posts compartilhando o mesmo `last_activity_at`: páginas não duplicam nem omitem, IDs de fronteira estáveis. |
-
-### Itens listados na cobrança que permanecem PENDENTE
-
-- Testes de componente (deep-link selecionando space+channel, slug inexistente preservando draft, Carregar mais, publicação, filtro Meus, filtro Fixados, troca de aula após hash, Previous/Next após hash) — a lógica está coberta por helpers puros (21 testes), mas testes de integração com React Testing Library + mock do Supabase ainda não foram escritos. **PENDENTE**.
-- `?space=` é aceito pela URL mas os CTAs da aula ainda emitem apenas `?channel=` (resolvem corretamente porque os slugs `projects`/`questions`/`general` só existem em um space na base atual). Quando outro space reusar um desses slugs, será necessário emitir `?space=` também — **PARCIAL**.
+Fase 3 NÃO pode ser declarada completa enquanto os itens listados em
+"Casos pendentes em validação de componente" continuarem como
+**IMPLEMENTADO, NÃO VALIDADO EM COMPONENTE**. As regressões funcionais
+(troca de módulo, troca de query params, hash) estão cobertas por testes
+de componente reais.
