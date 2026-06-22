@@ -90,8 +90,8 @@ function renderRoute(path: string) {
 
 beforeEach(() => {
   cleanup();
-  moduleByIdMock.mockImplementation((id: number) => (id === 10 ? MODULE_1 : MODULE_2));
-  lessonsByModuleMock.mockImplementation((id: number) => (id === 10 ? LESSONS_1 : LESSONS_2));
+  moduleByIdMock.mockImplementation((id) => ((id as number) === 10 ? MODULE_1 : MODULE_2));
+  lessonsByModuleMock.mockImplementation((id) => ((id as number) === 10 ? LESSONS_1 : LESSONS_2));
 });
 
 describe("ModuleDetail", () => {
