@@ -3,20 +3,28 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
-import { Link, useMatch } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 
 export default function ModuleDetail() {
-  const match = useMatch("/modules/:id"); const params = match?.params as Record<string,string> | undefined;
-  const moduleId = params?.id ? parseInt(params.id) : 0;
+  const params = useParams<{ id: string }>();
+  const moduleId = params.id ? parseInt(params.id, 10) : 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
+  const qc = useQueryClient();
 
-  const { data: module } = trpc.modules.get.useQuery({ id: moduleId });
-  const { data: lessons = [] } = trpc.lessons.byModule.useQuery({ moduleId });
-  const { data: progress = [] } = trpc.progress.moduleProgress.useQuery({ moduleId });
-  const markLessonMutation = trpc.progress.markLesson.useMutation();
+  const { data: module } = trpc.modules.get.useQuery({ id: moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
+  const { data: lessons = [] } = trpc.lessons.byModule.useQuery({ moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
+  const { data: progress = [] } = trpc.progress.moduleProgress.useQuery({ moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
+  const markLessonMutation = trpc.progress.markLesson.useMutation({
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
+      await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
+    },
+  });
+
 
   const activeLesson = activeLessonId
     ? lessons.find((l) => l.id === activeLessonId)
