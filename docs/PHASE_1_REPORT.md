@@ -69,13 +69,38 @@ Edge Function `admin-content-catalog` continua respondendo com `{ courses: 10, m
 | `vite build` (harness) | ✅ |
 | `bunx eslint .` | ⚠️ 25 erros pré-existentes (`no-explicit-any` em arquivos não tocados nesta fase); 0 erros novos. **Pendência para Fase 2.** |
 
-## 11. Pendências para a Fase 2
+## 11. Correção do diagnóstico (RLS 42501)
 
-1. **Crítico:** policies RLS em `courses`, `course_modules`, `lessons`, `lesson_progress` (e possivelmente outras) referenciam função `public.is_admin` que **não existe**. Resultado: `HTTP 403 / 42501 permission denied for function is_admin` em chamadas REST diretas. **Migration necessária** substituindo `is_admin()` por `has_role(auth.uid(), 'admin')`. O SQL deve ser apresentado antes de aplicar.
-2. Criar/aprovar migration para `admin_access_audit_log` (estrutura, RLS, GRANTs) — hoje a UI mostra "unavailable" amigavelmente, mas a tabela continua ausente.
-3. Substituir `delete()` físico de `AdminTablePage` por arquivamento (`status='archived'`, `archived_at = now()`) onde a tabela tiver essas colunas.
-4. Limpar 25 `no-explicit-any` herdados em `usePublicContent.ts`, `Suppliers.tsx`, `AdminLessonsBulk.tsx`, `admin-content-catalog/index.ts`, `manus-import/index.ts`.
-5. Audit completo do CRUD de cursos/módulos/aulas (drag-and-drop ordering, checklist de publicação, validação de URL externa, thumbnails) — escopo formal da Fase 2.
-6. Padronizar tratamento "loading/error/empty/success" nas demais telas (Eventos, Workshops, Magazine, Suppliers, Deals) usando o mesmo padrão aplicado ao painel de auditoria.
+O diagnóstico inicial da Fase 0/1 atribuía o erro `HTTP 403 / 42501 permission denied for function is_admin` à ausência de `public.is_admin()`. **Isso está incorreto.** A função administrativa de fato em uso vive no schema `private`:
 
-**Pare aqui. Aguardando revisão antes de iniciar a Fase 2.**
+- `private.is_admin()`
+- `private.has_course_access(bigint)`
+- `private.has_active_plan_permission(public.plan_permission_key)`
+- `private.can_access_channel(bigint)`
+
+Todas existem e são as funções referenciadas pelas policies atuais. O 42501 ocorre porque os papéis `anon` e `authenticated` **não possuem `USAGE` no schema `private` nem `EXECUTE` nessas funções**, então a avaliação das policies aborta.
+
+**Correção aplicada (manual, via Supabase SQL Editor):** `docs/migrations/20260622120000_grant_private_schema_execute.sql` — concede `USAGE` em `private` e `EXECUTE` nos quatro helpers para `anon` e `authenticated`. **Nenhuma função `public.is_admin()` foi criada ou restaurada** — fazer isso duplicaria o helper canônico e abriria caminho para inconsistência.
+
+A migration anterior (`20260621120000_restore_is_admin.sql`) foi removida por estar baseada no diagnóstico incorreto.
+
+A Fase 1 só é considerada tecnicamente concluída após validar, no Supabase SQL Editor + UI:
+
+1. consulta direta a `courses` sem 42501;
+2. leitura de `course_modules`;
+3. leitura de `lessons`;
+4. leitura e mutation de `lesson_progress`;
+5. admin (`contact@casaalchemystudio.com`) continua reconhecido;
+6. aluno autorizado permanece limitado pelas policies (sem escalada);
+7. visitante (`anon`) vê somente o conteúdo permitido pelas policies;
+8. nenhuma função duplicada `public.is_admin()` foi criada.
+
+## 12. Pendências para a Fase 2
+
+1. Criar/aprovar migration para `admin_access_audit_log` (estrutura, RLS, GRANTs) — hoje a UI mostra "unavailable" amigavelmente, mas a tabela continua ausente.
+2. Substituir `delete()` físico de `AdminTablePage` por arquivamento (`status='archived'`, `archived_at = now()`) onde a tabela tiver essas colunas.
+3. Limpar 25 `no-explicit-any` herdados em `usePublicContent.ts`, `Suppliers.tsx`, `AdminLessonsBulk.tsx`, `admin-content-catalog/index.ts`, `manus-import/index.ts`.
+4. Audit completo do CRUD de cursos/módulos/aulas (drag-and-drop ordering, checklist de publicação, validação de URL externa, thumbnails) — escopo formal da Fase 2.
+5. Padronizar tratamento "loading/error/empty/success" nas demais telas (Eventos, Workshops, Magazine, Suppliers, Deals) usando o mesmo padrão aplicado ao painel de auditoria.
+
+**Pare aqui. Aguardando aplicação manual da migration de GRANT + validação dos 8 critérios acima antes de iniciar a Fase 2.**
