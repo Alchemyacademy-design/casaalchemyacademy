@@ -60,12 +60,14 @@ function timeAgo(iso: string) {
 }
 
 type CommunityCenterProps = {
+  initialSpaceSlug?: string;
   initialChannelSlug?: string;
   initialDraftTitle?: string;
   initialDraftBody?: string;
 };
 
 export default function CommunityCenter({
+  initialSpaceSlug,
   initialChannelSlug,
   initialDraftTitle,
   initialDraftBody,
@@ -101,7 +103,7 @@ export default function CommunityCenter({
 
   /* ---------------- Deep-link via single-shot slug lookup ---------------- */
   const { data: matchedChannel, isLoading: deepLinkLoading } =
-    useChannelBySlug(initialChannelSlug);
+    useChannelBySlug(initialChannelSlug, initialSpaceSlug);
   const [deepLinkApplied, setDeepLinkApplied] = useState(false);
   const [deepLinkPendingSpace, setDeepLinkPendingSpace] = useState<number | null>(null);
 
