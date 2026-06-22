@@ -4,8 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getCoursesTree } from "@/manus/services/admin-content";
-import { Lock, CheckCircle, ArrowRight } from "lucide-react";
+import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
 
 type CourseRow = {
   id: number;
