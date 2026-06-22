@@ -124,8 +124,58 @@ export default function Modules() {
           <div className="text-sm text-foreground/60">No courses available yet.</div>
         )}
 
+        {courses.length > 0 && (
+          <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+            <div className="relative flex-1 max-w-sm">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: "var(--aa-text-light)" }} />
+              <input
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search courses…"
+                aria-label="Search courses"
+                className="w-full pl-9 pr-3 py-2 text-sm rounded-md border border-border/50 bg-white focus:outline-none focus:ring-1"
+                style={{ color: "var(--aa-olive-dark)" }}
+              />
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {(["all", "not_started", "in_progress", "completed"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setStatusFilter(s)}
+                  className={`text-xs px-3 py-1.5 rounded-md border transition ${statusFilter === s ? "border-transparent" : "border-border/40"}`}
+                  style={{
+                    backgroundColor: statusFilter === s ? "var(--aa-gold)" : "white",
+                    color: statusFilter === s ? "var(--aa-cacao)" : "var(--aa-text-mid)",
+                    fontFamily: "'DM Sans', sans-serif",
+                    letterSpacing: "0.05em",
+                  }}
+                >
+                  {s === "all" ? "All" : s === "not_started" ? "Not started" : s === "in_progress" ? "In progress" : "Completed"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((c) => {
+          {courses
+            .filter((c) => {
+              if (search.trim()) {
+                const q = search.trim().toLowerCase();
+                const hay = `${c.title} ${c.subtitle ?? ""}`.toLowerCase();
+                if (!hay.includes(q)) return false;
+              }
+              if (statusFilter !== "all") {
+                const lc = lessonCountOf(c);
+                const pct = getProgress(c.id, lc);
+                if (statusFilter === "not_started" && pct !== 0) return false;
+                if (statusFilter === "in_progress" && (pct === 0 || pct === 100)) return false;
+                if (statusFilter === "completed" && pct !== 100) return false;
+              }
+              return true;
+            })
+            .map((c) => {
             const lessonCount = lessonCountOf(c);
             const pct = getProgress(c.id, lessonCount);
             const accessible = isCourseAccessible(c);
