@@ -12,7 +12,8 @@ import { toast } from "sonner";
 import {
   useSpaces,
   useChannels,
-  usePosts,
+  usePostsInfinite,
+  useChannelBySlug,
   useReplies,
   useCreatePost,
   useCreateReply,
@@ -27,6 +28,12 @@ import {
   useLogModeration,
   type CommunityPost,
 } from "@/manus/hooks/community/useCommunityData";
+import {
+  dedupePostPages,
+  filterPosts,
+  POSTS_PAGE_SIZE,
+  resolveDeepLinkChannel,
+} from "@/manus/services/community-deeplink";
 import { CreateSpaceDialog, CreateChannelDialog } from "./CommunityDialogs";
 
 const EMOJIS = ["❤️", "🔥", "✨", "👏", "😍"];
