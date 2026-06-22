@@ -107,6 +107,18 @@ export default function CommunityCenter({
   const [deepLinkApplied, setDeepLinkApplied] = useState(false);
   const [deepLinkPendingSpace, setDeepLinkPendingSpace] = useState<number | null>(null);
 
+  // When the incoming slugs change (navigation without unmount), reset the
+  // deep-link state so the new (space, channel) pair gets resolved again.
+  const lastSlugsRef = useRef<string>("");
+  const notFoundToastedRef = useRef<string>("");
+  useEffect(() => {
+    const key = `${initialSpaceSlug ?? ""}|${initialChannelSlug ?? ""}`;
+    if (lastSlugsRef.current === key) return;
+    lastSlugsRef.current = key;
+    setDeepLinkApplied(false);
+    setDeepLinkPendingSpace(null);
+  }, [initialSpaceSlug, initialChannelSlug]);
+
   // Step 1: switch to the channel's space (and show fallback toast if missing).
   useEffect(() => {
     if (deepLinkApplied) return;
@@ -115,9 +127,13 @@ export default function CommunityCenter({
     const result = resolveDeepLinkChannel(initialChannelSlug, matchedChannel);
     if (!result) return;
     if (result.kind === "not-found") {
-      toast.message(
-        `O canal "${initialChannelSlug}" sugerido pela aula não está disponível. Mantivemos seu rascunho — escolha outro canal.`,
-      );
+      const toastKey = `${initialSpaceSlug ?? ""}|${initialChannelSlug}`;
+      if (notFoundToastedRef.current !== toastKey) {
+        notFoundToastedRef.current = toastKey;
+        toast.message(
+          `O canal "${initialChannelSlug}" sugerido pela aula não está disponível. Mantivemos seu rascunho — escolha outro canal.`,
+        );
+      }
       setDeepLinkApplied(true);
       return;
     }
@@ -127,6 +143,7 @@ export default function CommunityCenter({
     setDeepLinkPendingSpace(result.spaceId);
   }, [
     initialChannelSlug,
+    initialSpaceSlug,
     matchedChannel,
     deepLinkLoading,
     deepLinkApplied,
