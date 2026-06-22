@@ -348,6 +348,37 @@ export default function CommunityCenter({
           )}
         </header>
 
+        {/* Search + filters */}
+        {activeChannel && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#d8cdbf] bg-[var(--aa-cream)]/40 px-4 py-2">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--aa-text-light)]" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar nesta conversa…"
+                className="h-8 pl-7 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-1 text-xs text-[var(--aa-text-light)]">
+              <Filter className="h-3.5 w-3.5" />
+              {(["all", "pinned", "mine"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`rounded-full px-2 py-0.5 transition ${
+                    filter === f
+                      ? "bg-[var(--aa-gold)]/15 text-foreground"
+                      : "hover:bg-[var(--aa-cream-dark)]/70"
+                  }`}
+                >
+                  {f === "all" ? "Todos" : f === "pinned" ? "Fixados" : "Meus"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1">
           <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
             {postsLoading && (
@@ -360,7 +391,13 @@ export default function CommunityCenter({
                 Seja o primeiro a postar em <span className="font-medium">#{activeChannel.name}</span>.
               </div>
             )}
-            {posts.map((post) => {
+            {!postsLoading && posts.length > 0 && filteredPosts.length === 0 && (
+              <div className="rounded-lg border border-dashed border-[#d8cdbf] p-6 text-center text-xs text-[var(--aa-text-light)]">
+                Nenhum post corresponde aos filtros atuais.
+              </div>
+            )}
+            {filteredPosts.map((post) => {
+
               const mine = post.author_id === userId;
               const canDelete = mine || isAdmin;
               const canPin = isAdmin;
