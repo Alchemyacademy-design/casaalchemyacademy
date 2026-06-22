@@ -176,7 +176,6 @@ export function usePosts(channelId: number | null, limit: number = 20) {
     },
   });
 
-  // Realtime: insert / update / delete on this channel
   useEffect(() => {
     if (!channelId) return;
     const channel = supabase
@@ -195,6 +194,79 @@ export function usePosts(channelId: number | null, limit: number = 20) {
   }, [channelId, qc]);
 
   return query;
+}
+
+/**
+ * Cursor-less, page-based infinite pagination over community_posts using
+ * `.range(from, to)`. Page size is fixed at POSTS_PAGE_SIZE. Realtime on the
+ * active channel invalidates the whole prefix so refetch reconstructs pages.
+ */
+export function usePostsInfinite(channelId: number | null) {
+  const qc = useQueryClient();
+  const pageSize = POSTS_PAGE_SIZE;
+
+  const query = useInfiniteQuery({
+    queryKey: [...postsKey(channelId), "infinite", pageSize],
+    enabled: !!channelId,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      const page = pageParam as number;
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+      const { data, error } = await supabase
+        .from("community_posts")
+        .select("*")
+        .eq("channel_id", channelId!)
+        .is("deleted_at", null)
+        .order("pinned", { ascending: false })
+        .order("last_activity_at", { ascending: false })
+        .range(from, to);
+      if (error) throw error;
+      return data ?? [];
+    },
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length >= pageSize ? allPages.length : undefined,
+  });
+
+  useEffect(() => {
+    if (!channelId) return;
+    const channel = supabase
+      .channel(`community_posts_inf:${channelId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "community_posts", filter: `channel_id=eq.${channelId}` },
+        () => {
+          qc.invalidateQueries({ queryKey: postsKey(channelId) });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [channelId, qc]);
+
+  return query;
+}
+
+/**
+ * Single-shot lookup of a channel by slug. Used by deep-links so we don't
+ * need to scan every space. Honours RLS — a slug the caller cannot read
+ * resolves to null.
+ */
+export function useChannelBySlug(slug: string | null | undefined) {
+  return useQuery({
+    queryKey: ["community", "channel-by-slug", slug ?? ""],
+    enabled: !!slug,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("community_channels")
+        .select("id, slug, space_id")
+        .eq("slug", slug!)
+        .maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    },
+  });
 }
 
 
