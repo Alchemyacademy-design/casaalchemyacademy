@@ -2,8 +2,9 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle } from "lucide-react";
+import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Share2, HelpCircle, MessageSquare } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
