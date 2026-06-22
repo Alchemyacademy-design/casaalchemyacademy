@@ -238,7 +238,7 @@ export default function ModuleDetail() {
                     const moduleTitle = module?.title ?? "this module";
                     const lessonTitle = activeLesson.title;
                     const buildLink = (
-                      channel: string,
+                      channel: CtaSlug,
                       title: string,
                       intro: string,
                     ) => {
@@ -249,7 +249,13 @@ export default function ModuleDetail() {
                         lessonUrl,
                         intro,
                       });
-                      return `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                      const spaceSlug = ctaChannels?.[channel]?.spaceSlug;
+                      const params = new URLSearchParams();
+                      if (spaceSlug) params.set("space", spaceSlug);
+                      params.set("channel", channel);
+                      params.set("title", title);
+                      params.set("body", body);
+                      return `/community?${params.toString()}`;
                     };
                     return (
                       <Card className="p-4 flex flex-wrap gap-2 items-center">
