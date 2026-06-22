@@ -82,7 +82,6 @@ export default function CommunityCenter({
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pinned" | "mine">("all");
-  const [postsLimit, setPostsLimit] = useState(20);
 
 
   // restore last selection
@@ -101,17 +100,55 @@ export default function CommunityCenter({
 
   const { data: channels = [], isLoading: channelsLoading } = useChannels(spaceId);
 
-  // Deep-link: if initialChannelSlug, find matching channel across spaces and select it.
+  /* ---------------- Deep-link via single-shot slug lookup ---------------- */
+  const { data: matchedChannel, isLoading: deepLinkLoading } =
+    useChannelBySlug(initialChannelSlug);
   const [deepLinkApplied, setDeepLinkApplied] = useState(false);
+  const [deepLinkPendingSpace, setDeepLinkPendingSpace] = useState<number | null>(null);
+
+  // Step 1: switch to the channel's space (and show fallback toast if missing).
   useEffect(() => {
-    if (deepLinkApplied || !initialChannelSlug || spaces.length === 0) return;
-    // Try in current space first
-    const inCurrent = channels.find((c) => c.slug === initialChannelSlug);
-    if (inCurrent) {
-      setChannelId(inCurrent.id);
+    if (deepLinkApplied) return;
+    if (!initialChannelSlug) return;
+    if (deepLinkLoading) return; // still resolving
+    const result = resolveDeepLinkChannel(initialChannelSlug, matchedChannel);
+    if (!result) return;
+    if (result.kind === "not-found") {
+      toast.message(
+        `O canal "${initialChannelSlug}" sugerido pela aula não está disponível. Mantivemos seu rascunho — escolha outro canal.`,
+      );
       setDeepLinkApplied(true);
+      return;
     }
-  }, [initialChannelSlug, channels, spaces, deepLinkApplied]);
+    if (spaceId !== result.spaceId) {
+      setSpaceId(result.spaceId);
+    }
+    setDeepLinkPendingSpace(result.spaceId);
+  }, [
+    initialChannelSlug,
+    matchedChannel,
+    deepLinkLoading,
+    deepLinkApplied,
+    spaceId,
+  ]);
+
+  // Step 2: once the channels for that space load, pick the matching channel.
+  useEffect(() => {
+    if (deepLinkApplied) return;
+    if (!matchedChannel || deepLinkPendingSpace == null) return;
+    if (spaceId !== deepLinkPendingSpace) return;
+    const present = channels.find((c) => c.id === matchedChannel.id);
+    if (!present) return;
+    setChannelId(matchedChannel.id);
+    setDeepLinkApplied(true);
+    setDeepLinkPendingSpace(null);
+  }, [
+    deepLinkApplied,
+    matchedChannel,
+    deepLinkPendingSpace,
+    spaceId,
+    channels,
+  ]);
 
   useEffect(() => {
     if (!channels.length) {
@@ -119,6 +156,15 @@ export default function CommunityCenter({
       return;
     }
     if (channelId && channels.some((c) => c.id === channelId)) return;
+    // If a deep-link is still resolving for this space, don't pre-empt it.
+    if (
+      !deepLinkApplied &&
+      matchedChannel &&
+      deepLinkPendingSpace === spaceId &&
+      channels.some((c) => c.id === matchedChannel.id)
+    ) {
+      return;
+    }
     try {
       const raw = localStorage.getItem(LS_LAST);
       const saved = raw ? JSON.parse(raw) : null;
@@ -127,7 +173,7 @@ export default function CommunityCenter({
     } catch {
       setChannelId(channels[0].id);
     }
-  }, [channels, channelId]);
+  }, [channels, channelId, deepLinkApplied, matchedChannel, deepLinkPendingSpace, spaceId]);
 
   useEffect(() => {
     if (spaceId && channelId) {
@@ -137,14 +183,19 @@ export default function CommunityCenter({
     }
   }, [spaceId, channelId]);
 
-  // Reset pagination/search when channel changes
+  // Reset search/filter when channel changes
   useEffect(() => {
-    setPostsLimit(20);
     setSearch("");
     setFilter("all");
   }, [channelId]);
 
-  const { data: posts = [], isLoading: postsLoading } = usePosts(channelId, postsLimit);
+  /* ---------------- Posts: real infinite pagination ---------------- */
+  const postsQuery = usePostsInfinite(channelId);
+  const posts = useMemo(
+    () => dedupePostPages(postsQuery.data?.pages ?? []),
+    [postsQuery.data],
+  );
+  const postsLoading = postsQuery.isLoading;
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { data: postReactions = [] } = usePostReactions(postIds);
 
@@ -192,20 +243,13 @@ export default function CommunityCenter({
   }, [initialDraftTitle, initialDraftBody, draftPrefilled]);
 
   /* ---------------- Search + filter ---------------- */
-  const filteredPosts = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return posts.filter((p) => {
-      if (filter === "pinned" && !p.pinned) return false;
-      if (filter === "mine" && p.author_id !== userId) return false;
-      if (q) {
-        const hay = `${p.title ?? ""}\n${p.body ?? ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [posts, search, filter, userId]);
+  const filteredPosts = useMemo(
+    () => filterPosts(posts, search, filter, userId),
+    [posts, search, filter, userId],
+  );
 
-  const canLoadMore = posts.length >= postsLimit;
+  const canLoadMore = postsQuery.hasNextPage ?? false;
+  const isLoadingMore = postsQuery.isFetchingNextPage;
 
 
   const handlePost = async () => {
