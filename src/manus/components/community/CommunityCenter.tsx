@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2 } from "lucide-react";
+import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2, Search, Filter } from "lucide-react";
+
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
