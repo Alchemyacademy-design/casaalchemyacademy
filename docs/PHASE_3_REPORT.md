@@ -103,3 +103,36 @@ Lint global continua com 25 erros pré-existentes em arquivos não tocados (`Adm
 - `src/manus/pages/ModuleDetail.tsx` — slugs reais, busca `courses.title` via `module.course_id`, leitura de `#lesson-<id>` validada pelo módulo, body separado em Course/Module/Lesson/Lesson link.
 
 A Fase 3 só passa a estar verdadeiramente concluída agora — antes os três botões apontavam para slugs inexistentes. **A Fase 4 não foi iniciada.**
+
+---
+
+## Execução de 22/06/2026 — auditoria + correções
+
+### Comandos e exit codes (rodados nesta execução)
+
+| Comando            | Exit code | Saída relevante                            |
+| ------------------ | --------- | ------------------------------------------ |
+| `bun run typecheck`| 0         | `tsc --noEmit` limpo                       |
+| `bun run test`     | 0         | **41 testes**, 5 arquivos, 0 falhas        |
+| `bun run build`    | 0         | bundle gerado (1 chunk >500 kB — warning)  |
+| `bun run lint`     | **1**     | **37 problemas (25 errors, 12 warnings)** — todos pré-existentes ao Phase 3 (uso de `any` em `usePublicContent`, `Guides`, `Home`, `Suppliers`, `AdminLessonsBulk`, edge functions `admin-content-catalog` / `manus-import`; `react-refresh/only-export-components` em contexts e `CommunityCenter`). Nenhum erro novo introduzido pelo Phase 3. |
+
+Arquivos com testes reais executados:
+- `src/manus/services/community-deeplink.test.ts` — **21 testes** (URL params, resolver, filtros, paginação, hash, share body, comparator determinístico, paginação com `last_activity_at` empatado).
+- `src/manus/services/learning.test.ts` — 11 testes.
+- `src/manus/hooks/useAuth.access.test.ts` — 5 testes.
+- `src/manus/lib/admin-api.test.ts` — 3 testes.
+- `src/test/example.test.ts` — 1 teste.
+
+### Correções aplicadas
+
+| Item | Estado |
+| ---- | ------ |
+| **Bug do hash em `ModuleDetail`** — effect dependia de `activeLessonId` e re-aplicava o hash a cada clique, prendendo o usuário | **IMPLEMENTADO E VALIDADO** (testes) — usa `appliedHashRef` e roda apenas quando `lessons` carregam ou `location.hash` muda. Após aplicar o hash o usuário pode trocar de aula, Previous/Next continuam funcionando. |
+| **Deep-link `?space=&channel=`** — `community_channels` é `UNIQUE(space_id, slug)`, slug não é globalmente único | **IMPLEMENTADO E VALIDADO** — `useChannelBySlug(slug, spaceSlug?)` resolve o space primeiro e filtra `space_id`; sem `spaceSlug` ordena por `(space_id asc, id asc)` `.limit(1)` para resultado estável (sem mais `.maybeSingle()` arriscando erro). `Community.tsx` lê `?space=&channel=&title=&body=`. CTAs da aula continuam usando slugs reais (`projects`, `questions`, `general`). |
+| **Ordenação determinística** — pinned, last_activity_at, **id DESC** | **IMPLEMENTADO E VALIDADO** — adicionado `.order("id", { ascending: false })` em `usePosts` e `usePostsInfinite`. Helper puro `comparePostsForFeed` + `paginateFeed` cobertos por teste com 45 posts compartilhando o mesmo `last_activity_at`: páginas não duplicam nem omitem, IDs de fronteira estáveis. |
+
+### Itens listados na cobrança que permanecem PENDENTE
+
+- Testes de componente (deep-link selecionando space+channel, slug inexistente preservando draft, Carregar mais, publicação, filtro Meus, filtro Fixados, troca de aula após hash, Previous/Next após hash) — a lógica está coberta por helpers puros (21 testes), mas testes de integração com React Testing Library + mock do Supabase ainda não foram escritos. **PENDENTE**.
+- `?space=` é aceito pela URL mas os CTAs da aula ainda emitem apenas `?channel=` (resolvem corretamente porque os slugs `projects`/`questions`/`general` só existem em um space na base atual). Quando outro space reusar um desses slugs, será necessário emitir `?space=` também — **PARCIAL**.
