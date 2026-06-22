@@ -206,7 +206,7 @@ export default function CourseDetail() {
                 <Lock className="w-4 h-4 mt-0.5 text-amber-700" />
                 <div className="text-sm text-amber-900">
                   This course requires a membership.{" "}
-                  <Link to="/#pricing" className="underline">View plans</Link>. Preview lessons are still available.
+                  <Link to="/plans" className="underline">View plans</Link>. Preview lessons are still available.
                 </div>
               </Card>
             )}

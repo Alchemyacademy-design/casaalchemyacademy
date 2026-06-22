@@ -148,7 +148,7 @@ export default function Modules() {
                   style={{
                     backgroundColor: statusFilter === s ? "var(--aa-gold)" : "white",
                     color: statusFilter === s ? "var(--aa-cacao)" : "var(--aa-text-mid)",
-                    fontFamily: "'DM Sans', sans-serif",
+                    fontFamily: "'Manrope', sans-serif",
                     letterSpacing: "0.05em",
                   }}
                 >
@@ -202,7 +202,7 @@ export default function Modules() {
                       className="text-sm font-semibold"
                       style={{
                         color: thumbnail ? "white" : "var(--aa-gold)",
-                        fontFamily: "'DM Sans', sans-serif",
+                        fontFamily: "'Manrope', sans-serif",
                         letterSpacing: "0.08em",
                       }}
                     >
@@ -210,7 +210,7 @@ export default function Modules() {
                     </span>
                     <div className="flex items-center gap-2 mt-1">
                       {isDraft && (
-                        <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.5)", color: "white", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>
+                        <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.5)", color: "white", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
                           Draft
                         </span>
                       )}
@@ -227,24 +227,24 @@ export default function Modules() {
                     {c.title}
                   </h3>
                   {c.subtitle && (
-                    <p className="text-xs mb-4 flex-1 leading-relaxed" style={{ color: thumbnail ? "rgba(255,255,255,0.9)" : "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+                    <p className="text-xs mb-4 flex-1 leading-relaxed" style={{ color: thumbnail ? "rgba(255,255,255,0.9)" : "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
                       {c.subtitle}
                     </p>
                   )}
 
                   <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xs" style={{ color: thumbnail ? "rgba(255,255,255,0.8)" : "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                    <span className="text-xs" style={{ color: thumbnail ? "rgba(255,255,255,0.8)" : "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
                       {lessonCount} lesson{lessonCount === 1 ? "" : "s"} {pct > 0 ? `· ${pct}% done` : ""}
                     </span>
                     {!locked ? (
                       <Link to={`/courses/${c.id}`}>
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
+                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
                           {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
                         </span>
                       </Link>
                     ) : (
-                      <Link to="/#pricing">
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em" }}>
+                      <Link to="/plans">
+                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
                           Unlock <ArrowRight size={12} />
                         </span>
                       </Link>
