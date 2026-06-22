@@ -124,10 +124,15 @@ export default function CourseDetail() {
   const markLesson = trpc.lessons.markComplete.useMutation({
     onSuccess: async () => {
       toast.success("Marked as complete");
-      await qc.invalidateQueries({ queryKey: [["lessons", "progress"]] });
+      await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
+      await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
     },
     onError: (e) => toast.error((e as Error).message),
   });
+
+  const activeIndex = activeLesson ? allLessons.findIndex((l) => l.id === activeLesson.id) : -1;
+  const prevLesson = activeIndex > 0 ? allLessons[activeIndex - 1] : null;
+  const nextLesson = activeIndex >= 0 && activeIndex < allLessons.length - 1 ? allLessons[activeIndex + 1] : null;
 
   if (!Number.isFinite(courseId)) {
     return (
