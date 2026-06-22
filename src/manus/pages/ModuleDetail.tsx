@@ -52,6 +52,7 @@ export default function ModuleDetail() {
   // Resolve community-channel targets (slug + space slug) for the three CTAs.
   // One query, scoped by RLS, so we never hardcode a space.
   const CTA_CHANNEL_SLUGS = ["projects", "questions", "general"] as const;
+  type CtaSlug = (typeof CTA_CHANNEL_SLUGS)[number];
   const { data: ctaChannels } = useQuery({
     queryKey: ["community-cta-channels", CTA_CHANNEL_SLUGS.join(",")],
     queryFn: async () => {
