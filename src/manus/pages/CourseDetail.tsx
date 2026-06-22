@@ -262,6 +262,26 @@ export default function CourseDetail() {
                     </Button>
                   </div>
                 )}
+                <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!prevLesson}
+                    onClick={() => prevLesson && setActiveLessonId(prevLesson.id)}
+                  >
+                    ← Previous
+                  </Button>
+                  <span className="text-[11px] text-foreground/55">
+                    {activeIndex + 1} of {allLessons.length}
+                  </span>
+                  <Button
+                    size="sm"
+                    disabled={!nextLesson}
+                    onClick={() => nextLesson && setActiveLessonId(nextLesson.id)}
+                  >
+                    Next →
+                  </Button>
+                </div>
               </div>
             ) : (
               <Card className="p-6 text-sm text-foreground/60 text-center">
