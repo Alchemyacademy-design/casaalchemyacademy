@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2 } from "lucide-react";
+import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2, Search, Filter } from "lucide-react";
+
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +53,17 @@ function timeAgo(iso: string) {
   return `${d}d`;
 }
 
-export default function CommunityCenter() {
+type CommunityCenterProps = {
+  initialChannelSlug?: string;
+  initialDraftTitle?: string;
+  initialDraftBody?: string;
+};
+
+export default function CommunityCenter({
+  initialChannelSlug,
+  initialDraftTitle,
+  initialDraftBody,
+}: CommunityCenterProps = {}) {
   const { user, isAdmin } = useAuth();
   const userId = user?.id ?? null;
 
@@ -62,6 +73,10 @@ export default function CommunityCenter() {
   const [openPost, setOpenPost] = useState<CommunityPost | null>(null);
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "pinned" | "mine">("all");
+  const [postsLimit, setPostsLimit] = useState(20);
+
 
   // restore last selection
   useEffect(() => {
@@ -78,6 +93,18 @@ export default function CommunityCenter() {
   }, [spaces, spaceId]);
 
   const { data: channels = [], isLoading: channelsLoading } = useChannels(spaceId);
+
+  // Deep-link: if initialChannelSlug, find matching channel across spaces and select it.
+  const [deepLinkApplied, setDeepLinkApplied] = useState(false);
+  useEffect(() => {
+    if (deepLinkApplied || !initialChannelSlug || spaces.length === 0) return;
+    // Try in current space first
+    const inCurrent = channels.find((c) => c.slug === initialChannelSlug);
+    if (inCurrent) {
+      setChannelId(inCurrent.id);
+      setDeepLinkApplied(true);
+    }
+  }, [initialChannelSlug, channels, spaces, deepLinkApplied]);
 
   useEffect(() => {
     if (!channels.length) {
@@ -103,9 +130,17 @@ export default function CommunityCenter() {
     }
   }, [spaceId, channelId]);
 
-  const { data: posts = [], isLoading: postsLoading } = usePosts(channelId);
+  // Reset pagination/search when channel changes
+  useEffect(() => {
+    setPostsLimit(20);
+    setSearch("");
+    setFilter("all");
+  }, [channelId]);
+
+  const { data: posts = [], isLoading: postsLoading } = usePosts(channelId, postsLimit);
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { data: postReactions = [] } = usePostReactions(postIds);
+
 
   const createPost = useCreatePost(channelId, userId);
   const deletePost = useDeletePost(channelId);
@@ -134,8 +169,37 @@ export default function CommunityCenter() {
   }, [postReactions, userId]);
 
   /* ---------------- Composer state ---------------- */
-  const [draftTitle, setDraftTitle] = useState("");
-  const [draftBody, setDraftBody] = useState("");
+  const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
+  const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
+  const [draftPrefilled, setDraftPrefilled] = useState(
+    !!(initialDraftTitle || initialDraftBody),
+  );
+
+  // Re-apply prefill if it arrives after mount or after channel switch
+  useEffect(() => {
+    if (!initialDraftTitle && !initialDraftBody) return;
+    if (draftPrefilled) return;
+    setDraftTitle(initialDraftTitle ?? "");
+    setDraftBody(initialDraftBody ?? "");
+    setDraftPrefilled(true);
+  }, [initialDraftTitle, initialDraftBody, draftPrefilled]);
+
+  /* ---------------- Search + filter ---------------- */
+  const filteredPosts = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return posts.filter((p) => {
+      if (filter === "pinned" && !p.pinned) return false;
+      if (filter === "mine" && p.author_id !== userId) return false;
+      if (q) {
+        const hay = `${p.title ?? ""}\n${p.body ?? ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [posts, search, filter, userId]);
+
+  const canLoadMore = posts.length >= postsLimit;
+
 
   const handlePost = async () => {
     if (!draftBody.trim()) return;
@@ -284,6 +348,37 @@ export default function CommunityCenter() {
           )}
         </header>
 
+        {/* Search + filters */}
+        {activeChannel && (
+          <div className="flex flex-wrap items-center gap-2 border-b border-[#d8cdbf] bg-[var(--aa-cream)]/40 px-4 py-2">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="pointer-events-none absolute left-2 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--aa-text-light)]" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar nesta conversa…"
+                className="h-8 pl-7 text-sm"
+              />
+            </div>
+            <div className="flex items-center gap-1 text-xs text-[var(--aa-text-light)]">
+              <Filter className="h-3.5 w-3.5" />
+              {(["all", "pinned", "mine"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  className={`rounded-full px-2 py-0.5 transition ${
+                    filter === f
+                      ? "bg-[var(--aa-gold)]/15 text-foreground"
+                      : "hover:bg-[var(--aa-cream-dark)]/70"
+                  }`}
+                >
+                  {f === "all" ? "Todos" : f === "pinned" ? "Fixados" : "Meus"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <ScrollArea className="flex-1">
           <div className="mx-auto flex max-w-3xl flex-col gap-3 p-4">
             {postsLoading && (
@@ -296,7 +391,13 @@ export default function CommunityCenter() {
                 Seja o primeiro a postar em <span className="font-medium">#{activeChannel.name}</span>.
               </div>
             )}
-            {posts.map((post) => {
+            {!postsLoading && posts.length > 0 && filteredPosts.length === 0 && (
+              <div className="rounded-lg border border-dashed border-[#d8cdbf] p-6 text-center text-xs text-[var(--aa-text-light)]">
+                Nenhum post corresponde aos filtros atuais.
+              </div>
+            )}
+            {filteredPosts.map((post) => {
+
               const mine = post.author_id === userId;
               const canDelete = mine || isAdmin;
               const canPin = isAdmin;
@@ -407,6 +508,17 @@ export default function CommunityCenter() {
                 </article>
               );
             })}
+            {!postsLoading && canLoadMore && (
+              <div className="flex justify-center pt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPostsLimit((n) => n + 20)}
+                >
+                  Carregar mais
+                </Button>
+              </div>
+            )}
           </div>
         </ScrollArea>
 

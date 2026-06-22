@@ -155,11 +155,11 @@ export function useDeleteChannel(spaceId: number | null) {
 
 /* ----------------------------- Posts ----------------------------- */
 
-export function usePosts(channelId: number | null) {
+export function usePosts(channelId: number | null, limit: number = 20) {
   const qc = useQueryClient();
 
   const query = useQuery({
-    queryKey: postsKey(channelId),
+    queryKey: [...postsKey(channelId), limit],
     enabled: !!channelId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -169,7 +169,7 @@ export function usePosts(channelId: number | null) {
         .is("deleted_at", null)
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
-        .limit(200);
+        .limit(limit);
       if (error) throw error;
       return data ?? [];
     },
@@ -195,6 +195,7 @@ export function usePosts(channelId: number | null) {
 
   return query;
 }
+
 
 export function useCreatePost(channelId: number | null, authorId: string | null) {
   const qc = useQueryClient();
