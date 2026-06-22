@@ -50,13 +50,22 @@ export default function ModuleDetail() {
   });
 
   // Restore lesson selection from #lesson-<id> hash when valid for THIS module.
+  // Tracks the last hash we already applied so the effect does NOT fight with
+  // user navigation (clicks on a different lesson, Previous, Next…).
+  const appliedHashRef = useRef<string | null>(null);
   useEffect(() => {
     if (!lessons.length) return;
-    const fromHash = parseLessonHash(location.hash, lessons);
-    if (fromHash && fromHash !== activeLessonId) {
+    const hash = location.hash || "";
+    if (appliedHashRef.current === hash) return;
+    const fromHash = parseLessonHash(hash, lessons);
+    appliedHashRef.current = hash;
+    if (fromHash) {
       setActiveLessonId(fromHash);
     }
-  }, [lessons, location.hash, activeLessonId]);
+    // Intentionally NOT depending on activeLessonId — otherwise clicking
+    // another lesson would re-apply the hash and trap the user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lessons, location.hash]);
 
 
   const activeLesson = activeLessonId
