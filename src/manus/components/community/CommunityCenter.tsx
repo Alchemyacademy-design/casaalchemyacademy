@@ -247,18 +247,20 @@ export default function CommunityCenter({
   /* ---------------- Composer state ---------------- */
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
-  const [draftPrefilled, setDraftPrefilled] = useState(
-    !!(initialDraftTitle || initialDraftBody),
-  );
+  const lastDraftPrefillRef = useRef<string>("");
 
-  // Re-apply prefill if it arrives after mount or after channel switch
+  // Re-apply prefill when the URL changes (without unmount) — the new title/body
+  // overrides any previous prefill but does not clobber user-typed content if no
+  // new prefill is provided.
   useEffect(() => {
-    if (!initialDraftTitle && !initialDraftBody) return;
-    if (draftPrefilled) return;
-    setDraftTitle(initialDraftTitle ?? "");
-    setDraftBody(initialDraftBody ?? "");
-    setDraftPrefilled(true);
-  }, [initialDraftTitle, initialDraftBody, draftPrefilled]);
+    const key = `${initialDraftTitle ?? ""}|${initialDraftBody ?? ""}`;
+    if (lastDraftPrefillRef.current === key) return;
+    lastDraftPrefillRef.current = key;
+    if (initialDraftTitle || initialDraftBody) {
+      setDraftTitle(initialDraftTitle ?? "");
+      setDraftBody(initialDraftBody ?? "");
+    }
+  }, [initialDraftTitle, initialDraftBody]);
 
   /* ---------------- Search + filter ---------------- */
   const filteredPosts = useMemo(
