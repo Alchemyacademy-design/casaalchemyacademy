@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getCoursesTree } from "@/manus/services/admin-content";
+import { canAccessCourse } from "@/manus/services/learning";
 import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useMemo, useState } from "react";
+import { useState } from "react";
+
 
 type CourseRow = {
   id: number;
@@ -43,13 +45,18 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
 }
 
 export default function Modules() {
-  const { user, isAdmin } = useAuth();
-  const { data: progress = [] } = trpc.lessons.progress.useQuery({ lessonId: 0 }, { enabled: !isAdmin });
+  const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
+  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
 
-  const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
-  const isFullMember = isAdmin || tier === "annual_member";
+  const accessState = {
+    isAdmin,
+    isMember,
+    hasCourseAccess,
+    entitlementCourseIds: (activeEntitlements ?? []).map((e) => Number(e.course_id)).filter(Boolean),
+  };
+  const hasAnyPaidAccess = isAdmin || isMember || hasCourseAccess;
 
-  const { data: courses = [], isLoading, error } = useQuery({
+  const { data: courses = [], isLoading, error, refetch } = useQuery({
     queryKey: ["modules-page", "courses", { admin: isAdmin }],
     queryFn: () => fetchCourses(isAdmin),
     staleTime: 5 * 60 * 1000,
@@ -66,8 +73,6 @@ export default function Modules() {
 
   const getProgress = (courseId: number, lessonCount: number) => {
     if (!progress || lessonCount === 0) return 0;
-    // moduleId in progress rows = lessons.module_id; we approximate by counting
-    // any completed lessons attached to modules of this course.
     const moduleIds = new Set(
       (courses.find((c) => c.id === courseId)?.course_modules ?? []).map((m) => m.id),
     );
@@ -77,13 +82,9 @@ export default function Modules() {
     return Math.round((done / lessonCount) * 100);
   };
 
-  const isCourseAccessible = (c: CourseRow) => {
-    if (isFullMember) return true;
-    const keys = c.access_plan_keys ?? [];
-    if (keys.length === 0) return true; // free
-    if (keys.includes("free") || keys.includes("guest")) return true;
-    return false;
-  };
+  const isCourseAccessible = (c: CourseRow) =>
+    canAccessCourse(c.id, c.access_plan_keys, accessState);
+
 
   return (
     <MemberLayout>
