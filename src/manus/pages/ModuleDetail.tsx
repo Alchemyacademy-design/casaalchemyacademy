@@ -3,15 +3,21 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Share2, HelpCircle, MessageSquare } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
-import { useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  buildLessonShareBody,
+  parseLessonHash,
+} from "@/manus/services/community-deeplink";
 
 
 export default function ModuleDetail() {
   const params = useParams<{ id: string }>();
+  const location = useLocation();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const qc = useQueryClient();
@@ -25,6 +31,32 @@ export default function ModuleDetail() {
       await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
     },
   });
+
+  // Course title via the existing module.course_id relation (no schema change).
+  const courseId: number | null =
+    (module as { course_id?: number | null } | undefined)?.course_id ?? null;
+  const { data: courseRow } = useQuery({
+    queryKey: ["course-title", courseId],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id,title")
+        .eq("id", courseId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Restore lesson selection from #lesson-<id> hash when valid for THIS module.
+  useEffect(() => {
+    if (!lessons.length) return;
+    const fromHash = parseLessonHash(location.hash, lessons);
+    if (fromHash && fromHash !== activeLessonId) {
+      setActiveLessonId(fromHash);
+    }
+  }, [lessons, location.hash, activeLessonId]);
 
 
   const activeLesson = activeLessonId
@@ -168,14 +200,25 @@ export default function ModuleDetail() {
                   {/* Community actions */}
                   {(() => {
                     const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
-                    const courseTitle = module?.title ?? "this course";
+                    const courseTitle =
+                      (courseRow as { title?: string } | null | undefined)?.title ??
+                      "this course";
+                    const moduleTitle = module?.title ?? "this module";
                     const lessonTitle = activeLesson.title;
                     const buildLink = (
                       channel: string,
                       title: string,
-                      body: string,
-                    ) =>
-                      `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                      intro: string,
+                    ) => {
+                      const body = buildLessonShareBody({
+                        courseTitle,
+                        moduleTitle,
+                        lessonTitle,
+                        lessonUrl,
+                        intro,
+                      });
+                      return `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                    };
                     return (
                       <Card className="p-4 flex flex-wrap gap-2 items-center">
                         <span className="text-sm text-foreground/70 mr-2">
@@ -183,9 +226,9 @@ export default function ModuleDetail() {
                         </span>
                         <Link
                           to={buildLink(
-                            "project-sharing",
+                            "projects",
                             `My progress on "${lessonTitle}"`,
-                            `I just finished "${lessonTitle}" in ${courseTitle}.\n\nLesson: ${lessonUrl}`,
+                            `I just finished "${lessonTitle}".`,
                           )}
                         >
                           <Button variant="outline" size="sm">
@@ -194,9 +237,9 @@ export default function ModuleDetail() {
                         </Link>
                         <Link
                           to={buildLink(
-                            "ask-lorena",
+                            "questions",
                             `Question about "${lessonTitle}"`,
-                            `Course: ${courseTitle}\nLesson: ${lessonTitle} (${lessonUrl})\n\nMy question: `,
+                            `I have a question about this lesson:`,
                           )}
                         >
                           <Button variant="outline" size="sm">
@@ -205,9 +248,9 @@ export default function ModuleDetail() {
                         </Link>
                         <Link
                           to={buildLink(
-                            "general-discussion",
+                            "general",
                             `Discussing "${lessonTitle}"`,
-                            `Let's discuss "${lessonTitle}" from ${courseTitle}.\nLesson: ${lessonUrl}\n\n`,
+                            `Let's discuss this lesson:`,
                           )}
                         >
                           <Button variant="outline" size="sm">
