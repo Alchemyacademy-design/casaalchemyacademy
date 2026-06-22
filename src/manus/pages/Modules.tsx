@@ -52,7 +52,11 @@ export default function Modules() {
   const { data: courses = [], isLoading, error } = useQuery({
     queryKey: ["modules-page", "courses", { admin: isAdmin }],
     queryFn: () => fetchCourses(isAdmin),
+    staleTime: 5 * 60 * 1000,
   });
+
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "not_started" | "in_progress" | "completed">("all");
 
   const lessonCountOf = (c: CourseRow) =>
     c.course_modules.reduce(
