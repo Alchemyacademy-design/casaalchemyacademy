@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Hash, Plus, Pin, Trash2, Send, MessageCircle, ArrowLeft, Settings2, Loader2, Search, Filter } from "lucide-react";
 
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -107,6 +107,18 @@ export default function CommunityCenter({
   const [deepLinkApplied, setDeepLinkApplied] = useState(false);
   const [deepLinkPendingSpace, setDeepLinkPendingSpace] = useState<number | null>(null);
 
+  // When the incoming slugs change (navigation without unmount), reset the
+  // deep-link state so the new (space, channel) pair gets resolved again.
+  const lastSlugsRef = useRef<string>("");
+  const notFoundToastedRef = useRef<string>("");
+  useEffect(() => {
+    const key = `${initialSpaceSlug ?? ""}|${initialChannelSlug ?? ""}`;
+    if (lastSlugsRef.current === key) return;
+    lastSlugsRef.current = key;
+    setDeepLinkApplied(false);
+    setDeepLinkPendingSpace(null);
+  }, [initialSpaceSlug, initialChannelSlug]);
+
   // Step 1: switch to the channel's space (and show fallback toast if missing).
   useEffect(() => {
     if (deepLinkApplied) return;
@@ -115,9 +127,13 @@ export default function CommunityCenter({
     const result = resolveDeepLinkChannel(initialChannelSlug, matchedChannel);
     if (!result) return;
     if (result.kind === "not-found") {
-      toast.message(
-        `O canal "${initialChannelSlug}" sugerido pela aula não está disponível. Mantivemos seu rascunho — escolha outro canal.`,
-      );
+      const toastKey = `${initialSpaceSlug ?? ""}|${initialChannelSlug}`;
+      if (notFoundToastedRef.current !== toastKey) {
+        notFoundToastedRef.current = toastKey;
+        toast.message(
+          `O canal "${initialChannelSlug}" sugerido pela aula não está disponível. Mantivemos seu rascunho — escolha outro canal.`,
+        );
+      }
       setDeepLinkApplied(true);
       return;
     }
@@ -127,6 +143,7 @@ export default function CommunityCenter({
     setDeepLinkPendingSpace(result.spaceId);
   }, [
     initialChannelSlug,
+    initialSpaceSlug,
     matchedChannel,
     deepLinkLoading,
     deepLinkApplied,
@@ -230,18 +247,20 @@ export default function CommunityCenter({
   /* ---------------- Composer state ---------------- */
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
-  const [draftPrefilled, setDraftPrefilled] = useState(
-    !!(initialDraftTitle || initialDraftBody),
-  );
+  const lastDraftPrefillRef = useRef<string>("");
 
-  // Re-apply prefill if it arrives after mount or after channel switch
+  // Re-apply prefill when the URL changes (without unmount) — the new title/body
+  // overrides any previous prefill but does not clobber user-typed content if no
+  // new prefill is provided.
   useEffect(() => {
-    if (!initialDraftTitle && !initialDraftBody) return;
-    if (draftPrefilled) return;
-    setDraftTitle(initialDraftTitle ?? "");
-    setDraftBody(initialDraftBody ?? "");
-    setDraftPrefilled(true);
-  }, [initialDraftTitle, initialDraftBody, draftPrefilled]);
+    const key = `${initialDraftTitle ?? ""}|${initialDraftBody ?? ""}`;
+    if (lastDraftPrefillRef.current === key) return;
+    lastDraftPrefillRef.current = key;
+    if (initialDraftTitle || initialDraftBody) {
+      setDraftTitle(initialDraftTitle ?? "");
+      setDraftBody(initialDraftBody ?? "");
+    }
+  }, [initialDraftTitle, initialDraftBody]);
 
   /* ---------------- Search + filter ---------------- */
   const filteredPosts = useMemo(

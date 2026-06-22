@@ -49,22 +49,47 @@ export default function ModuleDetail() {
     },
   });
 
-  // Restore lesson selection from #lesson-<id> hash when valid for THIS module.
-  // Tracks the last hash we already applied so the effect does NOT fight with
-  // user navigation (clicks on a different lesson, Previous, Next…).
-  const appliedHashRef = useRef<string | null>(null);
+  // Resolve community-channel targets (slug + space slug) for the three CTAs.
+  // One query, scoped by RLS, so we never hardcode a space.
+  const CTA_CHANNEL_SLUGS = ["projects", "questions", "general"] as const;
+  type CtaSlug = (typeof CTA_CHANNEL_SLUGS)[number];
+  const { data: ctaChannels } = useQuery({
+    queryKey: ["community-cta-channels", CTA_CHANNEL_SLUGS.join(",")],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("community_channels")
+        .select("slug, community_spaces!inner(slug)")
+        .in("slug", CTA_CHANNEL_SLUGS as unknown as string[]);
+      if (error) throw error;
+      const map: Record<string, { spaceSlug: string }> = {};
+      for (const row of (data ?? []) as Array<{
+        slug: string;
+        community_spaces: { slug: string } | { slug: string }[] | null;
+      }>) {
+        const sp = Array.isArray(row.community_spaces)
+          ? row.community_spaces[0]
+          : row.community_spaces;
+        if (sp?.slug && !map[row.slug]) map[row.slug] = { spaceSlug: sp.slug };
+      }
+      return map;
+    },
+  });
+
+  // Restore lesson selection from #lesson-<id> hash, scoped to (moduleId, hash).
+  // When moduleId changes the previous selection is dropped, the hash is
+  // re-evaluated against the new module's lessons, and we fall back to the
+  // first lesson when the hash is missing or invalid.
+  const appliedKeyRef = useRef<string | null>(null);
   useEffect(() => {
+    if (!Number.isFinite(moduleId) || moduleId <= 0) return;
     if (!lessons.length) return;
     const hash = location.hash || "";
-    if (appliedHashRef.current === hash) return;
+    const key = `${moduleId}:${hash}`;
+    if (appliedKeyRef.current === key) return;
     const fromHash = parseLessonHash(hash, lessons);
-    appliedHashRef.current = hash;
-    if (fromHash) {
-      setActiveLessonId(fromHash);
-    }
-    // Intentionally NOT depending on activeLessonId — otherwise clicking
-    // another lesson would re-apply the hash and trap the user.
-  }, [lessons, location.hash]);
+    appliedKeyRef.current = key;
+    setActiveLessonId(fromHash ?? lessons[0].id);
+  }, [moduleId, lessons, location.hash]);
 
 
   const activeLesson = activeLessonId
@@ -214,7 +239,7 @@ export default function ModuleDetail() {
                     const moduleTitle = module?.title ?? "this module";
                     const lessonTitle = activeLesson.title;
                     const buildLink = (
-                      channel: string,
+                      channel: CtaSlug,
                       title: string,
                       intro: string,
                     ) => {
@@ -225,7 +250,13 @@ export default function ModuleDetail() {
                         lessonUrl,
                         intro,
                       });
-                      return `/community?channel=${encodeURIComponent(channel)}&title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}`;
+                      const spaceSlug = ctaChannels?.[channel]?.spaceSlug;
+                      const params = new URLSearchParams();
+                      if (spaceSlug) params.set("space", spaceSlug);
+                      params.set("channel", channel);
+                      params.set("title", title);
+                      params.set("body", body);
+                      return `/community?${params.toString()}`;
                     };
                     return (
                       <Card className="p-4 flex flex-wrap gap-2 items-center">
