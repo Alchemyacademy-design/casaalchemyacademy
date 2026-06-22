@@ -104,3 +104,32 @@ A Fase 1 só é considerada tecnicamente concluída após validar, no Supabase S
 5. Padronizar tratamento "loading/error/empty/success" nas demais telas (Eventos, Workshops, Magazine, Suppliers, Deals) usando o mesmo padrão aplicado ao painel de auditoria.
 
 **Pare aqui. Aguardando aplicação manual da migration de GRANT + validação dos 8 critérios acima antes de iniciar a Fase 2.**
+
+---
+
+## Execução de 22/06/2026 — auditoria dos requisitos pendentes
+
+### Comandos rodados nesta execução
+
+| Comando            | Exit code | Notas                                  |
+| ------------------ | --------- | -------------------------------------- |
+| `bun run typecheck`| 0         | limpo                                  |
+| `bun run test`     | 0         | 41 testes, 5 arquivos, 0 falhas        |
+| `bun run build`    | 0         | warning de chunk >500 kB (informativo) |
+| `bun run lint`     | **1**     | 37 problemas (25 errors, 12 warnings) pré-existentes |
+
+### Status dos requisitos da cobrança
+
+| # | Requisito | Estado |
+| - | --------- | ------ |
+| 1 | Paginação server-side de 20 registros no `AdminTablePage` | **PENDENTE** — `AdminTablePage` ainda carrega `.select(...)` sem range/limit. |
+| 2 | Seleção apenas das colunas declaradas | **PENDENTE** — `select` padrão continua `"*"`. |
+| 3 | Botão Retry em `AdminTablePage`, `Modules`, `CourseDetail` | **PENDENTE** — erros são exibidos mas sem botão de retry explícito (refetch do React Query existe via invalidação, mas não como UX). |
+| 4 | `React.lazy` + `Suspense` nas rotas grandes | **PENDENTE** — `src/App.tsx` segue com imports síncronos; bundle único de 1,4 MB confirmado pelo build. |
+| 5 | Remover `any` do `AdminTablePage` com tipos genéricos seguros | **PARCIAL** — `AdminTablePage` ainda contém `(supabase as any)` para tabelas dinâmicas; outros 25 `any` no projeto também permanecem (ver lint). |
+| 6 | Substituir hard delete por arquivamento onde houver `status`/`archived_at` | **PENDENTE** — `deleteMutation` continua chamando `.delete()` físico. |
+| 7 | Documentar onde delete físico permanece | **PARCIAL** — esta nota registra que **todas** as tabelas continuam com delete físico. |
+| 8 | Reduzir lint global sem alterar comportamento | **PENDENTE** — 25 errors / 12 warnings preservados (nenhum erro novo introduzido pelas fases 2-3). |
+| 9 | Atualização da segunda aba | **LIMITADO PELO SCHEMA** — comunidade usa Realtime via `postgres_changes`; learning progress (`lesson_progress`) **não** está publicado em `supabase_realtime`. Hoje a segunda aba só recebe atualização ao re-focar/refetchar via React Query. Adicionar a tabela à publicação exige migration, **fora de escopo desta execução**. |
+
+**Fase 1 NÃO está concluída** enquanto os itens 1, 2, 3, 4, 6, 8 estiverem como PENDENTE.

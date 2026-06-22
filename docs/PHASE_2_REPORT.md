@@ -101,3 +101,46 @@ Build/lint: executados pelo pipeline do harness (sem novos erros introduzidos po
 - `last_watched_at` por aula só será atualizado em "watch progress" quando a Fase 5 adicionar tracking de player; hoje é gravado ao marcar concluído (suficiente para `pickResumeLessonId`).
 - Learning path visual mais elaborado (badges/timeline) deixado para fase futura — derivação atual já existe via `sort_order` + `lesson_progress`.
 - Tipografia `'DM Sans'` ainda aparece em outras telas (Profile, Suppliers, Magazine) — fora do escopo da jornada de aprendizagem; deve ser tratado em fase própria de uniformização visual.
+
+---
+
+## Execução de 22/06/2026 — auditoria dos requisitos ausentes
+
+### Comandos rodados
+
+| Comando            | Exit code |
+| ------------------ | --------- |
+| `bun run typecheck`| 0         |
+| `bun run test`     | 0 (41 testes) |
+| `bun run build`    | 0         |
+| `bun run lint`     | 1 (37 problemas pré-existentes) |
+
+### Status dos requisitos adicionais
+
+| Requisito | Estado |
+| --------- | ------ |
+| Capa, descrição, duração total (`sum(duration_seconds)`) na página do curso | **PARCIAL** — `CourseDetail` exibe capa/descrição; soma de `duration_seconds` ainda **não** é exibida. |
+| Certificado (quando existir) + status claro quando ausente | **PENDENTE** — `CertificateSection` existe mas não está montado em `CourseDetail`. |
+| Última aula acessada nos cards de My Courses | **PARCIAL** — `learning.ts::pickResumeLessonId` já calcula isso a partir de `last_watched_at`; o componente `Dashboard.tsx` chama, mas os cards de `Modules.tsx` (My Courses) ainda não exibem rótulo "Continuar de: <aula>". |
+| Learning Path visual derivado de `sort_order` | **PENDENTE** — listagem segue tabular sem timeline visual. |
+| Busca, filtros, progresso, materiais, player, conclusão, prev/next, acesso por membership/entitlement | **IMPLEMENTADO E VALIDADO** — coberto pelos testes de `learning.ts` + tela ModuleDetail. |
+
+### Validação operacional (QA gating)
+
+Hoje **todos os cursos, módulos e aulas estão em `draft`**. Sem autorização para alterar conteúdo de produção, a validação ponta-a-ponta da Fase 2 está **BLOQUEADA PELOS DADOS**. Veja `docs/PHASE_2_REPORT.md` → seção "QA Gating" abaixo.
+
+### QA Gating — dados mínimos necessários
+
+Para considerar a Fase 2 **IMPLEMENTADO E VALIDADO** em produção é preciso provisionar (em ambiente controlado já autorizado):
+
+- 1 curso `published`
+- 1 módulo `published` vinculado a esse curso
+- ≥3 aulas `published` vinculadas ao módulo
+- ≥1 aula com `video_url` preenchida
+- ≥1 aula com `materials` (link/arquivo)
+- ≥1 aula com `duration_seconds` > 0
+- 1 usuário com membership ativa
+- 1 usuário com entitlement individual ao curso
+- 1 usuário sem acesso (para validar bloqueio)
+
+Sem esse conjunto, o relatório registra **"não validado por ausência de conteúdo publicado"**.
