@@ -564,9 +564,17 @@ export default function CommunityCenter({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setPostsLimit((n) => n + 20)}
+                  disabled={isLoadingMore}
+                  onClick={() => postsQuery.fetchNextPage()}
                 >
-                  Carregar mais
+                  {isLoadingMore ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Carregando…
+                    </>
+                  ) : (
+                    "Carregar mais"
+                  )}
                 </Button>
               </div>
             )}
