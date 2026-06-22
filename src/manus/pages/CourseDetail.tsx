@@ -87,6 +87,7 @@ export default function CourseDetail() {
     queryKey: ["public", "course", courseId, { admin: isAdmin }],
     queryFn: () => fetchCourseTree(courseId, isAdmin),
     enabled: Number.isFinite(courseId),
+    staleTime: 2 * 60 * 1000,
   });
 
   const tier = (user as { membershipTier?: string } | null)?.membershipTier ?? "guest";
