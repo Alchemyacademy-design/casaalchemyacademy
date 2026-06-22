@@ -170,6 +170,7 @@ export function usePosts(channelId: number | null, limit: number = 20) {
         .is("deleted_at", null)
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(limit);
       if (error) throw error;
       return data ?? [];
@@ -198,8 +199,10 @@ export function usePosts(channelId: number | null, limit: number = 20) {
 
 /**
  * Cursor-less, page-based infinite pagination over community_posts using
- * `.range(from, to)`. Page size is fixed at POSTS_PAGE_SIZE. Realtime on the
- * active channel invalidates the whole prefix so refetch reconstructs pages.
+ * `.range(from, to)`. Page size is fixed at POSTS_PAGE_SIZE. The final
+ * `.order("id", { ascending: false })` makes the order deterministic when
+ * multiple rows share the same `last_activity_at`, so pages never omit
+ * nor duplicate records.
  */
 export function usePostsInfinite(channelId: number | null) {
   const qc = useQueryClient();
@@ -220,6 +223,7 @@ export function usePostsInfinite(channelId: number | null) {
         .is("deleted_at", null)
         .order("pinned", { ascending: false })
         .order("last_activity_at", { ascending: false })
+        .order("id", { ascending: false })
         .range(from, to);
       if (error) throw error;
       return data ?? [];
