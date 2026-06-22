@@ -53,7 +53,17 @@ function timeAgo(iso: string) {
   return `${d}d`;
 }
 
-export default function CommunityCenter() {
+type CommunityCenterProps = {
+  initialChannelSlug?: string;
+  initialDraftTitle?: string;
+  initialDraftBody?: string;
+};
+
+export default function CommunityCenter({
+  initialChannelSlug,
+  initialDraftTitle,
+  initialDraftBody,
+}: CommunityCenterProps = {}) {
   const { user, isAdmin } = useAuth();
   const userId = user?.id ?? null;
 
@@ -63,6 +73,10 @@ export default function CommunityCenter() {
   const [openPost, setOpenPost] = useState<CommunityPost | null>(null);
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<"all" | "pinned" | "mine">("all");
+  const [postsLimit, setPostsLimit] = useState(20);
+
 
   // restore last selection
   useEffect(() => {
