@@ -144,19 +144,21 @@ misreading that as new Stripe activity, this run records the truth instead:
 
 | Function | Current version | This run's intent | Notes |
 |----------|----------------:|-------------------|-------|
-| `stripe-webhook` | v22 | Not changed, not redeployed | Stripe-gated; out of scope. |
-| `recover-stripe-events` | v17 | Not changed, not redeployed | Stripe-gated; out of scope. |
-| `create-checkout-session` | v17 | Not changed, not redeployed | Stripe-gated; out of scope. |
-| `admin-manage-stripe-subscription` | v14 | Not changed, not redeployed | Stripe-gated; out of scope. |
-| `billing-config-status` | v6 | Not changed, not redeployed | Stripe-gated; out of scope. |
-| `admin-content-catalog` | v11 | Editorial filter `archived_at IS NULL` added | Read-only; non-financial. |
-| `manus-import` | v12 | Not changed (typing-only from prior run) | Non-financial. |
+| `stripe-webhook` | v23 | Not changed, not redeployed in this microcorrection | Stripe-gated; out of scope. |
+| `recover-stripe-events` | v18 | Not changed, not redeployed in this microcorrection | Stripe-gated; out of scope. |
+| `create-checkout-session` | v18 | Not changed, not redeployed in this microcorrection | Stripe-gated; out of scope. |
+| `admin-manage-stripe-subscription` | v15 | Not changed, not redeployed in this microcorrection | Stripe-gated; out of scope. |
+| `billing-config-status` | v7 | Not changed, not redeployed in this microcorrection | Stripe-gated; out of scope. |
+| `admin-content-catalog` | v12 | Not changed in this microcorrection (`archived_at IS NULL` filter remains from prior run) | Read-only; non-financial. |
+| `manus-import` | v13 | Not changed in this microcorrection | Non-financial. |
 
-Auth, filters, SQL queries, request/response shapes and idempotency keys for
-every Stripe function are byte-for-byte equivalent to the prior version. We do
-not declare `LIVE_VALIDATED`.
+**Honest log for this microcorrection:**
+- Stripe-related files modified on GitHub: **0**.
+- Financial functions previously redeployed collectively by the Supabase dashboard: **yes** (prior runs), but with **no code changes**. No new redeploy was issued in this microcorrection.
+- `STRIPE_LIVE_ENABLED`: **false**. No financial activation or validation occurred.
+- We do not declare `LIVE_VALIDATED`.
 
-**Stripe-touching functions redeployed: 0.**
+**Stripe-touching functions redeployed in this microcorrection: 0.**
 
 ---
 
