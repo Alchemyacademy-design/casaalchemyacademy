@@ -160,3 +160,15 @@ bun run lint
 No secret value was written to source code, logs, the report, the frontend bundle, or error responses. Error responses use stable opaque codes (`BILLING_LIVE_DISABLED`, `BILLING_SECRET_KEY_MISSING`, `BILLING_SECRET_KEY_PREFIX_MISMATCH`, `BILLING_WEBHOOK_SECRET_MISSING`, `BILLING_WEBHOOK_SECRET_PREFIX_MISMATCH`).
 
 **LIVE CREDENTIALS CAN BE SAFELY STAGED.** Stripe live is NOT declared functional.
+
+---
+
+## 11. Recorded exit codes (this execution)
+
+| Command | Exit code | Notes |
+| --- | --- | --- |
+| `bun run typecheck` | **0** | clean |
+| `bun run test` | **0** | 8 files, 78 tests passed (+28 new `billing-runtime.test.ts`) |
+| `bun run build` | **0** | dist built; chunk-size warning is pre-existing |
+| `bun run lint` | **1** | 37 pre-existing issues. **No new lint findings in any file touched by this execution** (`billing-runtime.ts`, `billing-runtime.test.ts`, `billing-core.ts`, `stripe-webhook/index.ts`, `recover-stripe-events/index.ts`, `create-checkout-session/index.ts`, `billing-config-status/index.ts`, `AdminDiagnostics.tsx`, `SubscribeModal.tsx`). |
+
