@@ -13,6 +13,7 @@ import {
   buildLessonShareBody,
   parseLessonHash,
 } from "@/manus/services/community-deeplink";
+import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
 
 
 export default function ModuleDetail() {
@@ -29,6 +30,13 @@ export default function ModuleDetail() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
       await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
+      // Sibling tabs of the same learner re-fetch their progress without a
+      // realtime channel on `lesson_progress` (see cross-tab-query-sync.ts).
+      publishCrossTabInvalidation("lesson_progress.updated", [
+        ["lessons.progress"],
+        ["progress.moduleProgress"],
+        ["modules-page", "courses"],
+      ]);
     },
   });
 

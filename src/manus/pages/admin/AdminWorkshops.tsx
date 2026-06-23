@@ -15,6 +15,7 @@ export default function AdminWorkshops() {
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug"]}
       publicInvalidateKeys={[["public", "live_workshops"]]}
+      deletionMode="archive"
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
         { name: "slug", label: "Slug", type: "text", required: true },

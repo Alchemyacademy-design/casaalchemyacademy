@@ -52,12 +52,13 @@ export function useEntitlements(): Entitlements {
         .eq("user_id", uid!)
         .in("status", ["active", "granted", "paid"]) ;
       if (error) throw error;
-      return (data ?? []).filter((r: any) => !r.ends_at || r.ends_at > nowIso);
+      type Row = { course_id: number | string; status: string; ends_at: string | null };
+      return ((data ?? []) as unknown as Row[]).filter((r) => !r.ends_at || r.ends_at > nowIso);
     },
   });
 
   return useMemo<Entitlements>(() => {
-    const activeMembership = (memberships.data ?? [])[0];
+    const activeMembership = (memberships.data ?? [])[0] as { plan_key?: string | null } | undefined;
     const isMember = isAdmin || !!activeMembership;
     return {
       isAuthenticated,
@@ -68,8 +69,8 @@ export function useEntitlements(): Entitlements {
       hasWorkshops: isMember,
       hasMagazine: isMember,
       hasDeals: isMember,
-      planKey: (activeMembership?.plan_key as string | undefined) ?? null,
-      courseIds: (entitlementsQ.data ?? []).map((r: any) => Number(r.course_id)).filter(Boolean),
+      planKey: activeMembership?.plan_key ?? null,
+      courseIds: (entitlementsQ.data ?? []).map((r) => Number(r.course_id)).filter(Boolean),
       loading: !!uid && (memberships.isLoading || entitlementsQ.isLoading),
     };
   }, [isAuthenticated, isAdmin, uid, memberships.data, memberships.isLoading, entitlementsQ.data, entitlementsQ.isLoading]);

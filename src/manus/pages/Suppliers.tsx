@@ -8,6 +8,15 @@ import { useMySupplierFavorites, useToggleSupplierFavorite } from "@/manus/hooks
 const PRICE_TIERS = ["budget", "mid", "investment"];
 const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "dining", "office", "outdoor"];
 
+type SupplierLike = {
+  id?: number | string;
+  name?: string | null;
+  room?: string | null;
+  priceTier?: string | null;
+  description?: string | null;
+  websiteUrl?: string | null;
+};
+
 export default function Suppliers() {
   const { user } = useAuth();
   const { data: suppliers = [] } = trpc.suppliers.publicList.useQuery();
@@ -18,12 +27,12 @@ export default function Suppliers() {
   const [showFavOnly, setShowFavOnly] = useState(false);
 
   const favSet = new Set(favorites);
-  const filtered = (suppliers as Array<Record<string, unknown> & { id?: number; room?: string | null; priceTier?: string | null }>).filter((s) => {
+  const filtered = (suppliers as SupplierLike[]).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
     if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
-  }) as Array<Record<string, any>>;
+  });
 
 
   return (
@@ -153,7 +162,7 @@ export default function Suppliers() {
               <p>No suppliers match your filters.</p>
             </div>
           ) : (
-            (filtered as Array<Record<string, any>>).map((supplier) => {
+            filtered.map((supplier) => {
               const sid = Number(supplier.id);
               const isFav = favSet.has(sid);
               return (
