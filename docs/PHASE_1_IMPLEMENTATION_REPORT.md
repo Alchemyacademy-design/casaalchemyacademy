@@ -80,7 +80,7 @@
 | Gate | Command | Exit | Result |
 |------|---------|------|--------|
 | Typecheck | `bun run typecheck` | `0` | clean |
-| Tests | `bun run test` | `0` | **89/89** passing (78 baseline + 11 new) across 11 test files |
+| Tests | `bun run test` | `0` | **107/107** passing across 14 test files |
 | Lint | `bun run lint` | `0` | **0 errors**, 14 warnings (all pre-existing `react-refresh/only-export-components` on Radix/shadcn UI files and one stale `eslint-disable` comment) |
 | Build | `bun run build` | `0` | see §4 |
 
