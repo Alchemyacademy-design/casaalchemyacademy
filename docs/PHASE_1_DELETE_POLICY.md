@@ -56,8 +56,8 @@ outside the courses/modules/lessons editorial surface.
 
 ### `deletionMode="archive"`
 
-- `events` (AdminTablePage)
-- `live_workshops` (AdminTablePage)
+- `events` (AdminTablePage, `archivePatch={{ status: "archived" }}`)
+- `live_workshops` (AdminTablePage, `archivePatch={{ status: "archived" }}`)
 - `courses`, `course_modules`, `lessons` via bespoke editors (archive helpers).
 - `community_posts`, `community_replies` (moderated via `AdminPanel`).
 
