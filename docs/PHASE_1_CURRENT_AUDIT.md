@@ -47,5 +47,7 @@ Pendências reconhecidas (fora do escopo da Fase 1):
 - UI de restauração para linhas arquivadas (não bloqueante; coluna `archived_at` já filtrada).
 - Confirmação do run de CI verde (Lovable→GitHub sync dispara o workflow).
 
-Stripe permanece `ADIADO` (`STRIPE_LIVE_ENABLED=false`). **Nenhuma função financeira foi redeployada nesta execução.**
+Stripe permanece `ADIADO` (`STRIPE_LIVE_ENABLED=false`). **Nenhuma função financeira foi redeployada nesta microcorreção.** Versões atuais: `stripe-webhook v23`, `recover-stripe-events v18`, `create-checkout-session v18`, `admin-manage-stripe-subscription v15`, `billing-config-status v7`, `admin-content-catalog v12`, `manus-import v13`.
+
+**Testes finais:** 107/107 em 14 arquivos (`bun run test` exit 0).
 
