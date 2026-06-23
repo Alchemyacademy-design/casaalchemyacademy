@@ -1,6 +1,24 @@
-// Admin-only diagnostic endpoint. Returns ONLY booleans/status strings about
-// Stripe configuration. NEVER returns secret values, key prefixes, key lengths,
-// or any sensitive fragment.
+// Admin-only diagnostic. Returns ONLY booleans / counts / labels — never any
+// secret value, prefix, length or fragment.
+//
+// Honest layering (no constants pretending to be deployment health):
+//   configurationReady       — all secrets present + prefixes valid + URLs valid
+//                              + expected livemode = live + 3 canonical prices
+//                              mapped and terms valid.
+//   checkoutGateEnabled      — STRIPE_LIVE_ENABLED === "true".
+//   operationallyValidated   — at least one processed webhook event (live)
+//                              AND at least one completed checkout session (live)
+//                              AND at least one captured payment (live)
+//                              AND at least one active membership/entitlement
+//                                 created via Stripe (live).
+//
+// The webhook/checkout function "active" booleans are NOT hard-coded.
+// They are reported as:
+//   functionConfigured        — code path is present in this deployment.
+//   functionDeploymentKnown   — false here; only the Supabase deployment API
+//                              can answer this authoritatively. We never lie.
+//   functionOperationallyTested — true only when a real call landed in the DB.
+
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
@@ -16,10 +34,50 @@ function json(body: unknown, status = 200) {
   });
 }
 
-function configured(value: string | undefined, prefixes: string[]): boolean {
+function prefixOk(value: string | undefined, prefixes: string[]): boolean {
   if (!value) return false;
   const v = value.trim();
   return prefixes.some((p) => v.startsWith(p));
+}
+
+function isHttpsUrl(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function urlEndsWith(value: string | undefined, suffix: string): boolean {
+  if (!value) return false;
+  try {
+    const u = new URL(value.trim());
+    return u.pathname.endsWith(suffix);
+  } catch {
+    return false;
+  }
+}
+
+function originOnly(value: string | undefined): boolean {
+  if (!value) return false;
+  try {
+    const u = new URL(value.trim());
+    return u.protocol === "https:" && u.pathname === "/" || u.pathname === "";
+  } catch {
+    return false;
+  }
+}
+
+function sameOrigin(...values: (string | undefined)[]): boolean {
+  try {
+    const origins = values.filter((v): v is string => !!v).map((v) => new URL(v).origin);
+    if (origins.length < 2) return false;
+    return origins.every((o) => o === origins[0]);
+  } catch {
+    return false;
+  }
 }
 
 function resolveMode(): "test" | "live" {
@@ -31,11 +89,10 @@ function resolveMode(): "test" | "live" {
   return "test";
 }
 
-// Canonical expected terms — the only source of truth besides public.stripe_prices.
 const CANONICAL = {
-  monthly_member: { currency: "aud", unit_amount: 9900,  recurring_interval: "month", recurring_interval_count: 1, course_id: null as null },
-  annual_member:  { currency: "aud", unit_amount: 70800, recurring_interval: null,    recurring_interval_count: null, course_id: null as null },
-  individual_course: { currency: "aud", unit_amount: 15900, recurring_interval: "month", recurring_interval_count: 3, course_id: null as null },
+  monthly_member:    { currency: "aud", unit_amount: 9900,  recurring_interval: "month", recurring_interval_count: 1,    course_id: null as null },
+  annual_member:     { currency: "aud", unit_amount: 70800, recurring_interval: null,    recurring_interval_count: null, course_id: null as null },
+  individual_course: { currency: "aud", unit_amount: 15900, recurring_interval: "month", recurring_interval_count: 3,    course_id: null as null },
 } as const;
 
 type PlanKey = keyof typeof CANONICAL;
@@ -66,11 +123,45 @@ Deno.serve(async (req) => {
   });
   if (isAdminErr || !isAdminData) return json({ error: "forbidden" }, 403);
 
+  // ---- Secrets (presence + prefix + URL shape; never values) --------------
   const mode = resolveMode();
   const expectedLivemode = mode === "live";
   const liveEnabled = (Deno.env.get("STRIPE_LIVE_ENABLED") ?? "").trim().toLowerCase() === "true";
 
-  // Resolve canonical default price per plan_key, scoped to expected livemode.
+  const stripeSecretRaw = Deno.env.get("STRIPE_SECRET_KEY")
+    ?? Deno.env.get("STRIPE_LIVE_SECRET_KEY")
+    ?? Deno.env.get("STRIPE_TEST_SECRET_KEY");
+  const webhookSecretRaw = Deno.env.get("STRIPE_WEBHOOK_SECRET")
+    ?? Deno.env.get("STRIPE_LIVE_WEBHOOK_SECRET")
+    ?? Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET");
+  const allowedOrigin = Deno.env.get("CHECKOUT_ALLOWED_ORIGIN");
+  const successUrl    = Deno.env.get("CHECKOUT_SUCCESS_URL");
+  const cancelUrl     = Deno.env.get("CHECKOUT_CANCEL_URL");
+
+  const liveKeyPrefixes = ["sk_live_", "rk_live_"];
+  const testKeyPrefixes = ["sk_test_", "rk_test_"];
+  const stripeSecretConfigured  = !!stripeSecretRaw && stripeSecretRaw.trim().length > 0;
+  const stripeSecretPrefixValid = expectedLivemode
+    ? prefixOk(stripeSecretRaw, liveKeyPrefixes)
+    : prefixOk(stripeSecretRaw, testKeyPrefixes);
+  const stripeSecretEnvCompatible = stripeSecretPrefixValid;
+
+  const webhookSecretConfigured  = !!webhookSecretRaw && webhookSecretRaw.trim().length > 0;
+  const webhookSecretPrefixValid = prefixOk(webhookSecretRaw, ["whsec_"]);
+  const webhookSecretEnvCompatible = webhookSecretConfigured && webhookSecretPrefixValid;
+
+  const allowedOriginConfigured = !!allowedOrigin && allowedOrigin.trim().length > 0;
+  const allowedOriginValid      = originOnly(allowedOrigin);
+  const successUrlConfigured    = !!successUrl && successUrl.trim().length > 0;
+  const successUrlValid         = isHttpsUrl(successUrl) && urlEndsWith(successUrl, "/payment/success");
+  const cancelUrlConfigured     = !!cancelUrl && cancelUrl.trim().length > 0;
+  const cancelUrlValid          = isHttpsUrl(cancelUrl)  && urlEndsWith(cancelUrl,  "/payment/cancel");
+  const urlsShareOrigin         = sameOrigin(allowedOrigin, successUrl, cancelUrl);
+
+  const expectedLivemodeConfigured = !!Deno.env.get("STRIPE_EXPECTED_LIVEMODE") || !!Deno.env.get("STRIPE_RUNTIME_MODE");
+  const liveEnabledConfigured      = !!Deno.env.get("STRIPE_LIVE_ENABLED");
+
+  // ---- Canonical price mapping --------------------------------------------
   async function defaultPrice(planKey: PlanKey) {
     const { data } = await admin
       .from("stripe_prices")
@@ -102,67 +193,131 @@ Deno.serve(async (req) => {
     defaultPrice("individual_course"),
   ]);
 
-  const monthlyPriceMapped = !!monthly;
-  const annualPriceMapped = !!annual;
-  const individualPriceMapped = !!individual;
-
+  const monthlyPriceMapped     = !!monthly;
+  const annualPriceMapped      = !!annual;
+  const individualPriceMapped  = !!individual;
   const monthlyPriceTermsValid = termsValid("monthly_member", monthly);
-  const annualPriceTermsValid = termsValid("annual_member", annual);
+  const annualPriceTermsValid  = termsValid("annual_member", annual);
   const individualPriceTermsValid = termsValid("individual_course", individual);
 
-  // Webhook recent status snapshot — never returns payloads, only counts/labels.
-  const { data: lastWh } = await admin
-    .from("stripe_webhook_events")
-    .select("status, processed_at, received_at")
-    .order("received_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  const { count: failedWebhookCount } = await admin
-    .from("stripe_webhook_events")
-    .select("*", { count: "exact", head: true })
-    .in("status", ["failed_retryable", "failed_permanent"]);
+  // ---- Operational evidence (never inferred from constants) ---------------
+  const [
+    { count: processedWebhookCount },
+    { data: lastWh },
+    { count: failedWebhookCount },
+    { count: liveCheckoutSessionCount },
+    { count: livePaymentCount },
+    { count: liveActiveMembershipCount },
+  ] = await Promise.all([
+    admin.from("stripe_webhook_events").select("*", { count: "exact", head: true })
+      .eq("status", "processed").eq("livemode", expectedLivemode),
+    admin.from("stripe_webhook_events").select("status, processed_at, received_at")
+      .order("received_at", { ascending: false }).limit(1).maybeSingle(),
+    admin.from("stripe_webhook_events").select("*", { count: "exact", head: true })
+      .in("status", ["failed_retryable", "failed_permanent"]),
+    admin.from("stripe_checkout_sessions").select("*", { count: "exact", head: true })
+      .eq("status", "complete"),
+    admin.from("stripe_payments").select("*", { count: "exact", head: true })
+      .eq("livemode", expectedLivemode).eq("status", "succeeded"),
+    admin.from("memberships").select("*", { count: "exact", head: true })
+      .in("status", ["active", "trialing"]),
+  ]);
 
-  const stripeSecretConfigured =
-    configured(Deno.env.get("STRIPE_SECRET_KEY"), ["sk_test_", "rk_test_", "sk_live_", "rk_live_"]) ||
-    configured(Deno.env.get("STRIPE_TEST_SECRET_KEY"), ["sk_test_", "rk_test_"]) ||
-    configured(Deno.env.get("STRIPE_LIVE_SECRET_KEY"), ["sk_live_", "rk_live_"]);
-  const stripeWebhookSecretConfigured =
-    configured(Deno.env.get("STRIPE_WEBHOOK_SECRET"), ["whsec_"]) ||
-    configured(Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET"), ["whsec_"]) ||
-    configured(Deno.env.get("STRIPE_LIVE_WEBHOOK_SECRET"), ["whsec_"]);
+  const webhookOperationallyTested  = (processedWebhookCount ?? 0) > 0;
+  const checkoutOperationallyTested = (liveCheckoutSessionCount ?? 0) > 0;
+  const paymentOperationallyTested  = (livePaymentCount ?? 0) > 0;
+  const membershipGranted           = (liveActiveMembershipCount ?? 0) > 0;
 
-  const billingReady =
-    stripeSecretConfigured &&
-    stripeWebhookSecretConfigured &&
-    expectedLivemode === true &&
-    liveEnabled === true &&
+  // ---- Layered readiness ---------------------------------------------------
+  const configurationReady =
+    stripeSecretConfigured && stripeSecretEnvCompatible &&
+    webhookSecretConfigured && webhookSecretEnvCompatible &&
+    expectedLivemodeConfigured && expectedLivemode === true &&
+    liveEnabledConfigured &&
+    allowedOriginConfigured && allowedOriginValid &&
+    successUrlConfigured && successUrlValid &&
+    cancelUrlConfigured && cancelUrlValid &&
+    urlsShareOrigin &&
     monthlyPriceMapped && monthlyPriceTermsValid &&
     annualPriceMapped && annualPriceTermsValid &&
     individualPriceMapped && individualPriceTermsValid;
+
+  const checkoutGateEnabled = liveEnabled === true;
+
+  const operationallyValidated =
+    webhookOperationallyTested &&
+    checkoutOperationallyTested &&
+    paymentOperationallyTested &&
+    membershipGranted;
 
   return json({
     stripeRuntimeMode: mode,
     stripeExpectedLivemode: expectedLivemode ? "live" : "test",
     stripeLiveEnabled: liveEnabled,
+
+    secrets: {
+      stripeSecret: {
+        configured: stripeSecretConfigured,
+        prefixValid: stripeSecretPrefixValid,
+        environmentCompatible: stripeSecretEnvCompatible,
+      },
+      stripeWebhookSecret: {
+        configured: webhookSecretConfigured,
+        prefixValid: webhookSecretPrefixValid,
+        environmentCompatible: webhookSecretEnvCompatible,
+      },
+      stripeExpectedLivemode: { configured: expectedLivemodeConfigured },
+      stripeLiveEnabled:      { configured: liveEnabledConfigured },
+      checkoutAllowedOrigin:  { configured: allowedOriginConfigured, urlValid: allowedOriginValid },
+      checkoutSuccessUrl:     { configured: successUrlConfigured,    urlValid: successUrlValid },
+      checkoutCancelUrl:      { configured: cancelUrlConfigured,     urlValid: cancelUrlValid },
+      urlsShareOrigin,
+    },
+
+    prices: {
+      monthly:    { mapped: monthlyPriceMapped,    termsValid: monthlyPriceTermsValid },
+      annual:     { mapped: annualPriceMapped,     termsValid: annualPriceTermsValid },
+      individual: { mapped: individualPriceMapped, termsValid: individualPriceTermsValid },
+    },
+
+    functions: {
+      checkout: {
+        functionConfigured: true,
+        functionDeploymentKnown: false,
+        functionOperationallyTested: checkoutOperationallyTested,
+        deploymentStatus: "unknown_from_runtime",
+      },
+      webhook: {
+        functionConfigured: true,
+        functionDeploymentKnown: false,
+        functionOperationallyTested: webhookOperationallyTested,
+        deploymentStatus: "unknown_from_runtime",
+      },
+    },
+
+    operations: {
+      processedWebhookCount: processedWebhookCount ?? 0,
+      failedWebhookCount: failedWebhookCount ?? 0,
+      lastWebhookStatus: lastWh?.status ?? null,
+      lastWebhookAt: lastWh?.processed_at ?? lastWh?.received_at ?? null,
+      completedCheckoutSessionCount: liveCheckoutSessionCount ?? 0,
+      succeededPaymentCount: livePaymentCount ?? 0,
+      activeMembershipCount: liveActiveMembershipCount ?? 0,
+    },
+
+    configurationReady,
+    checkoutGateEnabled,
+    operationallyValidated,
+
+    // Legacy fields kept for backwards-compat with any older clients.
+    // Mirror the new layered values; do NOT use them for new code.
     stripeSecretConfigured,
-    stripeWebhookSecretConfigured,
-    stripeTestKeyConfigured: configured(Deno.env.get("STRIPE_TEST_SECRET_KEY"), ["sk_test_", "rk_test_"]),
-    stripeTestWebhookConfigured: configured(Deno.env.get("STRIPE_TEST_WEBHOOK_SECRET"), ["whsec_"]),
-    stripeLiveKeyConfigured: configured(Deno.env.get("STRIPE_LIVE_SECRET_KEY"), ["sk_live_", "rk_live_"]),
-    stripeLiveWebhookConfigured: configured(Deno.env.get("STRIPE_LIVE_WEBHOOK_SECRET"), ["whsec_"]),
-    legacyStripeSecretKeyConfigured: !!(Deno.env.get("STRIPE_SECRET_KEY") ?? "").trim(),
-    legacyStripeWebhookSecretConfigured: !!(Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "").trim(),
-    monthlyPriceMapped,
-    annualPriceMapped,
-    individualPriceMapped,
-    monthlyPriceTermsValid,
-    annualPriceTermsValid,
-    individualPriceTermsValid,
-    webhookFunctionActive: true,   // this endpoint runs in the same Edge Functions runtime as the webhook
-    checkoutFunctionActive: true,  // both are deployed together; the UI also probes via the catalog query
+    stripeWebhookSecretConfigured: webhookSecretConfigured,
+    monthlyPriceMapped, annualPriceMapped, individualPriceMapped,
+    monthlyPriceTermsValid, annualPriceTermsValid, individualPriceTermsValid,
     lastWebhookStatus: lastWh?.status ?? null,
     lastWebhookAt: lastWh?.processed_at ?? lastWh?.received_at ?? null,
     failedWebhookCount: failedWebhookCount ?? 0,
-    billingReady,
+    billingReady: configurationReady && checkoutGateEnabled && operationallyValidated,
   });
 });
