@@ -238,4 +238,18 @@ describe("AdminTablePage — deletion modes", () => {
     expect(deleteCalled).toBe(false);
     confirmSpy.mockRestore();
   });
+
+  it("archivePatch merges extra fields into the archive payload", async () => {
+    fakeRows = [{ id: 7, title: "ok", status: "draft" }];
+    fakeCount = 1;
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    renderPage({ deletionMode: "archive", archivePatch: { status: "archived" } });
+    await screen.findByText("ok");
+    fireEvent.click(screen.getByRole("button", { name: /^archive$/i }));
+    await waitFor(() => expect(updateCalls.length).toBe(1));
+    expect(updateCalls[0].payload).toMatchObject({ status: "archived" });
+    expect(updateCalls[0].payload).toHaveProperty("archived_at");
+    expect(deleteCalled).toBe(false);
+    confirmSpy.mockRestore();
+  });
 });

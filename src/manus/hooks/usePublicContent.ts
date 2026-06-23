@@ -42,6 +42,7 @@ export function useUpcomingEvents() {
         .from("events")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .gte("starts_at", nowIso)
         .order("starts_at", { ascending: true });
       if (error) throw error;
@@ -69,6 +70,7 @@ export function usePastEvents(limit = 6) {
         .from("events")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .lt("starts_at", nowIso)
         .order("starts_at", { ascending: false })
         .limit(limit);
@@ -89,6 +91,7 @@ export function useUpcomingWorkshops() {
         .from("live_workshops")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .gte("starts_at", nowIso)
         .order("starts_at", { ascending: true });
       if (error) throw error;
@@ -116,6 +119,7 @@ export function usePastWorkshops(limit = 6) {
         .from("live_workshops")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .lt("starts_at", nowIso)
         .order("starts_at", { ascending: false })
         .limit(limit);

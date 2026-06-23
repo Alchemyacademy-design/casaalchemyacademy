@@ -102,6 +102,12 @@ export interface AdminTablePageProps<T extends PublicTableName = PublicTableName
    * - "archive" requires an `archived_at` column on the table.
    */
   deletionMode?: DeletionMode;
+  /**
+   * Extra columns to merge into the archive update payload (in addition to
+   * `archived_at`). Use to set table-specific flags like `status = 'archived'`
+   * without assuming every archivable table has the same shape.
+   */
+  archivePatch?: Record<string, unknown>;
 }
 
 function emptyForFields(fields: FieldDef[]): Record<string, unknown> {
@@ -271,6 +277,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     publicInvalidateKeys = [],
     searchFields = [],
     deletionMode = "disabled",
+    archivePatch,
   } = props;
 
   const qc = useQueryClient();
@@ -415,7 +422,10 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         };
       };
       const { error } = await client
-        .update({ archived_at: new Date().toISOString() })
+        .update({
+          archived_at: new Date().toISOString(),
+          ...(archivePatch ?? {}),
+        })
         .eq(primaryKey, id);
       if (error) throw error;
     },

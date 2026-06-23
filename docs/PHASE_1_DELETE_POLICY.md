@@ -9,7 +9,7 @@ The Phase 1 brief forbids physical deletion of editorial content. The unified
 | Mode | Effect | Requirement |
 |------|--------|-------------|
 | `disabled` (default) | No destructive button rendered. Edit only. | None — always safe. |
-| `archive` | `update({ archived_at: now(), status: 'archived' })`. Lists filter `archived_at IS NULL`. | Table must have `archived_at`. |
+| `archive` | `update({ archived_at: now(), ...archivePatch })`. Lists filter `archived_at IS NULL`. Per-table `archivePatch` (e.g. `{ status: 'archived' }`) lets callers add table-specific flags without `AdminTablePage` assuming every archivable table has the same columns. | Table must have `archived_at`. |
 | `hard` | Physical `DELETE`. **Unused in Phase 1.** | Last-resort only; requires explicit approval. |
 
 ## Bespoke editors (outside `AdminTablePage`)
@@ -56,8 +56,8 @@ outside the courses/modules/lessons editorial surface.
 
 ### `deletionMode="archive"`
 
-- `events` (AdminTablePage)
-- `live_workshops` (AdminTablePage)
+- `events` (AdminTablePage, `archivePatch={{ status: "archived" }}`)
+- `live_workshops` (AdminTablePage, `archivePatch={{ status: "archived" }}`)
 - `courses`, `course_modules`, `lessons` via bespoke editors (archive helpers).
 - `community_posts`, `community_replies` (moderated via `AdminPanel`).
 
