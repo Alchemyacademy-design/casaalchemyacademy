@@ -1,8 +1,8 @@
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Tag, Settings, Users, Gift, Shield } from "lucide-react";
+import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Settings, Users, Gift, Shield } from "lucide-react";
 import { getLoginUrl } from "@/manus/const";
-import { Link, useLocation } from "react-router-dom";
+import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
 
 interface MemberLayoutProps {
@@ -13,7 +13,6 @@ interface MemberLayoutProps {
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const location = useLocation().pathname;
   const handleLogout = async () => {
     await logout();
     window.location.assign("/login");
@@ -56,110 +55,108 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
     { label: "Supplier List", href: "/suppliers", icon: Gift },
   ];
 
-  const isActive = (href: string) => location === href;
+  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 px-4 py-3 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+      isActive
+        ? "bg-accent text-accent-foreground"
+        : "text-foreground hover:bg-secondary/50"
+    }`;
+
+  const mobileLinkClasses = ({ isActive }: { isActive: boolean }) =>
+    `flex items-center gap-3 px-4 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
+      isActive
+        ? "bg-accent text-accent-foreground"
+        : "hover:bg-card text-foreground"
+    }`;
 
   return (
     <div className="min-h-screen bg-background">
       {/* Mobile Header */}
       <div className="lg:hidden border-b border-border/50 sticky top-0 z-50 bg-background/95 backdrop-blur">
         <div className="flex items-center justify-between p-4">
-          <a href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-accent" />
             <span className="font-bold text-lg">Alchemy</span>
-          </a>
+          </Link>
           <button
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="p-2 hover:bg-card rounded-lg transition"
+            type="button"
+            onClick={() => setMobileOpen((v) => !v)}
+            className="p-2 hover:bg-card rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+            aria-expanded={mobileOpen}
+            aria-controls="member-mobile-menu"
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
 
-        {/* Mobile Menu */}
         {mobileOpen && (
-          <div className="border-t border-border/50 p-4 space-y-2">
+          <nav
+            id="member-mobile-menu"
+            aria-label="Member navigation"
+            className="border-t border-border/50 p-4 space-y-2"
+          >
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <a
+                <NavLink
                   key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
-                    isActive(item.href)
-                      ? "bg-accent text-accent-foreground"
-                      : "hover:bg-card text-foreground"
-                  }`}
+                  to={item.href}
+                  end
+                  className={mobileLinkClasses}
                   onClick={() => setMobileOpen(false)}
                 >
                   <Icon className="w-4 h-4" />
                   {item.label}
-                </a>
+                </NavLink>
               );
             })}
 
-            <a
-              href="/profile"
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition ${
-                isActive("/profile")
-                  ? "bg-accent text-accent-foreground"
-                  : "hover:bg-card text-foreground"
-              }`}
+            <NavLink
+              to="/profile"
+              end
+              className={mobileLinkClasses}
               onClick={() => setMobileOpen(false)}
             >
               <Settings className="w-4 h-4" />
               Profile
-            </a>
+            </NavLink>
 
             <button
+              type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-card text-foreground transition text-left"
+              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-card text-foreground transition text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LogOut className="w-4 h-4" />
               Logout
             </button>
-          </div>
+          </nav>
         )}
       </div>
 
       <div className="flex">
-        {/* Desktop Sidebar */}
         <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 sticky top-0 h-screen">
           <div className="p-6 border-b border-border/50 flex justify-center relative z-10 bg-card/50">
-            <a href="/" className="hover:opacity-80 transition">
+            <Link to="/" className="hover:opacity-80 transition">
               <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "100px", width: "auto" }} />
-            </a>
+            </Link>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2">
+          <nav className="flex-1 p-4 space-y-2" aria-label="Member navigation">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                    isActive(item.href)
-                      ? "bg-accent text-accent-foreground"
-                      : "text-foreground hover:bg-secondary/50"
-                  }`}
-                >
+                <NavLink key={item.href} to={item.href} end className={navLinkClasses}>
                   <Icon className="w-4 h-4" />
                   <span className="font-medium">{item.label}</span>
-                </a>
+                </NavLink>
               );
             })}
 
-            <a
-              href="/profile"
-              className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-                isActive("/profile")
-                  ? "bg-accent text-accent-foreground"
-                  : "text-foreground hover:bg-secondary/50"
-              }`}
-            >
+            <NavLink to="/profile" end className={navLinkClasses}>
               <Settings className="w-4 h-4" />
               <span className="font-medium">Profile</span>
-            </a>
+            </NavLink>
           </nav>
 
           <div className="p-4 border-t border-border/50 space-y-3">
@@ -170,8 +167,9 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
             </div>
 
             <button
+              type="button"
               onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition text-foreground"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <LogOut className="w-4 h-4" />
               <span>Logout</span>
@@ -179,7 +177,6 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
           </div>
         </aside>
 
-        {/* Main Content */}
         <main className="flex-1 overflow-auto">
           {children}
         </main>
@@ -187,4 +184,3 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
     </div>
   );
 }
-

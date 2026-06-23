@@ -1,19 +1,19 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Lock, PlayCircle } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft, Lock } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import VideoPreview from "@/manus/components/admin/VideoPreview";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
 import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
-import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
-import { toast } from "sonner";
+import CourseProgress from "@/manus/components/learning/CourseProgress";
+import LearningPath from "@/manus/components/learning/LearningPath";
+import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 
 type Lesson = {
   id: number;
@@ -80,11 +80,18 @@ async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Cour
   return course;
 }
 
+function formatDuration(totalSeconds: number): string {
+  if (!totalSeconds || totalSeconds <= 0) return "";
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.round((totalSeconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const courseId = Number(id);
   const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
-  const qc = useQueryClient();
 
   const { data: course, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["public", "course", courseId, { admin: isAdmin }],
@@ -109,42 +116,9 @@ export default function CourseDetail() {
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
   const completedIds = useMemo(
-    () => new Set(progress.filter((p: { completed: boolean; lessonId: number }) => p.completed).map((p) => p.lessonId)),
+    () => new Set<number>(progress.filter((p: { completed: boolean; lessonId: number }) => p.completed).map((p) => Number(p.lessonId))),
     [progress],
   );
-
-  const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
-  useEffect(() => {
-    if (activeLessonId == null && allLessons.length > 0) {
-      const resume = pickResumeLessonId(allLessons, progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>);
-      const firstPlayable = allLessons.find((l) => l.id === resume && (l.is_preview || accessible))
-        ?? allLessons.find((l) => l.is_preview || accessible)
-        ?? allLessons[0];
-      setActiveLessonId(firstPlayable.id);
-    }
-  }, [allLessons, activeLessonId, accessible, progress]);
-
-  const activeLesson = allLessons.find((l) => l.id === activeLessonId) ?? null;
-  const activeModule = course?.course_modules.find((m) => m.id === activeLesson?.module_id) ?? null;
-
-
-  const markLesson = trpc.lessons.markComplete.useMutation({
-    onSuccess: async () => {
-      toast.success("Marked as complete");
-      await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
-      await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
-      // Cross-tab notification — keys only, never user data.
-      publishCrossTabInvalidation("lesson_progress.updated", [
-        ["lessons.progress"],
-        ["progress.moduleProgress"],
-      ]);
-    },
-    onError: (e) => toast.error((e as Error).message),
-  });
-
-  const activeIndex = activeLesson ? allLessons.findIndex((l) => l.id === activeLesson.id) : -1;
-  const prevLesson = activeIndex > 0 ? allLessons[activeIndex - 1] : null;
-  const nextLesson = activeIndex >= 0 && activeIndex < allLessons.length - 1 ? allLessons[activeIndex + 1] : null;
 
   if (!Number.isFinite(courseId)) {
     return (
@@ -154,7 +128,6 @@ export default function CourseDetail() {
     );
   }
 
-  // Render error UI with Retry — keep distinct from "course not found".
   if (error) {
     return (
       <MemberLayout>
@@ -194,15 +167,29 @@ export default function CourseDetail() {
     );
   }
 
+  const totalModules = course.course_modules.length;
   const totalLessons = allLessons.length;
   const completedCount = allLessons.filter((l) => completedIds.has(l.id)).length;
-  const progressPercent = totalLessons === 0 ? 0 : Math.round((completedCount / totalLessons) * 100);
+  const totalDurationSeconds = allLessons.reduce((sum, l) => sum + (l.duration_seconds ?? 0), 0);
+  const durationLabel = formatDuration(totalDurationSeconds);
 
-  const lessonPlayable = (l: Lesson) => accessible || l.is_preview;
+  const resumeLessonId = pickResumeLessonId(
+    allLessons,
+    progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>,
+  );
+  const resumeLesson = allLessons.find((l) => l.id === resumeLessonId) ?? allLessons[0] ?? null;
+  const startHref = resumeLesson
+    ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}`
+    : null;
+  const hasStarted = completedCount > 0;
+
+  const aggregatedMaterials = allLessons
+    .filter((l) => !!l.external_resource_url)
+    .slice(0, 6);
 
   return (
     <MemberLayout>
-      <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
+      <div className="p-6 md:p-10 bg-background">
         <div className="mb-6">
           <Link to="/mycourses" className="text-xs inline-flex items-center gap-1 text-foreground/60 hover:text-foreground">
             <ArrowLeft className="w-3 h-3" /> All courses
@@ -211,13 +198,25 @@ export default function CourseDetail() {
 
         <div className="grid lg:grid-cols-[1fr_320px] gap-8">
           <div>
+            {course.cover_image_path && (
+              <div
+                className="w-full aspect-[16/7] rounded-lg overflow-hidden mb-6 bg-muted"
+                style={{
+                  backgroundImage: `url(${course.cover_image_path})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                }}
+                aria-hidden="true"
+              />
+            )}
+
             <div className="mb-6">
-              <p className="section-label mb-2">Course</p>
-              <h1 className="font-serif text-3xl md:text-4xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
+              <p className="text-xs uppercase tracking-widest text-foreground/55 mb-2">Course</p>
+              <h1 className="font-serif text-3xl md:text-4xl mb-2 text-foreground" style={{ fontWeight: 300 }}>
                 {course.title}
               </h1>
               {course.subtitle && (
-                <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>{course.subtitle}</p>
+                <p className="text-sm text-foreground/70">{course.subtitle}</p>
               )}
               {course.status !== "published" && (
                 <span className="inline-block mt-2 text-[10px] uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
@@ -226,151 +225,80 @@ export default function CourseDetail() {
               )}
             </div>
 
+            {course.description && (
+              <p className="text-sm leading-relaxed text-foreground/75 mb-6 whitespace-pre-wrap">
+                {course.description}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-6 text-xs text-foreground/65 mb-6">
+              <span><strong className="text-foreground/85">{totalModules}</strong> module{totalModules === 1 ? "" : "s"}</span>
+              <span><strong className="text-foreground/85">{totalLessons}</strong> lesson{totalLessons === 1 ? "" : "s"}</span>
+              <span>
+                {durationLabel
+                  ? <><strong className="text-foreground/85">{durationLabel}</strong> total</>
+                  : "Duration not available"}
+              </span>
+            </div>
+
             {!accessible && (
               <Card className="p-4 mb-6 border-amber-200 bg-amber-50/60 flex items-start gap-3">
                 <Lock className="w-4 h-4 mt-0.5 text-amber-700" />
                 <div className="text-sm text-amber-900">
                   This course requires a membership.{" "}
-                  <Link to="/plans" className="underline">View plans</Link>. Preview lessons are still available.
+                  <Link to="/plans" className="underline">View plans</Link>.
                 </div>
               </Card>
             )}
 
-            {activeLesson ? (
-              <div className="space-y-4">
-                <div className="rounded-lg overflow-hidden bg-black/90">
-                  {lessonPlayable(activeLesson) ? (
-                    <VideoPreview url={activeLesson.external_video_url} />
-                  ) : (
-                    <div className="aspect-video flex items-center justify-center text-white/80 text-sm">
-                      <Lock className="w-5 h-5 mr-2" /> Locked — upgrade to watch
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wider text-foreground/50">{activeModule?.title}</p>
-                  <h2 className="font-serif text-2xl mt-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-                    {activeLesson.title}
-                  </h2>
-                  {activeLesson.description && (
-                    <p className="text-sm text-foreground/70 mt-2 leading-relaxed">{activeLesson.description}</p>
-                  )}
-                </div>
-                {activeLesson.content_text && (
-                  <Card className="p-5 whitespace-pre-wrap text-sm leading-relaxed text-foreground/80">
-                    {activeLesson.content_text}
-                  </Card>
+            {accessible && startHref && (
+              <div className="mb-8">
+                <Link to={startHref}>
+                  <Button>{hasStarted ? "Continue Course" : "Start Course"}</Button>
+                </Link>
+                {hasStarted && resumeLesson && (
+                  <p className="text-xs text-foreground/55 mt-2">
+                    Last lesson: {resumeLesson.title}
+                  </p>
                 )}
-                {activeLesson.external_resource_url && (
-                  <a
-                    href={activeLesson.external_resource_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-block text-xs underline text-foreground/70"
-                  >
-                    Open resource ↗
-                  </a>
-                )}
-                {lessonPlayable(activeLesson) && !isAdmin && (
-                  <div className="pt-2">
-                    <Button
-                      variant={completedIds.has(activeLesson.id) ? "outline" : "default"}
-                      onClick={() =>
-                        markLesson.mutate({
-                          lessonId: activeLesson.id,
-                          completed: !completedIds.has(activeLesson.id),
-                        })
-                      }
-                      disabled={markLesson.isPending}
-                    >
-                      {completedIds.has(activeLesson.id) ? "Mark as not completed" : "Mark as completed"}
-                    </Button>
-                  </div>
-                )}
-                <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!prevLesson}
-                    onClick={() => prevLesson && setActiveLessonId(prevLesson.id)}
-                  >
-                    ← Previous
-                  </Button>
-                  <span className="text-[11px] text-foreground/55">
-                    {activeIndex + 1} of {allLessons.length}
-                  </span>
-                  <Button
-                    size="sm"
-                    disabled={!nextLesson}
-                    onClick={() => nextLesson && setActiveLessonId(nextLesson.id)}
-                  >
-                    Next →
-                  </Button>
-                </div>
               </div>
-            ) : (
-              <Card className="p-6 text-sm text-foreground/60 text-center">
-                This course has no lessons yet.
-              </Card>
+            )}
+
+            <section className="mb-8">
+              <h2 className="font-serif text-xl mb-3 text-foreground">Learning path</h2>
+              <LearningPath
+                modules={course.course_modules.map((m) => ({
+                  id: m.id,
+                  title: m.title,
+                  description: m.description,
+                  lessons: m.lessons.map((l) => ({
+                    id: l.id,
+                    title: l.title,
+                    completed: completedIds.has(l.id),
+                    locked: !accessible && !l.is_preview,
+                  })),
+                }))}
+                activeLessonId={resumeLesson?.id ?? null}
+                buildLessonHref={(moduleId, lessonId) => `/modules/${moduleId}#lesson-${lessonId}`}
+              />
+            </section>
+
+            {aggregatedMaterials.length > 0 && (
+              <section className="mb-8">
+                <h2 className="font-serif text-xl mb-3 text-foreground">Materials</h2>
+                <div className="flex flex-col gap-2">
+                  {aggregatedMaterials.map((l) => (
+                    <LessonMaterial key={l.id} url={l.external_resource_url} label={l.title} />
+                  ))}
+                </div>
+              </section>
             )}
           </div>
 
-          {/* Sidebar */}
-          <aside className="space-y-3">
+          <aside className="space-y-4">
             <Card className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs uppercase tracking-wider text-foreground/60">Progress</p>
-                <p className="text-xs font-mono">{progressPercent}%</p>
-              </div>
-              <div className="h-1.5 rounded bg-muted overflow-hidden">
-                <div className="h-full bg-emerald-600 transition-all" style={{ width: `${progressPercent}%` }} />
-              </div>
-              <p className="text-[11px] text-foreground/55 mt-2">
-                {completedCount} of {totalLessons} lessons complete
-              </p>
+              <CourseProgress completed={completedCount} total={totalLessons} />
             </Card>
-
-            {course.course_modules.length === 0 && (
-              <Card className="p-4 text-xs text-foreground/60">No modules published yet.</Card>
-            )}
-
-            {course.course_modules.map((m) => (
-              <Card key={m.id} className="p-3">
-                <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">{m.title}</p>
-                <ul className="space-y-0.5">
-                  {m.lessons.map((l) => {
-                    const done = completedIds.has(l.id);
-                    const playable = lessonPlayable(l);
-                    const active = l.id === activeLessonId;
-                    return (
-                      <li key={l.id}>
-                        <button
-                          onClick={() => setActiveLessonId(l.id)}
-                          className={`w-full text-left flex items-center gap-2 px-2 py-2 rounded text-xs transition ${
-                            active ? "bg-muted font-medium" : "hover:bg-muted/50"
-                          }`}
-                        >
-                          {done ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                          ) : playable ? (
-                            <PlayCircle className="w-3.5 h-3.5 text-foreground/50 shrink-0" />
-                          ) : (
-                            <Lock className="w-3.5 h-3.5 text-foreground/40 shrink-0" />
-                          )}
-                          <span className="truncate flex-1">{l.title}</span>
-                          {l.is_preview && !accessible && (
-                            <span className="text-[9px] uppercase tracking-wider text-emerald-700">free</span>
-                          )}
-                        </button>
-                      </li>
-                    );
-                  })}
-                  {m.lessons.length === 0 && (
-                    <li className="text-[11px] text-foreground/50 px-2 py-1">No lessons.</li>
-                  )}
-                </ul>
-              </Card>
-            ))}
 
             {isAdmin && (
               <Link

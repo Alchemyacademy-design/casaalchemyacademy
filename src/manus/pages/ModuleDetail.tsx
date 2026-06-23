@@ -1,12 +1,11 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import { ChevronLeft, ChevronRight, CheckCircle2, Circle, Share2, HelpCircle, MessageSquare } from "lucide-react";
+import { ChevronLeft, Share2, HelpCircle, MessageSquare, Menu } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -14,6 +13,12 @@ import {
   parseLessonHash,
 } from "@/manus/services/community-deeplink";
 import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
+import LessonPlayer from "@/manus/components/learning/LessonPlayer";
+import LessonMaterial from "@/manus/components/learning/LessonMaterial";
+import LessonSidebar from "@/manus/components/learning/LessonSidebar";
+import CompletionButton from "@/manus/components/learning/CompletionButton";
+import LessonNavigation from "@/manus/components/learning/LessonNavigation";
+import CourseProgress from "@/manus/components/learning/CourseProgress";
 
 
 export default function ModuleDetail() {
@@ -21,6 +26,7 @@ export default function ModuleDetail() {
   const location = useLocation();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
+  const [mobileSidebar, setMobileSidebar] = useState(false);
   const qc = useQueryClient();
 
   const { data: module } = trpc.modules.get.useQuery({ id: moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
@@ -30,8 +36,6 @@ export default function ModuleDetail() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
       await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
-      // Sibling tabs of the same learner re-fetch their progress without a
-      // realtime channel on `lesson_progress` (see cross-tab-query-sync.ts).
       publishCrossTabInvalidation("lesson_progress.updated", [
         ["lessons.progress"],
         ["progress.moduleProgress"],
@@ -40,7 +44,6 @@ export default function ModuleDetail() {
     },
   });
 
-  // Course title via the existing module.course_id relation (no schema change).
   const courseId: number | null =
     (module as { course_id?: number | null } | undefined)?.course_id ?? null;
   const { data: courseRow } = useQuery({
@@ -57,8 +60,6 @@ export default function ModuleDetail() {
     },
   });
 
-  // Resolve community-channel targets (slug + space slug) for the three CTAs.
-  // One query, scoped by RLS, so we never hardcode a space.
   const CTA_CHANNEL_SLUGS = ["projects", "questions", "general"] as const;
   type CtaSlug = (typeof CTA_CHANNEL_SLUGS)[number];
   const { data: ctaChannels } = useQuery({
@@ -83,10 +84,6 @@ export default function ModuleDetail() {
     },
   });
 
-  // Restore lesson selection from #lesson-<id> hash, scoped to (moduleId, hash).
-  // When moduleId changes the previous selection is dropped, the hash is
-  // re-evaluated against the new module's lessons, and we fall back to the
-  // first lesson when the hash is missing or invalid.
   const appliedKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!Number.isFinite(moduleId) || moduleId <= 0) return;
@@ -99,13 +96,15 @@ export default function ModuleDetail() {
     setActiveLessonId(fromHash ?? lessons[0].id);
   }, [moduleId, lessons, location.hash]);
 
-
   const activeLesson = activeLessonId
     ? lessons.find((l) => l.id === activeLessonId)
     : lessons[0];
 
   const completedCount = progress.filter((p) => p.completed).length;
-  const progressPercent = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
+  const completedIds = useMemo(
+    () => new Set<number>(progress.filter((p) => p.completed).map((p) => Number(p.lessonId))),
+    [progress],
+  );
 
   const handleToggleLesson = async (lessonId: number, currentStatus: boolean) => {
     await markLessonMutation.mutateAsync({
@@ -115,130 +114,114 @@ export default function ModuleDetail() {
     });
   };
 
-  const isLessonCompleted = (lessonId: number) => {
-    return progress.some((p) => p.lessonId === lessonId && p.completed);
-  };
+  const isLessonCompleted = (lessonId: number) => completedIds.has(lessonId);
 
   const currentLessonIndex = activeLesson ? lessons.findIndex((l) => l.id === activeLesson.id) : 0;
   const previousLesson = currentLessonIndex > 0 ? lessons[currentLessonIndex - 1] : null;
   const nextLesson = currentLessonIndex < lessons.length - 1 ? lessons[currentLessonIndex + 1] : null;
 
+  const selectLesson = (id: number) => {
+    setActiveLessonId(id);
+    setMobileSidebar(false);
+  };
+
+  const sidebarLessons = lessons.map((l) => ({
+    id: l.id,
+    title: l.title,
+    number: l.number ?? null,
+  }));
+
   return (
     <MemberLayout>
       <div className="min-h-screen bg-background">
-        {/* Header */}
         <div className="border-b border-border/50 bg-card/50 sticky top-0 z-40">
           <div className="container py-6">
-            <Link to="/modules" className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4">
+            <Link to="/mycourses" className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4">
               <ChevronLeft className="w-4 h-4" />
-              Back to Modules
+              Back to Courses
             </Link>
             <h1 className="text-3xl font-bold mb-2">{module?.title}</h1>
-            <div className="flex items-center gap-4">
-              <div className="flex-1 max-w-xs">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-foreground/70">Progress</span>
-                  <span className="text-sm font-semibold text-accent">{progressPercent}%</span>
-                </div>
-                <Progress value={progressPercent} className="h-2" />
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="flex-1 max-w-xs min-w-[200px]">
+                <CourseProgress completed={completedCount} total={lessons.length} />
               </div>
-              <span className="text-sm text-foreground/70">
-                {completedCount} of {lessons.length} lessons
-              </span>
+              <button
+                type="button"
+                className="lg:hidden inline-flex items-center gap-2 px-3 py-2 rounded-md border border-border/50 text-sm"
+                onClick={() => setMobileSidebar((v) => !v)}
+                aria-expanded={mobileSidebar}
+                aria-controls="mobile-lesson-sidebar"
+                aria-label="Toggle lessons sidebar"
+              >
+                <Menu className="w-4 h-4" /> Lessons
+              </button>
             </div>
           </div>
         </div>
 
         <div className="container py-8">
           <div className="grid lg:grid-cols-4 gap-8">
-            {/* Lessons Sidebar */}
-            <div className="lg:col-span-1">
-              <Card className="p-4 sticky top-24">
-                <h3 className="font-semibold mb-4">Lessons</h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {lessons.map((lesson) => {
-                    const isCompleted = isLessonCompleted(lesson.id);
-                    const isActive = activeLesson?.id === lesson.id;
-
-                    return (
-                      <button
-                        key={lesson.id}
-                        onClick={() => setActiveLessonId(lesson.id)}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition flex items-center gap-3 ${
-                          isActive
-                            ? "bg-accent text-accent-foreground"
-                            : "hover:bg-card text-foreground"
-                        }`}
-                      >
-                        {isCompleted ? (
-                          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-                        ) : (
-                          <Circle className="w-4 h-4 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs opacity-75">{lesson.number}</div>
-                          <div className="text-sm font-medium truncate">{lesson.title}</div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+            <aside className="hidden lg:block lg:col-span-1">
+              <Card className="p-4 sticky top-32">
+                <LessonSidebar
+                  lessons={sidebarLessons}
+                  activeLessonId={activeLesson?.id ?? null}
+                  completedLessonIds={completedIds}
+                  onSelect={selectLesson}
+                />
               </Card>
-            </div>
+            </aside>
 
-            {/* Main Content */}
+            {mobileSidebar && (
+              <div id="mobile-lesson-sidebar" className="lg:hidden col-span-full">
+                <Card className="p-4">
+                  <LessonSidebar
+                    lessons={sidebarLessons}
+                    activeLessonId={activeLesson?.id ?? null}
+                    completedLessonIds={completedIds}
+                    onSelect={selectLesson}
+                  />
+                </Card>
+              </div>
+            )}
+
             <div className="lg:col-span-3">
               {activeLesson ? (
                 <div className="space-y-6">
-                  {/* Lesson Header */}
                   <div className="border-b border-border/50 pb-6">
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
                       <div>
-                        <p className="text-sm text-accent font-semibold uppercase tracking-widest mb-2">
-                          {activeLesson.number}
-                        </p>
+                        {activeLesson.number != null && (
+                          <p className="text-xs text-accent font-semibold uppercase tracking-widest mb-2">
+                            Lesson {activeLesson.number}
+                          </p>
+                        )}
                         <h2 className="text-3xl font-bold">{activeLesson.title}</h2>
                       </div>
-                      <button
-                        onClick={() =>
+                      <CompletionButton
+                        completed={isLessonCompleted(activeLesson.id)}
+                        onToggle={() =>
                           handleToggleLesson(activeLesson.id, isLessonCompleted(activeLesson.id))
                         }
-                        className={`px-4 py-2 rounded-lg transition flex items-center gap-2 ${
-                          isLessonCompleted(activeLesson.id)
-                            ? "bg-accent text-accent-foreground"
-                            : "border border-accent text-accent hover:bg-accent/10"
-                        }`}
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        {isLessonCompleted(activeLesson.id) ? "Completed" : "Mark Complete"}
-                      </button>
+                      />
                     </div>
                   </div>
 
-                  {/* Video (if available) */}
-                  {activeLesson.videoUrl && (
-                    <div className="bg-card rounded-lg overflow-hidden border border-border/50">
-                      <div className="aspect-video bg-secondary/30 flex items-center justify-center">
-                        <a
-                          href={activeLesson.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-accent hover:text-accent/80 transition"
-                        >
-                          <Button className="btn-gold">Watch Video</Button>
-                        </a>
-                      </div>
-                    </div>
-                  )}
+                  <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} />
 
-                  {/* Content */}
                   {activeLesson.content && (
                     <Card className="p-8 prose prose-invert max-w-none">
                       <div className="whitespace-pre-wrap leading-relaxed">{activeLesson.content}</div>
                     </Card>
                   )}
 
-                  {/* Community actions */}
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Material</p>
+                    <LessonMaterial
+                      url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
+                    />
+                  </div>
+
                   {(() => {
                     const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
                     const courseTitle =
@@ -308,37 +291,14 @@ export default function ModuleDetail() {
                     );
                   })()}
 
-
-                  {/* Navigation */}
-                  <div className="flex items-center justify-between pt-8 border-t border-border/50">
-                    {previousLesson ? (
-                      <button
-                        onClick={() => setActiveLessonId(previousLesson.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition"
-                      >
-                        <ChevronLeft className="w-4 h-4" />
-                        Previous
-                      </button>
-                    ) : (
-                      <div />
-                    )}
-
-                    <div className="text-sm text-foreground/70">
-                      Lesson {currentLessonIndex + 1} of {lessons.length}
-                    </div>
-
-                    {nextLesson ? (
-                      <button
-                        onClick={() => setActiveLessonId(nextLesson.id)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg btn-gold transition"
-                      >
-                        Next
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    ) : (
-                      <div />
-                    )}
-                  </div>
+                  <LessonNavigation
+                    currentIndex={currentLessonIndex}
+                    total={lessons.length}
+                    hasPrevious={!!previousLesson}
+                    hasNext={!!nextLesson}
+                    onPrevious={() => previousLesson && setActiveLessonId(previousLesson.id)}
+                    onNext={() => nextLesson && setActiveLessonId(nextLesson.id)}
+                  />
                 </div>
               ) : (
                 <div className="text-center py-12">

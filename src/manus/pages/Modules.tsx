@@ -5,10 +5,12 @@ import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse } from "@/manus/services/learning";
-import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import QueryStateView from "@/manus/components/QueryStateView";
+import CourseCard from "@/manus/components/learning/CourseCard";
+
 
 
 type CourseRow = {
@@ -181,79 +183,28 @@ export default function Modules() {
             const accessible = isCourseAccessible(c);
             const locked = !accessible;
             const isDraft = c.status !== "published";
-            const thumbnail = c.cover_image_path ?? undefined;
 
             return (
-              <div
+              <CourseCard
                 key={c.id}
-                className="p-6 rounded-lg border border-border/50 hover:border-border transition flex flex-col relative overflow-hidden group min-h-[260px]"
-                style={{
-                  backgroundColor: "white",
-                  backgroundImage: thumbnail ? `url(${thumbnail})` : undefined,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
+                variant="member"
+                course={{
+                  id: c.id,
+                  title: c.title,
+                  subtitle: c.subtitle,
+                  number: c.sort_order,
+                  thumbnail: c.cover_image_path,
+                  lessonCount,
+                  progressPercent: pct,
+                  published: !isDraft,
+                  locked,
+                  href: locked ? "/plans" : `/courses/${c.id}`,
                 }}
-              >
-                {thumbnail && <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />}
-                <div className="relative z-10 flex flex-col flex-1">
-                  <div className="mb-4">
-                    <span
-                      className="text-sm font-semibold"
-                      style={{
-                        color: thumbnail ? "white" : "var(--aa-gold)",
-                        fontFamily: "'Manrope', sans-serif",
-                        letterSpacing: "0.08em",
-                      }}
-                    >
-                      {String(c.sort_order).padStart(2, "0")}
-                    </span>
-                    <div className="flex items-center gap-2 mt-1">
-                      {isDraft && (
-                        <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "rgba(0,0,0,0.5)", color: "white", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
-                          Draft
-                        </span>
-                      )}
-                      {locked && (
-                        <Lock size={14} style={{ color: thumbnail ? "white" : "var(--aa-text-light)" }} />
-                      )}
-                      {pct === 100 && !locked && (
-                        <CheckCircle size={14} style={{ color: "var(--aa-gold)" }} />
-                      )}
-                    </div>
-                  </div>
-
-                  <h3 className="font-serif text-xl mb-2" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontWeight: 400 }}>
-                    {c.title}
-                  </h3>
-                  {c.subtitle && (
-                    <p className="text-xs mb-4 flex-1 leading-relaxed" style={{ color: thumbnail ? "rgba(255,255,255,0.9)" : "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
-                      {c.subtitle}
-                    </p>
-                  )}
-
-                  <div className="flex items-center justify-between mt-auto">
-                    <span className="text-xs" style={{ color: thumbnail ? "rgba(255,255,255,0.8)" : "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
-                      {lessonCount} lesson{lessonCount === 1 ? "" : "s"} {pct > 0 ? `· ${pct}% done` : ""}
-                    </span>
-                    {!locked ? (
-                      <Link to={`/courses/${c.id}`}>
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-olive-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 500, letterSpacing: "0.08em" }}>
-                          {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
-                        </span>
-                      </Link>
-                    ) : (
-                      <Link to="/plans">
-                        <span className="flex items-center gap-1 text-xs cursor-pointer" style={{ color: thumbnail ? "white" : "var(--aa-gold)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.08em" }}>
-                          Unlock <ArrowRight size={12} />
-                        </span>
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
+              />
             );
           })}
         </div>
+
 
         <div className="flex items-center justify-between mt-12 pt-6 border-t border-border/50">
           <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">
