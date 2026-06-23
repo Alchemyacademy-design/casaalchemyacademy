@@ -77,6 +77,12 @@ const handler = withSupabase<Database>({ auth: "user", cors: corsHeaders }, asyn
     return corsJson({ error: "COURSE_ID_REQUIRED" }, 400);
   }
 
+  // Gate BEFORE creating any Stripe object (Customer, Checkout Session, etc.).
+  const gate = evaluateCheckoutGate();
+  if (!gate.ok) {
+    return corsJson({ error: gate.code }, gate.status);
+  }
+
   const supabase = supabaseAdmin();
   const stripe = stripeClient();
   const livemode = expectedLivemode();
