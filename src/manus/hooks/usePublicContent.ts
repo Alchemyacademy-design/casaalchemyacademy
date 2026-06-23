@@ -119,6 +119,7 @@ export function usePastWorkshops(limit = 6) {
         .from("live_workshops")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .lt("starts_at", nowIso)
         .order("starts_at", { ascending: false })
         .limit(limit);
