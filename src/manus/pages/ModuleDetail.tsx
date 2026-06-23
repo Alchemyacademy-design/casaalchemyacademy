@@ -102,7 +102,7 @@ export default function ModuleDetail() {
 
   const completedCount = progress.filter((p) => p.completed).length;
   const completedIds = useMemo(
-    () => new Set(progress.filter((p) => p.completed).map((p) => p.lessonId)),
+    () => new Set<number>(progress.filter((p) => p.completed).map((p) => Number(p.lessonId))),
     [progress],
   );
 
