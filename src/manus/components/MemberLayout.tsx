@@ -1,6 +1,6 @@
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Tag, Settings, Users, Gift, Shield } from "lucide-react";
+import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Settings, Users, Gift, Shield } from "lucide-react";
 import { getLoginUrl } from "@/manus/const";
 import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
