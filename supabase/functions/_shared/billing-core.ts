@@ -238,7 +238,7 @@ async function markWebhookEvent(supabase: SupabaseAdmin, eventId: string, status
 async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: boolean) {
   const { data, error } = await supabase
     .from("stripe_prices")
-    .select("stripe_price_id, stripe_product_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode")
+    .select("stripe_price_id, stripe_product_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode, active")
     .eq("stripe_price_id", priceId)
     .eq("livemode", livemode)
     .maybeSingle();
@@ -253,6 +253,7 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
     recurring_interval: string | null;
     recurring_interval_count: number | null;
     livemode: boolean | null;
+    active: boolean | null;
   };
 }
 
