@@ -20,6 +20,49 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function yn(v: boolean | undefined | null) {
+  if (v === undefined || v === null) return "—";
+  return v ? "yes" : "no";
+}
+
+type SecretFlag = { configured: boolean; prefixValid?: boolean; environmentCompatible?: boolean; urlValid?: boolean };
+type BillingStatus = {
+  stripeRuntimeMode: "test" | "live";
+  stripeExpectedLivemode: "test" | "live";
+  stripeLiveEnabled: boolean;
+  secrets: {
+    stripeSecret: SecretFlag;
+    stripeWebhookSecret: SecretFlag;
+    stripeExpectedLivemode: SecretFlag;
+    stripeLiveEnabled: SecretFlag;
+    checkoutAllowedOrigin: SecretFlag;
+    checkoutSuccessUrl: SecretFlag;
+    checkoutCancelUrl: SecretFlag;
+    urlsShareOrigin: boolean;
+  };
+  prices: {
+    monthly: { mapped: boolean; termsValid: boolean };
+    annual: { mapped: boolean; termsValid: boolean };
+    individual: { mapped: boolean; termsValid: boolean };
+  };
+  functions: {
+    checkout: { functionConfigured: boolean; functionDeploymentKnown: boolean; functionOperationallyTested: boolean; deploymentStatus: string };
+    webhook:  { functionConfigured: boolean; functionDeploymentKnown: boolean; functionOperationallyTested: boolean; deploymentStatus: string };
+  };
+  operations: {
+    processedWebhookCount: number;
+    failedWebhookCount: number;
+    lastWebhookStatus: string | null;
+    lastWebhookAt: string | null;
+    completedCheckoutSessionCount: number;
+    succeededPaymentCount: number;
+    activeMembershipCount: number;
+  };
+  configurationReady: boolean;
+  checkoutGateEnabled: boolean;
+  operationallyValidated: boolean;
+};
+
 export default function AdminDiagnostics() {
   const auth = useAuth();
   const [authMeStatus, setAuthMeStatus] = useState<{ ok: boolean; status?: number; error?: string } | null>(null);
@@ -32,32 +75,6 @@ export default function AdminDiagnostics() {
     retry: 1,
     refetchOnMount: "always",
   });
-
-  type BillingStatus = {
-    stripeRuntimeMode: "test" | "live";
-    stripeExpectedLivemode: "test" | "live";
-    stripeLiveEnabled: boolean;
-    stripeSecretConfigured: boolean;
-    stripeWebhookSecretConfigured: boolean;
-    stripeTestKeyConfigured: boolean;
-    stripeTestWebhookConfigured: boolean;
-    stripeLiveKeyConfigured: boolean;
-    stripeLiveWebhookConfigured: boolean;
-    legacyStripeSecretKeyConfigured: boolean;
-    legacyStripeWebhookSecretConfigured: boolean;
-    monthlyPriceMapped: boolean;
-    annualPriceMapped: boolean;
-    individualPriceMapped: boolean;
-    monthlyPriceTermsValid: boolean;
-    annualPriceTermsValid: boolean;
-    individualPriceTermsValid: boolean;
-    webhookFunctionActive: boolean;
-    checkoutFunctionActive: boolean;
-    lastWebhookStatus: string | null;
-    lastWebhookAt: string | null;
-    failedWebhookCount: number;
-    billingReady: boolean;
-  };
 
   const billing = useQuery<BillingStatus>({
     queryKey: ["admin", "billing-config-status", auth.session?.user.id ?? null],
@@ -87,6 +104,7 @@ export default function AdminDiagnostics() {
     if (auth.session) void pingAuthMe();
   }, [auth.session, pingAuthMe]);
 
+  const b = billing.data;
   const report = {
     user_id: auth.session?.user.id ?? null,
     email: auth.session?.user.email ?? null,
@@ -100,6 +118,7 @@ export default function AdminDiagnostics() {
     auth_me: authMeStatus,
     counts: catalog.data?.counts ?? null,
     catalog_source: catalog.data?.source ?? null,
+    billing: b ?? null,
     error: auth.error ?? (catalog.error instanceof Error ? catalog.error.message : null),
   };
   const signedInWithDifferentAccount = Boolean(
@@ -107,7 +126,7 @@ export default function AdminDiagnostics() {
   );
 
   return (
-    <AdminShell title="Diagnostics" description="Admin authorization + content catalog health." crumbs={[{ label: "Diagnostics" }]}>
+    <AdminShell title="Diagnostics" description="Admin authorization + content catalog + Stripe billing health." crumbs={[{ label: "Diagnostics" }]}>
       {signedInWithDifferentAccount && (
         <Card className="p-4 mb-4 border-amber-300 bg-amber-50 text-sm text-amber-900">
           You are signed in with a different account.
@@ -151,33 +170,54 @@ export default function AdminDiagnostics() {
         </Card>
 
         <Card className="p-4 md:col-span-2">
-          <h3 className="font-serif text-lg mb-3">Billing configuration (Stripe)</h3>
+          <h3 className="font-serif text-lg mb-3">Stripe — readiness (layered, honest)</h3>
           <p className="text-xs text-foreground/55 mb-3">
-            Booleans only. Secret values, key prefixes, and lengths are never shown here.
+            Booleans only. Secret values, key prefixes and lengths are never shown here.
+            Function deployment is reported as <span className="font-mono">unknown_from_runtime</span> unless a
+            real call has landed in the database.
           </p>
-          <Row label="Runtime mode" value={billing.data?.stripeRuntimeMode ?? (billing.isLoading ? "loading…" : "—")} />
-          <Row label="Expected livemode" value={billing.data?.stripeExpectedLivemode ?? "—"} />
-          <Row label="Live enabled" value={billing.data ? (billing.data.stripeLiveEnabled ? "yes" : "no") : "—"} />
-          <Row label="Stripe secret configured" value={billing.data ? (billing.data.stripeSecretConfigured ? "yes" : "no") : "—"} />
-          <Row label="Stripe webhook secret configured" value={billing.data ? (billing.data.stripeWebhookSecretConfigured ? "yes" : "no") : "—"} />
-          <Row label="Test secret key configured" value={billing.data ? (billing.data.stripeTestKeyConfigured ? "yes" : "no") : "—"} />
-          <Row label="Test webhook secret configured" value={billing.data ? (billing.data.stripeTestWebhookConfigured ? "yes" : "no") : "—"} />
-          <Row label="Live secret key configured" value={billing.data ? (billing.data.stripeLiveKeyConfigured ? "yes" : "no") : "—"} />
-          <Row label="Live webhook secret configured" value={billing.data ? (billing.data.stripeLiveWebhookConfigured ? "yes" : "no") : "—"} />
-          <Row label="Legacy STRIPE_SECRET_KEY configured" value={billing.data ? (billing.data.legacyStripeSecretKeyConfigured ? "yes" : "no") : "—"} />
-          <Row label="Legacy STRIPE_WEBHOOK_SECRET configured" value={billing.data ? (billing.data.legacyStripeWebhookSecretConfigured ? "yes" : "no") : "—"} />
-          <Row label="Monthly price mapped" value={billing.data ? (billing.data.monthlyPriceMapped ? "yes" : "no") : "—"} />
-          <Row label="Monthly price terms valid" value={billing.data ? (billing.data.monthlyPriceTermsValid ? "yes" : "no") : "—"} />
-          <Row label="Annual price mapped" value={billing.data ? (billing.data.annualPriceMapped ? "yes" : "no") : "—"} />
-          <Row label="Annual price terms valid" value={billing.data ? (billing.data.annualPriceTermsValid ? "yes" : "no") : "—"} />
-          <Row label="Individual price mapped" value={billing.data ? (billing.data.individualPriceMapped ? "yes" : "no") : "—"} />
-          <Row label="Individual price terms valid" value={billing.data ? (billing.data.individualPriceTermsValid ? "yes" : "no") : "—"} />
-          <Row label="Webhook function active" value={billing.data ? (billing.data.webhookFunctionActive ? "yes" : "no") : "—"} />
-          <Row label="Checkout function active" value={billing.data ? (billing.data.checkoutFunctionActive ? "yes" : "no") : "—"} />
-          <Row label="Last webhook status" value={billing.data?.lastWebhookStatus ?? "—"} />
-          <Row label="Last webhook at" value={billing.data?.lastWebhookAt ?? "—"} />
-          <Row label="Failed webhook count" value={billing.data?.failedWebhookCount ?? "—"} />
-          <Row label="Billing ready" value={billing.data ? (billing.data.billingReady ? "yes" : "no") : "—"} />
+          <Row label="Runtime mode" value={b?.stripeRuntimeMode ?? (billing.isLoading ? "loading…" : "—")} />
+          <Row label="Expected livemode" value={b?.stripeExpectedLivemode ?? "—"} />
+          <Row label="STRIPE_LIVE_ENABLED" value={b ? yn(b.stripeLiveEnabled) : "—"} />
+          <Row label="configurationReady" value={b ? yn(b.configurationReady) : "—"} />
+          <Row label="checkoutGateEnabled" value={b ? yn(b.checkoutGateEnabled) : "—"} />
+          <Row label="operationallyValidated" value={b ? yn(b.operationallyValidated) : "—"} />
+        </Card>
+
+        <Card className="p-4">
+          <h3 className="font-serif text-lg mb-3">Secrets (presence + shape only)</h3>
+          <Row label="STRIPE_SECRET_KEY" value={b ? `${yn(b.secrets.stripeSecret.configured)} · prefix ${yn(b.secrets.stripeSecret.prefixValid)} · env ${yn(b.secrets.stripeSecret.environmentCompatible)}` : "—"} />
+          <Row label="STRIPE_WEBHOOK_SECRET" value={b ? `${yn(b.secrets.stripeWebhookSecret.configured)} · prefix ${yn(b.secrets.stripeWebhookSecret.prefixValid)} · env ${yn(b.secrets.stripeWebhookSecret.environmentCompatible)}` : "—"} />
+          <Row label="STRIPE_EXPECTED_LIVEMODE" value={b ? yn(b.secrets.stripeExpectedLivemode.configured) : "—"} />
+          <Row label="STRIPE_LIVE_ENABLED (configured)" value={b ? yn(b.secrets.stripeLiveEnabled.configured) : "—"} />
+          <Row label="CHECKOUT_ALLOWED_ORIGIN" value={b ? `${yn(b.secrets.checkoutAllowedOrigin.configured)} · url ${yn(b.secrets.checkoutAllowedOrigin.urlValid)}` : "—"} />
+          <Row label="CHECKOUT_SUCCESS_URL" value={b ? `${yn(b.secrets.checkoutSuccessUrl.configured)} · url ${yn(b.secrets.checkoutSuccessUrl.urlValid)}` : "—"} />
+          <Row label="CHECKOUT_CANCEL_URL" value={b ? `${yn(b.secrets.checkoutCancelUrl.configured)} · url ${yn(b.secrets.checkoutCancelUrl.urlValid)}` : "—"} />
+          <Row label="URLs share origin" value={b ? yn(b.secrets.urlsShareOrigin) : "—"} />
+        </Card>
+
+        <Card className="p-4">
+          <h3 className="font-serif text-lg mb-3">Canonical prices (live defaults)</h3>
+          <Row label="monthly_member"    value={b ? `mapped ${yn(b.prices.monthly.mapped)} · terms ${yn(b.prices.monthly.termsValid)}` : "—"} />
+          <Row label="annual_member"     value={b ? `mapped ${yn(b.prices.annual.mapped)} · terms ${yn(b.prices.annual.termsValid)}` : "—"} />
+          <Row label="individual_course" value={b ? `mapped ${yn(b.prices.individual.mapped)} · terms ${yn(b.prices.individual.termsValid)}` : "—"} />
+        </Card>
+
+        <Card className="p-4 md:col-span-2">
+          <h3 className="font-serif text-lg mb-3">Edge functions (honest)</h3>
+          <Row label="checkout function" value={b ? `configured ${yn(b.functions.checkout.functionConfigured)} · deployment known ${yn(b.functions.checkout.functionDeploymentKnown)} · ops-tested ${yn(b.functions.checkout.functionOperationallyTested)} · status ${b.functions.checkout.deploymentStatus}` : "—"} />
+          <Row label="webhook function"  value={b ? `configured ${yn(b.functions.webhook.functionConfigured)} · deployment known ${yn(b.functions.webhook.functionDeploymentKnown)} · ops-tested ${yn(b.functions.webhook.functionOperationallyTested)} · status ${b.functions.webhook.deploymentStatus}` : "—"} />
+        </Card>
+
+        <Card className="p-4 md:col-span-2">
+          <h3 className="font-serif text-lg mb-3">Operational evidence</h3>
+          <Row label="Processed webhooks (live)" value={b?.operations.processedWebhookCount ?? "—"} />
+          <Row label="Failed webhooks" value={b?.operations.failedWebhookCount ?? "—"} />
+          <Row label="Last webhook status" value={b?.operations.lastWebhookStatus ?? "—"} />
+          <Row label="Last webhook at" value={b?.operations.lastWebhookAt ?? "—"} />
+          <Row label="Completed checkout sessions" value={b?.operations.completedCheckoutSessionCount ?? "—"} />
+          <Row label="Succeeded payments (live)" value={b?.operations.succeededPaymentCount ?? "—"} />
+          <Row label="Active memberships" value={b?.operations.activeMembershipCount ?? "—"} />
           {billing.error instanceof Error && (
             <Row label="Billing status error" value={<span className="text-destructive">{billing.error.message}</span>} />
           )}
@@ -195,7 +235,7 @@ export default function AdminDiagnostics() {
           <RefreshCw className="w-4 h-4 mr-1" /> Reload courses
         </Button>
         <Button variant="outline" onClick={() => void billing.refetch()}>
-          <RefreshCw className="w-4 h-4 mr-1" /> Re-check billing config
+          <RefreshCw className="w-4 h-4 mr-1" /> Re-check billing
         </Button>
         <Button
           variant="outline"
