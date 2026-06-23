@@ -3,17 +3,17 @@ import Stripe from "npm:stripe@22.2.1";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
 import {
+  ANNUAL_MEMBER_CANONICAL,
   claimWebhookEvent,
   expectedLivemode,
   finalizeBillingEvent,
   jsonResponse,
   processBillingEvent,
   stripeClient,
+  stripeWebhookSecret,
   supabaseAdmin,
   type SupabaseAdmin,
 } from "../_shared/billing-core.ts";
-
-const ANNUAL_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
 
 function objectId(value: unknown): string | null {
   if (!value) return null;
