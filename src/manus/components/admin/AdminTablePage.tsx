@@ -422,7 +422,10 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         };
       };
       const { error } = await client
-        .update({ archived_at: new Date().toISOString() })
+        .update({
+          archived_at: new Date().toISOString(),
+          ...(archivePatch ?? {}),
+        })
         .eq(primaryKey, id);
       if (error) throw error;
     },
