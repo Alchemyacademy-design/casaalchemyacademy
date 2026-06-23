@@ -16,6 +16,7 @@ export default function AdminEvents() {
       searchFields={["title", "slug", "location"]}
       publicInvalidateKeys={[["public", "events"]]}
       deletionMode="archive"
+      archivePatch={{ status: "archived" }}
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
         { name: "slug", label: "Slug", type: "text", required: true },
