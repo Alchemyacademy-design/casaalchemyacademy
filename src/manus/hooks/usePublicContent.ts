@@ -91,6 +91,7 @@ export function useUpcomingWorkshops() {
         .from("live_workshops")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .gte("starts_at", nowIso)
         .order("starts_at", { ascending: true });
       if (error) throw error;
