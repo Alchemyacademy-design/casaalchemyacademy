@@ -41,3 +41,9 @@ Manrope; primary=Chocolate, accent=Terracotta, background=Sandstone.
 | `CompletionButton` | `lesson_progress` | `lesson_progress` upsert + `publishCrossTabInvalidation` |
 | `LessonMaterial` | `lessons.external_resource_url` | — |
 | `AccessGate` | `useAuth`, `useEntitlements` | — |
+
+
+---
+## Update — Phase 2A implemented (2026-06-23)
+
+See `docs/PHASE_2A_IMPLEMENTATION_REPORT.md` for the diff, gates, and test counts. Status: `PHASE_2A_STATUS = IMPLEMENTED_PENDING_EXTERNAL_AUDIT`. Stripe untouched (`STRIPE_STATUS=ADIADO`). 141/141 tests pass.

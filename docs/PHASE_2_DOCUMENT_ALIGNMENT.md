@@ -73,3 +73,9 @@ Não inserir hex antigo nem `--aa-*` em componente.
 
 Nenhum arquivo de código, schema, RLS, migration, secret ou dado foi
 alterado nesta execução.
+
+
+---
+## Update — Phase 2A implemented (2026-06-23)
+
+See `docs/PHASE_2A_IMPLEMENTATION_REPORT.md` for the diff, gates, and test counts. Status: `PHASE_2A_STATUS = IMPLEMENTED_PENDING_EXTERNAL_AUDIT`. Stripe untouched (`STRIPE_STATUS=ADIADO`). 141/141 tests pass.

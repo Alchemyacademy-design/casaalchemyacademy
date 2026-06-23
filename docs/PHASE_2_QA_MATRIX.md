@@ -97,3 +97,9 @@ Plano de testes da Fase 2 sem usuários reais. Tudo via mocks tipados
 ## 3. Confirmação
 
 Read-only. Nada foi implementado ou alterado.
+
+
+---
+## Update — Phase 2A implemented (2026-06-23)
+
+See `docs/PHASE_2A_IMPLEMENTATION_REPORT.md` for the diff, gates, and test counts. Status: `PHASE_2A_STATUS = IMPLEMENTED_PENDING_EXTERNAL_AUDIT`. Stripe untouched (`STRIPE_STATUS=ADIADO`). 141/141 tests pass.
