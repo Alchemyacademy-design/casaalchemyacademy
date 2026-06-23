@@ -300,15 +300,24 @@ async function applyAnnualCheckoutPayment(
 
   const priceId = lineItems.data[0].price?.id ?? null;
   if (!priceId) throw new BillingError(`Annual Checkout session ${session.id} missing Price`);
-  if (priceId !== ANNUAL_ONE_TIME_PRICE_ID) throw new BillingError(`Annual Checkout session ${session.id} Price mismatch`);
 
+  // Canonical validation against stripe_prices (no hardcoded Stripe Price ID).
   const mapping = await priceMapping(supabase, priceId, event.livemode);
-  if (mapping.plan_key !== "annual_member") throw new BillingError(`Annual Checkout session ${session.id} plan mismatch`);
-  if (mapping.currency.toLowerCase() !== "aud") throw new BillingError(`Annual Checkout session ${session.id} currency mismatch`);
+  if (mapping.plan_key !== ANNUAL_MEMBER_CANONICAL.plan_key) throw new BillingError(`Annual Checkout session ${session.id} plan mismatch`);
+  if (mapping.currency.toLowerCase() !== ANNUAL_MEMBER_CANONICAL.currency) throw new BillingError(`Annual Checkout session ${session.id} currency mismatch`);
+  if (mapping.unit_amount !== ANNUAL_MEMBER_CANONICAL.unit_amount) throw new BillingError(`Annual Checkout session ${session.id} unit_amount mismatch`);
   if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
     throw new BillingError(`Annual Checkout session ${session.id} must use a one-time Price`);
   }
+  if (mapping.active !== true) throw new BillingError(`Annual Checkout session ${session.id} Price is not active`);
   if (mapping.livemode !== event.livemode) throw new BillingError("annual_price_livemode_mismatch");
+
+  // Optional cross-validation: if STRIPE_LIVE_ANNUAL_PRICE_ID is configured for live mode, it must match.
+  const expectedAnnualId = event.livemode ? (Deno.env.get("STRIPE_LIVE_ANNUAL_PRICE_ID") ?? "").trim() : "";
+  if (expectedAnnualId && expectedAnnualId !== priceId) {
+    throw new BillingError(`Annual Checkout session ${session.id} Price does not match STRIPE_LIVE_ANNUAL_PRICE_ID`);
+  }
+
   if (typeof session.amount_total !== "number" || session.amount_total <= 0) {
     throw new BillingError(`Annual Checkout session ${session.id} has no positive paid amount`);
   }
