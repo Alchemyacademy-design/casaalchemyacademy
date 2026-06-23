@@ -33,6 +33,32 @@ export default function AdminDiagnostics() {
     refetchOnMount: "always",
   });
 
+  type BillingStatus = {
+    stripeRuntimeMode: "test" | "live";
+    stripeLiveEnabled: boolean;
+    stripeTestKeyConfigured: boolean;
+    stripeTestWebhookConfigured: boolean;
+    stripeLiveKeyConfigured: boolean;
+    stripeLiveWebhookConfigured: boolean;
+    legacyStripeSecretKeyConfigured: boolean;
+    legacyStripeWebhookSecretConfigured: boolean;
+    liveMonthlyPriceMapped: boolean;
+    liveAnnualPriceMapped: boolean;
+    liveCoursePriceMapped: boolean;
+  };
+
+  const billing = useQuery<BillingStatus>({
+    queryKey: ["admin", "billing-config-status", auth.session?.user.id ?? null],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke<BillingStatus>("billing-config-status", { method: "POST" });
+      if (error) throw error;
+      if (!data) throw new Error("billing-config-status returned empty body");
+      return data;
+    },
+    enabled: auth.authReady && auth.accessReady && auth.isAdmin && !!auth.session,
+    retry: 1,
+  });
+
   const pingAuthMe = useCallback(async () => {
     setAuthMeChecking(true);
     try {
