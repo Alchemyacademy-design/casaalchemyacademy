@@ -5,10 +5,12 @@ import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse } from "@/manus/services/learning";
-import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
+import { Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
 import QueryStateView from "@/manus/components/QueryStateView";
+import CourseCard from "@/manus/components/learning/CourseCard";
+
 
 
 type CourseRow = {
