@@ -3,7 +3,6 @@ import Stripe from "npm:stripe@22.2.1";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
 import {
-  ANNUAL_MEMBER_CANONICAL,
   claimWebhookEvent,
   expectedLivemode,
   finalizeBillingEvent,
@@ -12,103 +11,12 @@ import {
   stripeClient,
   stripeWebhookSecret,
   supabaseAdmin,
-  type SupabaseAdmin,
 } from "../_shared/billing-core.ts";
 
-function objectId(value: unknown): string | null {
-  if (!value) return null;
-  if (typeof value === "string") return value;
-  if (typeof value === "object" && "id" in value) {
-    const id = (value as { id?: unknown }).id;
-    return typeof id === "string" ? id : null;
-  }
-  return null;
-}
-
-function isUuid(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-async function processAnnualCheckout(supabase: SupabaseAdmin, stripe: Stripe, event: Stripe.Event) {
-  const session = event.data.object as Stripe.Checkout.Session;
-  const isAnnual = session.mode === "payment" && session.metadata?.plan_key === "annual_member";
-  if (!isAnnual) return false;
-
-  if (event.type === "checkout.session.async_payment_failed") {
-    const { error } = await supabase.from("stripe_checkout_sessions").upsert({
-      stripe_session_id: session.id,
-      user_id: isUuid(session.metadata?.supabase_user_id) ? session.metadata?.supabase_user_id : null,
-      stripe_customer_id: objectId(session.customer),
-      stripe_price_id: session.metadata?.stripe_price_id ?? null,
-      status: session.status,
-      payment_status: "failed",
-      mode: session.mode,
-      metadata: { ...session.metadata, stripe_event_id: event.id, source_event_type: event.type },
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "stripe_session_id" });
-    if (error) throw error;
-    return true;
-  }
-
-  if (session.payment_status !== "paid") return false;
-  if (event.livemode !== expectedLivemode()) throw new Error("livemode_mismatch");
-
-  const userId = isUuid(session.metadata?.supabase_user_id)
-    ? session.metadata?.supabase_user_id
-    : isUuid(session.client_reference_id)
-      ? session.client_reference_id
-      : null;
-  if (!userId) throw new Error("annual_checkout_missing_user_id");
-
-  const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
-  if (lineItems.data.length !== 1) throw new Error("annual_checkout_requires_one_line_item");
-  const stripePriceId = lineItems.data[0]?.price?.id ?? null;
-  if (!stripePriceId) throw new Error("annual_checkout_missing_price");
-
-  // Canonical validation against stripe_prices (no hardcoded Stripe Price ID).
-  const { data: mapping, error: mappingError } = await supabase
-    .from("stripe_prices")
-    .select("stripe_price_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode, active")
-    .eq("stripe_price_id", stripePriceId)
-    .eq("plan_key", ANNUAL_MEMBER_CANONICAL.plan_key)
-    .eq("livemode", event.livemode)
-    .is("course_id", null)
-    .maybeSingle();
-  if (mappingError) throw mappingError;
-  if (!mapping) throw new Error("annual_price_mapping_missing");
-  if (mapping.currency !== ANNUAL_MEMBER_CANONICAL.currency) throw new Error("annual_currency_mismatch");
-  if (mapping.unit_amount !== ANNUAL_MEMBER_CANONICAL.unit_amount) throw new Error("annual_unit_amount_mismatch");
-  if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
-    throw new Error("annual_price_must_be_one_time");
-  }
-  if (mapping.active !== true) throw new Error("annual_price_inactive");
-
-  const expectedAnnualId = event.livemode ? (Deno.env.get("STRIPE_LIVE_ANNUAL_PRICE_ID") ?? "").trim() : "";
-  if (expectedAnnualId && expectedAnnualId !== stripePriceId) {
-    throw new Error("annual_price_env_mismatch");
-  }
-
-  const amount = session.amount_total;
-  if (typeof amount !== "number" || amount <= 0) throw new Error("annual_amount_not_positive");
-  if (session.currency !== ANNUAL_MEMBER_CANONICAL.currency) throw new Error("annual_session_currency_mismatch");
-
-  const { error } = await supabase.rpc("internal_apply_stripe_annual_payment", {
-    p_stripe_event_id: event.id,
-    p_stripe_event_created_at: new Date(event.created * 1000).toISOString(),
-    p_user_id: userId,
-    p_stripe_checkout_session_id: session.id,
-    p_stripe_customer_id: objectId(session.customer),
-    p_stripe_price_id: stripePriceId,
-    p_stripe_payment_intent_id: objectId(session.payment_intent),
-    p_amount: amount,
-    p_currency: session.currency,
-    p_livemode: event.livemode,
-    p_metadata: { ...session.metadata, stripe_event_id: event.id, source_event_type: event.type, access_months: 12 },
-  });
-  if (error) throw error;
-  return true;
-}
-
+// The webhook is intentionally thin: verify signature, claim idempotently,
+// delegate to the shared processor in billing-core.ts, finalize status.
+// All event-specific logic (including annual one-time checkout activation)
+// lives in processBillingEvent so it cannot drift between functions.
 const handler = withSupabase<Database>({ auth: "none", cors: false }, async (request) => {
   if (request.method !== "POST") return jsonResponse({ error: "Method not allowed" }, 405);
 
@@ -131,7 +39,8 @@ const handler = withSupabase<Database>({ auth: "none", cors: false }, async (req
     return jsonResponse({ error: "Invalid Stripe signature" }, 400);
   }
 
-  // Reject cross-mode events even if signature happens to verify (defense in depth).
+  // Reject cross-mode events even if the signature happens to verify
+  // (defense in depth against test-mode webhooks hitting a live endpoint).
   if (event.livemode !== expectedLivemode()) {
     return jsonResponse({ error: "livemode_mismatch" }, 400);
   }
@@ -148,8 +57,7 @@ const handler = withSupabase<Database>({ auth: "none", cors: false }, async (req
   }
 
   const status = await finalizeBillingEvent(supabase, event, async () => {
-    const handled = await processAnnualCheckout(supabase, stripe, event);
-    if (!handled) await processBillingEvent(supabase, stripe, event);
+    await processBillingEvent(supabase, stripe, event);
   });
 
   return jsonResponse({ received: status !== "failed_retryable", status }, status === "failed_retryable" ? 500 : 200);
