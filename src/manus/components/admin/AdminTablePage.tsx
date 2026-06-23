@@ -277,6 +277,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     publicInvalidateKeys = [],
     searchFields = [],
     deletionMode = "disabled",
+    archivePatch,
   } = props;
 
   const qc = useQueryClient();
