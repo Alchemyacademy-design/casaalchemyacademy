@@ -22,27 +22,30 @@ Detalhes completos em [`PHASE_1_IMPLEMENTATION_REPORT.md`](./PHASE_1_IMPLEMENTAT
 | 17 | Redução de bundle | ✅ | Entry **1.419,77 → 132,66 kB raw** (redução 90,7 %). Detalhes em §4 do report |
 | 18 | Tipagem AdminTablePage | ✅ | `AdminTablePage<T extends keyof Database["public"]["Tables"]>` |
 | 19 | Ausência de `any` evitável | ✅ | `bun run lint` exit 0; 0 errors; 14 warnings pré-existentes em Radix/shadcn UI |
-| 20 | Soft-delete | ✅ | `deletionMode` (`archive`/`hard`/`disabled` — default `disabled`). `archive` ativo em `events` e `live_workshops`; demais tabelas listadas em `PHASE_1_DELETE_POLICY.md` |
-| 21 | Doc das tabelas que exigem hard-delete | ✅ | `docs/PHASE_1_DELETE_POLICY.md` — nenhuma tabela usa `hard` na Fase 1 |
-| 22 | Atualização após mutation | ✅ | `AdminTablePage` invalida; `ModuleDetail` publica cross-tab |
+| 20 | Soft-delete | ✅ | `deletionMode` (`archive`/`hard`/`disabled` — default `disabled`). `archive` ativo em `events` e `live_workshops`; bespoke course editor (`AdminCourseDetail`) + `AdminLessonsBulk` agora chamam `archiveModule`/`archiveLesson`/bulk update (sem `.delete()`). |
+| 21 | Doc das tabelas que exigem hard-delete | ✅ | `docs/PHASE_1_DELETE_POLICY.md` — nenhuma tabela usa `hard` na Fase 1; busca negativa por `.delete()` / `deleteLesson` / `deleteModule` em editorial = 0 |
+| 22 | Atualização após mutation | ✅ | `AdminTablePage` invalida; `CourseDetail.markLesson` publica cross-tab |
 | 23 | Persistência após refresh | ✅ | Query keys estáveis + cache padrão TanStack 5 |
-| 24 | Atualização em segunda aba | ✅ | `src/manus/lib/cross-tab-query-sync.ts` (BroadcastChannel + localStorage fallback) — não transmite dados de usuário; loop-safe |
-| 25 | Grants schema `private` | ⚠ FUNCIONAL NO BANCO / NÃO VERSIONADO | Mantido o status anterior — `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md` documenta a pendência. Phase 1 proíbe tocar `supabase/migrations/`. |
+| 24 | Atualização em segunda aba | ✅ | `cross-tab-query-sync.ts` (BroadcastChannel + localStorage fallback) — testes cobrem fallback, storage event válido, payload inválido, cleanup, invalidação |
+| 25 | Grants schema `private` | ⚠ FUNCIONAL NO BANCO / NÃO VERSIONADO | Mantido — `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md` documenta. |
 | 26 | Sem `public.is_admin` duplicado | ✅ | inalterado |
 | 27 | Proteção admin master | ✅ | inalterado |
-| 28 | CRUD real (10 entidades) | ✅ EM CÓDIGO | `AdminTablePage` genérico tipado por tabela; validação runtime pendente para QA externa |
-| 29 | Erros de banco não mascarados | ✅ | `describeError()` em `AdminTablePage` classifica RLS / JWT / FK / unique / NOT NULL; `QueryStateView` expõe a mensagem crua |
-| 30 | Lint global | ✅ | `bun run lint` exit 0 (0 errors) |
-| 31 | CI independente | ✅ | `.github/workflows/ci.yml` (typecheck → test → lint → build) |
+| 28 | CRUD real (10 entidades) | ✅ EM CÓDIGO | `AdminTablePage` genérico tipado por tabela; testes de componente cobrem paginação, busca, retry, archive |
+| 29 | Erros de banco não mascarados | ✅ | `describeError()` em `AdminTablePage`; `CourseDetail` usa `QueryStateView` com Retry distinguindo erro de "not found" |
+| 30 | Lint global | ✅ | `bun run lint` exit 0 (0 errors). Sem novos `eslint-disable`; dois adapters `any` em `trpc.ts` permanecem com justificativa |
+| 31 | CI independente | ✅ ESTRUTURALMENTE | `.github/workflows/ci.yml` (install → typecheck → test → lint → build). Status final aguarda `conclusion: success` do run gerado por esta execução |
 
 ## FASE_1_STATUS
 
-`FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE`
+`FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE` (condicional ao run do GitHub Actions em `success`).
+Antes disso: `FASE_1_STATUS = PARCIAL_AVANCADA`.
 
 Pendências reconhecidas (fora do escopo da Fase 1):
 
 - Mover grants, policies e triggers de `docs/migrations/` para `supabase/migrations/` — registrado em `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md`.
 - Habilitar `lesson_progress` na publication `supabase_realtime` (requer migration) — workaround entregue via cross-tab sync.
 - UI de restauração para linhas arquivadas (não bloqueante; coluna `archived_at` já filtrada).
+- Confirmação do run de CI verde (Lovable→GitHub sync dispara o workflow).
 
-Stripe permanece `ADIADO` (`STRIPE_LIVE_ENABLED=false`, nenhuma função financeira tocada).
+Stripe permanece `ADIADO` (`STRIPE_LIVE_ENABLED=false`). **Nenhuma função financeira foi redeployada nesta execução.**
+
