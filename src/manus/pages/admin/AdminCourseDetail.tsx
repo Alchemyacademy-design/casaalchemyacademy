@@ -33,8 +33,8 @@ import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/compon
 import {
   createLesson,
   createModule,
-  deleteLesson,
-  deleteModule,
+  archiveLesson,
+  archiveModule,
   getCourse,
   isPlaceholderVideo,
   listLessons,
@@ -176,7 +176,7 @@ function LessonRow({
         >
           {STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
         </select>
-        <button onClick={onDelete} className="text-red-600 hover:text-red-700 p-1" aria-label="Delete lesson">
+        <button onClick={onDelete} className="text-red-600 hover:text-red-700 p-1" aria-label="Archive lesson" title="Archive lesson">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
@@ -332,13 +332,13 @@ function ModuleSection({
     }
   };
 
-  const handleDeleteLesson = async (id: number) => {
-    if (!confirm("Delete this lesson?")) return;
+  const handleArchiveLesson = async (id: number) => {
+    if (!confirm("Archive this lesson? It will be hidden from default lists but can be restored later by clearing archived_at and updating the status.")) return;
     try {
-      await deleteLesson(id);
+      await archiveLesson(id);
       await refetch();
       invalidateAll();
-      toast.success("Lesson deleted");
+      toast.success("Archived");
     } catch (e: unknown) {
       toast.error(errorMessage(e));
     }
@@ -406,17 +406,19 @@ function ModuleSection({
         </select>
         <button
           onClick={async () => {
-            if (!confirm("Delete this module and all its lessons?")) return;
+            if (!confirm("Archive this module? It will be hidden from default lists but can be restored later. Lessons under it will NOT be archived automatically.")) return;
             try {
-              await deleteModule(module.id);
+              await archiveModule(module.id);
               onDeleted();
               invalidateAll();
-              toast.success("Module deleted");
+              toast.success("Archived");
             } catch (e: unknown) {
               toast.error(errorMessage(e));
             }
           }}
           className="text-red-600 hover:text-red-700 p-1"
+          aria-label="Archive module"
+          title="Archive module"
         >
           <Trash2 className="w-4 h-4" />
         </button>
@@ -430,7 +432,7 @@ function ModuleSection({
                 <LessonRow
                   key={l.id}
                   lesson={l}
-                  onDelete={() => handleDeleteLesson(l.id)}
+                  onDelete={() => handleArchiveLesson(l.id)}
                   onChanged={() => {
                     void refetch();
                     invalidateAll();

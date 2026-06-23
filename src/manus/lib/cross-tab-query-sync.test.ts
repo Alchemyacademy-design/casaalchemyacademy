@@ -116,4 +116,89 @@ describe("cross-tab-query-sync", () => {
   it("exposes a stable channel name", () => {
     expect(CROSS_TAB_CHANNEL).toBe("alchemy-academy:queries");
   });
+
+  it("falls back to localStorage when BroadcastChannel is missing", () => {
+    const original = (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel;
+    (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel = undefined;
+    const setSpy = vi.spyOn(window.localStorage.__proto__, "setItem");
+    const removeSpy = vi.spyOn(window.localStorage.__proto__, "removeItem");
+    publishCrossTabInvalidation("lesson_progress.updated", [["lessons.progress"]]);
+    expect(setSpy).toHaveBeenCalledWith("__alchemy_cross_tab_query__", expect.any(String));
+    // Sentinel is immediately dropped so the key never accumulates.
+    expect(removeSpy).toHaveBeenCalledWith("__alchemy_cross_tab_query__");
+    setSpy.mockRestore();
+    removeSpy.mockRestore();
+    (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel = original;
+  });
+
+  it("delivers a valid storage event to the subscriber and ignores own/invalid", () => {
+    const received: CrossTabPayload[] = [];
+    const off = subscribeCrossTab({ onEvent: (p) => received.push(p) });
+    // Foreign valid event
+    const foreign = {
+      event: "lesson_progress.updated",
+      queryKeys: [["lessons.progress"]],
+      sourceId: "other-tab",
+    };
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "__alchemy_cross_tab_query__",
+      newValue: JSON.stringify(foreign),
+    }));
+    expect(received).toHaveLength(1);
+    // Invalid JSON
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "__alchemy_cross_tab_query__",
+      newValue: "not-json",
+    }));
+    // Own sourceId
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "__alchemy_cross_tab_query__",
+      newValue: JSON.stringify({ ...foreign, sourceId: getSourceId() }),
+    }));
+    expect(received).toHaveLength(1);
+    off();
+  });
+
+  it("cleanup removes both storage and BroadcastChannel listeners", () => {
+    let listenerCount = 0;
+    type Listener = (ev: MessageEvent) => void;
+    class FakeChannel {
+      closed = false;
+      constructor(public name: string) {}
+      postMessage() {}
+      close() { this.closed = true; }
+      addEventListener(_: string, _cb: Listener) { listenerCount++; }
+      removeEventListener(_: string, _cb: Listener) { listenerCount--; }
+    }
+    const original = (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel;
+    (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel = FakeChannel as unknown as typeof BroadcastChannel;
+    const removeStorageSpy = vi.spyOn(window, "removeEventListener");
+    const off = subscribeCrossTab({ onEvent: () => {} });
+    expect(listenerCount).toBe(1);
+    off();
+    expect(listenerCount).toBe(0);
+    expect(removeStorageSpy).toHaveBeenCalledWith("storage", expect.any(Function));
+    removeStorageSpy.mockRestore();
+    (globalThis as { BroadcastChannel?: unknown }).BroadcastChannel = original;
+  });
+
+  it("useCrossTabQueryInvalidation invalidates the QueryClient for each key", async () => {
+    const { renderHook } = await import("@testing-library/react");
+    const { useCrossTabQueryInvalidation } = await import("./cross-tab-query-sync");
+    const invalidate = vi.fn();
+    const client = { invalidateQueries: invalidate } as unknown as import("@tanstack/react-query").QueryClient;
+    const { unmount } = renderHook(() => useCrossTabQueryInvalidation(client));
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: "__alchemy_cross_tab_query__",
+      newValue: JSON.stringify({
+        event: "lesson_progress.updated",
+        queryKeys: [["lessons.progress"], ["progress.moduleProgress"]],
+        sourceId: "other-tab",
+      }),
+    }));
+    expect(invalidate).toHaveBeenCalledTimes(2);
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["lessons.progress"] });
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: ["progress.moduleProgress"] });
+    unmount();
+  });
 });

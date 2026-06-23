@@ -52,6 +52,7 @@ export default function AdminLessonsBulk() {
       const { data, error } = await supabase
         .from("lessons")
         .select("id, module_id, sort_order, title, description, external_video_url, cover_image_path, status, course_modules!inner(id, title, course_id, sort_order, courses!inner(id, title, sort_order))")
+        .is("archived_at", null)
         .order("sort_order", { ascending: true })
         .limit(1000);
       if (error) {
@@ -174,15 +175,19 @@ export default function AdminLessonsBulk() {
     toast.success(`Updated ${ok}${skipped ? ` · ${skipped} skipped (no video)` : ""}${fail ? ` · ${fail} failed` : ""}`);
   };
 
-  const bulkDelete = async () => {
+  const bulkArchive = async () => {
     const ids = Object.entries(selected).filter(([, v]) => v).map(([k]) => Number(k));
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} lesson(s)?`)) return;
-    const { error } = await supabase.from("lessons").delete().in("id", ids);
+    if (!confirm(`Archive ${ids.length} lesson(s)? They will be hidden from default lists but can be restored later.`)) return;
+    const nowIso = new Date().toISOString();
+    const { error } = await supabase
+      .from("lessons")
+      .update({ archived_at: nowIso, status: "archived" })
+      .in("id", ids);
     if (error) return toast.error(error.message);
     setRows((rs) => rs.filter((r) => !ids.includes(r.id)));
     setSelected({});
-    toast.success(`Deleted ${ids.length}`);
+    toast.success("Archived");
   };
 
   const handleUpload = async (id: number, file: File) => {
@@ -249,7 +254,7 @@ export default function AdminLessonsBulk() {
           <Button size="sm" variant="outline" onClick={() => bulkStatus("published")}>Publish selected</Button>
           <Button size="sm" variant="outline" onClick={() => bulkStatus("draft")}>Move to draft</Button>
           <Button size="sm" variant="outline" onClick={() => bulkStatus("archived")}>Archive</Button>
-          <Button size="sm" variant="destructive" onClick={bulkDelete}><Trash2 className="w-4 h-4" /></Button>
+          <Button size="sm" variant="destructive" onClick={bulkArchive} title="Archive selected"><Trash2 className="w-4 h-4" /></Button>
         </div>
       </Card>
 

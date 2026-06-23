@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, Circle, Lock, PlayCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Lock, PlayCircle } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
+import QueryStateView from "@/manus/components/QueryStateView";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
@@ -11,6 +12,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
 import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
+import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
 import { toast } from "sonner";
 
 type Lesson = {
@@ -84,12 +86,13 @@ export default function CourseDetail() {
   const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
   const qc = useQueryClient();
 
-  const { data: course, isLoading, error } = useQuery({
+  const { data: course, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["public", "course", courseId, { admin: isAdmin }],
     queryFn: () => fetchCourseTree(courseId, isAdmin),
     enabled: Number.isFinite(courseId),
     staleTime: 2 * 60 * 1000,
   });
+  const isCourseNotFound = !isLoading && !error && course === null;
 
   const accessState = {
     isAdmin,
@@ -130,6 +133,11 @@ export default function CourseDetail() {
       toast.success("Marked as complete");
       await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
       await qc.invalidateQueries({ queryKey: ["progress.moduleProgress"] });
+      // Cross-tab notification — keys only, never user data.
+      publishCrossTabInvalidation("lesson_progress.updated", [
+        ["lessons.progress"],
+        ["progress.moduleProgress"],
+      ]);
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -146,23 +154,36 @@ export default function CourseDetail() {
     );
   }
 
-  if (isLoading) {
-    return (
-      <MemberLayout>
-        <div className="p-10 text-sm text-foreground/70">Loading course…</div>
-      </MemberLayout>
-    );
-  }
-
+  // Render error UI with Retry — keep distinct from "course not found".
   if (error) {
     return (
       <MemberLayout>
-        <div className="p-10 text-sm text-destructive">Failed to load course: {(error as Error).message}</div>
+        <div className="p-6 md:p-10">
+          <QueryStateView
+            isLoading={false}
+            isFetching={isFetching}
+            error={error}
+            onRetry={() => refetch()}
+            errorTitle="Failed to load course"
+          >
+            <></>
+          </QueryStateView>
+        </div>
       </MemberLayout>
     );
   }
 
-  if (!course) {
+  if (isLoading) {
+    return (
+      <MemberLayout>
+        <div className="p-10 text-sm text-foreground/70" role="status" aria-busy="true">
+          Loading course…
+        </div>
+      </MemberLayout>
+    );
+  }
+
+  if (isCourseNotFound || !course) {
     return (
       <MemberLayout>
         <div className="p-10 text-sm text-foreground/70">

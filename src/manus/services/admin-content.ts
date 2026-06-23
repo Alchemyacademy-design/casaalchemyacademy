@@ -102,6 +102,7 @@ export async function getCourses(): Promise<CourseRow[]> {
   const { data, error } = await supabase
     .from("courses")
     .select("*")
+    .is("archived_at", null)
     .order("sort_order", { ascending: true })
     .order("id", { ascending: true });
   if (error) throw wrapPgError("courses", error);
@@ -114,6 +115,7 @@ export async function getCourseModules(courseIds: number[]): Promise<ModuleRow[]
     .from("course_modules")
     .select("*")
     .in("course_id", courseIds)
+    .is("archived_at", null)
     .order("sort_order", { ascending: true });
   if (error) throw wrapPgError("course_modules", error);
   return (data ?? []) as ModuleRow[];
@@ -125,6 +127,7 @@ export async function getLessons(moduleIds: number[]): Promise<LessonRow[]> {
     .from("lessons")
     .select("*")
     .in("module_id", moduleIds)
+    .is("archived_at", null)
     .order("sort_order", { ascending: true });
   if (error) throw wrapPgError("lessons", error);
   return (data ?? []) as LessonRow[];
