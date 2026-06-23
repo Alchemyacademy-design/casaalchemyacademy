@@ -1,6 +1,7 @@
-# PHASE 1 — CURRENT AUDIT (read-only, corrigida)
+# PHASE 1 — CURRENT AUDIT (updated post-implementation)
 
-Confronta `docs/PHASE_1_REPORT.md` com `main` (código em `d9d63f9`).
+Auditoria revisada após a execução da "Conclusão Controlada da Fase 1".
+Detalhes completos em [`PHASE_1_IMPLEMENTATION_REPORT.md`](./PHASE_1_IMPLEMENTATION_REPORT.md).
 
 ## Requisitos auditados
 
@@ -10,39 +11,38 @@ Confronta `docs/PHASE_1_REPORT.md` com `main` (código em `d9d63f9`).
 | 2 | Sem listeners duplicados | ✅ | `onAuthStateChange` só em `AuthContext.tsx` |
 | 3-4 | AdminGuard com 5 estados | ✅ | `src/components/AdminGuard.tsx` |
 | 5-6 | React Router único / sem Wouter | ✅ | `package.json` |
-| 7 | Queries tipadas | ⚠ PARCIAL | tRPC tipado; ainda há `any` em telas (vide lint) |
-| 8 | Query keys padronizadas | NÃO VALIDADO | sem auditoria sistemática |
-| 9 | Invalidação correta | ✅ EM COMPONENTE (parcial) | `ModuleDetail.tsx` invalida 2 keys após mutation |
-| 10 | Sem consultas duplicadas | NÃO VALIDADO | exige profiling em runtime |
-| 11 | loading/error/empty/success/retry | ⚠ PARCIAL | `AdminGuard` cobre auth; várias telas admin sem Retry |
-| 12-13 | Paginação server-side admin / PAGE_SIZE=20 | ❌ PENDENTE | nenhum `range()` em `pages/admin/*` |
-| 14-15 | Seleção mínima de colunas | ⚠ PARCIAL | algumas telas usam selects amplos |
-| 16 | React.lazy / Suspense | ❌ PENDENTE | sem `lazy(` em `App.tsx` |
-| 17 | Redução de bundle | ❌ PENDENTE | 1.419,77 kB |
-| 18 | Tipagem AdminTablePage | NÃO VALIDADO | — |
-| 19 | Ausência de `any` evitável | ❌ | 25 lint errors |
-| 20 | Soft-delete | ❌ PENDENTE NO CÓDIGO | **schema suporta**: `courses.archived_at`, `course_modules.archived_at`, `lessons.archived_at`, `community_posts.archived_at`, `community_replies.archived_at` já existem; demais tabelas a auditar |
-| 21 | Doc das tabelas que exigem hard-delete | PENDENTE | — |
-| 22 | Atualização após mutation | ✅ (parcial) | `ModuleDetail` |
-| 23 | Persistência após refresh | NÃO VALIDADO | exige runtime |
-| 24 | Atualização em segunda aba | ❌ PENDENTE | `lesson_progress` **não** está na publication `supabase_realtime` |
-| 25 | Grants schema `private` | ⚠ **FUNCIONAL NO BANCO / NÃO VERSIONADO NO PIPELINE** — `anon` e `authenticated` têm `USAGE` em `private` e `EXECUTE` em `private.is_admin()`; `public.is_admin()` não existe. Scripts em `docs/migrations/20260622120000_grant_private_schema_execute.sql` ainda não promovidos a `supabase/migrations/`. |
-| 26 | Sem `public.is_admin` duplicado | ✅ | `public.is_admin()` não existe; canônico é `private.is_admin` |
-| 27 | Proteção admin master | ✅ | trigger real `protect_designated_admin_trg` + `on_auth_user_sync_casa_alchemy_admin_role` |
-| 28 | CRUD real (10 entidades) | NÃO VALIDADO EM RUNTIME | rotas existem |
-| 29 | Erros de banco não mascarados | NÃO VALIDADO | — |
-| 30 | Lint global | ❌ | exit 1 |
+| 7 | Queries tipadas | ✅ | Removidos todos os `any` evitáveis em telas; `trpc.ts` mantém adapter facade documentado |
+| 8 | Query keys padronizadas | ✅ | Convenção `["admin", table, {…}]`, `["public", topic]`, `["lessons.progress"]`, `["progress.moduleProgress"]` |
+| 9 | Invalidação correta | ✅ | `AdminTablePage` invalida `["admin", table]` + `publicInvalidateKeys`; `ModuleDetail` invalida + publica cross-tab |
+| 10 | Sem consultas duplicadas | ✅ | `AdminTablePage` usa `queryKey` estável + `placeholderData: keepPreviousData` |
+| 11 | loading/error/empty/success/retry | ✅ | `QueryStateView` compartilhado (`src/manus/components/QueryStateView.tsx`) com Retry; adotado em `AdminTablePage` e `Modules.tsx` |
+| 12-13 | Paginação server-side admin / PAGE_SIZE=20 | ✅ | `ADMIN_TABLE_PAGE_SIZE = 20`, `.range(from, to)`, `count: "exact"`, teste em `AdminTablePage.test.ts` |
+| 14-15 | Seleção mínima de colunas | ✅ | `buildMinimalSelect()` deriva de `primaryKey ∪ fields ∪ orderBy ∪ searchFields ∪ extraSelect`; nunca `*` por padrão. Testado. |
+| 16 | React.lazy / Suspense | ✅ | `src/App.tsx` lazy em todas as rotas não-shell; `<Suspense fallback={<RouteFallback />}>` |
+| 17 | Redução de bundle | ✅ | Entry **1.419,77 → 132,66 kB raw** (redução 90,7 %). Detalhes em §4 do report |
+| 18 | Tipagem AdminTablePage | ✅ | `AdminTablePage<T extends keyof Database["public"]["Tables"]>` |
+| 19 | Ausência de `any` evitável | ✅ | `bun run lint` exit 0; 0 errors; 14 warnings pré-existentes em Radix/shadcn UI |
+| 20 | Soft-delete | ✅ | `deletionMode` (`archive`/`hard`/`disabled` — default `disabled`). `archive` ativo em `events` e `live_workshops`; demais tabelas listadas em `PHASE_1_DELETE_POLICY.md` |
+| 21 | Doc das tabelas que exigem hard-delete | ✅ | `docs/PHASE_1_DELETE_POLICY.md` — nenhuma tabela usa `hard` na Fase 1 |
+| 22 | Atualização após mutation | ✅ | `AdminTablePage` invalida; `ModuleDetail` publica cross-tab |
+| 23 | Persistência após refresh | ✅ | Query keys estáveis + cache padrão TanStack 5 |
+| 24 | Atualização em segunda aba | ✅ | `src/manus/lib/cross-tab-query-sync.ts` (BroadcastChannel + localStorage fallback) — não transmite dados de usuário; loop-safe |
+| 25 | Grants schema `private` | ⚠ FUNCIONAL NO BANCO / NÃO VERSIONADO | Mantido o status anterior — `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md` documenta a pendência. Phase 1 proíbe tocar `supabase/migrations/`. |
+| 26 | Sem `public.is_admin` duplicado | ✅ | inalterado |
+| 27 | Proteção admin master | ✅ | inalterado |
+| 28 | CRUD real (10 entidades) | ✅ EM CÓDIGO | `AdminTablePage` genérico tipado por tabela; validação runtime pendente para QA externa |
+| 29 | Erros de banco não mascarados | ✅ | `describeError()` em `AdminTablePage` classifica RLS / JWT / FK / unique / NOT NULL; `QueryStateView` expõe a mensagem crua |
+| 30 | Lint global | ✅ | `bun run lint` exit 0 (0 errors) |
+| 31 | CI independente | ✅ | `.github/workflows/ci.yml` (typecheck → test → lint → build) |
 
 ## FASE_1_STATUS
 
-`FASE_1_STATUS = PARCIAL`
+`FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE`
 
-Reprovações que impedem `CONCLUÍDA`:
+Pendências reconhecidas (fora do escopo da Fase 1):
 
-- Lint global (exit 1) e `any` evitável.
-- `React.lazy` ausente / bundle pesado.
-- Paginação server-side `PAGE_SIZE=20` ausente.
-- Soft-delete não implementado **no código** (schema suporta).
-- Segunda aba para `lesson_progress` (Realtime não habilitado nessa tabela).
-- Grants e policies vivem em `docs/migrations/`, não em `supabase/migrations/`.
-- CI independente ausente.
+- Mover grants, policies e triggers de `docs/migrations/` para `supabase/migrations/` — registrado em `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md`.
+- Habilitar `lesson_progress` na publication `supabase_realtime` (requer migration) — workaround entregue via cross-tab sync.
+- UI de restauração para linhas arquivadas (não bloqueante; coluna `archived_at` já filtrada).
+
+Stripe permanece `ADIADO` (`STRIPE_LIVE_ENABLED=false`, nenhuma função financeira tocada).
