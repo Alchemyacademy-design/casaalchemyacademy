@@ -15,7 +15,7 @@
 | Fase | Status |
 |------|--------|
 | Fase 0 | PARCIAL (lint reprovado, sem code-splitting, sem CI) |
-| Fase 1 | **CONCLUIDA_FUNCIONALMENTE** (lint 0/typecheck 0/89 testes; entry chunk 132,66 kB raw — −90,7 %; paginação `PAGE_SIZE=20` server-side + busca debounced; soft-delete `archived_at` via `deletionMode`; cross-tab sync; CI `.github/workflows/ci.yml`). Pendências movidas para `INFRASTRUCTURE_REPRODUCIBILITY_BACKLOG.md`. |
+| Fase 1 | **CONCLUIDA_FUNCIONALMENTE** (condicional ao CI verde) — lint 0/typecheck 0/102 testes; entry chunk 132,66 kB raw (−90,7 %); paginação `PAGE_SIZE=20` server-side + busca debounced; soft-delete `archived_at` via `deletionMode` + `archiveModule`/`archiveLesson` no editor de curso e no bulk editor (sem `.delete()` editorial); cross-tab sync com testes completos (BroadcastChannel + fallback + cleanup); `CourseDetail` com Retry; CI `.github/workflows/ci.yml`. Stripe não tocado nesta execução. |
 | Fase 2 | **PARCIAL_E_BLOQUEADA_PELA_PUBLICACAO_DOS_DADOS** (existe conteúdo, mas a cadeia `curso publicado → módulo publicado → aulas publicadas` ainda não foi montada) |
 | Fase 3 | **PARCIAL_E_BLOQUEADA_POR_DADOS_DE_QA** (infra e Realtime no banco prontos; faltam posts/replies/reactions para validar UX) |
 | Fase 4 | NÃO INICIADA |

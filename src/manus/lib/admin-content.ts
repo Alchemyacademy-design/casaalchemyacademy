@@ -41,6 +41,7 @@ export async function listCourses() {
   const { data, error } = await supabase
     .from("courses")
     .select("*")
+    .is("archived_at", null)
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
   if (error) throw error;
@@ -67,11 +68,14 @@ export async function listModules(courseId: number) {
     .from("course_modules")
     .select("*")
     .eq("course_id", courseId)
+    .is("archived_at", null)
     .order("sort_order", { ascending: true });
   if (error || !data?.length) {
     const fallback = await findCourseInCatalog(courseId);
     if (fallback) {
-      return fallback.course_modules.map(({ lessons: _lessons, ...module }) => module) as Module[];
+      return fallback.course_modules
+        .filter((m) => (m as { archived_at?: string | null }).archived_at == null)
+        .map(({ lessons: _lessons, ...module }) => module) as Module[];
     }
     if (error) throw error;
   }
@@ -89,11 +93,16 @@ export async function listLessons(moduleId: number) {
     .from("lessons")
     .select("*")
     .eq("module_id", moduleId)
+    .is("archived_at", null)
     .order("sort_order", { ascending: true });
   if (error || !data?.length) {
     const catalog = await getCoursesTree();
     const module = catalog.courses.flatMap((course) => course.course_modules).find((item) => item.id === moduleId);
-    if (module) return module.lessons as Lesson[];
+    if (module) {
+      return (module.lessons as Lesson[]).filter(
+        (l) => (l as { archived_at?: string | null }).archived_at == null,
+      );
+    }
     if (error) throw error;
   }
   return data ?? [];
@@ -180,13 +189,34 @@ export async function createLesson(moduleId: number, sortOrder: number, title = 
   return data;
 }
 
-export async function deleteModule(id: number) {
-  const { error } = await supabase.from("course_modules").delete().eq("id", id);
+/**
+ * Soft-delete (archive) a module. Sets `archived_at = now()` AND
+ * `status = "archived"` so the row remains restorable. Lessons under the
+ * module are NOT auto-archived — callers must surface that decision.
+ *
+ * Phase 1 deletion policy: physical DELETE on courses/course_modules/lessons
+ * is forbidden. See docs/PHASE_1_DELETE_POLICY.md.
+ */
+export async function archiveModule(id: number): Promise<void> {
+  const patch: Database["public"]["Tables"]["course_modules"]["Update"] = {
+    archived_at: new Date().toISOString(),
+    status: "archived",
+  };
+  const { error } = await supabase.from("course_modules").update(patch).eq("id", id);
   if (error) throw error;
 }
 
-export async function deleteLesson(id: number) {
-  const { error } = await supabase.from("lessons").delete().eq("id", id);
+/**
+ * Soft-delete (archive) a lesson. Sets `archived_at = now()` AND
+ * `status = "archived"`. Restoration is intentional (clear `archived_at`
+ * and set `status` back to draft/published).
+ */
+export async function archiveLesson(id: number): Promise<void> {
+  const patch: Database["public"]["Tables"]["lessons"]["Update"] = {
+    archived_at: new Date().toISOString(),
+    status: "archived",
+  };
+  const { error } = await supabase.from("lessons").update(patch).eq("id", id);
   if (error) throw error;
 }
 

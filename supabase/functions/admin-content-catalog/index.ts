@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
     const { data: courses, error: cErr } = await admin
       .from("courses")
       .select("*")
+      .is("archived_at", null)
       .order("sort_order", { ascending: true })
       .order("id", { ascending: true });
     if (cErr) throw cErr;
@@ -82,6 +83,7 @@ Deno.serve(async (req) => {
           .from("course_modules")
           .select("*")
           .in("course_id", courseIds)
+          .is("archived_at", null)
           .order("sort_order", { ascending: true })
       : { data: [] as ModuleRow[], error: null };
     if (mErr) throw mErr;
@@ -93,6 +95,7 @@ Deno.serve(async (req) => {
           .from("lessons")
           .select("*")
           .in("module_id", moduleIds)
+          .is("archived_at", null)
           .order("sort_order", { ascending: true })
       : { data: [] as LessonRow[], error: null };
     if (lErr) throw lErr;

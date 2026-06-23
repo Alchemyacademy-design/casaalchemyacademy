@@ -1,11 +1,21 @@
 # Phase 1 — Implementation Report
 
-**Status:** `CONCLUIDA_FUNCIONALMENTE` (pending external audit)
+**Status:** `CONCLUIDA_FUNCIONALMENTE` (pending external audit + CI green)
 **Baseline commit prior to execution:** `70116e1`
 **TanStack Query version observed:** `^5.83.0`
-**Stripe touched:** No — `STRIPE_LIVE_ENABLED=false`, no secrets, no functions, no schemas.
+**Stripe touched:** No — `STRIPE_LIVE_ENABLED=false`, no secrets, no Stripe code, no Stripe functions.
+
+> **Final-corrections addendum (this run):** The hard-delete path on `courses`,
+> `course_modules` and `lessons` was eliminated; the bespoke course editor and
+> bulk lesson editor now archive. `CourseDetail` exposes Retry. Component
+> tests for `AdminTablePage` and `CourseDetail` were added. Cross-tab tests
+> were expanded to cover the localStorage fallback, the storage-event path,
+> cleanup, and `QueryClient.invalidateQueries` wiring. The Stripe section of
+> this report was corrected: no Stripe code was changed and no Stripe edge
+> function was redeployed in this run.
 
 ---
+
 
 ## 1. Decisions (locked at start of execution)
 
@@ -119,31 +129,79 @@ No own-application chunk exceeds 600 kB raw.
 
 ---
 
-## 5. Edge function redeploy log
+## 5. Edge function redeploy log — corrected
 
-| Function | Pre-deploy diff | Type | Smoke result | Status |
-|----------|-----------------|------|--------------|--------|
-| `admin-content-catalog` | Typed `CourseRow`/`ModuleRow`/`LessonRow`; no contract change | Typing only | Deployed (Supabase reports success) | ACTIVE |
-| `manus-import` | Typed `ImportPack`/`ImportReport`/`Missing*Entry`; no contract change | Typing only | Deployed (Supabase reports success) | ACTIVE |
+Supabase shows a collective redeploy timestamp across all functions. To avoid
+misreading that as new Stripe activity, this run records the truth instead:
 
-Auth, filters, SQL queries, request/response shapes and idempotency keys are byte-for-byte equivalent to the prior version.
+- **Stripe / financial code altered:** No.
+- **Stripe / financial files in the GitHub diff:** Zero.
+- **Stripe / financial functions redeployed in this run:** No.
+- **Code currently deployed vs. GitHub:** appears unchanged for Stripe
+  functions; the Supabase dashboard's collective timestamp is not a real
+  redeploy of those bodies.
+- **`STRIPE_LIVE_ENABLED`:** still `false`.
+
+| Function | Current version | This run's intent | Notes |
+|----------|----------------:|-------------------|-------|
+| `stripe-webhook` | v22 | Not changed, not redeployed | Stripe-gated; out of scope. |
+| `recover-stripe-events` | v17 | Not changed, not redeployed | Stripe-gated; out of scope. |
+| `create-checkout-session` | v17 | Not changed, not redeployed | Stripe-gated; out of scope. |
+| `admin-manage-stripe-subscription` | v14 | Not changed, not redeployed | Stripe-gated; out of scope. |
+| `billing-config-status` | v6 | Not changed, not redeployed | Stripe-gated; out of scope. |
+| `admin-content-catalog` | v11 | Editorial filter `archived_at IS NULL` added | Read-only; non-financial. |
+| `manus-import` | v12 | Not changed (typing-only from prior run) | Non-financial. |
+
+Auth, filters, SQL queries, request/response shapes and idempotency keys for
+every Stripe function are byte-for-byte equivalent to the prior version. We do
+not declare `LIVE_VALIDATED`.
 
 **Stripe-touching functions redeployed: 0.**
-**Financial functions redeployed: 0.**
 
 ---
 
 ## 6. Open items / explicit deferrals
 
-- `src/manus/lib/trpc.ts` still uses two **per-line** `eslint-disable-next-line` directives (`db: any` facade and the `trpc: any` proxy). These are intentional adapters for the dynamic PostgREST surface and predate Phase 1. Removing them requires a deeper proxy rewrite tracked outside this phase. No global disable was introduced.
-- `BroadcastChannel` cross-tab sync is in place for the only invalidation Phase 1 needed (`lesson_progress`). Moving `lesson_progress` to the Realtime publication is **out of Phase 1 scope** (would touch schema/migrations) and remains pending.
-- Restore UI for `archive`-mode tables is intentionally deferred. Soft-deleted rows are filtered out of the default list (`is('archived_at', null)`); a future "Show archived" toggle will surface them. The schema already supports this (no migration needed).
+- `src/manus/lib/trpc.ts` still contains exactly two adapter `any` casts
+  (`db: any` PostgREST facade and the `trpc: any` proxy) with per-line
+  `eslint-disable-next-line` justifications. The rest of the source tree has
+  zero avoidable `any`. We therefore **do not declare "zero any in the
+  project"** — only "zero avoidable any in admin/learner screens".
+- Lint errors: **0**. No new `eslint-disable` directives were added in this
+  run.
+- `BroadcastChannel` cross-tab sync is in place for `lesson_progress`. Moving
+  `lesson_progress` to the Realtime publication is out of Phase 1 scope and
+  remains pending.
+- Restore UI for archived courses/modules/lessons is intentionally deferred.
+  Default lists filter `archived_at IS NULL`; restoration is supported by the
+  schema (clear `archived_at`, set `status` back to draft/published).
+- CI status reporting: GitHub Actions runs on every push triggered by
+  Lovable's GitHub sync. Until the workflow run is observed green for the
+  commit produced by this execution, status remains
+  `PARCIAL_AVANCADA`; on green it flips to `CONCLUIDA_FUNCIONALMENTE`.
+
 
 ---
 
 ## 7. Final status
 
-- `FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE`
-- `STRIPE_FASE_4 = DEFERRED_BY_PHASE_CONSTRAINT`
+- `FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE` **conditional on** GitHub Actions
+  workflow `CI` reporting `conclusion: success` for the commit produced by
+  this run. Until then: `FASE_1_STATUS = PARCIAL_AVANCADA`.
+- `STRIPE_FASE_4 = DEFERRED_BY_PHASE_CONSTRAINT`. `STRIPE_LIVE_ENABLED=false`.
 - Phases 2, 3, 4 not started in this execution.
-- Awaiting external audit.
+- Awaiting external audit + CI run.
+
+### CI run metadata (to be appended once observed)
+
+| Field | Value |
+|-------|-------|
+| Workflow | `.github/workflows/ci.yml` (`CI` → `verify`) |
+| Run id | _pending — Lovable→GitHub sync triggers the run_ |
+| Commit sha | _pending_ |
+| Status / conclusion | _pending — must be `success` to flip status_ |
+| Steps required green | `install` · `typecheck` · `test` · `lint` · `build` |
+
+If the workflow does not start within reasonable time after sync:
+`CI_STATUS = BLOCKED` and Phase 1 stays `PARCIAL_AVANCADA`.
+
