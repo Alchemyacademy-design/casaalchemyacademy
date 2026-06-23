@@ -39,7 +39,7 @@ async function processAnnualCheckout(supabase: SupabaseAdmin, stripe: Stripe, ev
       stripe_session_id: session.id,
       user_id: isUuid(session.metadata?.supabase_user_id) ? session.metadata?.supabase_user_id : null,
       stripe_customer_id: objectId(session.customer),
-      stripe_price_id: session.metadata?.stripe_price_id ?? ANNUAL_PRICE_ID,
+      stripe_price_id: session.metadata?.stripe_price_id ?? null,
       status: session.status,
       payment_status: "failed",
       mode: session.mode,
