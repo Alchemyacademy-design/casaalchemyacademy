@@ -35,16 +35,28 @@ export default function AdminDiagnostics() {
 
   type BillingStatus = {
     stripeRuntimeMode: "test" | "live";
+    stripeExpectedLivemode: "test" | "live";
     stripeLiveEnabled: boolean;
+    stripeSecretConfigured: boolean;
+    stripeWebhookSecretConfigured: boolean;
     stripeTestKeyConfigured: boolean;
     stripeTestWebhookConfigured: boolean;
     stripeLiveKeyConfigured: boolean;
     stripeLiveWebhookConfigured: boolean;
     legacyStripeSecretKeyConfigured: boolean;
     legacyStripeWebhookSecretConfigured: boolean;
-    liveMonthlyPriceMapped: boolean;
-    liveAnnualPriceMapped: boolean;
-    liveCoursePriceMapped: boolean;
+    monthlyPriceMapped: boolean;
+    annualPriceMapped: boolean;
+    individualPriceMapped: boolean;
+    monthlyPriceTermsValid: boolean;
+    annualPriceTermsValid: boolean;
+    individualPriceTermsValid: boolean;
+    webhookFunctionActive: boolean;
+    checkoutFunctionActive: boolean;
+    lastWebhookStatus: string | null;
+    lastWebhookAt: string | null;
+    failedWebhookCount: number;
+    billingReady: boolean;
   };
 
   const billing = useQuery<BillingStatus>({
@@ -144,16 +156,28 @@ export default function AdminDiagnostics() {
             Booleans only. Secret values, key prefixes, and lengths are never shown here.
           </p>
           <Row label="Runtime mode" value={billing.data?.stripeRuntimeMode ?? (billing.isLoading ? "loading…" : "—")} />
+          <Row label="Expected livemode" value={billing.data?.stripeExpectedLivemode ?? "—"} />
           <Row label="Live enabled" value={billing.data ? (billing.data.stripeLiveEnabled ? "yes" : "no") : "—"} />
+          <Row label="Stripe secret configured" value={billing.data ? (billing.data.stripeSecretConfigured ? "yes" : "no") : "—"} />
+          <Row label="Stripe webhook secret configured" value={billing.data ? (billing.data.stripeWebhookSecretConfigured ? "yes" : "no") : "—"} />
           <Row label="Test secret key configured" value={billing.data ? (billing.data.stripeTestKeyConfigured ? "yes" : "no") : "—"} />
           <Row label="Test webhook secret configured" value={billing.data ? (billing.data.stripeTestWebhookConfigured ? "yes" : "no") : "—"} />
           <Row label="Live secret key configured" value={billing.data ? (billing.data.stripeLiveKeyConfigured ? "yes" : "no") : "—"} />
           <Row label="Live webhook secret configured" value={billing.data ? (billing.data.stripeLiveWebhookConfigured ? "yes" : "no") : "—"} />
           <Row label="Legacy STRIPE_SECRET_KEY configured" value={billing.data ? (billing.data.legacyStripeSecretKeyConfigured ? "yes" : "no") : "—"} />
           <Row label="Legacy STRIPE_WEBHOOK_SECRET configured" value={billing.data ? (billing.data.legacyStripeWebhookSecretConfigured ? "yes" : "no") : "—"} />
-          <Row label="Live monthly price mapped" value={billing.data ? (billing.data.liveMonthlyPriceMapped ? "yes" : "no") : "—"} />
-          <Row label="Live annual price mapped" value={billing.data ? (billing.data.liveAnnualPriceMapped ? "yes" : "no") : "—"} />
-          <Row label="Live course price mapped" value={billing.data ? (billing.data.liveCoursePriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Monthly price mapped" value={billing.data ? (billing.data.monthlyPriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Monthly price terms valid" value={billing.data ? (billing.data.monthlyPriceTermsValid ? "yes" : "no") : "—"} />
+          <Row label="Annual price mapped" value={billing.data ? (billing.data.annualPriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Annual price terms valid" value={billing.data ? (billing.data.annualPriceTermsValid ? "yes" : "no") : "—"} />
+          <Row label="Individual price mapped" value={billing.data ? (billing.data.individualPriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Individual price terms valid" value={billing.data ? (billing.data.individualPriceTermsValid ? "yes" : "no") : "—"} />
+          <Row label="Webhook function active" value={billing.data ? (billing.data.webhookFunctionActive ? "yes" : "no") : "—"} />
+          <Row label="Checkout function active" value={billing.data ? (billing.data.checkoutFunctionActive ? "yes" : "no") : "—"} />
+          <Row label="Last webhook status" value={billing.data?.lastWebhookStatus ?? "—"} />
+          <Row label="Last webhook at" value={billing.data?.lastWebhookAt ?? "—"} />
+          <Row label="Failed webhook count" value={billing.data?.failedWebhookCount ?? "—"} />
+          <Row label="Billing ready" value={billing.data ? (billing.data.billingReady ? "yes" : "no") : "—"} />
           {billing.error instanceof Error && (
             <Row label="Billing status error" value={<span className="text-destructive">{billing.error.message}</span>} />
           )}
