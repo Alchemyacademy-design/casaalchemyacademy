@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import Stripe from "npm:stripe@22.2.1";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
-import { env, expectedLivemode, stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
+import { env, evaluateCheckoutGate, expectedLivemode, stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
 
 type OfferKey = "individual_course" | "monthly_member" | "annual_member";
 
