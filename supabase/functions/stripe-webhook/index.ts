@@ -123,12 +123,17 @@ const handler = withSupabase<Database>({ auth: "none", cors: false }, async (req
     event = await stripe.webhooks.constructEventAsync(
       rawBody,
       signature,
-      Deno.env.get("STRIPE_WEBHOOK_SECRET") ?? "",
+      stripeWebhookSecret(),
       undefined,
       Stripe.createSubtleCryptoProvider(),
     );
   } catch {
     return jsonResponse({ error: "Invalid Stripe signature" }, 400);
+  }
+
+  // Reject cross-mode events even if signature happens to verify (defense in depth).
+  if (event.livemode !== expectedLivemode()) {
+    return jsonResponse({ error: "livemode_mismatch" }, 400);
   }
 
   const supabase = supabaseAdmin();
