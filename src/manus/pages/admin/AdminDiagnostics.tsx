@@ -170,6 +170,9 @@ export default function AdminDiagnostics() {
         <Button variant="outline" onClick={() => void catalog.refetch()}>
           <RefreshCw className="w-4 h-4 mr-1" /> Reload courses
         </Button>
+        <Button variant="outline" onClick={() => void billing.refetch()}>
+          <RefreshCw className="w-4 h-4 mr-1" /> Re-check billing config
+        </Button>
         <Button
           variant="outline"
           onClick={() => void navigator.clipboard.writeText(JSON.stringify(report, null, 2))}
