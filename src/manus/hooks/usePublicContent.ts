@@ -70,6 +70,7 @@ export function usePastEvents(limit = 6) {
         .from("events")
         .select("*")
         .eq("status", "published")
+        .is("archived_at", null)
         .lt("starts_at", nowIso)
         .order("starts_at", { ascending: false })
         .limit(limit);
