@@ -13,6 +13,19 @@
 > cleanup, and `QueryClient.invalidateQueries` wiring. The Stripe section of
 > this report was corrected: no Stripe code was changed and no Stripe edge
 > function was redeployed in this run.
+>
+> **Microcorrection addendum:** `AdminTablePage` gained an `archivePatch?:
+> Record<string, unknown>` prop so the archive payload can carry
+> table-specific fields (e.g. `status = 'archived'`) without assuming every
+> archivable table has a `status` column. `AdminEvents` and `AdminWorkshops`
+> now pass `archivePatch={{ status: "archived" }}`. The public hooks
+> `useUpcomingEvents`, `usePastEvents`, `useUpcomingWorkshops` and
+> `usePastWorkshops` add `.is("archived_at", null)` on top of
+> `eq("status", "published")` as defense-in-depth so archived rows never leak
+> publicly even on status inconsistency. New tests cover the `archivePatch`
+> merge and the public-hook filters. **Test total: 107/107 (14 files).**
+> No schema, RLS, migrations, secrets, Stripe code or edge functions were
+> changed in this microcorrection.
 
 ---
 
