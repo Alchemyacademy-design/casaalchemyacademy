@@ -22,7 +22,7 @@ Detalhes completos em [`PHASE_1_IMPLEMENTATION_REPORT.md`](./PHASE_1_IMPLEMENTAT
 | 17 | Redução de bundle | ✅ | Entry **1.419,77 → 132,66 kB raw** (redução 90,7 %). Detalhes em §4 do report |
 | 18 | Tipagem AdminTablePage | ✅ | `AdminTablePage<T extends keyof Database["public"]["Tables"]>` |
 | 19 | Ausência de `any` evitável | ✅ | `bun run lint` exit 0; 0 errors; 14 warnings pré-existentes em Radix/shadcn UI |
-| 20 | Soft-delete | ✅ | `deletionMode` (`archive`/`hard`/`disabled` — default `disabled`). `archive` ativo em `events` e `live_workshops`; bespoke course editor (`AdminCourseDetail`) + `AdminLessonsBulk` agora chamam `archiveModule`/`archiveLesson`/bulk update (sem `.delete()`). |
+| 20 | Soft-delete | ✅ | `deletionMode` (`archive`/`hard`/`disabled` — default `disabled`). `archive` ativo em `events` e `live_workshops` com `archivePatch={{ status: "archived" }}` (payload tipado e por-tabela); bespoke course editor (`AdminCourseDetail`) + `AdminLessonsBulk` chamam `archiveModule`/`archiveLesson`/bulk update (sem `.delete()`). Hooks públicos (`useUpcoming/PastEvents`, `useUpcoming/PastWorkshops`) filtram `status='published' AND archived_at IS NULL` como defense-in-depth. |
 | 21 | Doc das tabelas que exigem hard-delete | ✅ | `docs/PHASE_1_DELETE_POLICY.md` — nenhuma tabela usa `hard` na Fase 1; busca negativa por `.delete()` / `deleteLesson` / `deleteModule` em editorial = 0 |
 | 22 | Atualização após mutation | ✅ | `AdminTablePage` invalida; `CourseDetail.markLesson` publica cross-tab |
 | 23 | Persistência após refresh | ✅ | Query keys estáveis + cache padrão TanStack 5 |
