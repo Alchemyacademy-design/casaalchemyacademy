@@ -1,68 +1,69 @@
-# PHASE 2 — CURRENT AUDIT (read-only)
+# PHASE 2 — CURRENT AUDIT (read-only, corrigida)
 
-Confronta `docs/PHASE_2_REPORT.md` com o código em `main` (commit `d9d63f9`).
+Confronta `docs/PHASE_2_REPORT.md` com `main` (código em `d9d63f9`).
 
-## Dados reais (REST anon)
+## Dados reais (admin)
 
-| Métrica | Valor observado | Comentário |
-|---------|-----------------|------------|
-| `courses` visíveis | **0** | nada publicado, ou todos `draft` |
-| `course_modules` visíveis | **0** | idem |
-| `lessons` visíveis | **0** | idem |
-| `lesson_progress` | não auditável via anon | depende de sessão |
-| `certificates` / `memberships` / `course_entitlements` | não auditáveis via anon | RLS scope = `auth.uid()` |
-| `community_spaces` | 1 | `alchemy-tribe` |
-| `community_channels` | 5 | `general, questions, projects, inspiration, resources` |
+| Métrica | Valor |
+|---------|-------|
+| `courses_total` | 10 |
+| `courses_published` | 1 |
+| `courses_draft` | 9 |
+| `course_modules_total` | 10 |
+| `course_modules_published` | 0 |
+| `course_modules_draft` | 10 |
+| `lessons_total` | 30 |
+| `lessons_published` | 0 |
+| `lessons_draft` | 30 |
+| `lessons_with_external_video_url` | 1 |
+| `lessons_with_resource` | 0 |
+| `lessons_with_duration` | 0 |
+| `lesson_progress` rows | 0 |
 
-Conclusão imediata: **todos os fluxos de aluna que dependem de cursos
-publicados estão `BLOQUEADO PELOS DADOS`** — nenhuma curso/módulo/aula chega ao
-front via RLS pública.
+> O banco **não está vazio**. O bloqueio é a ausência de uma cadeia publicada
+> ponta a ponta: o único curso publicado **não tem** módulo nem aulas
+> publicadas. Sem isso a jornada não pode ser exercitada por uma aluna.
 
-## Inconsistências schema ↔ código
+## Schema ↔ código (correção)
 
-| Referência no código | Coluna esperada | Resposta REST | Estado |
-|----------------------|-----------------|---------------|--------|
-| `courses.is_published` (várias telas, p.ex. `usePublicContent`) | `is_published` | `42703 column does not exist` | REGRESSÃO potencial — o schema usa `status` |
-| `lessons.video_url` | `video_url` | `42703` | REGRESSÃO potencial — vídeo pode estar em outra coluna (`video_id`, `video_path`) |
-
-(Não corrigir nesta execução — registrar.)
+| Item | Estado |
+|------|--------|
+| `courses.is_published` | **NÃO existe no código.** Consulta pública usa `eq("status", "published")`; schema tem `status`, `published_at`, `archived_at`. O `42703` da auditoria anterior foi erro da sonda. |
+| `lessons.video_url` | **NÃO existe no código.** Coluna real é `lessons.external_video_url`; `src/manus/lib/trpc.ts` faz `videoUrl: l.external_video_url`; `ModuleDetail.tsx` consome `activeLesson.videoUrl`. Schema **alinhado**. |
+| Experiência do player | **PARCIAL** — `ModuleDetail.tsx` renderiza apenas um link "Watch Video"; sem player embutido e sem fallback. |
 
 ## Componentes-chave
 
-| Requisito | Arquivo | Estado | Evidência |
-|-----------|---------|--------|-----------|
-| Dashboard | `src/manus/pages/Dashboard.tsx` | IMPLEMENTADO, NÃO VALIDADO | renderiza mas depende de cursos publicados |
-| My Courses | `src/manus/pages/Modules.tsx` | IMPLEMENTADO, NÃO VALIDADO | idem |
-| Course Detail | `src/manus/pages/CourseDetail.tsx` | IMPLEMENTADO, NÃO VALIDADO | |
-| Module Detail | `src/manus/pages/ModuleDetail.tsx` | IMPLEMENTADO E UNITARIAMENTE TESTADO | `ModuleDetail.test.tsx` cobre seleção via hash e fallback |
-| Progresso (mark/unmark, persistência, refresh) | `ModuleDetail.tsx` (mutation `progress.markLesson`) | IMPLEMENTADO E VALIDADO EM COMPONENTE | invalida `lessons.progress` e `progress.moduleProgress` |
-| Persistência segunda aba | — | PENDENTE | Realtime não habilitado |
-| Previous / Next | `ModuleDetail.tsx` linhas finais | IMPLEMENTADO E VALIDADO EM COMPONENTE | |
-| Mark / Unmark | `ModuleDetail.tsx` (handleToggleLesson) | IMPLEMENTADO E VALIDADO EM COMPONENTE | |
-| Video player | `activeLesson.videoUrl` link externo | PARCIAL | é apenas link “Watch Video”, não player embutido; sem fallback explícito |
-| Materiais / duração total | não encontrados em `ModuleDetail.tsx` | PENDENTE | nenhuma exibição de `materials` / `duration_seconds` somada |
-| Last lesson / Continue / Start | hash `#lesson-<id>` em `ModuleDetail` | IMPLEMENTADO E UNITARIAMENTE TESTADO | `ModuleDetail.test.tsx` |
-| Membership/Entitlement gating | `src/manus/components/GlobalAccessController.tsx` | IMPLEMENTADO E UNITARIAMENTE TESTADO (parcial) | `useAuth.access.test.ts` cobre `isAdmin/isMember/hasCourseAccess`; runtime não exercido |
-| Certificate / estado sem certificado | `src/manus/components/CertificateSection.tsx` | IMPLEMENTADO, NÃO VALIDADO | depende de dados de `certificates` |
-| Learning Path visual | não encontrado | PENDENTE | |
-| Busca / filtros | `Modules.tsx` / `Guides.tsx` | NÃO VALIDADO | exige runtime |
-| Loading / error / empty / retry | parcial | PARCIAL | `ModuleDetail` exibe "No lessons available" sem botão Retry |
-| Responsividade / acessibilidade / tipografia | não auditadas nesta passada | NÃO VALIDADO | |
+| Requisito | Arquivo | Estado |
+|-----------|---------|--------|
+| Dashboard | `src/manus/pages/Dashboard.tsx` | IMPLEMENTADO, depende de cadeia publicada |
+| My Courses | `src/manus/pages/Modules.tsx` | IMPLEMENTADO, idem |
+| Course Detail | `src/manus/pages/CourseDetail.tsx` | IMPLEMENTADO, idem |
+| Module Detail (hash `#lesson-id`, prev/next, mark/unmark) | `src/manus/pages/ModuleDetail.tsx` + `ModuleDetail.test.tsx` | ✅ EM COMPONENTE / TESTADO |
+| Progresso (mark/unmark + invalidação) | `ModuleDetail.tsx` | ✅ EM COMPONENTE |
+| Persistência 2ª aba | — | ❌ PENDENTE (`lesson_progress` fora da publication `supabase_realtime`) |
+| Player embutido + fallback | `ModuleDetail.tsx` | ❌ PARCIAL (apenas link externo) |
+| Materiais / duração total / Learning Path | `ModuleDetail.tsx` | ❌ PENDENTE NO CÓDIGO + dados (0 materiais, 0 durações) |
+| Membership / Entitlement gating | `GlobalAccessController.tsx`, `useAuth.access.test.ts` | ✅ EM COMPONENTE (parcial) |
+| Certificate | `CertificateSection.tsx` | IMPLEMENTADO, NÃO VALIDADO |
+| Busca / filtros | `Modules.tsx`, `Guides.tsx` | NÃO VALIDADO |
+| Loading / error / empty / Retry | parcial | ⚠ PARCIAL |
+| Responsividade / acessibilidade | — | NÃO AUDITADO nesta passada |
 
 ## Testes que cobrem a Fase 2
 
-- `src/manus/services/learning.test.ts` — helper puro
-- `src/manus/pages/ModuleDetail.test.tsx` — componente (hash, fallback, navegação)
-- `src/manus/services/billing-runtime.test.ts` — helper puro (gating)
-- `src/manus/hooks/useAuth.access.test.ts` — unitário (entitlements)
+- `src/manus/services/learning.test.ts`
+- `src/manus/pages/ModuleDetail.test.tsx`
+- `src/manus/services/billing-runtime.test.ts`
+- `src/manus/hooks/useAuth.access.test.ts`
 
-Nenhum teste de integração com banco real ou E2E.
+Nenhum E2E ou teste de integração com banco real.
 
 ## FASE_2_STATUS
 
-`FASE_2_STATUS = BLOQUEADA_PELOS_DADOS`
+`FASE_2_STATUS = PARCIAL_E_BLOQUEADA_PELA_PUBLICACAO_DOS_DADOS`
 
-Mesmo que a estrutura esteja `IMPLEMENTADO E VALIDADO EM COMPONENTE`, **0
-cursos / módulos / aulas chegam ao front via RLS pública**, e há suspeita de
-REGRESSÃO em colunas (`courses.is_published`, `lessons.video_url`). Não declarar
-concluída.
+A estrutura está implementada e parcialmente testada em componente. O bloqueio
+é a **ausência de uma cadeia publicada** (1 curso publicado, 0 módulos
+publicados, 0 aulas publicadas). Schema de vídeo está alinhado; o que é
+parcial é a experiência do player.
