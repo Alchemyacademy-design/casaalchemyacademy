@@ -4,7 +4,20 @@ import type { Database } from "../../../shared/supabase.types.ts";
 
 export const STRIPE_API_VERSION = "2026-05-27.dahlia" as const;
 export const MAX_RECOVERY_BATCH_SIZE = 25;
-const ANNUAL_ONE_TIME_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
+
+// Canonical attributes for the AUD 708 annual-member one-time Price.
+// Source of truth = public.stripe_prices. No Stripe Price ID is hardcoded;
+// optional cross-validation against STRIPE_LIVE_ANNUAL_PRICE_ID is advisory.
+export const ANNUAL_MEMBER_CANONICAL = {
+  plan_key: "annual_member" as const,
+  currency: "aud" as const,
+  unit_amount: 70800,
+  recurring_interval: null as null,
+  recurring_interval_count: null as null,
+  active: true as const,
+};
+
+export type StripeRuntimeMode = "test" | "live";
 
 export type SupabaseAdmin = ReturnType<typeof createAdminClient<Database>>;
 type TerminalStatus = "processed" | "processed_ignored" | "processed_ignored_stale" | "failed_retryable" | "failed_permanent";
@@ -40,11 +53,81 @@ export function env(name: string): string {
   return value;
 }
 
+function envOpt(name: string): string | undefined {
+  return Deno.env.get(name) ?? undefined;
+}
+
+// ----- Runtime-mode + secret resolution.
+// Mirrors src/manus/services/billing-runtime.ts (Deno cannot import from src/).
+
+export function stripeRuntimeMode(): StripeRuntimeMode {
+  const raw = (envOpt("STRIPE_RUNTIME_MODE") ?? "").trim().toLowerCase();
+  if (raw === "live") return "live";
+  if (raw === "test") return "test";
+  const legacy = (envOpt("STRIPE_EXPECTED_LIVEMODE") ?? "").trim().toLowerCase();
+  if (legacy === "true") return "live";
+  if (legacy === "false") return "test";
+  return "test";
+}
+
+export function stripeLiveEnabled(): boolean {
+  return (envOpt("STRIPE_LIVE_ENABLED") ?? "").trim().toLowerCase() === "true";
+}
+
 export function expectedLivemode(): boolean {
-  const raw = env("STRIPE_EXPECTED_LIVEMODE").toLowerCase();
-  if (raw === "true") return true;
-  if (raw === "false") return false;
-  throw new Error("STRIPE_EXPECTED_LIVEMODE must be true or false");
+  return stripeRuntimeMode() === "live";
+}
+
+function validateSecretKeyPrefix(mode: StripeRuntimeMode, key: string) {
+  if (mode === "test") {
+    if (!key.startsWith("sk_test_") && !key.startsWith("rk_test_")) {
+      throw new BillingError("BILLING_SECRET_KEY_PREFIX_MISMATCH");
+    }
+  } else if (!key.startsWith("sk_live_") && !key.startsWith("rk_live_")) {
+    throw new BillingError("BILLING_SECRET_KEY_PREFIX_MISMATCH");
+  }
+}
+
+function validateWebhookSecretPrefix(secret: string) {
+  if (!secret.startsWith("whsec_")) throw new BillingError("BILLING_WEBHOOK_SECRET_PREFIX_MISMATCH");
+}
+
+export function stripeSecretKey(): string {
+  const mode = stripeRuntimeMode();
+  const scoped = mode === "live" ? envOpt("STRIPE_LIVE_SECRET_KEY") : envOpt("STRIPE_TEST_SECRET_KEY");
+  const legacy = envOpt("STRIPE_SECRET_KEY");
+  const value = (scoped ?? legacy ?? "").trim();
+  if (!value) throw new BillingError("BILLING_SECRET_KEY_MISSING");
+  validateSecretKeyPrefix(mode, value);
+  return value;
+}
+
+export function stripeWebhookSecret(): string {
+  const mode = stripeRuntimeMode();
+  const scoped = mode === "live" ? envOpt("STRIPE_LIVE_WEBHOOK_SECRET") : envOpt("STRIPE_TEST_WEBHOOK_SECRET");
+  const legacy = envOpt("STRIPE_WEBHOOK_SECRET");
+  const value = (scoped ?? legacy ?? "").trim();
+  if (!value) throw new BillingError("BILLING_WEBHOOK_SECRET_MISSING");
+  validateWebhookSecretPrefix(value);
+  return value;
+}
+
+/**
+ * Returns { ok: true } when checkout is allowed in the current runtime.
+ * In live mode, requires STRIPE_LIVE_ENABLED=true. Never returns or logs the secret.
+ */
+export function evaluateCheckoutGate(): { ok: true } | { ok: false; code: string; status: number } {
+  const mode = stripeRuntimeMode();
+  if (mode === "live" && !stripeLiveEnabled()) {
+    return { ok: false, code: "BILLING_LIVE_DISABLED", status: 503 };
+  }
+  try {
+    stripeSecretKey();
+  } catch (err) {
+    const code = err instanceof Error && err.message.startsWith("BILLING_") ? err.message : "BILLING_SECRET_KEY_MISSING";
+    return { ok: false, code, status: 500 };
+  }
+  return { ok: true };
 }
 
 export function billingSecretKey(): string {
@@ -60,7 +143,7 @@ export function supabaseAdmin(): SupabaseAdmin {
 }
 
 export function stripeClient(): Stripe {
-  return new Stripe(env("STRIPE_SECRET_KEY"), { apiVersion: STRIPE_API_VERSION, httpClient: Stripe.createFetchHttpClient() });
+  return new Stripe(stripeSecretKey(), { apiVersion: STRIPE_API_VERSION, httpClient: Stripe.createFetchHttpClient() });
 }
 
 function objectId(value: unknown): string | null {
@@ -155,7 +238,7 @@ async function markWebhookEvent(supabase: SupabaseAdmin, eventId: string, status
 async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: boolean) {
   const { data, error } = await supabase
     .from("stripe_prices")
-    .select("stripe_price_id, stripe_product_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode")
+    .select("stripe_price_id, stripe_product_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode, active")
     .eq("stripe_price_id", priceId)
     .eq("livemode", livemode)
     .maybeSingle();
@@ -170,6 +253,7 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
     recurring_interval: string | null;
     recurring_interval_count: number | null;
     livemode: boolean | null;
+    active: boolean | null;
   };
 }
 
@@ -216,15 +300,24 @@ async function applyAnnualCheckoutPayment(
 
   const priceId = lineItems.data[0].price?.id ?? null;
   if (!priceId) throw new BillingError(`Annual Checkout session ${session.id} missing Price`);
-  if (priceId !== ANNUAL_ONE_TIME_PRICE_ID) throw new BillingError(`Annual Checkout session ${session.id} Price mismatch`);
 
+  // Canonical validation against stripe_prices (no hardcoded Stripe Price ID).
   const mapping = await priceMapping(supabase, priceId, event.livemode);
-  if (mapping.plan_key !== "annual_member") throw new BillingError(`Annual Checkout session ${session.id} plan mismatch`);
-  if (mapping.currency.toLowerCase() !== "aud") throw new BillingError(`Annual Checkout session ${session.id} currency mismatch`);
+  if (mapping.plan_key !== ANNUAL_MEMBER_CANONICAL.plan_key) throw new BillingError(`Annual Checkout session ${session.id} plan mismatch`);
+  if (mapping.currency.toLowerCase() !== ANNUAL_MEMBER_CANONICAL.currency) throw new BillingError(`Annual Checkout session ${session.id} currency mismatch`);
+  if (mapping.unit_amount !== ANNUAL_MEMBER_CANONICAL.unit_amount) throw new BillingError(`Annual Checkout session ${session.id} unit_amount mismatch`);
   if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
     throw new BillingError(`Annual Checkout session ${session.id} must use a one-time Price`);
   }
+  if (mapping.active !== true) throw new BillingError(`Annual Checkout session ${session.id} Price is not active`);
   if (mapping.livemode !== event.livemode) throw new BillingError("annual_price_livemode_mismatch");
+
+  // Optional cross-validation: if STRIPE_LIVE_ANNUAL_PRICE_ID is configured for live mode, it must match.
+  const expectedAnnualId = event.livemode ? (Deno.env.get("STRIPE_LIVE_ANNUAL_PRICE_ID") ?? "").trim() : "";
+  if (expectedAnnualId && expectedAnnualId !== priceId) {
+    throw new BillingError(`Annual Checkout session ${session.id} Price does not match STRIPE_LIVE_ANNUAL_PRICE_ID`);
+  }
+
   if (typeof session.amount_total !== "number" || session.amount_total <= 0) {
     throw new BillingError(`Annual Checkout session ${session.id} has no positive paid amount`);
   }

@@ -33,6 +33,32 @@ export default function AdminDiagnostics() {
     refetchOnMount: "always",
   });
 
+  type BillingStatus = {
+    stripeRuntimeMode: "test" | "live";
+    stripeLiveEnabled: boolean;
+    stripeTestKeyConfigured: boolean;
+    stripeTestWebhookConfigured: boolean;
+    stripeLiveKeyConfigured: boolean;
+    stripeLiveWebhookConfigured: boolean;
+    legacyStripeSecretKeyConfigured: boolean;
+    legacyStripeWebhookSecretConfigured: boolean;
+    liveMonthlyPriceMapped: boolean;
+    liveAnnualPriceMapped: boolean;
+    liveCoursePriceMapped: boolean;
+  };
+
+  const billing = useQuery<BillingStatus>({
+    queryKey: ["admin", "billing-config-status", auth.session?.user.id ?? null],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke<BillingStatus>("billing-config-status", { method: "POST" });
+      if (error) throw error;
+      if (!data) throw new Error("billing-config-status returned empty body");
+      return data;
+    },
+    enabled: auth.authReady && auth.accessReady && auth.isAdmin && !!auth.session,
+    retry: 1,
+  });
+
   const pingAuthMe = useCallback(async () => {
     setAuthMeChecking(true);
     try {
@@ -111,6 +137,27 @@ export default function AdminDiagnostics() {
             <Row label="Catalog error" value={<span className="text-destructive">{catalog.error.message}</span>} />
           )}
         </Card>
+
+        <Card className="p-4 md:col-span-2">
+          <h3 className="font-serif text-lg mb-3">Billing configuration (Stripe)</h3>
+          <p className="text-xs text-foreground/55 mb-3">
+            Booleans only. Secret values, key prefixes, and lengths are never shown here.
+          </p>
+          <Row label="Runtime mode" value={billing.data?.stripeRuntimeMode ?? (billing.isLoading ? "loading…" : "—")} />
+          <Row label="Live enabled" value={billing.data ? (billing.data.stripeLiveEnabled ? "yes" : "no") : "—"} />
+          <Row label="Test secret key configured" value={billing.data ? (billing.data.stripeTestKeyConfigured ? "yes" : "no") : "—"} />
+          <Row label="Test webhook secret configured" value={billing.data ? (billing.data.stripeTestWebhookConfigured ? "yes" : "no") : "—"} />
+          <Row label="Live secret key configured" value={billing.data ? (billing.data.stripeLiveKeyConfigured ? "yes" : "no") : "—"} />
+          <Row label="Live webhook secret configured" value={billing.data ? (billing.data.stripeLiveWebhookConfigured ? "yes" : "no") : "—"} />
+          <Row label="Legacy STRIPE_SECRET_KEY configured" value={billing.data ? (billing.data.legacyStripeSecretKeyConfigured ? "yes" : "no") : "—"} />
+          <Row label="Legacy STRIPE_WEBHOOK_SECRET configured" value={billing.data ? (billing.data.legacyStripeWebhookSecretConfigured ? "yes" : "no") : "—"} />
+          <Row label="Live monthly price mapped" value={billing.data ? (billing.data.liveMonthlyPriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Live annual price mapped" value={billing.data ? (billing.data.liveAnnualPriceMapped ? "yes" : "no") : "—"} />
+          <Row label="Live course price mapped" value={billing.data ? (billing.data.liveCoursePriceMapped ? "yes" : "no") : "—"} />
+          {billing.error instanceof Error && (
+            <Row label="Billing status error" value={<span className="text-destructive">{billing.error.message}</span>} />
+          )}
+        </Card>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
@@ -122,6 +169,9 @@ export default function AdminDiagnostics() {
         </Button>
         <Button variant="outline" onClick={() => void catalog.refetch()}>
           <RefreshCw className="w-4 h-4 mr-1" /> Reload courses
+        </Button>
+        <Button variant="outline" onClick={() => void billing.refetch()}>
+          <RefreshCw className="w-4 h-4 mr-1" /> Re-check billing config
         </Button>
         <Button
           variant="outline"

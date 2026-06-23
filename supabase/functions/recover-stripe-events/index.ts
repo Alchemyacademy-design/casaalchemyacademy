@@ -3,6 +3,7 @@ import Stripe from "npm:stripe@22.2.1";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
 import {
+  ANNUAL_MEMBER_CANONICAL,
   claimWebhookEvent,
   expectedLivemode,
   finalizeBillingEvent,
@@ -12,8 +13,6 @@ import {
   stripeClient,
   type SupabaseAdmin,
 } from "../_shared/billing-core.ts";
-
-const ANNUAL_PRICE_ID = "price_1TZhtrK9GJLTk49TgcjXU3VU";
 
 function objectId(value: unknown): string | null {
   if (!value) return null;
@@ -45,7 +44,7 @@ async function processRecoveredAnnualCheckout(supabase: SupabaseAdmin, stripe: S
       stripe_session_id: session.id,
       user_id: isUuid(session.metadata?.supabase_user_id) ? session.metadata?.supabase_user_id : null,
       stripe_customer_id: objectId(session.customer),
-      stripe_price_id: session.metadata?.stripe_price_id ?? ANNUAL_PRICE_ID,
+      stripe_price_id: session.metadata?.stripe_price_id ?? null,
       status: session.status,
       payment_status: "failed",
       mode: session.mode,
@@ -69,26 +68,33 @@ async function processRecoveredAnnualCheckout(supabase: SupabaseAdmin, stripe: S
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
   if (lineItems.data.length !== 1) throw new Error("annual_checkout_requires_one_line_item");
   const stripePriceId = lineItems.data[0]?.price?.id ?? null;
-  if (stripePriceId !== ANNUAL_PRICE_ID) throw new Error("annual_price_mismatch");
+  if (!stripePriceId) throw new Error("annual_checkout_missing_price");
 
   const { data: mapping, error: mappingError } = await supabase
     .from("stripe_prices")
-    .select("stripe_price_id, plan_key, course_id, currency, recurring_interval, recurring_interval_count, livemode")
+    .select("stripe_price_id, plan_key, course_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode, active")
     .eq("stripe_price_id", stripePriceId)
-    .eq("plan_key", "annual_member")
+    .eq("plan_key", ANNUAL_MEMBER_CANONICAL.plan_key)
     .eq("livemode", event.livemode)
     .is("course_id", null)
     .maybeSingle();
   if (mappingError) throw mappingError;
   if (!mapping) throw new Error("annual_price_mapping_missing");
-  if (mapping.currency !== "aud") throw new Error("annual_currency_mismatch");
+  if (mapping.currency !== ANNUAL_MEMBER_CANONICAL.currency) throw new Error("annual_currency_mismatch");
+  if (mapping.unit_amount !== ANNUAL_MEMBER_CANONICAL.unit_amount) throw new Error("annual_unit_amount_mismatch");
   if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
     throw new Error("annual_price_must_be_one_time");
+  }
+  if (mapping.active !== true) throw new Error("annual_price_inactive");
+
+  const expectedAnnualId = event.livemode ? (Deno.env.get("STRIPE_LIVE_ANNUAL_PRICE_ID") ?? "").trim() : "";
+  if (expectedAnnualId && expectedAnnualId !== stripePriceId) {
+    throw new Error("annual_price_env_mismatch");
   }
 
   const amount = session.amount_total;
   if (typeof amount !== "number" || amount <= 0) throw new Error("annual_amount_not_positive");
-  if (session.currency !== "aud") throw new Error("annual_session_currency_mismatch");
+  if (session.currency !== ANNUAL_MEMBER_CANONICAL.currency) throw new Error("annual_session_currency_mismatch");
 
   const { error } = await supabase.rpc("internal_apply_stripe_annual_payment", {
     p_stripe_event_id: event.id,

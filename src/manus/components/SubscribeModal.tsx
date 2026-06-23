@@ -63,7 +63,17 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
         },
       });
 
-      if (functionError) throw functionError;
+      if (functionError) {
+        // Edge function returns 503 BILLING_LIVE_DISABLED while live credentials are staged
+        // but not yet activated. Show a friendly message instead of a generic error.
+        const ctx = (functionError as { context?: { body?: unknown } }).context;
+        const bodyText = typeof ctx?.body === "string" ? ctx.body : "";
+        if (bodyText.includes("BILLING_LIVE_DISABLED")) {
+          setError("Payments are not active yet. Please check back soon.");
+          return;
+        }
+        throw functionError;
+      }
       if (!data?.checkout_url) throw new Error("Checkout URL was not returned.");
       window.location.href = data.checkout_url;
     } catch (checkoutError) {
