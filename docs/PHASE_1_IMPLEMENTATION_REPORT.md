@@ -185,7 +185,23 @@ not declare `LIVE_VALIDATED`.
 
 ## 7. Final status
 
-- `FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE`
-- `STRIPE_FASE_4 = DEFERRED_BY_PHASE_CONSTRAINT`
+- `FASE_1_STATUS = CONCLUIDA_FUNCIONALMENTE` **conditional on** GitHub Actions
+  workflow `CI` reporting `conclusion: success` for the commit produced by
+  this run. Until then: `FASE_1_STATUS = PARCIAL_AVANCADA`.
+- `STRIPE_FASE_4 = DEFERRED_BY_PHASE_CONSTRAINT`. `STRIPE_LIVE_ENABLED=false`.
 - Phases 2, 3, 4 not started in this execution.
-- Awaiting external audit.
+- Awaiting external audit + CI run.
+
+### CI run metadata (to be appended once observed)
+
+| Field | Value |
+|-------|-------|
+| Workflow | `.github/workflows/ci.yml` (`CI` → `verify`) |
+| Run id | _pending — Lovable→GitHub sync triggers the run_ |
+| Commit sha | _pending_ |
+| Status / conclusion | _pending — must be `success` to flip status_ |
+| Steps required green | `install` · `typecheck` · `test` · `lint` · `build` |
+
+If the workflow does not start within reasonable time after sync:
+`CI_STATUS = BLOCKED` and Phase 1 stays `PARCIAL_AVANCADA`.
+
