@@ -59,7 +59,21 @@ export default function AdminLessonsBulk() {
         setLoading(false);
         return;
       }
-      const mapped: Row[] = (data ?? []).map((l: any) => ({
+      type RawLesson = {
+        id: number;
+        module_id: number;
+        sort_order: number;
+        title: string | null;
+        description: string | null;
+        external_video_url: string | null;
+        cover_image_path: string | null;
+        status: ContentStatus;
+        course_modules?: {
+          title?: string | null;
+          courses?: { id?: number | null; title?: string | null } | null;
+        } | null;
+      };
+      const mapped: Row[] = ((data ?? []) as unknown as RawLesson[]).map((l) => ({
         id: l.id,
         module_id: l.module_id,
         module_title: l.course_modules?.title ?? "",
@@ -116,11 +130,11 @@ export default function AdminLessonsBulk() {
       entries.map(async ([idStr, p]) => {
         const id = Number(idStr);
         try {
-          const payload: any = { ...p };
+          const payload: Patch & Partial<{ published_at: string | null; archived_at: string | null }> = { ...p };
           if (p.status) Object.assign(payload, statusTransition(p.status));
           await updateLesson(id, payload);
           ok++;
-        } catch (e: any) {
+        } catch (e: unknown) {
           fail++;
           console.error("update lesson failed", id, e);
         }
@@ -176,8 +190,8 @@ export default function AdminLessonsBulk() {
       const url = await uploadCoverImage(file, "lessons");
       patch(id, { cover_image_path: url });
       toast.success("Thumbnail uploaded — remember to Save");
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   };
 
@@ -218,7 +232,7 @@ export default function AdminLessonsBulk() {
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-xs text-foreground/60">Flag</label>
-          <Select value={filterFlag} onValueChange={(v: any) => setFilterFlag(v)}>
+          <Select value={filterFlag} onValueChange={(v) => setFilterFlag(v as "all" | "no-video" | "no-thumb")}>
             <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>

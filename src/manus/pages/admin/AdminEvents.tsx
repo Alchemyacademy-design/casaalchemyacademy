@@ -15,6 +15,7 @@ export default function AdminEvents() {
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug", "location"]}
       publicInvalidateKeys={[["public", "events"]]}
+      deletionMode="archive"
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
         { name: "slug", label: "Slug", type: "text", required: true },

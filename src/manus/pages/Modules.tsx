@@ -8,6 +8,7 @@ import { canAccessCourse } from "@/manus/services/learning";
 import { Lock, CheckCircle, ArrowRight, Search } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState } from "react";
+import QueryStateView from "@/manus/components/QueryStateView";
 
 
 type CourseRow = {
@@ -111,19 +112,17 @@ export default function Modules() {
           </div>
         )}
 
-        {error && (
-          <div className="mb-6 p-4 rounded-lg border border-destructive/40 text-sm text-destructive">
-            Failed to load courses: {(error as Error).message}
-          </div>
-        )}
+        <QueryStateView
+          isLoading={isLoading}
+          error={error}
+          onRetry={() => refetch()}
+          errorTitle="Failed to load courses"
+          empty={!isLoading && !error && courses.length === 0}
+          emptyMessage={<span className="text-sm text-foreground/60">No courses available yet.</span>}
+        >
+          <></>
+        </QueryStateView>
 
-        {isLoading && (
-          <div className="text-sm text-foreground/60">Loading courses…</div>
-        )}
-
-        {!isLoading && courses.length === 0 && (
-          <div className="text-sm text-foreground/60">No courses available yet.</div>
-        )}
 
         {courses.length > 0 && (
           <div className="mb-6 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">

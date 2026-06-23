@@ -97,19 +97,40 @@ export default function Home() {
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const { data: dbCourses = [] } = usePublishedCourses(12);
 
+  type DisplayModule = {
+    id: number;
+    title: string;
+    tagline: string;
+    lessons: string[];
+    available: boolean;
+    thumbnail: string | null;
+    href?: string;
+    comingSoon?: boolean;
+  };
   // Prefer DB-published courses; fall back to the static curriculum copy when DB is empty.
-  const displayModules = (dbCourses.length > 0
-    ? dbCourses.map((c: any, i: number) => ({
-        id: c.id ?? i + 1,
-        title: c.title ?? "Untitled",
-        tagline: c.tagline ?? c.description ?? "",
-        lessons: [],
-        available: c.status === "published",
-        thumbnail: c.cover_image_url ?? c.thumbnail_url ?? null,
-        href: `/courses/${c.id}`,
-      }))
-    : MODULES.map((m) => ({ ...m, href: undefined as string | undefined }))
-  ).filter((m: any) => m.id !== 9);
+  const displayModules: DisplayModule[] = (dbCourses.length > 0
+    ? dbCourses.map((c, i): DisplayModule => {
+        const row = c as {
+          id?: number;
+          title?: string | null;
+          tagline?: string | null;
+          description?: string | null;
+          status?: string | null;
+          cover_image_url?: string | null;
+          thumbnail_url?: string | null;
+        };
+        return {
+          id: row.id ?? i + 1,
+          title: row.title ?? "Untitled",
+          tagline: row.tagline ?? row.description ?? "",
+          lessons: [],
+          available: row.status === "published",
+          thumbnail: row.cover_image_url ?? row.thumbnail_url ?? null,
+          href: `/courses/${row.id}`,
+        };
+      })
+    : MODULES.map((m): DisplayModule => ({ ...m, href: undefined }))
+  ).filter((m) => m.id !== 9);
 
 
   return (
@@ -223,7 +244,7 @@ export default function Home() {
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {displayModules.map((mod: any) => (
+            {displayModules.map((mod) => (
               <div key={mod.id} className="module-card-hover relative overflow-hidden group" style={{
                 border: "1px solid var(--aa-cream-dark)",
                 backgroundColor: mod.thumbnail ? "transparent" : (mod.comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),

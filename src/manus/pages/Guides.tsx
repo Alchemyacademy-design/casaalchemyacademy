@@ -26,12 +26,12 @@ export default function Guides() {
 
   const modules = useMemo(() => {
     if (dbCourses.length > 0) {
-      return dbCourses.map((c: any, i: number) => ({
-        id: c.id,
-        number: c.sort_order ?? i + 1,
+      return dbCourses.map((c, i) => ({
+        id: c.id as number,
+        number: (c as { sort_order?: number | null }).sort_order ?? i + 1,
         title: c.title ?? "Untitled",
-        tagline: c.tagline ?? c.description ?? "",
-        href: `/courses/${c.id}`,
+        tagline: (c as { tagline?: string | null }).tagline ?? c.description ?? "",
+        href: `/courses/${c.id}` as string | undefined,
         entitled: isAdmin || isMember || courseIds.includes(Number(c.id)),
       }));
     }

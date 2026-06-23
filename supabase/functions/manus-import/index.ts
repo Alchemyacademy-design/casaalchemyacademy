@@ -11,6 +11,59 @@ const isPlaceholder = (u: string | null | undefined) =>
   !!u && (u.includes("/manus-storage/") || u.includes("placeholder-video"));
 const isLegacy = (p: string | null | undefined) => !!p && p.startsWith("/manus-storage/");
 
+interface PackLesson {
+  title: string;
+  description?: string | null;
+  external_video_url?: string | null;
+  external_resource_url?: string | null;
+  sort_order: number;
+  lesson_number?: number;
+  legacy_video_path?: string | null;
+  is_preview?: boolean;
+}
+interface PackModule {
+  title: string;
+  description?: string | null;
+  sort_order?: number;
+  lessons?: PackLesson[];
+}
+interface PackCourse {
+  slug: string;
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  cover_image_path?: string | null;
+  sort_order?: number;
+  modules?: PackModule[];
+}
+interface ImportPack {
+  warnings?: string[];
+  courses?: PackCourse[];
+}
+
+interface MissingVideoEntry {
+  course: string;
+  lesson_number?: number;
+  sort_order: number;
+  title: string;
+  legacy_video_path: string | null;
+  status: "PENDING";
+}
+interface MissingThumbnailEntry {
+  course: string;
+  legacy_path: string | null;
+}
+interface ImportReport {
+  generated_at: string;
+  warnings: string[];
+  courses_upserted: number;
+  modules_upserted: number;
+  lessons_upserted: number;
+  missing_video_links: MissingVideoEntry[];
+  missing_thumbnails: MissingThumbnailEntry[];
+  errors: string[];
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -18,11 +71,10 @@ Deno.serve(async (req) => {
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const supabase = createClient(url, key, { auth: { persistSession: false } });
 
-  let pack: any;
+  let pack: ImportPack;
   try {
-    const body = await req.json().catch(() => ({}));
-    pack = body?.pack;
-    if (!pack) {
+    const body = (await req.json().catch(() => ({}))) as { pack?: ImportPack };
+    if (!body?.pack) {
       // Default pack embedded as raw string fetch from the repo is not possible;
       // require pack in body so any update can be re-imported.
       return new Response(JSON.stringify({ error: "Missing 'pack' in body" }), {
@@ -30,6 +82,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    pack = body.pack;
   } catch {
     return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
       status: 400,
@@ -37,15 +90,15 @@ Deno.serve(async (req) => {
     });
   }
 
-  const report: any = {
+  const report: ImportReport = {
     generated_at: new Date().toISOString(),
     warnings: pack.warnings ?? [],
     courses_upserted: 0,
     modules_upserted: 0,
     lessons_upserted: 0,
-    missing_video_links: [] as any[],
-    missing_thumbnails: [] as any[],
-    errors: [] as string[],
+    missing_video_links: [],
+    missing_thumbnails: [],
+    errors: [],
   };
 
   try {

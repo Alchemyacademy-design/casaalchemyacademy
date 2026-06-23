@@ -51,46 +51,66 @@ Deno.serve(async (req) => {
   if (!isAdmin) return json({ error: "forbidden" }, 403);
 
   try {
+    type CourseRow = {
+      id: number;
+      status?: string | null;
+      [k: string]: unknown;
+    };
+    type ModuleRow = {
+      id: number;
+      course_id: number;
+      [k: string]: unknown;
+    };
+    type LessonRow = {
+      id: number;
+      module_id: number;
+      external_video_url?: string | null;
+      [k: string]: unknown;
+    };
+
     const { data: courses, error: cErr } = await admin
       .from("courses")
       .select("*")
       .order("sort_order", { ascending: true })
       .order("id", { ascending: true });
     if (cErr) throw cErr;
+    const courseRows = (courses ?? []) as CourseRow[];
 
-    const courseIds = (courses ?? []).map((c) => c.id);
+    const courseIds = courseRows.map((c) => c.id);
     const { data: modules, error: mErr } = courseIds.length
       ? await admin
           .from("course_modules")
           .select("*")
           .in("course_id", courseIds)
           .order("sort_order", { ascending: true })
-      : { data: [] as any[], error: null };
+      : { data: [] as ModuleRow[], error: null };
     if (mErr) throw mErr;
+    const moduleRows = (modules ?? []) as ModuleRow[];
 
-    const moduleIds = (modules ?? []).map((m: any) => m.id);
+    const moduleIds = moduleRows.map((m) => m.id);
     const { data: lessons, error: lErr } = moduleIds.length
       ? await admin
           .from("lessons")
           .select("*")
           .in("module_id", moduleIds)
           .order("sort_order", { ascending: true })
-      : { data: [] as any[], error: null };
+      : { data: [] as LessonRow[], error: null };
     if (lErr) throw lErr;
+    const lessonRows = (lessons ?? []) as LessonRow[];
 
-    const lessonsByModule = new Map<number, any[]>();
-    for (const l of lessons ?? []) {
+    const lessonsByModule = new Map<number, LessonRow[]>();
+    for (const l of lessonRows) {
       const arr = lessonsByModule.get(l.module_id) ?? [];
       arr.push(l);
       lessonsByModule.set(l.module_id, arr);
     }
-    const modulesByCourse = new Map<number, any[]>();
-    for (const m of modules ?? []) {
+    const modulesByCourse = new Map<number, Array<ModuleRow & { lessons: LessonRow[] }>>();
+    for (const m of moduleRows) {
       const arr = modulesByCourse.get(m.course_id) ?? [];
       arr.push({ ...m, lessons: lessonsByModule.get(m.id) ?? [] });
       modulesByCourse.set(m.course_id, arr);
     }
-    const tree = (courses ?? []).map((c) => ({
+    const tree = courseRows.map((c) => ({
       ...c,
       course_modules: modulesByCourse.get(c.id) ?? [],
     }));

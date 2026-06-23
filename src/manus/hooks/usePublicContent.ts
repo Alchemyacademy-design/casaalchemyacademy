@@ -282,7 +282,8 @@ export function useMySupplierFavorites(userId: string | null | undefined) {
     queryFn: async (): Promise<number[]> => {
       const { data, error } = await supabase.from("supplier_favorites").select("supplier_id").eq("user_id", userId!);
       if (error) throw error;
-      return (data ?? []).map((r: any) => Number(r.supplier_id)).filter(Boolean);
+      type Row = { supplier_id: number | string | null };
+      return ((data ?? []) as Row[]).map((r) => Number(r.supplier_id)).filter(Boolean);
     },
   });
 }

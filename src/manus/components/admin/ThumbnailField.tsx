@@ -24,8 +24,9 @@ export default function ThumbnailField({ value, onChange, folder, label = "Cover
       const url = await uploadCoverImage(file, folder);
       onChange(url);
       toast.success("Image uploaded");
-    } catch (e: any) {
-      toast.error(`Upload failed: ${e.message ?? e}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error(`Upload failed: ${msg}`);
     } finally {
       setUploading(false);
     }
@@ -37,7 +38,6 @@ export default function ThumbnailField({ value, onChange, folder, label = "Cover
       {value && (
         <div className="flex gap-3 items-start">
           <div className="w-32 h-20 bg-muted rounded overflow-hidden border">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={value} alt="" className="w-full h-full object-cover" onError={(e) => ((e.currentTarget.style.opacity = "0.3"))} />
           </div>
           {legacy && (
