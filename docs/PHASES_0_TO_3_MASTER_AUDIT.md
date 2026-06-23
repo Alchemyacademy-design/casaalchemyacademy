@@ -15,7 +15,7 @@
 | Fase | Status |
 |------|--------|
 | Fase 0 | PARCIAL (lint reprovado, sem code-splitting, sem CI) |
-| Fase 1 | **CONCLUIDA_FUNCIONALMENTE** (condicional ao CI verde) — lint 0/typecheck 0/102 testes; entry chunk 132,66 kB raw (−90,7 %); paginação `PAGE_SIZE=20` server-side + busca debounced; soft-delete `archived_at` via `deletionMode` + `archiveModule`/`archiveLesson` no editor de curso e no bulk editor (sem `.delete()` editorial); cross-tab sync com testes completos (BroadcastChannel + fallback + cleanup); `CourseDetail` com Retry; CI `.github/workflows/ci.yml`. Stripe não tocado nesta execução. |
+| Fase 1 | **CONCLUIDA_FUNCIONALMENTE** (condicional ao CI verde) — lint 0/typecheck 0/**107 testes em 14 arquivos**; entry chunk 132,66 kB raw (−90,7 %); paginação `PAGE_SIZE=20` server-side + busca debounced; soft-delete `archived_at` via `deletionMode` + `archivePatch` por tabela (`events`/`live_workshops` setam `status='archived'`); editor de curso e bulk editor usam `archiveModule`/`archiveLesson` (sem `.delete()` editorial); hooks públicos filtram `archived_at IS NULL` além de `status='published'`; cross-tab sync com testes completos (BroadcastChannel + fallback + cleanup); `CourseDetail` com Retry; CI `.github/workflows/ci.yml`. Stripe não tocado nesta microcorreção (versões: webhook v23, recover v18, checkout v18, admin-sub v15, billing-status v7, catalog v12, manus v13). |
 | Fase 2 | **PARCIAL_E_BLOQUEADA_PELA_PUBLICACAO_DOS_DADOS** (existe conteúdo, mas a cadeia `curso publicado → módulo publicado → aulas publicadas` ainda não foi montada) |
 | Fase 3 | **PARCIAL_E_BLOQUEADA_POR_DADOS_DE_QA** (infra e Realtime no banco prontos; faltam posts/replies/reactions para validar UX) |
 | Fase 4 | NÃO INICIADA |
