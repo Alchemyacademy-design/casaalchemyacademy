@@ -341,12 +341,12 @@ export default function ModuleDetail() {
                     if (isAdmin) {
                       return (
                         <div>
-                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Admin only</p>
-                          <Card className="p-3 text-xs text-foreground/70 flex items-center justify-between gap-3">
-                            <span>No quiz configured for this lesson.</span>
-                            <Link to="/admin/phase-2-preview#quiz" className="underline text-primary shrink-0">
-                              Open design preview
-                            </Link>
+                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
+                            Admin Preview
+                          </p>
+                          <Card className="p-3 text-xs text-foreground/70">
+                            No quiz configured for this lesson. Add one from the course admin to make
+                            it visible to students here.
                           </Card>
                         </div>
                       );

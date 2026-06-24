@@ -54,7 +54,7 @@ const AdminSupplierCategories = lazyWithRetry(() => import("@/manus/pages/admin/
 const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
 const AdminPlans = lazyWithRetry(() => import("@/manus/pages/admin/AdminPlans"), "AdminPlans");
 const AdminCertificates = lazyWithRetry(() => import("@/manus/pages/admin/AdminCertificates"), "AdminCertificates");
-const AdminPhase2Preview = lazyWithRetry(() => import("@/manus/pages/admin/AdminPhase2Preview"), "AdminPhase2Preview");
+
 
 export default function App() {
   return (
@@ -107,7 +107,7 @@ export default function App() {
             <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />
             <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
             <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
-            <Route path="/admin/phase-2-preview" element={<AdminGuard><AdminPhase2Preview /></AdminGuard>} />
+            <Route path="/admin/phase-2-preview" element={<Navigate to="/admin/courses" replace />} />
 
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/payment/success" element={<PaymentSuccess />} />

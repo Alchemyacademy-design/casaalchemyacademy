@@ -352,12 +352,15 @@ export default function CourseDetail() {
             {isAdmin && (courseQuizzesQuery.data ?? []).length === 0 && (
               <section className="mb-8" aria-label="Admin notice">
                 <Card className="p-4 text-xs text-foreground/70 flex items-center justify-between gap-3">
-                  <span>No quiz configured yet — manage quizzes in Admin Center.</span>
-                  <Link
-                    to="/admin/phase-2-preview#quiz"
-                    className="underline text-primary shrink-0"
-                  >
-                    Open design preview
+                  <span>
+                    <span className="inline-block mr-2 px-2 py-0.5 rounded-sm text-[10px] uppercase tracking-[0.18em]"
+                      style={{ background: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)" }}>
+                      Admin Preview
+                    </span>
+                    No quiz configured yet — add one from the course admin.
+                  </span>
+                  <Link to={`/admin/courses/${course.id}`} className="underline text-primary shrink-0">
+                    Manage course →
                   </Link>
                 </Card>
               </section>

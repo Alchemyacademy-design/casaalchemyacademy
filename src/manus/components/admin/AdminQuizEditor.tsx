@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Eye, Plus, Trash2 } from "lucide-react";
@@ -117,14 +117,8 @@ export default function AdminQuizEditor({ courseId }: Props) {
           </div>
         ))}
         {(listQuery.data ?? []).length === 0 && !listQuery.isLoading && (
-          <div className="text-xs text-foreground/60 space-y-2">
-            <p>No quizzes yet.</p>
-            <Link
-              to="/admin/phase-2-preview#quiz"
-              className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
-            >
-              <Eye className="w-3 h-3" /> Open design preview
-            </Link>
+          <div className="text-xs text-foreground/60">
+            <p>No quizzes yet. Use “New quiz” above to create one — it will appear inline on the course and lesson pages for students.</p>
           </div>
         )}
       </div>
