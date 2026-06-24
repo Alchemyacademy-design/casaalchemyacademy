@@ -97,7 +97,12 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
-  const { data: dbCourses = [] } = usePublishedCourses(12);
+  const coursesQuery = usePublishedCourses(12);
+  // P0 hardening: never let an unexpected query payload crash the landing.
+  // Treat anything that is not a real array as "no DB courses" and fall back
+  // to the static curriculum, so Hero + Benefits + Curriculum always render.
+  const dbCourses = Array.isArray(coursesQuery.data) ? coursesQuery.data : [];
+  const coursesFailed = coursesQuery.isError;
 
   type DisplayModule = {
     id: number;
@@ -109,15 +114,17 @@ export default function Home() {
     href?: string;
     comingSoon?: boolean;
   };
-  // Prefer DB-published courses; fall back to the static curriculum copy when DB is empty.
+  // Prefer DB-published courses; fall back to the static curriculum copy
+  // when DB is empty OR the query failed.
   const displayModules: DisplayModule[] = (dbCourses.length > 0
     ? dbCourses.map((c, i): DisplayModule => {
-        const row = c as {
+        const row = (c ?? {}) as {
           id?: number;
           title?: string | null;
           tagline?: string | null;
           description?: string | null;
           status?: string | null;
+          cover_image_path?: string | null;
           cover_image_url?: string | null;
           thumbnail_url?: string | null;
         };
@@ -127,7 +134,9 @@ export default function Home() {
           tagline: row.tagline ?? row.description ?? "",
           lessons: [],
           available: row.status === "published",
-          thumbnail: row.cover_image_url ?? row.thumbnail_url ?? null,
+          // cover_image_path is the canonical DB column; cover_image_url is
+          // kept only as a backwards-compatibility fallback.
+          thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? null,
           href: `/courses/${row.id}`,
         };
       })
