@@ -325,6 +325,20 @@ export default function ModuleDetail() {
                   </div>
 
                   {(() => {
+                    const quizForLesson = (lessonQuizQuery.data ?? []).find(
+                      (q) => q.lesson_id === activeLesson.id,
+                    );
+                    return quizForLesson ? (
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Knowledge check</p>
+                        <QuizCard quizId={quizForLesson.id} />
+                      </div>
+                    ) : null;
+                  })()}
+
+
+
+                  {(() => {
                     const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
                     const courseTitle =
                       (courseRow as { title?: string } | null | undefined)?.title ??
