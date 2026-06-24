@@ -128,7 +128,9 @@ export default function ModuleDetail() {
     },
   });
 
+  const appliedKeyRef = useRef<string | null>(null);
   useEffect(() => {
+
     if (!Number.isFinite(moduleId) || moduleId <= 0) return;
     if (!lessons.length) return;
     const hash = location.hash || "";
