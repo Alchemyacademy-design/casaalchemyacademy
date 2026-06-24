@@ -66,7 +66,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
       }
     >
       {thumbnail && (
-        <div className="absolute inset-0 bg-black/45 group-hover:bg-black/55 transition" aria-hidden="true" />
+        <div className="aa-overlay absolute inset-0" aria-hidden="true" />)
       )}
 
       <div className="relative z-10 flex flex-col flex-1 p-6">
