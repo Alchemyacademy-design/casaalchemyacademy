@@ -339,7 +339,18 @@ export default function CourseDetail() {
                 </div>
               </section>
             )}
+
+            {(courseQuizzesQuery.data ?? []).length > 0 && (
+              <section className="mb-8 space-y-4">
+                <h2 className="font-serif text-xl mb-3 text-foreground">Course quizzes</h2>
+                {(courseQuizzesQuery.data ?? []).map((q) => (
+                  <QuizCard key={q.id} quizId={q.id} />
+                ))}
+              </section>
+            )}
           </div>
+
+
 
           <aside className="space-y-4">
             <Card className="p-4">
