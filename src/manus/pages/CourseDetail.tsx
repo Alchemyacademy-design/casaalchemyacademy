@@ -123,6 +123,24 @@ export default function CourseDetail() {
     [progress],
   );
 
+  // Course-level published quizzes (not bound to a specific lesson).
+  const courseQuizzesQuery = useQuery({
+    queryKey: ["course-quizzes", courseId],
+    enabled: Number.isFinite(courseId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .eq("course_id", courseId)
+        .eq("status", "published")
+        .is("lesson_id", null);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
+
+
+
   if (!Number.isFinite(courseId)) {
     return (
       <MemberLayout>
