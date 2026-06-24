@@ -97,7 +97,12 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
-  const { data: dbCourses = [] } = usePublishedCourses(12);
+  const coursesQuery = usePublishedCourses(12);
+  // P0 hardening: never let an unexpected query payload crash the landing.
+  // Treat anything that is not a real array as "no DB courses" and fall back
+  // to the static curriculum, so Hero + Benefits + Curriculum always render.
+  const dbCourses = Array.isArray(coursesQuery.data) ? coursesQuery.data : [];
+  const coursesFailed = coursesQuery.isError;
 
   type DisplayModule = {
     id: number;
@@ -109,15 +114,17 @@ export default function Home() {
     href?: string;
     comingSoon?: boolean;
   };
-  // Prefer DB-published courses; fall back to the static curriculum copy when DB is empty.
+  // Prefer DB-published courses; fall back to the static curriculum copy
+  // when DB is empty OR the query failed.
   const displayModules: DisplayModule[] = (dbCourses.length > 0
     ? dbCourses.map((c, i): DisplayModule => {
-        const row = c as {
+        const row = (c ?? {}) as {
           id?: number;
           title?: string | null;
           tagline?: string | null;
           description?: string | null;
           status?: string | null;
+          cover_image_path?: string | null;
           cover_image_url?: string | null;
           thumbnail_url?: string | null;
         };
@@ -127,7 +134,9 @@ export default function Home() {
           tagline: row.tagline ?? row.description ?? "",
           lessons: [],
           available: row.status === "published",
-          thumbnail: row.cover_image_url ?? row.thumbnail_url ?? null,
+          // cover_image_path is the canonical DB column; cover_image_url is
+          // kept only as a backwards-compatibility fallback.
+          thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? null,
           href: `/courses/${row.id}`,
         };
       })
@@ -245,6 +254,12 @@ export default function Home() {
               Each area takes you to a new path of knowledge. Explore them all with a subscription or take a slow walk by acquiring them individually.
             </p>
           </div>
+          {coursesFailed ? (
+            <div role="status" className="mb-6" style={{ padding: "0.75rem 1rem", border: "1px solid var(--aa-cream-dark)", background: "rgba(0,0,0,0.03)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-mid)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+              <span>The latest course catalogue could not load. Showing the standard curriculum below.</span>
+              <button type="button" onClick={() => coursesQuery.refetch()} style={{ background: "transparent", border: "1px solid var(--aa-text-mid)", padding: "0.25rem 0.75rem", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer" }}>Retry</button>
+            </div>
+          ) : null}
           <div data-testid="our-courses-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {displayModules.map((mod, idx) => {
               const card: CourseCardData = {

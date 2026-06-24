@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { Suspense } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/manus/contexts/ThemeContext";
 import { AuthProvider } from "@/manus/contexts/AuthContext";
 import RouteFallback from "@/manus/components/RouteFallback";
 import AdminGuard from "@/components/AdminGuard";
+import { lazyWithRetry } from "@/manus/lib/lazyWithRetry";
 
 // Eager: shell-critical landing & auth entry points so first paint stays sync.
 import Home from "@/manus/pages/Home";
@@ -16,42 +17,43 @@ import AuthCallback from "@/manus/pages/AuthCallback";
 import PostAuthRedirect from "@/manus/pages/PostAuthRedirect";
 import NotFound from "@/manus/pages/NotFound";
 
-// Lazy: everything else (admin, learning, community, supplier, events, billing).
-const Modules = lazy(() => import("@/manus/pages/Modules"));
-const ModuleDetail = lazy(() => import("@/manus/pages/ModuleDetail"));
-const Community = lazy(() => import("@/manus/pages/Community"));
-const Suppliers = lazy(() => import("@/manus/pages/Suppliers"));
-const Dashboard = lazy(() => import("@/manus/pages/Dashboard"));
-const Guides = lazy(() => import("@/manus/pages/Guides"));
-const CourseDetail = lazy(() => import("@/manus/pages/CourseDetail"));
-const Events = lazy(() => import("@/manus/pages/Events"));
-const Magazine = lazy(() => import("@/manus/pages/Magazine"));
-const Profile = lazy(() => import("@/manus/pages/Profile"));
-const LiveWorkshops = lazy(() => import("@/manus/pages/LiveWorkshops"));
-const Activate = lazy(() => import("@/manus/pages/Activate"));
-const Signup = lazy(() => import("@/manus/pages/Signup"));
-const ResetPassword = lazy(() => import("@/manus/pages/ResetPassword"));
-const UpdatePassword = lazy(() => import("@/manus/pages/UpdatePassword"));
-const PaymentSuccess = lazy(() => import("@/manus/pages/PaymentSuccess"));
-const PaymentCancel = lazy(() => import("@/manus/pages/PaymentCancel"));
-const Plans = lazy(() => import("@/manus/pages/Plans"));
+// Lazy: everything else, wrapped with a bounded one-shot reload on
+// stale-chunk failures (typical after a fresh deploy).
+const Modules = lazyWithRetry(() => import("@/manus/pages/Modules"), "Modules");
+const ModuleDetail = lazyWithRetry(() => import("@/manus/pages/ModuleDetail"), "ModuleDetail");
+const Community = lazyWithRetry(() => import("@/manus/pages/Community"), "Community");
+const Suppliers = lazyWithRetry(() => import("@/manus/pages/Suppliers"), "Suppliers");
+const Dashboard = lazyWithRetry(() => import("@/manus/pages/Dashboard"), "Dashboard");
+const Guides = lazyWithRetry(() => import("@/manus/pages/Guides"), "Guides");
+const CourseDetail = lazyWithRetry(() => import("@/manus/pages/CourseDetail"), "CourseDetail");
+const Events = lazyWithRetry(() => import("@/manus/pages/Events"), "Events");
+const Magazine = lazyWithRetry(() => import("@/manus/pages/Magazine"), "Magazine");
+const Profile = lazyWithRetry(() => import("@/manus/pages/Profile"), "Profile");
+const LiveWorkshops = lazyWithRetry(() => import("@/manus/pages/LiveWorkshops"), "LiveWorkshops");
+const Activate = lazyWithRetry(() => import("@/manus/pages/Activate"), "Activate");
+const Signup = lazyWithRetry(() => import("@/manus/pages/Signup"), "Signup");
+const ResetPassword = lazyWithRetry(() => import("@/manus/pages/ResetPassword"), "ResetPassword");
+const UpdatePassword = lazyWithRetry(() => import("@/manus/pages/UpdatePassword"), "UpdatePassword");
+const PaymentSuccess = lazyWithRetry(() => import("@/manus/pages/PaymentSuccess"), "PaymentSuccess");
+const PaymentCancel = lazyWithRetry(() => import("@/manus/pages/PaymentCancel"), "PaymentCancel");
+const Plans = lazyWithRetry(() => import("@/manus/pages/Plans"), "Plans");
 
-const AdminPanel = lazy(() => import("@/manus/pages/AdminPanel"));
-const AdminAnalytics = lazy(() => import("@/manus/pages/AdminAnalytics"));
-const AdminUserDetail = lazy(() => import("@/manus/pages/AdminUserDetail"));
-const AdminCoursesList = lazy(() => import("@/manus/pages/admin/AdminCoursesList"));
-const AdminCourseDetail = lazy(() => import("@/manus/pages/admin/AdminCourseDetail"));
-const AdminLessonsBulk = lazy(() => import("@/manus/pages/admin/AdminLessonsBulk"));
-const AdminStudents = lazy(() => import("@/manus/pages/admin/AdminStudents"));
-const AdminDiagnostics = lazy(() => import("@/manus/pages/admin/AdminDiagnostics"));
-const AdminEvents = lazy(() => import("@/manus/pages/admin/AdminEvents"));
-const AdminWorkshops = lazy(() => import("@/manus/pages/admin/AdminWorkshops"));
-const AdminMagazine = lazy(() => import("@/manus/pages/admin/AdminMagazine"));
-const AdminSuppliers = lazy(() => import("@/manus/pages/admin/AdminSuppliers"));
-const AdminSupplierCategories = lazy(() => import("@/manus/pages/admin/AdminSupplierCategories"));
-const AdminDeals = lazy(() => import("@/manus/pages/admin/AdminDeals"));
-const AdminPlans = lazy(() => import("@/manus/pages/admin/AdminPlans"));
-const AdminCertificates = lazy(() => import("@/manus/pages/admin/AdminCertificates"));
+const AdminPanel = lazyWithRetry(() => import("@/manus/pages/AdminPanel"), "AdminPanel");
+const AdminAnalytics = lazyWithRetry(() => import("@/manus/pages/AdminAnalytics"), "AdminAnalytics");
+const AdminUserDetail = lazyWithRetry(() => import("@/manus/pages/AdminUserDetail"), "AdminUserDetail");
+const AdminCoursesList = lazyWithRetry(() => import("@/manus/pages/admin/AdminCoursesList"), "AdminCoursesList");
+const AdminCourseDetail = lazyWithRetry(() => import("@/manus/pages/admin/AdminCourseDetail"), "AdminCourseDetail");
+const AdminLessonsBulk = lazyWithRetry(() => import("@/manus/pages/admin/AdminLessonsBulk"), "AdminLessonsBulk");
+const AdminStudents = lazyWithRetry(() => import("@/manus/pages/admin/AdminStudents"), "AdminStudents");
+const AdminDiagnostics = lazyWithRetry(() => import("@/manus/pages/admin/AdminDiagnostics"), "AdminDiagnostics");
+const AdminEvents = lazyWithRetry(() => import("@/manus/pages/admin/AdminEvents"), "AdminEvents");
+const AdminWorkshops = lazyWithRetry(() => import("@/manus/pages/admin/AdminWorkshops"), "AdminWorkshops");
+const AdminMagazine = lazyWithRetry(() => import("@/manus/pages/admin/AdminMagazine"), "AdminMagazine");
+const AdminSuppliers = lazyWithRetry(() => import("@/manus/pages/admin/AdminSuppliers"), "AdminSuppliers");
+const AdminSupplierCategories = lazyWithRetry(() => import("@/manus/pages/admin/AdminSupplierCategories"), "AdminSupplierCategories");
+const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
+const AdminPlans = lazyWithRetry(() => import("@/manus/pages/admin/AdminPlans"), "AdminPlans");
+const AdminCertificates = lazyWithRetry(() => import("@/manus/pages/admin/AdminCertificates"), "AdminCertificates");
 
 export default function App() {
   return (
