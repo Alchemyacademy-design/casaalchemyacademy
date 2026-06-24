@@ -836,7 +836,10 @@ export default function AdminCourseDetail() {
           ))}
 
         </div>
+
+        {courseId && <AdminQuizEditor courseId={courseId} />}
       </div>
+
     </AdminShell>
   );
 }
