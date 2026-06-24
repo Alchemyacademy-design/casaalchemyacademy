@@ -30,6 +30,8 @@ import StatusBadge from "@/manus/components/admin/StatusBadge";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
 import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
+import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
+
 import {
   createLesson,
   createModule,
