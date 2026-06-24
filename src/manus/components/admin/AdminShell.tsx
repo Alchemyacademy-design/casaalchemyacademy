@@ -57,7 +57,7 @@ const NAV = [
   { title: "Students", url: "/admin/students", icon: Users },
   { title: "Diagnostics", url: "/admin/diagnostics", icon: Activity },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  { title: "Phase 2 Preview", url: "/admin/phase-2-preview", icon: Eye },
+  
 ];
 
 function AdminSidebarInner() {
