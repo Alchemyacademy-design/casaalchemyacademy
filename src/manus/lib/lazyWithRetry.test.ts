@@ -14,6 +14,22 @@ describe("isChunkLoadError", () => {
   });
 });
 
+// Helper: invoke the React.lazy thunk that lazyWithRetry returns and return
+// the underlying promise the test cares about.
+function initLazy(comp: unknown): Promise<unknown> {
+  const c = comp as { _payload: { _result?: unknown }; _init?: (p: unknown) => unknown };
+  if (typeof c._init === "function") {
+    try {
+      const out = c._init(c._payload);
+      return out instanceof Promise ? out : Promise.resolve(out);
+    } catch (e) {
+      const thrown = e as Promise<unknown> | Error;
+      return thrown instanceof Promise ? thrown : Promise.reject(thrown);
+    }
+  }
+  return Promise.resolve(c._payload._result);
+}
+
 describe("lazyWithRetry", () => {
   const reloadSpy = vi.fn();
   beforeEach(() => {
@@ -29,29 +45,26 @@ describe("lazyWithRetry", () => {
   });
 
   it("resolves a normal import without touching sessionStorage", async () => {
-    const factory = vi.fn(async () => ({ default: (() => null) as unknown as React.ComponentType }));
+    const Stub = () => null;
+    const factory = vi.fn(async () => ({ default: Stub })) as unknown as () => Promise<{
+      default: React.ComponentType<unknown>;
+    }>;
     const Comp = lazyWithRetry(factory, "ok");
-    // Access the internal payload by invoking the factory React would call.
-    await expect(
-      // @ts-expect-error — React lazy internals are not in the public types.
-      Comp._payload._result ?? Comp._init?.(Comp._payload),
-    ).resolves.toBeDefined();
+    const result = await initLazy(Comp);
+    expect(result).toBeDefined();
     expect(reloadSpy).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("aa:lazy-retry:ok")).toBeNull();
   });
 
   it("triggers exactly one reload on the first chunk-load failure", async () => {
-    const factory = vi.fn(async () => {
+    const factory = (async () => {
       throw new Error("Failed to fetch dynamically imported module");
-    });
+    }) as unknown as () => Promise<{ default: React.ComponentType<unknown> }>;
     const Comp = lazyWithRetry(factory, "first");
-    // @ts-expect-error — invoke the React lazy thunk directly.
-    const init = Comp._init ?? ((p: { _result: () => Promise<unknown> }) => p._result());
-    // @ts-expect-error — payload accessor for the test.
-    const payload = Comp._payload;
-    const p = init(payload);
-    // The retry path returns a never-resolving promise; race it.
-    const settled = await Promise.race([p, new Promise((r) => setTimeout(() => r("pending"), 20))]);
+    const settled = await Promise.race([
+      initLazy(Comp),
+      new Promise((r) => setTimeout(() => r("pending"), 20)),
+    ]);
     expect(settled).toBe("pending");
     expect(reloadSpy).toHaveBeenCalledTimes(1);
     expect(sessionStorage.getItem("aa:lazy-retry:first")).toBe("1");
@@ -59,28 +72,20 @@ describe("lazyWithRetry", () => {
 
   it("rethrows on the second failure to break the reload loop", async () => {
     sessionStorage.setItem("aa:lazy-retry:loop", "1");
-    const factory = vi.fn(async () => {
+    const factory = (async () => {
       throw new Error("Loading chunk 7 failed");
-    });
+    }) as unknown as () => Promise<{ default: React.ComponentType<unknown> }>;
     const Comp = lazyWithRetry(factory, "loop");
-    // @ts-expect-error — invoke the React lazy thunk directly.
-    const init = Comp._init ?? ((p: { _result: () => Promise<unknown> }) => p._result());
-    // @ts-expect-error — payload accessor for the test.
-    const payload = Comp._payload;
-    await expect(init(payload)).rejects.toThrow(/Loading chunk/);
+    await expect(initLazy(Comp)).rejects.toThrow(/Loading chunk/);
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
   it("rethrows unrelated errors without reloading", async () => {
-    const factory = vi.fn(async () => {
+    const factory = (async () => {
       throw new TypeError("boom");
-    });
+    }) as unknown as () => Promise<{ default: React.ComponentType<unknown> }>;
     const Comp = lazyWithRetry(factory, "unrelated");
-    // @ts-expect-error — invoke the React lazy thunk directly.
-    const init = Comp._init ?? ((p: { _result: () => Promise<unknown> }) => p._result());
-    // @ts-expect-error — payload accessor for the test.
-    const payload = Comp._payload;
-    await expect(init(payload)).rejects.toThrow("boom");
+    await expect(initLazy(Comp)).rejects.toThrow("boom");
     expect(reloadSpy).not.toHaveBeenCalled();
     expect(sessionStorage.getItem("aa:lazy-retry:unrelated")).toBeNull();
   });
