@@ -31,6 +31,9 @@ import VideoPreview from "@/manus/components/admin/VideoPreview";
 import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
+import CertificatePreview from "@/manus/components/learning/CertificatePreview";
+import { Card } from "@/components/ui/card";
+import { useState as useStateLocal } from "react";
 
 import {
   createLesson,
@@ -838,6 +841,8 @@ export default function AdminCourseDetail() {
         </div>
 
         {courseId && <AdminQuizEditor courseId={courseId} />}
+
+        {courseId && <CertificatePreviewPanel courseTitle={course?.title ?? "This course"} />}
       </div>
 
     </AdminShell>
