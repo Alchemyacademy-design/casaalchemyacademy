@@ -13,7 +13,7 @@ vi.mock("@/integrations/supabase/client", () => {
   const state: { lastTable?: string; rows: Record<string, unknown[]> } = { rows: {} };
   const builder = (table: string) => {
     state.lastTable = table;
-    let query: { filters: Record<string, unknown>; head?: boolean; isNull?: string } = { filters: {} };
+    const query: { filters: Record<string, unknown>; head?: boolean; isNull?: string } = { filters: {} };
     const api: Record<string, unknown> = {
       select: vi.fn().mockImplementation((_cols?: string, opts?: { head?: boolean }) => {
         query.head = opts?.head;
