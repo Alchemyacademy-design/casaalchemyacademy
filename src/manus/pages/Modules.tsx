@@ -160,7 +160,7 @@ export default function Modules() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div data-testid="member-courses-grid" data-aa-grid="member" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {courses
             .filter((c) => {
               if (search.trim()) {
