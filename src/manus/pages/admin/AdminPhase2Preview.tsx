@@ -217,32 +217,41 @@ function QuizPreviewSection() {
   );
 }
 
+type PreviewLessonItem = { id: number; title: string; order_index: number; completed?: boolean; locked?: boolean };
+
 function ModulePreviewSection() {
   const [activeId, setActiveId] = useState<number>(2);
-  const items = useMemo(
-    () => PREVIEW_LESSONS.map((l) => ({ ...l, id: l.id, title: l.title, order_index: l.order_index })),
+  const ordered = useMemo<ReadonlyArray<PreviewLessonItem>>(
+    () => [...PREVIEW_LESSONS].sort((a, b) => a.order_index - b.order_index) as ReadonlyArray<PreviewLessonItem>,
     [],
   );
-  const ordered = [...items].sort((a, b) => a.order_index - b.order_index);
   const activeIndex = ordered.findIndex((l) => l.id === activeId);
-  const prev = activeIndex > 0 ? ordered[activeIndex - 1] : null;
-  const next = activeIndex >= 0 && activeIndex < ordered.length - 1 ? ordered[activeIndex + 1] : null;
+  const total = ordered.length;
+  const completedIds = useMemo(
+    () => new Set(ordered.filter((l) => l.completed).map((l) => l.id)),
+    [ordered],
+  );
+  const completePct = Math.round((completedIds.size / Math.max(1, total)) * 100);
 
   return (
     <Card className="p-6 space-y-4">
       <PreviewBadge />
       <div className="grid lg:grid-cols-4 gap-6">
-        <aside className="lg:col-span-1">
+        <aside className="lg:col-span-1 space-y-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.18em] text-foreground/60 mb-1">Progress</p>
+            <div className="h-1.5 rounded-full bg-muted">
+              <div className="h-1.5 rounded-full" style={{ width: `${completePct}%`, background: "var(--aa-gold)" }} />
+            </div>
+            <p className="text-[11px] text-foreground/60 mt-1">
+              {completedIds.size} of {total} lessons complete
+            </p>
+          </div>
           <LessonSidebar
-            lessons={ordered.map((l) => ({
-              id: l.id,
-              title: l.title,
-              order_index: l.order_index,
-              completed: !!l.completed,
-              active: l.id === activeId,
-            }))}
+            lessons={ordered.map((l) => ({ id: l.id, title: l.title, number: l.order_index, locked: l.locked }))}
+            activeLessonId={activeId}
+            completedLessonIds={completedIds}
             onSelect={(id) => setActiveId(id)}
-            progressPercent={Math.round((ordered.filter((l) => l.completed).length / ordered.length) * 100)}
           />
         </aside>
         <div className="lg:col-span-3 space-y-4">
@@ -256,23 +265,20 @@ function ModulePreviewSection() {
           <h4 className="font-serif text-xl text-foreground">
             {ordered[activeIndex]?.title ?? "Select a lesson"}
           </h4>
-          <LessonMaterial
-            items={[
-              { label: "Lesson workbook (PDF)", url: "#" },
-              { label: "Reference palette", url: "#" },
-            ]}
-          />
-          <div className="flex items-center justify-between pt-2 border-t border-border/50">
-            <LessonNavigation
-              prevHref={prev ? "#" : null}
-              nextHref={next ? "#" : null}
-              onPrev={prev ? () => setActiveId(prev.id) : undefined}
-              onNext={next ? () => setActiveId(next.id) : undefined}
-            />
+          <LessonMaterial url="https://example.com/lesson-workbook.pdf" label="Lesson workbook" />
+          <div className="flex items-center justify-end pb-2">
             <Button size="sm" variant="outline" disabled>
               <CheckCircle2 className="w-3 h-3 mr-1" /> Mark complete (preview)
             </Button>
           </div>
+          <LessonNavigation
+            currentIndex={activeIndex}
+            total={total}
+            hasPrevious={activeIndex > 0}
+            hasNext={activeIndex >= 0 && activeIndex < total - 1}
+            onPrevious={() => setActiveId(ordered[Math.max(0, activeIndex - 1)].id)}
+            onNext={() => setActiveId(ordered[Math.min(total - 1, activeIndex + 1)].id)}
+          />
         </div>
       </div>
     </Card>
