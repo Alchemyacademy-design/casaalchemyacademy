@@ -344,8 +344,22 @@ export default function CourseDetail() {
               <section className="mb-8 space-y-4">
                 <h2 className="font-serif text-xl mb-3 text-foreground">Course quizzes</h2>
                 {(courseQuizzesQuery.data ?? []).map((q) => (
-                  <QuizCard key={q.id} quizId={q.id} />
+                  <QuizCard key={q.id} quizId={q.id} previewAsAdmin={isAdmin} />
                 ))}
+              </section>
+            )}
+
+            {isAdmin && (courseQuizzesQuery.data ?? []).length === 0 && (
+              <section className="mb-8" aria-label="Admin notice">
+                <Card className="p-4 text-xs text-foreground/70 flex items-center justify-between gap-3">
+                  <span>No quiz configured yet — manage quizzes in Admin Center.</span>
+                  <Link
+                    to="/admin/phase-2-preview#quiz"
+                    className="underline text-primary shrink-0"
+                  >
+                    Open design preview
+                  </Link>
+                </Card>
               </section>
             )}
           </div>
