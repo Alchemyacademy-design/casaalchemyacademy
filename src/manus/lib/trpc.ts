@@ -86,13 +86,22 @@ async function lessonsByModule(input?: Input) {
 }
 async function lessonProgress(): Promise<ProgressRow[]> {
   const user = await requireUser();
-  const { data, error } = await db.from("lesson_progress").select("lesson_id,completed_at,lessons(module_id)").eq("user_id", user.id);
+  const { data, error } = await db
+    .from("lesson_progress")
+    .select("lesson_id,completed_at,last_watched_at,lessons(module_id)")
+    .eq("user_id", user.id);
   if (error) throw error;
-  type Row = { lesson_id: number; completed_at: string | null; lessons?: { module_id: number } | null };
+  type Row = {
+    lesson_id: number;
+    completed_at: string | null;
+    last_watched_at: string | null;
+    lessons?: { module_id: number } | null;
+  };
   return ((data as Row[] | null) ?? []).map((r) => ({
     lessonId: Number(r.lesson_id),
     moduleId: Number(r.lessons?.module_id),
     completed: Boolean(r.completed_at),
+    last_watched_at: r.last_watched_at ?? null,
   }));
 }
 async function moduleProgress(input?: Input) {

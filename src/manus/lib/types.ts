@@ -76,6 +76,7 @@ export interface ProgressRow {
   lessonId: number;
   moduleId: number;
   completed: boolean;
+  last_watched_at?: string | null;
   [key: string]: unknown;
 }
 

@@ -14,6 +14,7 @@ import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
+import ModuleCard from "@/manus/components/learning/ModuleCard";
 
 type Lesson = {
   id: number;
@@ -160,12 +161,13 @@ export default function CourseDetail() {
     return (
       <MemberLayout>
         <div className="p-10 text-sm text-foreground/70">
-          Course not found or not published yet.{" "}
+          Course unavailable or you do not have access.{" "}
           <Link to="/mycourses" className="underline">Back to courses</Link>
         </div>
       </MemberLayout>
     );
   }
+
 
   const totalModules = course.course_modules.length;
   const totalLessons = allLessons.length;
@@ -264,7 +266,31 @@ export default function CourseDetail() {
               </div>
             )}
 
+            {course.course_modules.length > 0 && (
+              <section className="mb-8">
+                <h2 className="font-serif text-xl mb-3 text-foreground">Modules overview</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {course.course_modules.map((m) => {
+                    const moduleCompleted = m.lessons.filter((l) => completedIds.has(l.id)).length;
+                    return (
+                      <ModuleCard
+                        key={m.id}
+                        id={m.id}
+                        title={m.title}
+                        description={m.description}
+                        lessonCount={m.lessons.length}
+                        completedCount={moduleCompleted}
+                        href={`/modules/${m.id}`}
+                        badge={m.status !== "published" ? m.status : undefined}
+                      />
+                    );
+                  })}
+                </div>
+              </section>
+            )}
+
             <section className="mb-8">
+
               <h2 className="font-serif text-xl mb-3 text-foreground">Learning path</h2>
               <LearningPath
                 modules={course.course_modules.map((m) => ({

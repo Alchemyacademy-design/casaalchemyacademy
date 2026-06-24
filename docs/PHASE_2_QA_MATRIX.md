@@ -103,3 +103,26 @@ Read-only. Nada foi implementado ou alterado.
 ## Update — Phase 2A implemented (2026-06-23)
 
 See `docs/PHASE_2A_IMPLEMENTATION_REPORT.md` for the diff, gates, and test counts. Status: `PHASE_2A_STATUS = IMPLEMENTED_PENDING_EXTERNAL_AUDIT`. Stripe untouched (`STRIPE_STATUS=ADIADO`). 141/141 tests pass.
+
+---
+
+## Corrective closure 2026-06-24
+
+- `Home.tsx` now consumes `CourseCard variant="landing"` for Our Courses;
+  unavailable courses render Coming Soon and never expose a Stripe checkout
+  CTA (asserted by `Home.test.tsx`).
+- `ModuleDetail.tsx` uses `QueryStateView` for loading/error/empty for both
+  module and lessons queries; progress error is isolated and displays a
+  warning banner without hiding the lesson.
+- `CourseDetail.tsx` shows the neutral copy "Course unavailable or you do
+  not have access." instead of "not published yet". `ModuleDetail.tsx`
+  shows the equivalent neutral copy for modules.
+- `trpc.lessons.progress` selects `last_watched_at` and propagates it to
+  `ProgressRow`; `pickResumeLessonId` uses it to drive Continue vs Start
+  (covered by `learning.resume.test.ts`).
+- `ModuleCard` integrated into `CourseDetail` as the "Modules overview"
+  grid above the Learning Path. Not removed — actively used.
+- New page tests: Home (no-Stripe), ModuleDetail lifecycle, MemberLayout
+  (active state, aria-expanded, mobile menu close-after-nav).
+- Gates: typecheck 0, tests 158/158, lint 0 errors, build success.
+- Stripe untouched (`STRIPE_LIVE_ENABLED=false`, `STRIPE_STATUS=ADIADO`).

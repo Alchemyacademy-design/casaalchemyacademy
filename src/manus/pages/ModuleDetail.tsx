@@ -1,7 +1,7 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Share2, HelpCircle, MessageSquare, Menu } from "lucide-react";
+import { ChevronLeft, Share2, HelpCircle, MessageSquare, Menu, AlertTriangle } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
@@ -19,19 +19,42 @@ import LessonSidebar from "@/manus/components/learning/LessonSidebar";
 import CompletionButton from "@/manus/components/learning/CompletionButton";
 import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
+import QueryStateView from "@/manus/components/QueryStateView";
 
 
 export default function ModuleDetail() {
   const params = useParams<{ id: string }>();
   const location = useLocation();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
+  const isValidModuleId = Number.isFinite(moduleId) && moduleId > 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
   const qc = useQueryClient();
 
-  const { data: module } = trpc.modules.get.useQuery({ id: moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
-  const { data: lessons = [] } = trpc.lessons.byModule.useQuery({ moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
-  const { data: progress = [] } = trpc.progress.moduleProgress.useQuery({ moduleId }, { enabled: Number.isFinite(moduleId) && moduleId > 0 });
+  const moduleQuery = trpc.modules.get.useQuery({ id: moduleId }, { enabled: isValidModuleId });
+  const lessonsQuery = trpc.lessons.byModule.useQuery({ moduleId }, { enabled: isValidModuleId });
+  const progressQuery = trpc.progress.moduleProgress.useQuery({ moduleId }, { enabled: isValidModuleId });
+
+  const module = moduleQuery.data as { title?: string; course_id?: number | null } | undefined;
+  const lessons = useMemo(
+    () =>
+      (lessonsQuery.data ?? []) as Array<{
+        id: number;
+        title: string;
+        number?: number | null;
+        videoUrl?: string | null;
+        content?: string | null;
+        external_resource_url?: string | null;
+      }>,
+    [lessonsQuery.data],
+  );
+  const progress = useMemo(
+    () => (progressQuery.data ?? []) as Array<{ lessonId: number; completed: boolean }>,
+    [progressQuery.data],
+  );
+  const progressError = progressQuery.error;
+
+
   const markLessonMutation = trpc.progress.markLesson.useMutation({
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ["lessons.progress"] });
@@ -43,6 +66,7 @@ export default function ModuleDetail() {
       ]);
     },
   });
+
 
   const courseId: number | null =
     (module as { course_id?: number | null } | undefined)?.course_id ?? null;
@@ -131,6 +155,46 @@ export default function ModuleDetail() {
     number: l.number ?? null,
   }));
 
+  if (!isValidModuleId) {
+    return (
+      <MemberLayout>
+        <div className="p-10 text-sm text-foreground/70">Invalid module id.</div>
+      </MemberLayout>
+    );
+  }
+
+  const moduleLoading = moduleQuery.isLoading;
+  const moduleError = moduleQuery.error;
+  const moduleMissing = !moduleLoading && !moduleError && !module;
+  const lessonsLoading = lessonsQuery.isLoading;
+  const lessonsError = lessonsQuery.error;
+  // Defence-in-depth: do not render lessons or progress UI until the parent
+  // module is confirmed loaded and accessible.
+  const moduleReady = !!module && !moduleError;
+
+  if (moduleLoading || moduleError || moduleMissing) {
+    return (
+      <MemberLayout>
+        <div className="p-6 md:p-10">
+          <Link to="/mycourses" className="inline-flex items-center gap-2 text-accent hover:text-accent/80 transition mb-4 text-sm">
+            <ChevronLeft className="w-4 h-4" /> Back to Courses
+          </Link>
+          <QueryStateView
+            isLoading={moduleLoading}
+            isFetching={moduleQuery.isFetching}
+            error={moduleError}
+            empty={moduleMissing}
+            onRetry={() => moduleQuery.refetch?.()}
+            errorTitle="Failed to load module"
+            emptyMessage="Module unavailable or you do not have access."
+          >
+            <></>
+          </QueryStateView>
+        </div>
+      </MemberLayout>
+    );
+  }
+
   return (
     <MemberLayout>
       <div className="min-h-screen bg-background">
@@ -156,8 +220,15 @@ export default function ModuleDetail() {
                 <Menu className="w-4 h-4" /> Lessons
               </button>
             </div>
+            {progressError && (
+              <p className="mt-3 inline-flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400" role="status">
+                <AlertTriangle className="w-3.5 h-3.5" /> Progress unavailable — your completion state may be out of date.
+              </p>
+            )}
           </div>
         </div>
+
+
 
         <div className="container py-8">
           <div className="grid lg:grid-cols-4 gap-8">
@@ -186,7 +257,17 @@ export default function ModuleDetail() {
             )}
 
             <div className="lg:col-span-3">
-              {activeLesson ? (
+              <QueryStateView
+                isLoading={lessonsLoading}
+                isFetching={lessonsQuery.isFetching}
+                error={lessonsError}
+                empty={!lessonsLoading && !lessonsError && lessons.length === 0}
+                onRetry={() => lessonsQuery.refetch?.()}
+                errorTitle="Failed to load lessons"
+                emptyMessage="No lessons available yet."
+              >
+              {moduleReady && activeLesson ? (
+
                 <div className="space-y-6">
                   <div className="border-b border-border/50 pb-6">
                     <div className="flex items-start justify-between mb-4 gap-4 flex-wrap">
@@ -302,10 +383,12 @@ export default function ModuleDetail() {
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-foreground/70">No lessons available</p>
+                  <p className="text-foreground/70">No lesson selected.</p>
                 </div>
               )}
+              </QueryStateView>
             </div>
+
           </div>
         </div>
       </div>
