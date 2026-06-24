@@ -12,10 +12,58 @@
     <meta property="og:type" content="website" />
 
     <meta name="twitter:card" content="summary_large_image" />
+    <style>
+      /* P0 startup fallback — visible before any CSS/JS bundle loads.
+         Removed by React once main.tsx mounts. */
+      #aa-startup-fallback{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#3b3a2f;background:#f5f0e8;z-index:0;}
+      #aa-startup-fallback .aa-spin{width:28px;height:28px;border:2px solid #c9b87a;border-top-color:transparent;border-radius:50%;animation:aa-spin 0.9s linear infinite;}
+      @keyframes aa-spin{to{transform:rotate(360deg);}}
+      #aa-startup-error{padding:24px;max-width:520px;text-align:center;}
+      #aa-startup-error h1{font-size:18px;margin:0 0 8px;}
+      #aa-startup-error p{font-size:14px;margin:0 0 16px;color:#5b5a4f;}
+      #aa-startup-error button{background:#c9b87a;color:#3b3a2f;border:0;padding:10px 18px;font-size:13px;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;}
+      #aa-startup-error code{display:block;margin-top:12px;font-size:11px;color:#7a7a70;word-break:break-word;}
+    </style>
   </head>
 
   <body>
     <div id="root"></div>
+    <div id="aa-startup-fallback" role="status" aria-live="polite">
+      <div class="aa-spin" aria-hidden="true"></div>
+      <div>Loading Alchemy Academy…</div>
+    </div>
+    <script>
+      // P0: surface bootstrap errors instead of a silent white screen.
+      (function () {
+        function showError(msg) {
+          var el = document.getElementById("aa-startup-fallback");
+          if (!el) return;
+          var safe = String(msg || "Unknown error");
+          if (safe.length > 240) safe = safe.slice(0, 240) + "…";
+          el.innerHTML =
+            '<div id="aa-startup-error">' +
+              '<h1>Alchemy Academy could not start.</h1>' +
+              '<p>Reload the page. If the issue persists, your network or session may need attention.</p>' +
+              '<button type="button" onclick="location.reload()">Reload</button>' +
+              '<code></code>' +
+            '</div>';
+          var code = el.querySelector("code");
+          if (code) code.textContent = safe;
+        }
+        window.__aaStartupError = showError;
+        window.addEventListener("error", function (e) {
+          if (document.getElementById("aa-startup-fallback")) {
+            showError((e && e.message) || "Script error");
+          }
+        });
+        window.addEventListener("unhandledrejection", function (e) {
+          if (document.getElementById("aa-startup-fallback")) {
+            var r = e && e.reason;
+            showError((r && (r.message || String(r))) || "Unhandled promise rejection");
+          }
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
