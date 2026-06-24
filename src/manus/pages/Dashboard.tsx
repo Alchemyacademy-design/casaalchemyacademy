@@ -127,10 +127,21 @@ export default function Dashboard() {
         <ComingUp />
 
 
-        {/* Certificate Section */}
-        <div className="mb-12">
-          <CertificateSection />
-        </div>
+        {/* Certificate Section — scoped to the user's primary course. */}
+        {(() => {
+          const primaryCourseId = (allModules.find((m) => m.course_id != null)?.course_id ?? null) as number | string | null;
+          const primaryCourseTitle =
+            (allModules.find((m) => m.course_id != null) as { course_title?: string } | undefined)?.course_title ?? null;
+          return (
+            <div className="mb-12">
+              <CertificateSection
+                courseId={primaryCourseId != null ? Number(primaryCourseId) : null}
+                courseTitle={primaryCourseTitle}
+              />
+            </div>
+          );
+        })()}
+
 
         {/* Continue Learning */}
         {enrolledModules.length > 0 ? (

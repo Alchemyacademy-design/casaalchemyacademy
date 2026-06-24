@@ -20,6 +20,8 @@ import CompletionButton from "@/manus/components/learning/CompletionButton";
 import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
+import QuizCard from "@/manus/components/learning/QuizCard";
+
 
 
 export default function ModuleDetail() {
@@ -108,7 +110,24 @@ export default function ModuleDetail() {
     },
   });
 
-  const appliedKeyRef = useRef<string | null>(null);
+  // Lesson-level published quiz (if any). Members only ever see published rows.
+  const lessonQuizQuery = useQuery({
+    queryKey: ["lesson-quiz", "module", moduleId],
+    enabled: isValidModuleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,lesson_id")
+        .eq("status", "published")
+        .in(
+          "lesson_id",
+          (lessonsQuery.data ?? []).map((l: { id: number }) => l.id),
+        );
+      if (error) throw error;
+      return ((data ?? []) as Array<{ id: number; lesson_id: number | null }>);
+    },
+  });
+
   useEffect(() => {
     if (!Number.isFinite(moduleId) || moduleId <= 0) return;
     if (!lessons.length) return;
