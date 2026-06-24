@@ -260,7 +260,7 @@ export default function Home() {
               <button type="button" onClick={() => coursesQuery.refetch()} style={{ background: "transparent", border: "1px solid var(--aa-text-mid)", padding: "0.25rem 0.75rem", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer" }}>Retry</button>
             </div>
           ) : null}
-          <div data-testid="our-courses-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div data-testid="our-courses-grid" data-aa-grid="landing" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xl:gap-5">
             {displayModules.map((mod, idx) => {
               const card: CourseCardData = {
                 id: typeof mod.id === "number" ? mod.id : idx + 1,

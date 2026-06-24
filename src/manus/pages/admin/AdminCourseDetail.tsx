@@ -31,6 +31,7 @@ import VideoPreview from "@/manus/components/admin/VideoPreview";
 import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
+import CertificatePreview from "@/manus/components/learning/CertificatePreview";
 
 import {
   createLesson,
@@ -838,8 +839,34 @@ export default function AdminCourseDetail() {
         </div>
 
         {courseId && <AdminQuizEditor courseId={courseId} />}
+
+        {courseId && <CertificatePreviewPanel courseTitle={course?.title ?? "This course"} />}
       </div>
 
     </AdminShell>
+  );
+}
+
+function CertificatePreviewPanel({ courseTitle }: { courseTitle: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Certificate</h2>
+          <p className="text-xs text-foreground/60">
+            Preview the certificate students will receive. Never inserts a row.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-xs underline text-primary"
+        >
+          {open ? "Hide preview" : "Preview certificate"}
+        </button>
+      </div>
+      {open && <CertificatePreview courseTitle={courseTitle} />}
+    </Card>
   );
 }

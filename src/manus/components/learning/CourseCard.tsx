@@ -50,8 +50,10 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
 
   return (
     <article
-      className={`relative overflow-hidden group flex flex-col rounded-md border border-border/50 transition hover:border-border ${
-        variant === "landing" ? "min-h-[280px]" : "min-h-[260px]"
+      data-testid="aa-course-card"
+      data-variant={variant}
+      className={`aa-course-card relative overflow-hidden group flex flex-col rounded-md border border-border/50 transition-all duration-[250ms] hover:border-border hover:-translate-y-[3px] hover:shadow-md ${
+        variant === "landing" ? "min-h-[280px] p-7" : "min-h-[260px]"
       }`}
       style={
         thumbnail
@@ -64,7 +66,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
       }
     >
       {thumbnail && (
-        <div className="absolute inset-0 bg-black/45 group-hover:bg-black/55 transition" aria-hidden="true" />
+        <div className="aa-overlay absolute inset-0" aria-hidden="true" />
       )}
 
       <div className="relative z-10 flex flex-col flex-1 p-6">

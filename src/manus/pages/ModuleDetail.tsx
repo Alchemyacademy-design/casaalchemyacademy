@@ -21,6 +21,7 @@ import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import { useAuth } from "@/manus/hooks/useAuth";
 
 
 
@@ -28,6 +29,7 @@ export default function ModuleDetail() {
   const params = useParams<{ id: string }>();
   const location = useLocation();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
+  const { isAdmin } = useAuth();
   const isValidModuleId = Number.isFinite(moduleId) && moduleId > 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
@@ -328,12 +330,28 @@ export default function ModuleDetail() {
                     const quizForLesson = (lessonQuizQuery.data ?? []).find(
                       (q) => q.lesson_id === activeLesson.id,
                     );
-                    return quizForLesson ? (
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Knowledge check</p>
-                        <QuizCard quizId={quizForLesson.id} />
-                      </div>
-                    ) : null;
+                    if (quizForLesson) {
+                      return (
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Knowledge check</p>
+                          <QuizCard quizId={quizForLesson.id} previewAsAdmin={isAdmin} />
+                        </div>
+                      );
+                    }
+                    if (isAdmin) {
+                      return (
+                        <div>
+                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Admin only</p>
+                          <Card className="p-3 text-xs text-foreground/70 flex items-center justify-between gap-3">
+                            <span>No quiz configured for this lesson.</span>
+                            <Link to="/admin/phase-2-preview#quiz" className="underline text-primary shrink-0">
+                              Open design preview
+                            </Link>
+                          </Card>
+                        </div>
+                      );
+                    }
+                    return null;
                   })()}
 
 
