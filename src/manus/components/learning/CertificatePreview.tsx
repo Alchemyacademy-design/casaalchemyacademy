@@ -20,9 +20,6 @@ export type CertificatePreviewProps = {
  * Identity stays inside the project tokens (Instrument Serif / Manrope,
  * Chocolate / Terracotta / Sandstone) — no Cormorant / DM Sans from the PDF.
  */
- * Identity stays inside the project tokens (Instrument Serif / Manrope,
- * Chocolate / Terracotta / Sandstone) — no Cormorant / DM Sans from the PDF.
- */
 export default function CertificatePreview({
   studentName = "Preview Student",
   courseTitle = "The path to a COLOURFUL life",
