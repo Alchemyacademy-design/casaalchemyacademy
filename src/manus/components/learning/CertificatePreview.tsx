@@ -13,10 +13,13 @@ export type CertificatePreviewProps = {
 /**
  * Visual-only certificate preview.
  *
- * Never inserts rows. Used in:
- *   - /admin/phase-2-preview (Section F)
- *   - AdminCourseDetail "Preview certificate" action
+ * Never inserts rows. Used in admin contexts (e.g. AdminCourseDetail
+ * "Preview certificate") and as the empty-state visual on real student
+ * pages until a real certificate is issued.
  *
+ * Identity stays inside the project tokens (Instrument Serif / Manrope,
+ * Chocolate / Terracotta / Sandstone) — no Cormorant / DM Sans from the PDF.
+ */
  * Identity stays inside the project tokens (Instrument Serif / Manrope,
  * Chocolate / Terracotta / Sandstone) — no Cormorant / DM Sans from the PDF.
  */
