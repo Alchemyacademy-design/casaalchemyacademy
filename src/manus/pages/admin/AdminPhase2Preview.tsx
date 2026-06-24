@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, CheckCircle2, Circle, PlayCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, PlayCircle } from "lucide-react";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
 import LearningPath, { type PathModule } from "@/manus/components/learning/LearningPath";
