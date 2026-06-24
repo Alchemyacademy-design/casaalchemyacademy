@@ -1,11 +1,13 @@
 import { useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { getLoginUrl } from "@/manus/const";
-import { Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
+
+
 
 
 // Organogram-based module structure from reference
@@ -243,49 +245,26 @@ export default function Home() {
               Each area takes you to a new path of knowledge. Explore them all with a subscription or take a slow walk by acquiring them individually.
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {displayModules.map((mod) => (
-              <div key={mod.id} className="module-card-hover relative overflow-hidden group" style={{
-                border: "1px solid var(--aa-cream-dark)",
-                backgroundColor: mod.thumbnail ? "transparent" : (mod.comingSoon ? "var(--aa-cream-dark)" : "var(--aa-white)"),
-                padding: "1.75rem",
-                backgroundImage: mod.thumbnail ? `url('${mod.thumbnail}')` : "none",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                minHeight: mod.thumbnail ? "280px" : "auto",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-              }}>
-                {mod.thumbnail && <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition" />}
-                <div className="relative z-10">
-                  {mod.comingSoon === true && (
-                    <div className="absolute top-3 right-3 z-20">
-                      <span className="text-xs px-2 py-0.5" style={{ backgroundColor: "var(--aa-olive-light)", color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em" }}>
-                        Coming Soon
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex items-start justify-between mb-4">
-                    <span className="font-serif text-3xl" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-gold)", fontWeight: 300 }}>
-                      {String(typeof mod.id === "number" ? mod.id : (displayModules.indexOf(mod) + 1)).padStart(2, "0")}
-                    </span>
-                    {!mod.available || mod.comingSoon === true ? (
-                      <Lock size={14} style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-olive-light)", opacity: 0.5, marginTop: "6px" }} />
-                    ) : null}
-                  </div>
-                  <h3 className="font-serif text-xl mb-2" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-olive-dark)", fontWeight: 400 }}>{mod.title}</h3>
-                  <p className="text-xs mb-4 leading-relaxed" style={{ color: mod.thumbnail ? "var(--aa-cream)" : "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{mod.tagline}</p>
-                </div>
-                <div className="relative z-10 mt-4">
-                  {mod.href && mod.available ? (
-                    <Link to={mod.href} style={{ display: "block", background: "none", border: "1px solid var(--aa-cream)", color: "var(--aa-cream)", textAlign: "center", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", width: "100%", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>View Course</Link>
-                  ) : (
-                    <button onClick={() => setSubscribeModal("guide")} style={{ background: "none", border: "1px solid var(--aa-cream)", color: "var(--aa-cream)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", width: "100%", textTransform: "uppercase", letterSpacing: "0.05em" }}>Buy Now</button>
-                  )}
-                </div>
-              </div>
-            ))}
+          <div data-testid="our-courses-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {displayModules.map((mod, idx) => {
+              const card: CourseCardData = {
+                id: typeof mod.id === "number" ? mod.id : idx + 1,
+                title: mod.title,
+                subtitle: mod.tagline,
+                number: typeof mod.id === "number" ? mod.id : idx + 1,
+                thumbnail: mod.thumbnail,
+                lessonCount: mod.lessons.length || undefined,
+                published: true,
+                // While Stripe is deferred (pré-lançamento), every course
+                // that is not explicitly available shows Coming Soon and
+                // never opens a financial checkout flow.
+                comingSoon: !mod.available,
+                href: mod.available ? mod.href : undefined,
+              };
+              return <CourseCard key={mod.id} course={card} variant="landing" />;
+            })}
+
+
 
             {/* Membership Perks Card */}
             <div style={{
