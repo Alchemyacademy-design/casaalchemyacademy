@@ -15,6 +15,8 @@ import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
+import QuizCard from "@/manus/components/learning/QuizCard";
+
 
 type Lesson = {
   id: number;
