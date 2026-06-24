@@ -293,70 +293,56 @@ async function deletePost(input?: Input) {
   if (error) throw error;
   return { success: true };
 }
-async function certificateCompletion() {
-  const user = await requireUser();
-  const { data: lessons } = await db.from("lessons").select("id").eq("status", "published");
-  const lessonRows = (lessons as Array<{ id: number }> | null) ?? [];
-  if (!lessonRows.length) return 0;
-  const { count } = await db.from("lesson_progress").select("lesson_id", { count: "exact", head: true }).eq("user_id", user.id).not("completed_at", "is", null).in("lesson_id", lessonRows.map((l) => l.id));
-  return Math.min(100, Math.round((((count as number | null) ?? 0) / lessonRows.length) * 100));
+// ---------------------------------------------------------------------------
+// Certificates — course-specific (Phase 2). Every entry point takes { courseId }.
+// Implementation lives in src/manus/services/certificate.ts so the rules can
+// be unit-tested in isolation.
+// ---------------------------------------------------------------------------
+import {
+  completionPercentageForCourse,
+  eligibilityForCourse,
+  issueCertificateForCourse,
+  myCertificateForCourse,
+} from "@/manus/services/certificate";
+
+function requireCourseId(input?: Input): number {
+  const cid = Number((input as { courseId?: number | string } | undefined)?.courseId);
+  if (!Number.isFinite(cid) || cid <= 0) {
+    throw new Error("courseId is required");
+  }
+  return cid;
 }
-async function myCertificate(): Promise<CertificateRow | null> {
-  const user = await requireUser();
-  const { data, error } = await db.from("certificates").select("*").eq("user_id", user.id).is("revoked_at", null).order("issued_at", { ascending: false }).limit(1).maybeSingle();
-  if (error) throw error;
-  if (!data) return null;
-  const cert = data as CertificateRow;
-  return { ...cert, completionPercentage: Number(cert.metadata?.completion_percentage ?? 100), issuedAt: cert.issued_at };
+
+async function certificateCompletion(input?: Input) {
+  return completionPercentageForCourse(requireCourseId(input));
 }
-async function issueCertificate() {
-  const completion = await certificateCompletion();
-  if (completion < 80) throw new Error("Complete at least 80% before requesting a certificate");
-  const user = await requireUser();
-  const existing = await myCertificate();
-  if (existing) return existing;
-  const { data: course } = await db.from("courses").select("id").eq("status", "published").order("sort_order").limit(1).maybeSingle();
-  if (!course) throw new Error("No published course is available");
-  const courseRow = course as { id: number | string };
-  const issuedAt = nowIso();
-  const { data, error } = await db.from("certificates").insert({
-    user_id: user.id,
-    course_id: courseRow.id,
-    certificate_number: `AA-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`,
-    issued_at: issuedAt,
-    metadata: { completion_percentage: completion },
-  }).select().single();
-  if (error) throw error;
-  return data;
+async function certificateEligibility(input?: Input) {
+  return (await eligibilityForCourse(requireCourseId(input))).eligible;
 }
-async function ratingGet(input?: Input) {
-  const user = await requireUser();
-  const moduleId = (input as { moduleId?: number } | undefined)?.moduleId;
-  const { data } = await db.from("module_ratings").select("rating").eq("user_id", user.id).eq("module_id", moduleId).maybeSingle();
-  return data;
+async function certificateEligibilityReport(input?: Input) {
+  return eligibilityForCourse(requireCourseId(input));
 }
-async function ratingAverage(input?: Input) {
-  const moduleId = (input as { moduleId?: number } | undefined)?.moduleId;
-  const { data, error } = await db.from("module_ratings").select("rating").eq("module_id", moduleId);
-  if (error) throw error;
-  const rows = (data as Array<{ rating: number }> | null) ?? [];
+async function myCertificate(input?: Input): Promise<CertificateRow | null> {
+  const cert = await myCertificateForCourse(requireCourseId(input));
+  if (!cert) return null;
   return {
-    average: rows.length ? rows.reduce((s, r) => s + Number(r.rating), 0) / rows.length : 0,
-    count: rows.length,
-  };
+    ...cert,
+    completionPercentage: Number(cert.metadata?.completion_percentage ?? 100),
+    issuedAt: cert.issued_at,
+  } as CertificateRow;
 }
-async function ratingSubmit(input?: Input) {
-  const user = await requireUser();
-  const data = (input ?? {}) as { moduleId: number; rating: number };
-  const { data: row, error } = await db.from("module_ratings").upsert({
-    user_id: user.id,
-    module_id: data.moduleId,
-    rating: data.rating,
-    updated_at: nowIso(),
-  }, { onConflict: "user_id,module_id" }).select().single();
-  if (error) throw error;
-  return row;
+async function issueCertificate(input?: Input) {
+  return issueCertificateForCourse(requireCourseId(input));
 }
+
+// Rating is intentionally disabled in Phase 2: the module_ratings table does
+// not exist (RATING_STATUS = DEFERRED_NO_SCHEMA). Stubs preserve the trpc
+// surface so any leftover call fails loudly instead of hitting a missing
+// table.
+async function ratingDeferred(): Promise<never> {
+  throw new Error("RATING_STATUS=DEFERRED_NO_SCHEMA: module ratings are unavailable in pre-launch.");
+}
+
 
 type QueryOptions = Record<string, unknown>;
 type MutationOptions = Record<string, unknown>;
@@ -394,9 +380,16 @@ export const trpc: any = {
   },
   certificates: {
     completionPercentage: q("certificates.completionPercentage", certificateCompletion),
-    isEligible: q("certificates.isEligible", async () => (await certificateCompletion()) >= 80),
+    isEligible: q("certificates.isEligible", certificateEligibility),
+    eligibilityReport: q("certificates.eligibilityReport", certificateEligibilityReport),
     myCertificate: q("certificates.myCertificate", myCertificate),
     issueCertificate: m(issueCertificate),
   },
-  moduleRatings: { get: q("moduleRatings.get", ratingGet), average: q("moduleRatings.average", ratingAverage), submit: m(ratingSubmit) },
+  // RATING_STATUS = DEFERRED_NO_SCHEMA — see services/quiz.ts / docs PHASE_2.
+  moduleRatings: {
+    get: q("moduleRatings.get", ratingDeferred),
+    average: q("moduleRatings.average", ratingDeferred),
+    submit: m(ratingDeferred),
+  },
 };
+

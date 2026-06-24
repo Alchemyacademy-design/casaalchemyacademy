@@ -15,6 +15,8 @@ import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
+import QuizCard from "@/manus/components/learning/QuizCard";
+
 
 type Lesson = {
   id: number;
@@ -120,6 +122,24 @@ export default function CourseDetail() {
     () => new Set<number>(progress.filter((p: { completed: boolean; lessonId: number }) => p.completed).map((p) => Number(p.lessonId))),
     [progress],
   );
+
+  // Course-level published quizzes (not bound to a specific lesson).
+  const courseQuizzesQuery = useQuery({
+    queryKey: ["course-quizzes", courseId],
+    enabled: Number.isFinite(courseId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .eq("course_id", courseId)
+        .eq("status", "published")
+        .is("lesson_id", null);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
+
+
 
   if (!Number.isFinite(courseId)) {
     return (
@@ -319,7 +339,18 @@ export default function CourseDetail() {
                 </div>
               </section>
             )}
+
+            {(courseQuizzesQuery.data ?? []).length > 0 && (
+              <section className="mb-8 space-y-4">
+                <h2 className="font-serif text-xl mb-3 text-foreground">Course quizzes</h2>
+                {(courseQuizzesQuery.data ?? []).map((q) => (
+                  <QuizCard key={q.id} quizId={q.id} />
+                ))}
+              </section>
+            )}
           </div>
+
+
 
           <aside className="space-y-4">
             <Card className="p-4">

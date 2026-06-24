@@ -20,6 +20,8 @@ import CompletionButton from "@/manus/components/learning/CompletionButton";
 import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
+import QuizCard from "@/manus/components/learning/QuizCard";
+
 
 
 export default function ModuleDetail() {
@@ -108,8 +110,27 @@ export default function ModuleDetail() {
     },
   });
 
+  // Lesson-level published quiz (if any). Members only ever see published rows.
+  const lessonQuizQuery = useQuery({
+    queryKey: ["lesson-quiz", "module", moduleId],
+    enabled: isValidModuleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,lesson_id")
+        .eq("status", "published")
+        .in(
+          "lesson_id",
+          (lessonsQuery.data ?? []).map((l: { id: number }) => l.id),
+        );
+      if (error) throw error;
+      return ((data ?? []) as Array<{ id: number; lesson_id: number | null }>);
+    },
+  });
+
   const appliedKeyRef = useRef<string | null>(null);
   useEffect(() => {
+
     if (!Number.isFinite(moduleId) || moduleId <= 0) return;
     if (!lessons.length) return;
     const hash = location.hash || "";
@@ -302,6 +323,20 @@ export default function ModuleDetail() {
                       url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
                     />
                   </div>
+
+                  {(() => {
+                    const quizForLesson = (lessonQuizQuery.data ?? []).find(
+                      (q) => q.lesson_id === activeLesson.id,
+                    );
+                    return quizForLesson ? (
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Knowledge check</p>
+                        <QuizCard quizId={quizForLesson.id} />
+                      </div>
+                    ) : null;
+                  })()}
+
+
 
                   {(() => {
                     const lessonUrl = `/modules/${moduleId}#lesson-${activeLesson.id}`;
