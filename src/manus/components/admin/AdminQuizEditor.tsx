@@ -1,13 +1,15 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Eye, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import QuizCard from "@/manus/components/learning/QuizCard";
 import {
   isQuestionPublishable,
   isQuizPublishable,
@@ -44,6 +46,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
   });
 
   const [activeQuizId, setActiveQuizId] = useState<number | null>(null);
+  const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
 
   const createQuiz = useMutation({
     mutationFn: async () => {
@@ -97,15 +100,41 @@ export default function AdminQuizEditor({ courseId }: Props) {
                 {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"}
               </p>
             </div>
-            <Button size="sm" variant="outline" onClick={() => setActiveQuizId(q.id)}>
-              {activeQuizId === q.id ? "Editing" : "Edit"}
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setPreviewQuizId((id) => (id === q.id ? null : q.id))}
+                title="Preview quiz without creating an attempt"
+              >
+                <Eye className="w-3 h-3 mr-1" />
+                {previewQuizId === q.id ? "Hide preview" : "Preview"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setActiveQuizId(q.id)}>
+                {activeQuizId === q.id ? "Editing" : "Edit"}
+              </Button>
+            </div>
           </div>
         ))}
         {(listQuery.data ?? []).length === 0 && !listQuery.isLoading && (
-          <p className="text-xs text-foreground/60">No quizzes yet.</p>
+          <div className="text-xs text-foreground/60 space-y-2">
+            <p>No quizzes yet.</p>
+            <Link
+              to="/admin/phase-2-preview#quiz"
+              className="inline-flex items-center gap-1 text-primary hover:text-primary/80"
+            >
+              <Eye className="w-3 h-3" /> Open design preview
+            </Link>
+          </div>
         )}
       </div>
+
+      {previewQuizId != null && (
+        <div className="border-t pt-4 space-y-2">
+          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Preview · no attempt is recorded</p>
+          <QuizCard quizId={previewQuizId} previewAsAdmin />
+        </div>
+      )}
 
       {activeQuizId != null && (
         <QuizEditor quizId={activeQuizId} courseId={courseId} onClose={() => setActiveQuizId(null)} />
