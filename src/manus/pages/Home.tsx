@@ -3,7 +3,7 @@ import SubscribeModal from "@/manus/components/SubscribeModal";
 import { getLoginUrl } from "@/manus/const";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
 
@@ -93,14 +93,14 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
-  const coursesQuery = usePublishedCourses(12);
+  // Admins see drafts on the real Home (behind an Admin Preview badge); the
+  // hook still filters archived rows and RLS remains the authority.
+  const coursesQuery = useHomeCourses({ includeDrafts: isAdmin });
   // P0 hardening: never let an unexpected query payload crash the landing.
-  // Treat anything that is not a real array as "no DB courses" and fall back
-  // to the static curriculum, so Hero + Benefits + Curriculum always render.
   const dbCourses = Array.isArray(coursesQuery.data) ? coursesQuery.data : [];
   const coursesFailed = coursesQuery.isError;
 
@@ -113,9 +113,11 @@ export default function Home() {
     thumbnail: string | null;
     href?: string;
     comingSoon?: boolean;
+    isDraft?: boolean;
+    isAdminPreview?: boolean;
   };
-  // Prefer DB-published courses; fall back to the static curriculum copy
-  // when DB is empty OR the query failed.
+  // Prefer DB courses; fall back to the static curriculum copy when DB is
+  // empty OR the query failed.
   const displayModules: DisplayModule[] = (dbCourses.length > 0
     ? dbCourses.map((c, i): DisplayModule => {
         const row = (c ?? {}) as {
@@ -128,16 +130,19 @@ export default function Home() {
           cover_image_url?: string | null;
           thumbnail_url?: string | null;
         };
+        const isPublished = row.status === "published";
+        const isDraft = !isPublished;
         return {
           id: row.id ?? i + 1,
           title: row.title ?? "Untitled",
           tagline: row.tagline ?? row.description ?? "",
           lessons: [],
-          available: row.status === "published",
-          // cover_image_path is the canonical DB column; cover_image_url is
-          // kept only as a backwards-compatibility fallback.
+          // Admins can open drafts; visitors only see published courses.
+          available: isPublished || isAdmin,
           thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? null,
           href: `/courses/${row.id}`,
+          isDraft,
+          isAdminPreview: isAdmin && isDraft,
         };
       })
     : MODULES.map((m): DisplayModule => ({ ...m, href: undefined }))
