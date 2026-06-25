@@ -448,19 +448,26 @@ dropping.
 ## 14. Final decision
 
 ```
-PHASE_0_STATUS=COMPLETE
-PHASE_1A_STATUS=FINAL_AUDIT_COMPLETE
-WORKING_BRANCH_STATUS=ACTIVE                  (human-verify on GitHub)
-PULL_REQUEST_STATUS=OPEN_DRAFT                (human-verify on GitHub)
-CI_STATUS=GREEN                               (human-verify on GitHub Actions; local typecheck+tests PASS)
-FINAL_MIGRATION_AUDIT=PASSED
-MIGRATION_STATUS=READY_FOR_EXPLICIT_APPROVAL
-QUIZ_RUNTIME_STATUS=BLOCKED_BY_MISSING_RPC
-RATING_RUNTIME_STATUS=BLOCKED_BY_MISSING_DATABASE_OBJECTS
-STRIPE_STATUS=ADIADO
-SCHEMA_DATA_STRIPE_CHANGES=ZERO
+PHASE_0_STATUS              = COMPLETE
+PHASE_1A_STATUS             = CORRECTIONS_APPLIED
+WORKING_BRANCH_STATUS       = PENDING_HUMAN_REBASE     (commits land on main; must be cherry-picked onto prelaunch/phase-0-1-hardening)
+PULL_REQUEST_STATUS         = PENDING_HUMAN_REFRESH    (PR #1 HEAD must be updated)
+CI_LOCAL_STATUS             = GREEN                    (typecheck PASS; 200/200 tests PASS)
+CI_REMOTE_STATUS            = PENDING_HUMAN_PUSH
+GENERATED_TYPES_CHECK       = PASS
+LIVE_DATABASE_SCHEMA_CHECK  = NOT_AVAILABLE
+DRY_RUN_STATUS              = NOT_AVAILABLE
+MIGRATION_PROMOTION_STATUS  = BLOCKED_BY_RUNNER
+MIGRATION_SHA256            = 9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060
+FINAL_MIGRATION_AUDIT       = CORRECTIONS_REQUIRED     (live-schema check + remote CI run pending)
+MIGRATION_STATUS            = AWAITING_EXPLICIT_APPROVAL
+QUIZ_RUNTIME_STATUS         = BLOCKED_BY_MISSING_RPC
+RATING_RUNTIME_STATUS       = BLOCKED_BY_MISSING_DATABASE_OBJECTS
+STRIPE_STATUS               = ADIADO
+SCHEMA_DATA_STRIPE_CHANGES  = ZERO
 ```
 
-Stopping here. No migration applied. No data altered. No PR merged. No
-edge function redeployed. No `APPROVE_PRELAUNCH_MIGRATION` token consumed.
-Awaiting external auditor.
+Stopping here. No migration applied. No Supabase object touched. No data
+altered. No PR merged. No edge function redeployed. No
+`APPROVE_PRELAUNCH_MIGRATION` token consumed. Awaiting external auditor.
+
