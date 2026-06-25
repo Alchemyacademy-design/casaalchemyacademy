@@ -243,10 +243,15 @@ export async function submitAttempt(quizId: number, selections: SelectionMap): P
       quiz_unavailable: "This quiz is no longer available.",
       forbidden: "You do not have access to this quiz.",
       no_attempts_remaining: "You have no attempts remaining.",
+      admin_preview_blocked: "Admin preview cannot record attempts.",
       invalid_question_ref: "One of the answers is invalid. Please reload and try again.",
       invalid_option_ref: "One of the answers is invalid. Please reload and try again.",
+      duplicate_question: "Each question can only be answered once.",
+      missing_answer: "Please answer every question before submitting.",
+      extra_answer: "Submission contains an answer to an unknown question.",
+      submission_failed: "Could not submit your quiz. Please try again.",
     };
-    throw new Error(map[data.error] ?? data.message ?? data.error);
+    throw new Error(map[data.error] ?? "Could not submit your quiz. Please try again.");
   }
   return {
     score: data.score,
