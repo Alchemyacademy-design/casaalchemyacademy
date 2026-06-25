@@ -239,7 +239,9 @@ grant all on public.module_ratings to service_role;
 
 alter table public.module_ratings enable row level security;
 
-create or replace function public.can_access_module(_user_id uuid, _module_id bigint)
+-- can_access_module ALWAYS uses auth.uid() — no caller-supplied user id, so
+-- one authenticated user cannot probe another user's access state.
+create or replace function public.can_access_module(_module_id bigint)
 returns boolean
 language sql stable security definer set search_path = ''
 as $$
@@ -250,17 +252,18 @@ as $$
     join public.courses c on c.id = cm.course_id
     where cm.id = _module_id
   )
-  select exists(select 1 from m where module_id is not null and archived_at is null and course_archived_at is null)
+  select auth.uid() is not null
+    and exists(select 1 from m where module_id is not null and archived_at is null and course_archived_at is null)
     and (
-      exists(select 1 from public.user_roles where user_id = _user_id and role = 'admin')
+      exists(select 1 from public.user_roles where user_id = auth.uid() and role = 'admin')
       or exists(
         select 1 from public.memberships
-        where user_id = _user_id and status = 'active' and ends_at > now()
+        where user_id = auth.uid() and status = 'active' and ends_at > now()
       )
       or exists(
         select 1 from m
         join public.course_entitlements e on e.course_id = m.course_id
-        where e.user_id = _user_id and e.active = true and e.ends_at > now()
+        where e.user_id = auth.uid() and e.active = true and e.ends_at > now()
       )
       or exists(
         select 1 from m
@@ -270,8 +273,8 @@ as $$
       )
     );
 $$;
-revoke all on function public.can_access_module(uuid, bigint) from public;
-grant execute on function public.can_access_module(uuid, bigint) to authenticated, service_role;
+revoke all on function public.can_access_module(bigint) from public;
+grant execute on function public.can_access_module(bigint) to authenticated, service_role;
 
 drop policy if exists "module_ratings_select_own" on public.module_ratings;
 create policy "module_ratings_select_own" on public.module_ratings
@@ -281,13 +284,13 @@ create policy "module_ratings_select_own" on public.module_ratings
 drop policy if exists "module_ratings_insert_own" on public.module_ratings;
 create policy "module_ratings_insert_own" on public.module_ratings
   for insert to authenticated
-  with check (user_id = auth.uid() and public.can_access_module(auth.uid(), module_id));
+  with check (user_id = auth.uid() and public.can_access_module(module_id));
 
 drop policy if exists "module_ratings_update_own" on public.module_ratings;
 create policy "module_ratings_update_own" on public.module_ratings
   for update to authenticated
   using (user_id = auth.uid())
-  with check (user_id = auth.uid() and public.can_access_module(auth.uid(), module_id));
+  with check (user_id = auth.uid() and public.can_access_module(module_id));
 
 drop policy if exists "module_ratings_delete_own" on public.module_ratings;
 create policy "module_ratings_delete_own" on public.module_ratings
@@ -303,22 +306,32 @@ create trigger module_ratings_set_updated_at
   before update on public.module_ratings
   for each row execute function public.touch_module_ratings_updated_at();
 
+-- module_rating_summary returns the average, total count, AND the caller's
+-- own rating (null when the caller has not rated yet).
 create or replace function public.module_rating_summary(p_module_id bigint)
-returns table(avg_rating numeric, total integer)
+returns table(avg_rating numeric, total integer, user_rating smallint)
 language plpgsql stable security definer set search_path = ''
 as $$
 begin
   if auth.uid() is null then raise exception 'unauthorized'; end if;
-  if not public.can_access_module(auth.uid(), p_module_id) then
+  if not public.can_access_module(p_module_id) then
     raise exception 'forbidden';
   end if;
   return query
-    select coalesce(avg(rating)::numeric(3,2), 0)::numeric, count(*)::int
-    from public.module_ratings
-    where module_id = p_module_id;
+    select
+      coalesce(avg(r.rating)::numeric(3,2), 0)::numeric,
+      count(*)::int,
+      (select mr.rating from public.module_ratings mr
+        where mr.module_id = p_module_id and mr.user_id = auth.uid())
+    from public.module_ratings r
+    where r.module_id = p_module_id;
 end;
 $$;
 
 revoke all on function public.module_rating_summary(bigint) from public;
 grant execute on function public.module_rating_summary(bigint) to authenticated;
+-- anon is intentionally NOT granted.
+
+commit;
+
 -- anon is intentionally NOT granted.
