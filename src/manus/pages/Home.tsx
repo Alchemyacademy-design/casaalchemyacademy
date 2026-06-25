@@ -255,12 +255,12 @@ export default function Home() {
             <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
               Our Courses
             </h2>
-            <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+            <p style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
               Each area takes you to a new path of knowledge. Explore them all with a subscription or take a slow walk by acquiring them individually.
             </p>
           </div>
           {coursesFailed ? (
-            <div role="status" className="mb-6" style={{ padding: "0.75rem 1rem", border: "1px solid var(--aa-cream-dark)", background: "rgba(0,0,0,0.03)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-mid)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <div role="status" className="mb-6" style={{ padding: "0.75rem 1rem", border: "1px solid var(--aa-cream-dark)", background: "rgba(0,0,0,0.03)", fontFamily: "'Manrope', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-mid)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
               <span>The latest course catalogue could not load. Showing the standard curriculum below.</span>
               <button type="button" onClick={() => coursesQuery.refetch()} style={{ background: "transparent", border: "1px solid var(--aa-text-mid)", padding: "0.25rem 0.75rem", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer" }}>Retry</button>
             </div>
