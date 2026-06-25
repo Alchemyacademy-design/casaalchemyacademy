@@ -12,11 +12,12 @@ import { MemoryRouter } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/manus/hooks/useAuth", () => ({
-  useAuth: () => ({ user: null, isAuthenticated: false }),
+  useAuth: () => ({ user: null, isAuthenticated: false, isAdmin: false }),
 }));
 
 vi.mock("@/manus/hooks/usePublicContent", () => ({
   usePublishedCourses: () => ({ data: [] }),
+  useHomeCourses: () => ({ data: [], isError: false, refetch: () => {} }),
 }));
 
 // Tripwire: any attempt to invoke Stripe checkout from Home must fail the test.
