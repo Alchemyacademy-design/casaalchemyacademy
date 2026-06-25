@@ -132,20 +132,41 @@ edge-function-only reads.
 
 | Case | Behavior |
 |---|---|
-| Quiz has no questions | `v_expected_q = []`; if `p_answers` is also empty, `v_total_points = 0`, `v_score = 0`, `v_passed = false`. Attempt is still recorded. **Acceptable but consider gating publication in the editor (already enforced by `isQuestionPublishable`).** |
+| Quiz has no questions | **REJECTED** — RPC raises `quiz_has_no_questions` and returns before inserting any attempt row. (Fixed in Phase 1A correction.) |
 | `passing_score` is null | Schema defines `passing_score number` (NOT NULL, default present); RPC guards via `coalesce(v_quiz.passing_score, 0)`. SAFE. |
 | `max_attempts` null | Treated as unlimited; `v_remaining` returns null. SAFE. |
-| `p_answers` empty array | `jsonb_typeof = 'array'` passes; loop no-ops; `missing_answer` raised if quiz has questions. SAFE. |
+| `p_answers` empty array | `jsonb_typeof = 'array'` passes; if quiz has questions, `missing_answer` is raised. SAFE. |
 | Non-numeric `question_id` / `option_id` | `(v_answer->>'question_id')::bigint` raises `invalid_text_representation`; mapped to generic `submission_failed` by edge function. SAFE (no data written; transaction rolled back). |
 | Malformed JSON | Rejected by edge function `parseBody` before reaching RPC. SAFE. |
 | Expired entitlement | `e.ends_at > v_now` excludes; falls back to other access tests. SAFE. |
 | Expired membership | `m.status = 'active' and m.ends_at > v_now`. SAFE. |
-| Archived course | excluded in both membership/entitlement free/guest checks via `c.archived_at is null` clause; entitlement check does not re-check archived. **Minor finding: entitlement branch (L125-129) does not join `courses` to verify `archived_at is null`. An archived course with an active entitlement would still grant access.** Mitigated because archiving a course currently goes hand-in-hand with unpublishing the quiz (status `published` check at L110). Recommend tightening before final apply. |
+| Archived course + active entitlement | **DENIED** — entitlement branch now joins `public.courses` and requires `c.archived_at is null`. (Fixed in Phase 1A correction.) |
+| Archived course + active membership | **DENIED** — membership branch now joins `public.courses` and requires `c.archived_at is null`. |
+| Archived course + free/guest | DENIED — already gated by `c.archived_at is null`. |
 | Simultaneous double submission | Advisory lock serializes; second call waits for first's transaction commit, then re-reads `v_submitted_count` and raises `no_attempts_remaining` if cap reached. SAFE. |
 
-**Findings to track (non-blocking for migration apply, but document):**
-- F-1: Entitlement branch does not re-check `courses.archived_at` (severity: low; mitigated by `status='published'` requirement).
-- F-2: `coalesce(o.is_correct, false)` in answer insert relies on left join; if `option_id` is invalid this would be silently graded as wrong, but the earlier `invalid_option_ref` check prevents this branch. SAFE.
+### 4.1 Phase 1A blockers — resolved
+
+- **B-1 (archived course + entitlement granted access)**: FIXED. The
+  entitlement branch in `internal_submit_quiz_attempt` now joins
+  `public.courses` and requires `c.archived_at is null`. The same constraint
+  is also applied to the membership branch. `public.can_access_module` was
+  re-verified: its CTE `m` already filters `cm.archived_at is null` and
+  `c.archived_at is null`, and the outer `EXISTS` predicate forces every
+  access branch to flow through `m`, so the function correctly denies access
+  to modules of archived courses regardless of entitlement state.
+- **B-2 (quiz without questions could be submitted)**: FIXED. The RPC now
+  raises `quiz_has_no_questions` immediately after loading `v_expected_q`,
+  before any `INSERT` into `quiz_attempts`. No partial attempt is recorded.
+
+Tests covering both fixes live in
+`src/manus/services/quiz.migration.test.ts` (static SQL guards; runs in CI).
+
+**Remaining findings (non-blocking):**
+- F-2: `coalesce(o.is_correct, false)` in answer insert relies on left join;
+  if `option_id` is invalid this would be silently graded as wrong, but the
+  earlier `invalid_option_ref` check prevents this branch. SAFE.
+
 
 ## 5. `module_ratings` audit (Etapa 5)
 
