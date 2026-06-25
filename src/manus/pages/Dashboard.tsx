@@ -1,28 +1,41 @@
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { ArrowRight, BookOpen, Calendar, Clock, TrendingUp } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { CertificateSection } from "@/manus/components/CertificateSection";
+import {
+  MemberPage,
+  MemberPageHeader,
+  ProgressBar,
+  SectionHeader,
+  StatCard,
+  StatusPill,
+} from "@/manus/components/member/MemberUI";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, BookOpen, TrendingUp, Calendar, Clock } from "lucide-react";
-import { Link } from "react-router-dom";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
 import { getCoursesTree } from "@/manus/services/admin-content";
-import { useUpcomingEvents, useUpcomingWorkshops, useRegisterForTarget, useMyRegistrations } from "@/manus/hooks/usePublicContent";
+import {
+  useMyRegistrations,
+  useRegisterForTarget,
+  useUpcomingEvents,
+  useUpcomingWorkshops,
+} from "@/manus/hooks/usePublicContent";
 
 export default function Dashboard() {
   const navigate = useNavigate();
   const { user, loading, isAuthenticated, isAdmin } = useAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      navigate("/login");
-    }
+    if (!loading && !isAuthenticated) navigate("/login");
   }, [isAuthenticated, loading, navigate]);
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
-  const memberModules = trpc.modules.list.useQuery(undefined, { enabled: !isAdmin, staleTime: 5 * 60 * 1000 });
+  const memberModules = trpc.modules.list.useQuery(undefined, {
+    enabled: !isAdmin,
+    staleTime: 5 * 60 * 1000,
+  });
   const adminModules = useQuery({
     queryKey: ["dashboard", "admin-modules"],
     enabled: isAdmin,
@@ -41,14 +54,15 @@ export default function Dashboard() {
       );
     },
   });
+
   const modules = isAdmin ? (adminModules.data ?? []) : (memberModules.data ?? []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="aa-member-shell flex min-h-screen items-center justify-center" role="status" aria-live="polite">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
-          <p className="text-foreground/70">Loading...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-secondary border-t-accent" />
+          <p className="text-sm text-muted-foreground">Loading your dashboard…</p>
         </div>
       </div>
     );
@@ -56,210 +70,250 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return null;
 
-  // Show all accessible courses/modules, prioritising the ones the user has touched.
   const allModules = modules as ModuleRow[];
-  const startedIds = new Set((progress as ProgressRow[]).map((p) => p.moduleId));
+  const progressRows = progress as ProgressRow[];
+  const startedIds = new Set(progressRows.map((item) => item.moduleId));
   const enrolledModules = isAdmin
     ? allModules
     : [
-        ...allModules.filter((m) => startedIds.has(m.id)),
-        ...allModules.filter((m) => !startedIds.has(m.id)),
+        ...allModules.filter((module) => startedIds.has(module.id)),
+        ...allModules.filter((module) => !startedIds.has(module.id)),
       ];
 
-  const totalLessons = (modules as ModuleRow[]).reduce((sum: number, m) => sum + (m.lessonCount || 0), 0);
-  const completedLessons = (progress as ProgressRow[]).filter((p) => p.completed).length;
+  const totalLessons = allModules.reduce((sum, module) => sum + (module.lessonCount || 0), 0);
+  const completedLessons = progressRows.filter((item) => item.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
+  const accessLabel = isAdmin
+    ? "Administrator"
+    : ((user as { membershipTier?: string } | null)?.membershipTier || "Free access");
+
+  const primaryCourseId = (allModules.find((module) => module.course_id != null)?.course_id ?? null) as
+    | number
+    | string
+    | null;
+  const primaryCourseTitle = (
+    allModules.find((module) => module.course_id != null) as { course_title?: string } | undefined
+  )?.course_title ?? null;
 
   return (
     <MemberLayout>
-      <div className="p-6 md:p-10">
-        {/* Welcome Section */}
-        <div className="mb-12">
-          <p className="section-label mb-2">Welcome Back</p>
-          <h1 className="font-serif text-3xl md:text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-            {user?.name || "Alchemist"}
-          </h1>
-          <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
-            Your access: <span style={{ color: "var(--aa-gold)", fontWeight: 500 }}>{isAdmin ? "Administrator" : ((user as { membershipTier?: string } | null)?.membershipTier || "Free")}</span>
-          </p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          {/* Overall Progress */}
-          <div className="p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  Overall Progress
-                </p>
-                <p className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                  {overallProgress}%
-                </p>
-              </div>
-              <TrendingUp size={24} style={{ color: "var(--aa-gold)" }} />
+      <MemberPage>
+        <MemberPageHeader
+          eyebrow="Your Academy"
+          title={<>Welcome back, {user?.name || "Alchemist"}</>}
+          description={
+            <div className="flex flex-wrap items-center gap-2">
+              <span>Continue building confidence through every room, lesson and decision.</span>
+              <StatusPill tone={isAdmin ? "accent" : "neutral"}>{accessLabel}</StatusPill>
             </div>
-            <div className="h-1 w-full" style={{ backgroundColor: "var(--aa-cream-dark)" }}>
-              <div className="h-1" style={{ width: `${overallProgress}%`, backgroundColor: "var(--aa-gold)" }} />
-            </div>
-          </div>
+          }
+          action={
+            <Link
+              to="/mycourses"
+              className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground transition hover:bg-primary/90"
+            >
+              Browse courses <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+          }
+        />
 
-          {/* Lessons Completed */}
-          <div className="p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-xs mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-                  Lessons Completed
-                </p>
-                <p className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                  {completedLessons}
-                </p>
-              </div>
-              <BookOpen size={24} style={{ color: "var(--aa-gold)" }} />
-            </div>
-            <p className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
-              of {totalLessons} total lessons
-            </p>
-          </div>
-        </div>
+        <section className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Learning summary">
+          <StatCard
+            label="Overall progress"
+            value={`${overallProgress}%`}
+            detail={totalLessons > 0 ? `${completedLessons} of ${totalLessons} lessons complete` : "Your progress will appear here."}
+            icon={<TrendingUp className="h-6 w-6" />}
+            progress={overallProgress}
+          />
+          <StatCard
+            label="Lessons completed"
+            value={completedLessons}
+            detail={totalLessons > 0 ? `${Math.max(totalLessons - completedLessons, 0)} lessons remaining` : "Start a course to begin tracking."}
+            icon={<BookOpen className="h-6 w-6" />}
+          />
+        </section>
 
-        {/* Coming Up Section — dynamic */}
         <ComingUp />
 
+        <section className="mb-12">
+          <SectionHeader
+            title="Your certificate"
+            description="Completion milestones and certificate eligibility stay connected to your primary course."
+          />
+          <div className="aa-panel overflow-hidden p-1 sm:p-2">
+            <CertificateSection
+              courseId={primaryCourseId != null ? Number(primaryCourseId) : null}
+              courseTitle={primaryCourseTitle}
+            />
+          </div>
+        </section>
 
-        {/* Certificate Section — scoped to the user's primary course. */}
-        {(() => {
-          const primaryCourseId = (allModules.find((m) => m.course_id != null)?.course_id ?? null) as number | string | null;
-          const primaryCourseTitle =
-            (allModules.find((m) => m.course_id != null) as { course_title?: string } | undefined)?.course_title ?? null;
-          return (
-            <div className="mb-12">
-              <CertificateSection
-                courseId={primaryCourseId != null ? Number(primaryCourseId) : null}
-                courseTitle={primaryCourseTitle}
-              />
-            </div>
-          );
-        })()}
+        <section className="mb-4">
+          <SectionHeader
+            title="Continue learning"
+            description="Return to what you started or choose the next module in your path."
+            action={
+              <Link to="/mycourses" className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+                View all <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            }
+          />
 
-
-        {/* Continue Learning */}
-        {enrolledModules.length > 0 ? (
-          <div className="mb-12">
-            <h2 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-              Continue Learning
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {enrolledModules.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               {enrolledModules.slice(0, 4).map((module: ModuleRow) => {
-                const courseId = typeof module.course_id === "number" || typeof module.course_id === "string" ? module.course_id : null;
-                const moduleProgress = (progress as ProgressRow[]).filter((p) => p.moduleId === module.id);
+                const courseId =
+                  typeof module.course_id === "number" || typeof module.course_id === "string"
+                    ? module.course_id
+                    : null;
+                const moduleProgress = progressRows.filter((item) => item.moduleId === module.id);
                 const lessonCount = module.lessonCount ?? 0;
-                const completedHere = moduleProgress.filter((p) => p.completed).length;
-                const pct = lessonCount > 0 ? Math.round((completedHere / lessonCount) * 100) : 0;
+                const completedHere = moduleProgress.filter((item) => item.completed).length;
+                const percent = lessonCount > 0 ? Math.round((completedHere / lessonCount) * 100) : 0;
                 const href = courseId ? `/courses/${courseId}` : `/modules/${module.id}`;
 
                 return (
-                  <Link
-                    key={module.id}
-                    to={href}
-                    className="block p-6 module-card-hover"
-                    style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <span className="font-serif text-2xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>
-                        {String(module.number).padStart(2, "0")}
-                      </span>
-                      <span className="text-xs" style={{ color: "var(--aa-text-light)", fontFamily: "'Manrope', sans-serif" }}>
-                        {pct}% done
-                      </span>
+                  <Link key={module.id} to={href} className="aa-panel group block p-5 transition hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-float">
+                    <div className="mb-5 flex items-start justify-between gap-4">
+                      <div>
+                        <p className="aa-eyebrow">Module {String(module.number ?? 0).padStart(2, "0")}</p>
+                        <h3 className="font-serif text-2xl leading-tight text-primary">{module.title}</h3>
+                      </div>
+                      <StatusPill tone={percent === 100 ? "success" : percent > 0 ? "accent" : "neutral"}>
+                        {percent === 100 ? "Complete" : percent > 0 ? "In progress" : "Not started"}
+                      </StatusPill>
                     </div>
-                    <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-                      {module.title}
-                    </h3>
-                    <div className="h-1 w-full mb-3" style={{ backgroundColor: "var(--aa-cream-dark)" }}>
-                      <div className="h-1" style={{ width: `${pct}%`, backgroundColor: "var(--aa-gold)" }} />
-                    </div>
-                    <div className="flex items-center gap-1 text-xs" style={{ color: "var(--aa-olive-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}>
-                      {pct > 0 ? "Continue" : "Start"} <ArrowRight size={12} />
+                    <ProgressBar value={percent} label={`${completedHere} of ${lessonCount} lessons`} />
+                    <div className="mt-5 inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+                      {percent > 0 ? "Continue" : "Start"}
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
                     </div>
                   </Link>
                 );
               })}
             </div>
-          </div>
-        ) : (
-          <div className="mb-12 p-6" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            <h2 className="font-serif text-2xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
-              Start Learning
-            </h2>
-            <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif" }}>
-              Explore the curriculum and begin your journey.
-            </p>
-            <Link
-              to="/mycourses"
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm rounded"
-              style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-cacao)", fontFamily: "'Manrope', sans-serif", fontWeight: 500 }}
-            >
-              Browse courses <ArrowRight size={14} />
-            </Link>
-          </div>
-        )}
-      </div>
+          ) : (
+            <div className="aa-empty-state">
+              <BookOpen className="mx-auto mb-3 h-6 w-6 text-accent" />
+              <h3 className="font-serif text-2xl text-primary">Your learning path is ready</h3>
+              <p className="mx-auto mt-2 max-w-md text-sm leading-7">
+                Explore the curriculum and open your first course to begin tracking progress.
+              </p>
+              <Link
+                to="/mycourses"
+                className="mt-5 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground"
+              >
+                Browse courses <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
+        </section>
+      </MemberPage>
     </MemberLayout>
   );
 }
 
-function fmtDate(iso: string) { return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }); }
-function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); }
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+}
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
 
 function ComingUp() {
   const { isAuthenticated } = useAuth();
   const { data: workshops = [] } = useUpcomingWorkshops();
   const { data: events = [] } = useUpcomingEvents();
-  const { data: regs = [] } = useMyRegistrations();
+  const { data: registrations = [] } = useMyRegistrations();
   const register = useRegisterForTarget();
-  const w = workshops[0];
-  const e = events[0];
-  const wReg = w ? regs.some(r => r.live_workshop_id === w.id) : false;
-  const eReg = e ? regs.some(r => r.event_id === e.id) : false;
-  if (!w && !e) return null;
+  const workshop = workshops[0];
+  const event = events[0];
+  const workshopRegistered = workshop
+    ? registrations.some((registration) => registration.live_workshop_id === workshop.id)
+    : false;
+  const eventRegistered = event ? registrations.some((registration) => registration.event_id === event.id) : false;
+
+  if (!workshop && !event) return null;
 
   return (
-    <div className="mb-12">
-      <h2 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Coming Up</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {w && (
-          <div className="p-6 rounded-lg" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2"><Calendar size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtDate(w.starts_at)}</span></div>
-              <div className="flex items-center gap-2"><Clock size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtTime(w.starts_at)}{w.ends_at ? ` – ${fmtTime(w.ends_at)}` : ""}</span></div>
-            </div>
-            <h3 className="font-serif text-lg mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{w.title}</h3>
-            <button className="w-full px-4 py-2 rounded text-sm font-medium disabled:opacity-60"
-              style={{ backgroundColor: wReg ? "var(--aa-cream-dark)" : "var(--aa-gold)", color: "var(--aa-cacao)" }}
-              disabled={wReg || register.isPending || !isAuthenticated}
-              onClick={() => register.mutate({ target_type: "live_workshop", target_id: w.id })}>
-              {wReg ? "Registered" : "Register"}
-            </button>
-          </div>
-        )}
-        {e && (
-          <div className="p-6 rounded-lg" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            <div className="mb-4">
-              <div className="flex items-center gap-2 mb-2"><Calendar size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtDate(e.starts_at)}</span></div>
-              <div className="flex items-center gap-2"><Clock size={16} style={{ color: "var(--aa-gold)" }} /><span className="text-sm" style={{ color: "var(--aa-text-light)" }}>{fmtTime(e.starts_at)}{e.ends_at ? ` – ${fmtTime(e.ends_at)}` : ""}</span></div>
-            </div>
-            <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{e.title}</h3>
-            {e.description && <p className="text-xs mb-4" style={{ color: "var(--aa-text-light)" }}>{e.description}</p>}
-            <button className="w-full px-4 py-2 rounded text-sm font-medium disabled:opacity-60"
-              style={{ backgroundColor: eReg ? "var(--aa-cream-dark)" : "var(--aa-gold)", color: "var(--aa-cacao)" }}
-              disabled={eReg || register.isPending || !isAuthenticated}
-              onClick={() => register.mutate({ target_type: "event", target_id: e.id })}>
-              {eReg ? "Registered" : "Register"}
-            </button>
-          </div>
-        )}
+    <section className="mb-12">
+      <SectionHeader title="Coming up" description="Your next live moments inside the Academy." />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {workshop ? (
+          <UpcomingCard
+            eyebrow="Live workshop"
+            title={workshop.title}
+            startsAt={workshop.starts_at}
+            endsAt={workshop.ends_at}
+            registered={workshopRegistered}
+            pending={register.isPending}
+            enabled={isAuthenticated}
+            onRegister={() => register.mutate({ target_type: "live_workshop", target_id: workshop.id })}
+          />
+        ) : null}
+        {event ? (
+          <UpcomingCard
+            eyebrow="Event"
+            title={event.title}
+            description={event.description}
+            startsAt={event.starts_at}
+            endsAt={event.ends_at}
+            registered={eventRegistered}
+            pending={register.isPending}
+            enabled={isAuthenticated}
+            onRegister={() => register.mutate({ target_type: "event", target_id: event.id })}
+          />
+        ) : null}
       </div>
-    </div>
+    </section>
+  );
+}
+
+function UpcomingCard({
+  eyebrow,
+  title,
+  description,
+  startsAt,
+  endsAt,
+  registered,
+  pending,
+  enabled,
+  onRegister,
+}: {
+  eyebrow: string;
+  title: string;
+  description?: string | null;
+  startsAt: string;
+  endsAt?: string | null;
+  registered: boolean;
+  pending: boolean;
+  enabled: boolean;
+  onRegister: () => void;
+}) {
+  return (
+    <article className="aa-panel p-5">
+      <p className="aa-eyebrow">{eyebrow}</p>
+      <h3 className="font-serif text-2xl text-primary">{title}</h3>
+      {description ? <p className="mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground">{description}</p> : null}
+      <div className="mt-5 grid gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-accent" />
+          <span>{formatDate(startsAt)}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Clock className="h-4 w-4 text-accent" />
+          <span>{formatTime(startsAt)}{endsAt ? ` – ${formatTime(endsAt)}` : ""}</span>
+        </div>
+      </div>
+      <button
+        type="button"
+        className="mt-5 w-full rounded-md border border-primary bg-primary px-4 py-2.5 text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground transition disabled:cursor-not-allowed disabled:border-border disabled:bg-secondary disabled:text-muted-foreground"
+        disabled={registered || pending || !enabled}
+        onClick={onRegister}
+      >
+        {registered ? "Registered" : pending ? "Registering…" : "Register"}
+      </button>
+    </article>
   );
 }
