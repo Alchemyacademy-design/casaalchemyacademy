@@ -12,6 +12,7 @@
 // All checks use service-role and never depend on what the browser sends.
 
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type SupabaseLike = any;
 
 export type AccessDecision = {
