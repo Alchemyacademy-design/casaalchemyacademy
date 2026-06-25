@@ -391,25 +391,42 @@ set role authenticated; select public.internal_submit_quiz_attempt(auth.uid(),1,
 
 ## 11. Git state — human-verification required
 
-The Lovable agent cannot run stateful git commands (branch creation, PR
-open/close/merge, remote CI status). Before the operator may issue
-`APPROVE_PRELAUNCH_MIGRATION`, they must confirm on GitHub:
+The Lovable agent cannot run stateful git commands (branch creation, switch,
+PR open/close/merge, remote CI status). All file edits in this turn must be
+manually placed on `prelaunch/phase-0-1-hardening` by the operator.
 
-- [ ] Branch `prelaunch/phase-0-1-hardening` exists at SHA `36a6e5a…390a` or a descendant.
+**Governance violations recorded (historical):**
+1. The prior revision of this audit (`6a7d8f16…9006cb` hash, "PASSED"
+   verdict) was committed to `main` because the agent cannot create or
+   switch branches.
+2. The Phase 1A correction in this turn (new hash `9b2b72af…9060`, the
+   `quiz.migration.test.ts` test, and the updated SQL) is also being
+   committed where the sandbox writes — `main`. The operator must
+   cherry-pick / rebase these commits onto `prelaunch/phase-0-1-hardening`
+   and ensure no further `main` commits land for this work, then refresh
+   PR #1.
+
+Before the operator may issue `APPROVE_PRELAUNCH_MIGRATION`, they must
+confirm on GitHub:
+
+- [ ] Branch `prelaunch/phase-0-1-hardening` contains: updated SQL, updated
+      audit, and `quiz.migration.test.ts`.
+- [ ] PR #1 HEAD reflects the new SHA-256 `9b2b72af…9060`.
 - [ ] PR #1 is OPEN and DRAFT.
-- [ ] GitHub Actions on the latest PR commit report: typecheck PASS, test PASS, lint PASS, build PASS.
-- [ ] No commits landed directly on `main` for this work.
-
-The agent has produced no commits in this turn.
+- [ ] GitHub Actions on the PR HEAD reports typecheck PASS, test PASS,
+      lint PASS, build PASS. Record `REMOTE_CI_RUN_ID` and `REMOTE_CI_HEAD`.
+- [ ] No further commits landed directly on `main` for this work.
 
 ## 12. Risks remaining
 
 | ID | Severity | Description | Mitigation |
 |---|---|---|---|
-| R-1 | Low | Entitlement access branch does not re-check `courses.archived_at`. | Quiz must be `published` (L110); archiving a course flips publication. Tighten in a follow-up. |
+| R-1 | ~~Low~~ RESOLVED | Entitlement access branch did not re-check `courses.archived_at`. | FIXED in Phase 1A correction (entitlement + membership branches now JOIN `public.courses` with `archived_at is null`). Covered by `quiz.migration.test.ts`. |
 | R-2 | Low | `module_ratings` rollback after first insert destroys data. | Documented L19-24; require pg_dump prior to downgrade. |
-| R-3 | Low | Admin editor still writes to `quiz_options` via PostgREST. | Existing admin RLS policies + table-level grants for `authenticated` retain `INSERT/UPDATE/DELETE` — confirmed unchanged by the migration. |
+| R-3 | Low | Admin editor writes (INSERT/UPDATE/DELETE) to `quiz_options` via PostgREST. | Existing admin RLS policies + table-level grants for `authenticated` retain only writes — confirmed unchanged by the migration; no SELECT remains. |
 | R-4 | Informational | `quiz_attempts` has `submitted_at`/`started_at` but no `updated_at` trigger asserted by this migration. | Out of scope; existing schema. |
+| R-5 | Medium | `LIVE_DATABASE_SCHEMA_CHECK = NOT_AVAILABLE`. | Operator must run §10 queries against `omzwtfnqffseemrlylwu` and attach results before approval. |
+
 
 ## 13. Rollback (DDL only, repeated for convenience)
 
