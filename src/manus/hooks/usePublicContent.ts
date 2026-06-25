@@ -166,8 +166,37 @@ export function usePublishedCourses(limit?: number) {
   return useQuery({
     queryKey: ["public", "courses", limit ?? "all"],
     queryFn: async (): Promise<CourseRow[]> => {
-      let q = supabase.from("courses").select("*").eq("status", "published").order("sort_order", { ascending: true });
+      let q = supabase
+        .from("courses")
+        .select("*")
+        .eq("status", "published")
+        .is("archived_at", null)
+        .order("sort_order", { ascending: true });
       if (limit) q = q.limit(limit);
+      const { data, error } = await q;
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+/**
+ * Home/landing course list. When `includeDrafts=true` (admins only),
+ * returns non-archived courses regardless of status so that drafts are
+ * visible behind an "Admin Preview" badge on the real Home route. RLS
+ * remains the security authority — admins must already have read
+ * access; non-admins always get the published-only list.
+ */
+export function useHomeCourses({ includeDrafts }: { includeDrafts: boolean } = { includeDrafts: false }) {
+  return useQuery({
+    queryKey: ["public", "courses", "home", includeDrafts ? "with-drafts" : "published"],
+    queryFn: async (): Promise<CourseRow[]> => {
+      let q = supabase
+        .from("courses")
+        .select("*")
+        .is("archived_at", null)
+        .order("sort_order", { ascending: true });
+      if (!includeDrafts) q = q.eq("status", "published");
       const { data, error } = await q;
       if (error) throw error;
       return data ?? [];

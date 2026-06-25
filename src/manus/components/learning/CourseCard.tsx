@@ -16,6 +16,8 @@ export type CourseCardData = {
   comingSoon?: boolean;
   locked?: boolean;
   href?: string;
+  /** Show an "Admin Preview" badge (admin viewing a draft on real route). */
+  adminPreview?: boolean;
 };
 
 export type CourseCardProps = {
@@ -35,6 +37,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
     comingSoon = false,
     locked = false,
     href,
+    adminPreview = false,
   } = course;
 
   const pct = progressPercent ?? 0;
@@ -47,13 +50,16 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   const showProgress = !locked && !comingSoon && pct > 0 && (lessonCount ?? 0) > 0;
   const completed = pct === 100;
   const canVisit = !!href && !locked && !comingSoon;
+  const isLanding = variant === "landing";
 
   return (
     <article
       data-testid="aa-course-card"
       data-variant={variant}
-      className={`aa-course-card relative overflow-hidden group flex flex-col rounded-md border border-border/50 transition-all duration-[250ms] hover:border-border hover:-translate-y-[3px] hover:shadow-md ${
-        variant === "landing" ? "min-h-[280px] p-7" : "min-h-[260px]"
+      className={`aa-course-card relative overflow-hidden group flex flex-col border border-border/50 transition-all duration-[250ms] hover:border-border hover:-translate-y-[3px] ${
+        isLanding
+          ? "min-h-[280px] rounded-none hover:shadow-[0_12px_40px_rgba(0,0,0,0.18)]"
+          : "min-h-[260px] rounded-md hover:shadow-md"
       }`}
       style={
         thumbnail
@@ -61,15 +67,17 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               backgroundImage: `url(${thumbnail})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
+              fontFamily: "'Manrope', sans-serif",
             }
-          : { backgroundColor: "hsl(var(--card))" }
+          : { backgroundColor: "hsl(var(--card))", fontFamily: "'Manrope', sans-serif" }
       }
     >
       {thumbnail && (
         <div className="aa-overlay absolute inset-0" aria-hidden="true" />
       )}
 
-      <div className="relative z-10 flex flex-col flex-1 p-6">
+      <div className={`relative z-10 flex flex-col flex-1 ${isLanding ? "p-7" : "p-6"}`}>
+
         <div className="flex items-start justify-between mb-3">
           {numberLabel != null && (
             <span
@@ -80,6 +88,11 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
             </span>
           )}
           <div className="flex items-center gap-2">
+            {adminPreview && (
+              <span className="text-[10px] px-2 py-0.5 rounded-sm bg-amber-500 text-black uppercase tracking-wider font-medium">
+                Admin Preview
+              </span>
+            )}
             {!published && (
               <span className="text-[10px] px-2 py-0.5 rounded-sm bg-foreground/70 text-background uppercase tracking-wider">
                 Draft

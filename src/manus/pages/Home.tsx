@@ -3,7 +3,7 @@ import SubscribeModal from "@/manus/components/SubscribeModal";
 import { getLoginUrl } from "@/manus/const";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
 
@@ -93,14 +93,14 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, isAdmin } = useAuth();
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
-  const coursesQuery = usePublishedCourses(12);
+  // Admins see drafts on the real Home (behind an Admin Preview badge); the
+  // hook still filters archived rows and RLS remains the authority.
+  const coursesQuery = useHomeCourses({ includeDrafts: isAdmin });
   // P0 hardening: never let an unexpected query payload crash the landing.
-  // Treat anything that is not a real array as "no DB courses" and fall back
-  // to the static curriculum, so Hero + Benefits + Curriculum always render.
   const dbCourses = Array.isArray(coursesQuery.data) ? coursesQuery.data : [];
   const coursesFailed = coursesQuery.isError;
 
@@ -113,9 +113,11 @@ export default function Home() {
     thumbnail: string | null;
     href?: string;
     comingSoon?: boolean;
+    isDraft?: boolean;
+    isAdminPreview?: boolean;
   };
-  // Prefer DB-published courses; fall back to the static curriculum copy
-  // when DB is empty OR the query failed.
+  // Prefer DB courses; fall back to the static curriculum copy when DB is
+  // empty OR the query failed.
   const displayModules: DisplayModule[] = (dbCourses.length > 0
     ? dbCourses.map((c, i): DisplayModule => {
         const row = (c ?? {}) as {
@@ -128,16 +130,19 @@ export default function Home() {
           cover_image_url?: string | null;
           thumbnail_url?: string | null;
         };
+        const isPublished = row.status === "published";
+        const isDraft = !isPublished;
         return {
           id: row.id ?? i + 1,
           title: row.title ?? "Untitled",
           tagline: row.tagline ?? row.description ?? "",
           lessons: [],
-          available: row.status === "published",
-          // cover_image_path is the canonical DB column; cover_image_url is
-          // kept only as a backwards-compatibility fallback.
+          // Admins can open drafts; visitors only see published courses.
+          available: isPublished || isAdmin,
           thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? null,
           href: `/courses/${row.id}`,
+          isDraft,
+          isAdminPreview: isAdmin && isDraft,
         };
       })
     : MODULES.map((m): DisplayModule => ({ ...m, href: undefined }))
@@ -250,12 +255,12 @@ export default function Home() {
             <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
               Our Courses
             </h2>
-            <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+            <p style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontWeight: 300 }}>
               Each area takes you to a new path of knowledge. Explore them all with a subscription or take a slow walk by acquiring them individually.
             </p>
           </div>
           {coursesFailed ? (
-            <div role="status" className="mb-6" style={{ padding: "0.75rem 1rem", border: "1px solid var(--aa-cream-dark)", background: "rgba(0,0,0,0.03)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-mid)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
+            <div role="status" className="mb-6" style={{ padding: "0.75rem 1rem", border: "1px solid var(--aa-cream-dark)", background: "rgba(0,0,0,0.03)", fontFamily: "'Manrope', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-mid)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
               <span>The latest course catalogue could not load. Showing the standard curriculum below.</span>
               <button type="button" onClick={() => coursesQuery.refetch()} style={{ background: "transparent", border: "1px solid var(--aa-text-mid)", padding: "0.25rem 0.75rem", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", cursor: "pointer" }}>Retry</button>
             </div>
@@ -269,7 +274,8 @@ export default function Home() {
                 number: typeof mod.id === "number" ? mod.id : idx + 1,
                 thumbnail: mod.thumbnail,
                 lessonCount: mod.lessons.length || undefined,
-                published: true,
+                published: !mod.isDraft,
+                adminPreview: !!mod.isAdminPreview,
                 // While Stripe is deferred (pré-lançamento), every course
                 // that is not explicitly available shows Coming Soon and
                 // never opens a financial checkout flow.
@@ -282,31 +288,33 @@ export default function Home() {
 
 
             {/* Membership Perks Card */}
-            <div style={{
-              border: "1px solid var(--aa-cream-dark)",
-              backgroundImage: "url('/img/perks.jpg')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              minHeight: "280px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              padding: "1.75rem",
-              position: "relative",
-              overflow: "hidden",
-              gridColumn: "span 4",
-            }}>
+            <div
+              className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4"
+              style={{
+                border: "1px solid var(--aa-cream-dark)",
+                backgroundImage: "url('/img/perks.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                minHeight: "280px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                padding: "1.75rem",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
               <div className="absolute inset-0 bg-black/60" />
               <div className="relative z-10">
                 <h3 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>Membership Perks</h3>
-                <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
                   <ul className="space-y-3">
                     {[
                       "Access to all courses available",
                       "The A Tribe - Community Forum",
                       "Live Workshops",
                     ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
                       </li>
                     ))}
@@ -317,7 +325,7 @@ export default function Home() {
                       "Exclusive Deals",
                       "Access to cheat sheets and special suppliers",
                     ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
                       </li>
                     ))}
@@ -325,12 +333,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative z-10 mt-4">
-                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
+                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
               </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* ── Offers ── */}
       <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: "url('/img/offers-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
