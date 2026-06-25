@@ -1,18 +1,45 @@
-import { useAuth } from "@/manus/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Sparkles, Menu, X, LogOut, LayoutDashboard, BookOpen, Calendar, Settings, Users, Gift, Shield } from "lucide-react";
-import { getLoginUrl } from "@/manus/const";
-import { Link, NavLink } from "react-router-dom";
 import { useState } from "react";
+import { Link, NavLink } from "react-router-dom";
+import {
+  BookOpen,
+  Calendar,
+  Gift,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Settings,
+  Shield,
+  Sparkles,
+  Users,
+  X,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { getLoginUrl } from "@/manus/const";
+import "@/manus/styles/official-render.css";
 
 interface MemberLayoutProps {
   children: React.ReactNode;
   requireAuth?: boolean;
 }
 
+const primaryNav = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Courses", href: "/mycourses", icon: BookOpen },
+  { label: "Live Workshops", href: "/live-workshops", icon: Calendar },
+  { label: "Community", href: "/community", icon: Users },
+];
+
+const discoveryNav = [
+  { label: "Magazine", href: "/magazine", icon: BookOpen },
+  { label: "Events", href: "/events", icon: Calendar },
+  { label: "Supplier List", href: "/suppliers", icon: Gift },
+];
+
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
   const handleLogout = async () => {
     await logout();
     window.location.assign("/login");
@@ -20,10 +47,10 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Sparkles className="w-8 h-8 text-accent mx-auto mb-4 animate-spin" />
-          <p className="text-foreground/70">Loading...</p>
+      <div className="aa-member-shell flex min-h-screen items-center justify-center">
+        <div className="text-center" role="status" aria-live="polite">
+          <Sparkles className="mx-auto mb-4 h-8 w-8 animate-spin text-accent" />
+          <p className="text-sm text-muted-foreground">Preparing your academy…</p>
         </div>
       </div>
     );
@@ -31,153 +58,141 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
 
   if (requireAuth && !isAuthenticated) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Sparkles className="w-12 h-12 text-accent mx-auto mb-4" />
-          <h2 className="text-2xl font-bold mb-4">Members Only</h2>
-          <p className="text-foreground/70 mb-6">Sign in to access this area</p>
-          <a href={getLoginUrl()}>
-            <Button className="btn-gold">Sign In</Button>
+      <div className="aa-member-shell flex min-h-screen items-center justify-center px-5">
+        <div className="aa-panel max-w-md p-8 text-center">
+          <Sparkles className="mx-auto mb-5 h-10 w-10 text-accent" />
+          <p className="aa-eyebrow">Private learning space</p>
+          <h1 className="font-serif text-4xl text-primary">Members only</h1>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-7 text-muted-foreground">
+            Sign in to continue your courses, track your progress and access the Alchemy community.
+          </p>
+          <a href={getLoginUrl()} className="mt-6 inline-flex">
+            <Button className="btn-gold">Sign in</Button>
           </a>
         </div>
       </div>
     );
   }
 
-  const navItems = [
-    ...(isAdmin ? [{ label: "Admin Center", href: "/admin", icon: Shield }] : []),
-    { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { label: "Courses", href: "/mycourses", icon: BookOpen },
-    { label: "Live Workshops", href: "/live-workshops", icon: Calendar },
-    { label: "Community", href: "/community", icon: Users },
-    { label: "Magazine", href: "/magazine", icon: BookOpen },
-    { label: "Events", href: "/events", icon: Calendar },
-    { label: "Supplier List", href: "/suppliers", icon: Gift },
-  ];
+  const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+    `aa-member-nav-link ${isActive ? "is-active" : ""}`;
 
-  const navLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-4 py-3 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-      isActive
-        ? "bg-accent text-accent-foreground"
-        : "text-foreground hover:bg-secondary/50"
-    }`;
-
-  const mobileLinkClasses = ({ isActive }: { isActive: boolean }) =>
-    `flex items-center gap-3 px-4 py-2 rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${
-      isActive
-        ? "bg-accent text-accent-foreground"
-        : "hover:bg-card text-foreground"
-    }`;
+  const renderLinks = (items: typeof primaryNav, closeOnClick = false) =>
+    items.map((item) => {
+      const Icon = item.icon;
+      return (
+        <NavLink
+          key={item.href}
+          to={item.href}
+          end
+          className={navLinkClass}
+          onClick={closeOnClick ? () => setMobileOpen(false) : undefined}
+        >
+          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{item.label}</span>
+        </NavLink>
+      );
+    });
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Mobile Header */}
-      <div className="lg:hidden border-b border-border/50 sticky top-0 z-50 bg-background/95 backdrop-blur">
-        <div className="flex items-center justify-between p-4">
-          <Link to="/" className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-accent" />
-            <span className="font-bold text-lg">Alchemy</span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen((v) => !v)}
-            className="p-2 hover:bg-card rounded-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
-            aria-expanded={mobileOpen}
-            aria-controls="member-mobile-menu"
-          >
-            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
-        </div>
+    <div className="aa-member-shell">
+      <header className="aa-mobile-header lg:hidden">
+        <Link to="/dashboard" className="flex items-center gap-3" onClick={() => setMobileOpen(false)}>
+          <img src="/img/logo.png" alt="Alchemy Academy" />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setMobileOpen((value) => !value)}
+          className="rounded-lg border border-border bg-card p-2.5 text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileOpen}
+          aria-controls="member-mobile-menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </header>
 
-        {mobileOpen && (
-          <nav
-            id="member-mobile-menu"
-            aria-label="Member navigation"
-            className="border-t border-border/50 p-4 space-y-2"
-          >
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  end
-                  className={mobileLinkClasses}
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <Icon className="w-4 h-4" />
-                  {item.label}
-                </NavLink>
-              );
-            })}
-
-            <NavLink
-              to="/profile"
-              end
-              className={mobileLinkClasses}
-              onClick={() => setMobileOpen(false)}
-            >
-              <Settings className="w-4 h-4" />
-              Profile
+      {mobileOpen ? (
+        <nav id="member-mobile-menu" className="aa-mobile-menu lg:hidden" aria-label="Member navigation">
+          <p className="aa-member-nav-label text-foreground/45">Learn</p>
+          {isAdmin ? (
+            <NavLink to="/admin" end className={navLinkClass} onClick={() => setMobileOpen(false)}>
+              <Shield className="h-4 w-4" />
+              <span>Admin Center</span>
             </NavLink>
+          ) : null}
+          {renderLinks(primaryNav, true)}
+          <p className="aa-member-nav-label text-foreground/45">Discover</p>
+          {renderLinks(discoveryNav, true)}
+          <p className="aa-member-nav-label text-foreground/45">Account</p>
+          <NavLink to="/profile" end className={navLinkClass} onClick={() => setMobileOpen(false)}>
+            <Settings className="h-4 w-4" />
+            <span>Profile</span>
+          </NavLink>
+          <button type="button" onClick={handleLogout} className="aa-member-nav-link mt-1 w-full text-left">
+            <LogOut className="h-4 w-4" />
+            <span>Logout</span>
+          </button>
+        </nav>
+      ) : null}
 
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-card text-foreground transition text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <LogOut className="w-4 h-4" />
-              Logout
-            </button>
-          </nav>
-        )}
-      </div>
-
-      <div className="flex">
-        <aside className="hidden lg:flex flex-col w-64 border-r border-border/50 bg-card/50 sticky top-0 h-screen">
-          <div className="p-6 border-b border-border/50 flex justify-center relative z-10 bg-card/50">
-            <Link to="/" className="hover:opacity-80 transition">
-              <img src="/img/logo.png" alt="Alchemy Academy" style={{ height: "100px", width: "auto" }} />
+      <div className="aa-member-layout">
+        <aside className="aa-member-sidebar" aria-label="Member sidebar">
+          <div className="aa-member-brand">
+            <Link to="/dashboard" className="transition-opacity hover:opacity-80">
+              <img src="/img/logo.png" alt="Alchemy Academy" />
             </Link>
           </div>
 
-          <nav className="flex-1 p-4 space-y-2" aria-label="Member navigation">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <NavLink key={item.href} to={item.href} end className={navLinkClasses}>
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{item.label}</span>
+          <nav className="aa-member-nav" aria-label="Member navigation">
+            {isAdmin ? (
+              <>
+                <p className="aa-member-nav-label">Administration</p>
+                <NavLink to="/admin" end className={navLinkClass}>
+                  <Shield className="h-4 w-4" />
+                  <span>Admin Center</span>
                 </NavLink>
-              );
-            })}
+              </>
+            ) : null}
 
-            <NavLink to="/profile" end className={navLinkClasses}>
-              <Settings className="w-4 h-4" />
-              <span className="font-medium">Profile</span>
+            <p className="aa-member-nav-label">Learn</p>
+            {renderLinks(primaryNav)}
+            <p className="aa-member-nav-label">Discover</p>
+            {renderLinks(discoveryNav)}
+            <p className="aa-member-nav-label">Account</p>
+            <NavLink to="/profile" end className={navLinkClass}>
+              <Settings className="h-4 w-4" />
+              <span>Profile</span>
             </NavLink>
           </nav>
 
-          <div className="p-4 border-t border-border/50 space-y-3">
-            <div className="px-4 py-3 rounded-lg bg-secondary/30 border border-secondary/50">
-              <p className="text-xs text-foreground/70 font-semibold uppercase mb-1">{isAdmin ? "Admin" : "Member"}</p>
-              <p className="text-sm font-medium">{user?.name || "User"}</p>
-              <p className="text-xs text-foreground/60">{user?.email}</p>
+          <div className="aa-member-profile">
+            <div className="aa-member-profile-card">
+              <div className="mb-3 flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/20 font-serif text-lg text-sidebar-foreground">
+                  {(user?.name || user?.email || "A").charAt(0).toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">
+                    {isAdmin ? "Administrator" : "Member"}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-sidebar-foreground">{user?.name || "Alchemist"}</p>
+                  <p className="truncate text-[11px] text-sidebar-foreground/50">{user?.email}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="flex w-full items-center justify-center gap-2 rounded-md border border-sidebar-border px-3 py-2 text-xs text-sidebar-foreground/72 transition hover:bg-sidebar-accent hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign out
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Logout</span>
-            </button>
           </div>
         </aside>
 
-        <main className="flex-1 overflow-auto">
+        <main className="aa-member-main" id="main-content">
           {children}
         </main>
       </div>
