@@ -21,6 +21,7 @@ import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import ModuleRating from "@/manus/components/learning/ModuleRating";
 import { useAuth } from "@/manus/hooks/useAuth";
 
 
