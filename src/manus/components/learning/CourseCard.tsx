@@ -88,6 +88,11 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
             </span>
           )}
           <div className="flex items-center gap-2">
+            {adminPreview && (
+              <span className="text-[10px] px-2 py-0.5 rounded-sm bg-amber-500 text-black uppercase tracking-wider font-medium">
+                Admin Preview
+              </span>
+            )}
             {!published && (
               <span className="text-[10px] px-2 py-0.5 rounded-sm bg-foreground/70 text-background uppercase tracking-wider">
                 Draft
