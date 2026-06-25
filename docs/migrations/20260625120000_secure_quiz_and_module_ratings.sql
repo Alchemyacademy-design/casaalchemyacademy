@@ -119,14 +119,22 @@ begin
   end if;
 
   v_has_access := exists(
-    select 1 from public.memberships m
-    where m.user_id = p_user_id and m.status = 'active' and m.ends_at > v_now
+    select 1
+    from public.memberships m
+    join public.courses c on c.id = v_quiz.course_id
+    where m.user_id = p_user_id
+      and m.status = 'active'
+      and m.ends_at > v_now
+      and c.archived_at is null
   ) or exists(
-    select 1 from public.course_entitlements e
+    select 1
+    from public.course_entitlements e
+    join public.courses c on c.id = e.course_id
     where e.user_id = p_user_id
       and e.course_id = v_quiz.course_id
       and e.active = true
       and e.ends_at > v_now
+      and c.archived_at is null
   ) or exists(
     select 1 from public.courses c
     where c.id = v_quiz.course_id
@@ -152,6 +160,11 @@ begin
     into v_expected_q
   from public.quiz_questions
   where quiz_id = p_quiz_id;
+
+  if coalesce(array_length(v_expected_q, 1), 0) = 0 then
+    raise exception 'quiz_has_no_questions';
+  end if;
+
 
   for v_answer in select * from jsonb_array_elements(p_answers) loop
     v_qid := (v_answer->>'question_id')::bigint;

@@ -16,18 +16,40 @@
 | Lovable project | `aa3b388c-6623-43ee-8740-326108415543` |
 | Protected admin | `contact@casaalchemystudio.com` |
 | Migration source of truth | `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql` |
-| Expected SHA-256 | `6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb` |
+| Expected SHA-256 (prior audit) | `6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb` |
+| **Current SHA-256 (Phase 1A correction)** | **`9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060`** |
 | Stripe | `STRIPE_STATUS=ADIADO`, `STRIPE_LIVE_ENABLED=false` |
 
 > Git state assertions (branch existence, PR open/draft, remote CI green) are
 > outside the agent's authority and must be confirmed by the human operator
 > on GitHub before promotion. See §11.
+>
+> **Governance violation logged.** The prior revision of this report and the
+> prior migration file were committed against `main` because the Lovable
+> agent has no authority to switch git branches inside the sandbox. The
+> operator must cherry-pick / rebase these documents onto
+> `prelaunch/phase-0-1-hardening` and ensure no future commits land on
+> `main`. Recorded in §11.
 
 ## 1. Hash revalidation (Etapa 1)
 
 `sha256sum docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
-→ **`6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb`**
-→ **MATCHES** expected hash. File length: 337 lines. No drift.
+→ **`9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060`** (file length: 350 lines).
+
+**Hash drift vs. prior audit**: the SQL was modified in this turn to fix two
+audit-blockers (see §4.1). The previous hash
+`6a7d8f16…9006cb` is now stale. Diff summary:
+
+- Entitlement access branch now `JOIN public.courses c ON c.id = e.course_id`
+  with `c.archived_at is null`.
+- Membership access branch now `JOIN public.courses c ON c.id = v_quiz.course_id`
+  with `c.archived_at is null`.
+- After loading `v_expected_q`, the RPC raises `quiz_has_no_questions` when
+  the quiz has zero questions (no attempt row is written).
+
+No other lines changed. All other audit checks below were re-verified against
+the new file.
+
 
 ## 2. Static SQL audit (Etapa 2)
 
@@ -110,20 +132,41 @@ edge-function-only reads.
 
 | Case | Behavior |
 |---|---|
-| Quiz has no questions | `v_expected_q = []`; if `p_answers` is also empty, `v_total_points = 0`, `v_score = 0`, `v_passed = false`. Attempt is still recorded. **Acceptable but consider gating publication in the editor (already enforced by `isQuestionPublishable`).** |
+| Quiz has no questions | **REJECTED** — RPC raises `quiz_has_no_questions` and returns before inserting any attempt row. (Fixed in Phase 1A correction.) |
 | `passing_score` is null | Schema defines `passing_score number` (NOT NULL, default present); RPC guards via `coalesce(v_quiz.passing_score, 0)`. SAFE. |
 | `max_attempts` null | Treated as unlimited; `v_remaining` returns null. SAFE. |
-| `p_answers` empty array | `jsonb_typeof = 'array'` passes; loop no-ops; `missing_answer` raised if quiz has questions. SAFE. |
+| `p_answers` empty array | `jsonb_typeof = 'array'` passes; if quiz has questions, `missing_answer` is raised. SAFE. |
 | Non-numeric `question_id` / `option_id` | `(v_answer->>'question_id')::bigint` raises `invalid_text_representation`; mapped to generic `submission_failed` by edge function. SAFE (no data written; transaction rolled back). |
 | Malformed JSON | Rejected by edge function `parseBody` before reaching RPC. SAFE. |
 | Expired entitlement | `e.ends_at > v_now` excludes; falls back to other access tests. SAFE. |
 | Expired membership | `m.status = 'active' and m.ends_at > v_now`. SAFE. |
-| Archived course | excluded in both membership/entitlement free/guest checks via `c.archived_at is null` clause; entitlement check does not re-check archived. **Minor finding: entitlement branch (L125-129) does not join `courses` to verify `archived_at is null`. An archived course with an active entitlement would still grant access.** Mitigated because archiving a course currently goes hand-in-hand with unpublishing the quiz (status `published` check at L110). Recommend tightening before final apply. |
+| Archived course + active entitlement | **DENIED** — entitlement branch now joins `public.courses` and requires `c.archived_at is null`. (Fixed in Phase 1A correction.) |
+| Archived course + active membership | **DENIED** — membership branch now joins `public.courses` and requires `c.archived_at is null`. |
+| Archived course + free/guest | DENIED — already gated by `c.archived_at is null`. |
 | Simultaneous double submission | Advisory lock serializes; second call waits for first's transaction commit, then re-reads `v_submitted_count` and raises `no_attempts_remaining` if cap reached. SAFE. |
 
-**Findings to track (non-blocking for migration apply, but document):**
-- F-1: Entitlement branch does not re-check `courses.archived_at` (severity: low; mitigated by `status='published'` requirement).
-- F-2: `coalesce(o.is_correct, false)` in answer insert relies on left join; if `option_id` is invalid this would be silently graded as wrong, but the earlier `invalid_option_ref` check prevents this branch. SAFE.
+### 4.1 Phase 1A blockers — resolved
+
+- **B-1 (archived course + entitlement granted access)**: FIXED. The
+  entitlement branch in `internal_submit_quiz_attempt` now joins
+  `public.courses` and requires `c.archived_at is null`. The same constraint
+  is also applied to the membership branch. `public.can_access_module` was
+  re-verified: its CTE `m` already filters `cm.archived_at is null` and
+  `c.archived_at is null`, and the outer `EXISTS` predicate forces every
+  access branch to flow through `m`, so the function correctly denies access
+  to modules of archived courses regardless of entitlement state.
+- **B-2 (quiz without questions could be submitted)**: FIXED. The RPC now
+  raises `quiz_has_no_questions` immediately after loading `v_expected_q`,
+  before any `INSERT` into `quiz_attempts`. No partial attempt is recorded.
+
+Tests covering both fixes live in
+`src/manus/services/quiz.migration.test.ts` (static SQL guards; runs in CI).
+
+**Remaining findings (non-blocking):**
+- F-2: `coalesce(o.is_correct, false)` in answer insert relies on left join;
+  if `option_id` is invalid this would be silently graded as wrong, but the
+  earlier `invalid_option_ref` check prevents this branch. SAFE.
+
 
 ## 5. `module_ratings` audit (Etapa 5)
 
@@ -206,6 +249,21 @@ edge-function-only reads.
 **No schema incompatibilities detected.** No sequences need to be created
 beyond `bigserial` on `module_ratings`.
 
+```
+GENERATED_TYPES_CHECK      = PASS  (verified vs. src/integrations/supabase/types.ts)
+LIVE_DATABASE_SCHEMA_CHECK = NOT_AVAILABLE
+```
+
+The Lovable sandbox in this turn exposes no managed Postgres connection
+(`test -n "$PGHOST"` returns empty), and the operator forbade any read
+against the production Supabase database. The live-schema columns / policies
+/ grants / function ACLs therefore could not be re-queried this turn. The
+read-only queries in §10 are prepared for the operator (or a follow-up turn
+with DB access) to execute against `omzwtfnqffseemrlylwu`. Per the rule
+"se o ambiente não permitir consultas reais, não declarar auditoria final
+aprovada", the final decision in §14 is **CORRECTIONS_REQUIRED** until a
+turn with live-schema access publishes `LIVE_DATABASE_SCHEMA_CHECK=PASS`.
+
 ## 7. Dry run (Etapa 7)
 
 `DRY_RUN_STATUS = NOT_AVAILABLE`
@@ -228,42 +286,68 @@ Recommended dry-run procedure for the human operator before applying:
 
 **NOT PERFORMED in this execution.**
 
-Per the standing rule that `supabase/migrations/` files trigger the
-migration runner on write, copying the SQL there would constitute applying
-the migration to the production database — which the operator explicitly
-forbade (`PARADA OBRIGATÓRIA: Não aplicar a migration`). Promotion is
-therefore deferred to the explicit `APPROVE_PRELAUNCH_MIGRATION` step, at
-which point the agent will:
+```
+MIGRATION_PROMOTION_STATUS = BLOCKED_BY_RUNNER
+```
 
-1. Re-verify hash matches `6a7d8f16…9006cb`.
+Evidence: writing under `supabase/migrations/` invokes the Lovable / Supabase
+migration runner, which executes the SQL against the production database the
+moment the file lands. The operator's standing order — `PARADA OBRIGATÓRIA:
+Não aplicar a migration` and `Se escrever nesse caminho aplicar
+automaticamente no banco, não promover ainda` — therefore prohibits the
+promotion in this turn. The source of truth remains
+`docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`. On
+explicit `APPROVE_PRELAUNCH_MIGRATION`, the agent will:
+
+1. Re-verify hash matches `9b2b72af…9060`.
 2. Use the migration tool to write
    `supabase/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
    byte-for-byte from the source of truth.
 3. Confirm the runner records the migration.
-4. Leave `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
-   in place as the auditable source.
+4. Leave the `docs/migrations/...` copy in place as the auditable source.
 
 `SOURCE_OF_TRUTH_PATH = docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
 `OFFICIAL_MIGRATION_PATH = (not yet created — awaiting approval)`
 
 ## 9. Repository tests (Etapa 9)
 
-Local runs on this audit pass:
+Local runs after the Phase 1A correction:
 
 | Gate | Result |
 |---|---|
-| `bun run typecheck` (`tsc --noEmit`) | PASS |
-| `bun run test` | PASS — **194/194** across 28 test files (same count as prior baseline; no test added or removed in this audit) |
-| `bun run lint` | not re-run this turn (no code changes) |
-| `bun run build` | not re-run this turn (no code changes) |
+| `bunx tsgo --noEmit` (typecheck) | PASS |
+| `bunx vitest run` | PASS — **200/200** across 29 test files (+6 vs. prior baseline of 194) |
+| `bun run lint` | not re-run this turn (run by remote CI) |
+| `bun run build` | not re-run this turn (run by remote CI) |
 
-Coverage of critical paths already enforced by existing tests:
-- `src/manus/services/quiz.routing.test.ts` — member path uses edge function; no direct `quiz_options` query.
-- `src/manus/services/quiz.routing.test.ts` — admin path uses `get-admin-quiz` and surfaces `is_correct` only from server payload.
-- `src/manus/components/learning/QuizCard.test.tsx` — submit response renders immediately; no 0% flash.
-- `src/manus/lib/cross-tab-query-sync.test.ts`, `learning.resume.test.ts`, etc. — unrelated subsystems still green.
+New tests added in this turn (`src/manus/services/quiz.migration.test.ts`,
+6 cases):
+1. Entitlement branch joins `public.courses` with `archived_at is null`.
+2. Membership branch joins `public.courses` with `archived_at is null`.
+3. RPC rejects quizzes with zero questions (`quiz_has_no_questions`).
+4. Migration revokes table-level SELECT on `quiz_options` from
+   `authenticated` and `anon`.
+5. Single explicit `begin;/commit;` envelope.
+6. `src/` contains no `.from("quiz_options").select(...)` outside types/tests.
 
-No tests added or modified in this turn (task is read-only audit).
+Existing critical-path coverage retained:
+- `src/manus/services/quiz.routing.test.ts` — member path uses edge function;
+  no direct `quiz_options` query.
+- `src/manus/services/quiz.routing.test.ts` — admin path uses
+  `get-admin-quiz` and surfaces `is_correct` only from server payload.
+- `src/manus/components/learning/QuizCard.test.tsx` — submit response renders
+  immediately; no 0% flash.
+
+Remote CI (`prelaunch/phase-0-1-hardening` HEAD): pending operator action.
+Run ID / HEAD SHA to be recorded after the commit reaches GitHub.
+
+```
+REMOTE_CI_STATUS  = PENDING_HUMAN_PUSH
+REMOTE_CI_RUN_ID  = (not yet observed)
+REMOTE_CI_HEAD    = (not yet observed)
+```
+
+
 
 ## 10. Post-apply validation queries (prepared, NOT executed)
 
@@ -307,25 +391,42 @@ set role authenticated; select public.internal_submit_quiz_attempt(auth.uid(),1,
 
 ## 11. Git state — human-verification required
 
-The Lovable agent cannot run stateful git commands (branch creation, PR
-open/close/merge, remote CI status). Before the operator may issue
-`APPROVE_PRELAUNCH_MIGRATION`, they must confirm on GitHub:
+The Lovable agent cannot run stateful git commands (branch creation, switch,
+PR open/close/merge, remote CI status). All file edits in this turn must be
+manually placed on `prelaunch/phase-0-1-hardening` by the operator.
 
-- [ ] Branch `prelaunch/phase-0-1-hardening` exists at SHA `36a6e5a…390a` or a descendant.
+**Governance violations recorded (historical):**
+1. The prior revision of this audit (`6a7d8f16…9006cb` hash, "PASSED"
+   verdict) was committed to `main` because the agent cannot create or
+   switch branches.
+2. The Phase 1A correction in this turn (new hash `9b2b72af…9060`, the
+   `quiz.migration.test.ts` test, and the updated SQL) is also being
+   committed where the sandbox writes — `main`. The operator must
+   cherry-pick / rebase these commits onto `prelaunch/phase-0-1-hardening`
+   and ensure no further `main` commits land for this work, then refresh
+   PR #1.
+
+Before the operator may issue `APPROVE_PRELAUNCH_MIGRATION`, they must
+confirm on GitHub:
+
+- [ ] Branch `prelaunch/phase-0-1-hardening` contains: updated SQL, updated
+      audit, and `quiz.migration.test.ts`.
+- [ ] PR #1 HEAD reflects the new SHA-256 `9b2b72af…9060`.
 - [ ] PR #1 is OPEN and DRAFT.
-- [ ] GitHub Actions on the latest PR commit report: typecheck PASS, test PASS, lint PASS, build PASS.
-- [ ] No commits landed directly on `main` for this work.
-
-The agent has produced no commits in this turn.
+- [ ] GitHub Actions on the PR HEAD reports typecheck PASS, test PASS,
+      lint PASS, build PASS. Record `REMOTE_CI_RUN_ID` and `REMOTE_CI_HEAD`.
+- [ ] No further commits landed directly on `main` for this work.
 
 ## 12. Risks remaining
 
 | ID | Severity | Description | Mitigation |
 |---|---|---|---|
-| R-1 | Low | Entitlement access branch does not re-check `courses.archived_at`. | Quiz must be `published` (L110); archiving a course flips publication. Tighten in a follow-up. |
+| R-1 | ~~Low~~ RESOLVED | Entitlement access branch did not re-check `courses.archived_at`. | FIXED in Phase 1A correction (entitlement + membership branches now JOIN `public.courses` with `archived_at is null`). Covered by `quiz.migration.test.ts`. |
 | R-2 | Low | `module_ratings` rollback after first insert destroys data. | Documented L19-24; require pg_dump prior to downgrade. |
-| R-3 | Low | Admin editor still writes to `quiz_options` via PostgREST. | Existing admin RLS policies + table-level grants for `authenticated` retain `INSERT/UPDATE/DELETE` — confirmed unchanged by the migration. |
+| R-3 | Low | Admin editor writes (INSERT/UPDATE/DELETE) to `quiz_options` via PostgREST. | Existing admin RLS policies + table-level grants for `authenticated` retain only writes — confirmed unchanged by the migration; no SELECT remains. |
 | R-4 | Informational | `quiz_attempts` has `submitted_at`/`started_at` but no `updated_at` trigger asserted by this migration. | Out of scope; existing schema. |
+| R-5 | Medium | `LIVE_DATABASE_SCHEMA_CHECK = NOT_AVAILABLE`. | Operator must run §10 queries against `omzwtfnqffseemrlylwu` and attach results before approval. |
+
 
 ## 13. Rollback (DDL only, repeated for convenience)
 
@@ -347,19 +448,26 @@ dropping.
 ## 14. Final decision
 
 ```
-PHASE_0_STATUS=COMPLETE
-PHASE_1A_STATUS=FINAL_AUDIT_COMPLETE
-WORKING_BRANCH_STATUS=ACTIVE                  (human-verify on GitHub)
-PULL_REQUEST_STATUS=OPEN_DRAFT                (human-verify on GitHub)
-CI_STATUS=GREEN                               (human-verify on GitHub Actions; local typecheck+tests PASS)
-FINAL_MIGRATION_AUDIT=PASSED
-MIGRATION_STATUS=READY_FOR_EXPLICIT_APPROVAL
-QUIZ_RUNTIME_STATUS=BLOCKED_BY_MISSING_RPC
-RATING_RUNTIME_STATUS=BLOCKED_BY_MISSING_DATABASE_OBJECTS
-STRIPE_STATUS=ADIADO
-SCHEMA_DATA_STRIPE_CHANGES=ZERO
+PHASE_0_STATUS              = COMPLETE
+PHASE_1A_STATUS             = CORRECTIONS_APPLIED
+WORKING_BRANCH_STATUS       = PENDING_HUMAN_REBASE     (commits land on main; must be cherry-picked onto prelaunch/phase-0-1-hardening)
+PULL_REQUEST_STATUS         = PENDING_HUMAN_REFRESH    (PR #1 HEAD must be updated)
+CI_LOCAL_STATUS             = GREEN                    (typecheck PASS; 200/200 tests PASS)
+CI_REMOTE_STATUS            = PENDING_HUMAN_PUSH
+GENERATED_TYPES_CHECK       = PASS
+LIVE_DATABASE_SCHEMA_CHECK  = NOT_AVAILABLE
+DRY_RUN_STATUS              = NOT_AVAILABLE
+MIGRATION_PROMOTION_STATUS  = BLOCKED_BY_RUNNER
+MIGRATION_SHA256            = 9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060
+FINAL_MIGRATION_AUDIT       = CORRECTIONS_REQUIRED     (live-schema check + remote CI run pending)
+MIGRATION_STATUS            = AWAITING_EXPLICIT_APPROVAL
+QUIZ_RUNTIME_STATUS         = BLOCKED_BY_MISSING_RPC
+RATING_RUNTIME_STATUS       = BLOCKED_BY_MISSING_DATABASE_OBJECTS
+STRIPE_STATUS               = ADIADO
+SCHEMA_DATA_STRIPE_CHANGES  = ZERO
 ```
 
-Stopping here. No migration applied. No data altered. No PR merged. No
-edge function redeployed. No `APPROVE_PRELAUNCH_MIGRATION` token consumed.
-Awaiting external auditor.
+Stopping here. No migration applied. No Supabase object touched. No data
+altered. No PR merged. No edge function redeployed. No
+`APPROVE_PRELAUNCH_MIGRATION` token consumed. Awaiting external auditor.
+
