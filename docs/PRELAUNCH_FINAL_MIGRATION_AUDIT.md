@@ -249,6 +249,21 @@ Tests covering both fixes live in
 **No schema incompatibilities detected.** No sequences need to be created
 beyond `bigserial` on `module_ratings`.
 
+```
+GENERATED_TYPES_CHECK      = PASS  (verified vs. src/integrations/supabase/types.ts)
+LIVE_DATABASE_SCHEMA_CHECK = NOT_AVAILABLE
+```
+
+The Lovable sandbox in this turn exposes no managed Postgres connection
+(`test -n "$PGHOST"` returns empty), and the operator forbade any read
+against the production Supabase database. The live-schema columns / policies
+/ grants / function ACLs therefore could not be re-queried this turn. The
+read-only queries in §10 are prepared for the operator (or a follow-up turn
+with DB access) to execute against `omzwtfnqffseemrlylwu`. Per the rule
+"se o ambiente não permitir consultas reais, não declarar auditoria final
+aprovada", the final decision in §14 is **CORRECTIONS_REQUIRED** until a
+turn with live-schema access publishes `LIVE_DATABASE_SCHEMA_CHECK=PASS`.
+
 ## 7. Dry run (Etapa 7)
 
 `DRY_RUN_STATUS = NOT_AVAILABLE`
@@ -271,42 +286,68 @@ Recommended dry-run procedure for the human operator before applying:
 
 **NOT PERFORMED in this execution.**
 
-Per the standing rule that `supabase/migrations/` files trigger the
-migration runner on write, copying the SQL there would constitute applying
-the migration to the production database — which the operator explicitly
-forbade (`PARADA OBRIGATÓRIA: Não aplicar a migration`). Promotion is
-therefore deferred to the explicit `APPROVE_PRELAUNCH_MIGRATION` step, at
-which point the agent will:
+```
+MIGRATION_PROMOTION_STATUS = BLOCKED_BY_RUNNER
+```
 
-1. Re-verify hash matches `6a7d8f16…9006cb`.
+Evidence: writing under `supabase/migrations/` invokes the Lovable / Supabase
+migration runner, which executes the SQL against the production database the
+moment the file lands. The operator's standing order — `PARADA OBRIGATÓRIA:
+Não aplicar a migration` and `Se escrever nesse caminho aplicar
+automaticamente no banco, não promover ainda` — therefore prohibits the
+promotion in this turn. The source of truth remains
+`docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`. On
+explicit `APPROVE_PRELAUNCH_MIGRATION`, the agent will:
+
+1. Re-verify hash matches `9b2b72af…9060`.
 2. Use the migration tool to write
    `supabase/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
    byte-for-byte from the source of truth.
 3. Confirm the runner records the migration.
-4. Leave `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
-   in place as the auditable source.
+4. Leave the `docs/migrations/...` copy in place as the auditable source.
 
 `SOURCE_OF_TRUTH_PATH = docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
 `OFFICIAL_MIGRATION_PATH = (not yet created — awaiting approval)`
 
 ## 9. Repository tests (Etapa 9)
 
-Local runs on this audit pass:
+Local runs after the Phase 1A correction:
 
 | Gate | Result |
 |---|---|
-| `bun run typecheck` (`tsc --noEmit`) | PASS |
-| `bun run test` | PASS — **194/194** across 28 test files (same count as prior baseline; no test added or removed in this audit) |
-| `bun run lint` | not re-run this turn (no code changes) |
-| `bun run build` | not re-run this turn (no code changes) |
+| `bunx tsgo --noEmit` (typecheck) | PASS |
+| `bunx vitest run` | PASS — **200/200** across 29 test files (+6 vs. prior baseline of 194) |
+| `bun run lint` | not re-run this turn (run by remote CI) |
+| `bun run build` | not re-run this turn (run by remote CI) |
 
-Coverage of critical paths already enforced by existing tests:
-- `src/manus/services/quiz.routing.test.ts` — member path uses edge function; no direct `quiz_options` query.
-- `src/manus/services/quiz.routing.test.ts` — admin path uses `get-admin-quiz` and surfaces `is_correct` only from server payload.
-- `src/manus/components/learning/QuizCard.test.tsx` — submit response renders immediately; no 0% flash.
-- `src/manus/lib/cross-tab-query-sync.test.ts`, `learning.resume.test.ts`, etc. — unrelated subsystems still green.
+New tests added in this turn (`src/manus/services/quiz.migration.test.ts`,
+6 cases):
+1. Entitlement branch joins `public.courses` with `archived_at is null`.
+2. Membership branch joins `public.courses` with `archived_at is null`.
+3. RPC rejects quizzes with zero questions (`quiz_has_no_questions`).
+4. Migration revokes table-level SELECT on `quiz_options` from
+   `authenticated` and `anon`.
+5. Single explicit `begin;/commit;` envelope.
+6. `src/` contains no `.from("quiz_options").select(...)` outside types/tests.
 
-No tests added or modified in this turn (task is read-only audit).
+Existing critical-path coverage retained:
+- `src/manus/services/quiz.routing.test.ts` — member path uses edge function;
+  no direct `quiz_options` query.
+- `src/manus/services/quiz.routing.test.ts` — admin path uses
+  `get-admin-quiz` and surfaces `is_correct` only from server payload.
+- `src/manus/components/learning/QuizCard.test.tsx` — submit response renders
+  immediately; no 0% flash.
+
+Remote CI (`prelaunch/phase-0-1-hardening` HEAD): pending operator action.
+Run ID / HEAD SHA to be recorded after the commit reaches GitHub.
+
+```
+REMOTE_CI_STATUS  = PENDING_HUMAN_PUSH
+REMOTE_CI_RUN_ID  = (not yet observed)
+REMOTE_CI_HEAD    = (not yet observed)
+```
+
+
 
 ## 10. Post-apply validation queries (prepared, NOT executed)
 
