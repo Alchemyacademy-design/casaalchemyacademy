@@ -13,6 +13,7 @@ import {
   type MemberQuestion,
   type QuizRow,
   type SelectionMap,
+  type SubmitResult,
 } from "@/manus/services/quiz";
 import QuizProgress from "./QuizProgress";
 import QuizQuestion from "./QuizQuestion";
@@ -39,14 +40,19 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
 
   const [selections, setSelections] = useState<SelectionMap>({});
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [submitted, setSubmitted] = useState(false);
+  // Authoritative result from the most recent submission. We do NOT depend on
+  // the attempts refetch to render the outcome — that introduces a window
+  // where the UI shows 0% / not-passed before the refetch resolves.
+  const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewGrade, setPreviewGrade] = useState<ReturnType<typeof gradeAttempt> | null>(null);
 
   const submitMutation = useMutation({
     mutationFn: () => submitAttempt(quizId, selections),
-    onSuccess: () => {
-      setSubmitted(true);
+    onSuccess: (result) => {
+      // Render immediately from the edge response, then refresh attempts
+      // history in the background.
+      setSubmitResult(result);
       qc.invalidateQueries({ queryKey: ["quiz-attempts", quizId] });
     },
     onError: (e: unknown) => setError(e instanceof Error ? e.message : String(e)),
@@ -56,7 +62,7 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
   useEffect(() => {
     setSelections({});
     setCurrentIndex(0);
-    setSubmitted(false);
+    setSubmitResult(null);
     setError(null);
     setPreviewGrade(null);
   }, [quizId]);
@@ -68,15 +74,16 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
   const current = questions[currentIndex];
 
   const lastSubmittedAttempt = useMemo(() => {
-    const submitted = (attemptsQuery.data ?? []).filter((a) => a.submitted_at != null);
-    return submitted[0] ?? null;
+    const submittedHistory = (attemptsQuery.data ?? []).filter((a) => a.submitted_at != null);
+    return submittedHistory[0] ?? null;
   }, [attemptsQuery.data]);
 
   const attemptsRemaining = useMemo(() => {
+    if (submitResult?.attemptsRemaining != null) return submitResult.attemptsRemaining;
     if (!quiz?.max_attempts) return null;
     const used = (attemptsQuery.data ?? []).filter((a) => a.submitted_at != null).length;
     return Math.max(0, quiz.max_attempts - used);
-  }, [quiz, attemptsQuery.data]);
+  }, [quiz, attemptsQuery.data, submitResult]);
 
   if (quizQuery.isLoading) {
     return <Card className="p-6 text-sm text-foreground/60" role="status">Loading quiz…</Card>;
@@ -94,8 +101,8 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
     return <Card className="p-6 text-sm text-foreground/60">This quiz has no questions yet.</Card>;
   }
 
-  // Already-passed surface for members.
-  if (!previewAsAdmin && lastSubmittedAttempt && lastSubmittedAttempt.passed && !submitted) {
+  // Already-passed surface for members (history-driven, not the fresh submit).
+  if (!previewAsAdmin && lastSubmittedAttempt && lastSubmittedAttempt.passed && submitResult == null) {
     return (
       <Card className="p-6 space-y-4">
         <h2 className="font-serif text-2xl text-foreground">{quiz.title}</h2>
@@ -109,21 +116,20 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
     );
   }
 
-  if (submitted) {
-    const score = lastSubmittedAttempt?.score ?? 0;
-    const passed = lastSubmittedAttempt?.passed ?? false;
+  // Fresh submission result — render straight from the edge response.
+  if (submitResult) {
     return (
       <Card className="p-6 space-y-4">
         <h2 className="font-serif text-2xl text-foreground">{quiz.title}</h2>
         <QuizResult
-          score={score}
-          passed={passed}
+          score={submitResult.score}
+          passed={submitResult.passed}
           passingScore={quiz.passing_score}
-          attemptsRemaining={attemptsRemaining}
+          attemptsRemaining={submitResult.attemptsRemaining}
           onRestart={() => {
             setSelections({});
             setCurrentIndex(0);
-            setSubmitted(false);
+            setSubmitResult(null);
             setError(null);
           }}
         />
@@ -162,7 +168,9 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
         <span className="inline-block text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800">Preview</span>
       )}
       <div>
-        <h2 className="font-serif text-2xl text-foreground">{quiz.title}</h2>
+        <h2 className="font-serif text-2xl text-foreground">
+          Quiz: Question {currentIndex + 1} of {total}
+        </h2>
         {quiz.description && <p className="text-sm text-foreground/70 mt-1">{quiz.description}</p>}
       </div>
       <QuizProgress current={currentIndex + 1} total={total} passingScore={quiz.passing_score} />
@@ -177,7 +185,7 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
       {error && (
         <p className="text-xs text-destructive" role="alert">{error}</p>
       )}
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex items-center justify-between pt-2 gap-3">
         <Button
           variant="outline"
           size="sm"
@@ -186,13 +194,21 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
         >
           <ArrowLeft className="w-3 h-3 mr-1" /> Previous
         </Button>
+        <span className="text-xs text-foreground/65" aria-live="polite">
+          {currentIndex + 1} / {total}
+        </span>
         {isLast ? (
           <Button
             size="sm"
             disabled={!allAnswered || submitMutation.isPending}
             onClick={() => {
               setError(null);
-              if (previewAsAdmin && "options" in (questions[0] ?? {}) && (questions[0] as AdminQuestion).options[0] && "is_correct" in (questions[0] as AdminQuestion).options[0]) {
+              if (
+                previewAsAdmin &&
+                "options" in (questions[0] ?? {}) &&
+                (questions[0] as AdminQuestion).options[0] &&
+                "is_correct" in (questions[0] as AdminQuestion).options[0]
+              ) {
                 setPreviewGrade(
                   gradeAttempt(questions as ReadonlyArray<AdminQuestion>, selections, quiz.passing_score),
                 );
@@ -201,7 +217,7 @@ export default function QuizCard({ quizId, previewAsAdmin = false }: Props) {
               submitMutation.mutate();
             }}
           >
-            {submitMutation.isPending ? "Submitting…" : "Submit"}
+            {submitMutation.isPending ? "Saving result…" : "Submit"}
           </Button>
         ) : (
           <Button

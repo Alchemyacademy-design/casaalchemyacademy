@@ -1,74 +1,114 @@
 # Phase 2 — Quiz Security Hardening
 
-Status: `IMPLEMENTED_PENDING_RUNTIME_QA`.
-Quiz status: stays at `SECURE_RENDERED_PENDING_RUNTIME_VALIDATION` until the
-hosted-preview QA accounts (qa-member, qa-entitlement, qa-no-access) have run
-through a real submission. Will be promoted to
-`SECURE_RENDERED_AND_RUNTIME_VALIDATED` only after that runtime pass.
+Status: `QUIZ_SECURITY_STATUS = READY_FOR_MIGRATION_REVIEW`.
+Related flags (unchanged this round):
+- `STUDENT_JOURNEY_STATUS = IMPLEMENTED_PENDING_RUNTIME_QA`
+- `RATING_STATUS = IMPLEMENTED_PENDING_MIGRATION`
+- `PILOT_QUIZ_CONTENT = AWAITING_ADMIN_APPROVAL`
+- `STRIPE_STATUS = ADIADO`
 
 ## Threat that was open
 
-`src/manus/services/quiz.ts::submitAttempt` called `loadAdminQuiz`, which
-selected `quiz_options.is_correct`. With the previous RLS, any authenticated
-member could replay that same select via PostgREST and read the answer key
-before submitting — full quiz bypass.
+`src/manus/services/quiz.ts::loadAdminQuiz` ran a PostgREST select that
+included `quiz_options.is_correct`. The earlier mitigation only ran
+`REVOKE SELECT (is_correct)`, which does not undo a pre-existing table-level
+SELECT grant — any authenticated member could replay the same select against
+PostgREST and read the answer key before submitting.
 
-## Mitigations now in code
+## Architecture now (code)
 
-1. **Server-side grading via Edge Function `submit-quiz-attempt`**
-   - File: `supabase/functions/submit-quiz-attempt/index.ts`
-   - Validates JWT (`auth.getUser(token)`).
-   - Validates the quiz is `status='published'`.
-   - Validates the caller's access (admin role OR active membership OR active
-     entitlement for `quiz.course_id`).
-   - Validates every `question_id` belongs to the quiz and every `option_id`
-     belongs to its question.
-   - Enforces `max_attempts` (admins exempt for preview).
-   - Grades using `is_correct` read with `service_role` only.
-   - Persists `quiz_attempts` + `quiz_answers` in one logical flow.
-   - Returns `{ score, passed, attempts_remaining }` — **never** `is_correct`.
+1. **`get-member-quiz` edge function** (`supabase/functions/get-member-quiz/`)
+   - Validates JWT.
+   - Validates quiz is `status='published'`.
+   - Validates access via the canonical helper
+     `supabase/functions/_shared/quiz-access.ts::evaluateCourseAccess`
+     (admin OR active membership OR active entitlement OR course is open-access).
+   - Reads quiz + questions + options through service-role and returns
+     **only** the member-safe option fields (`id, question_id, option_text,
+     sort_order`). `is_correct` is never serialised.
 
-2. **Client refactor**
-   - `submitAttempt` no longer calls `loadAdminQuiz`. It posts to the edge
-     function via `supabase.functions.invoke('submit-quiz-attempt', ...)`.
-   - `QuizCard` (member flow) only uses `loadMemberQuiz`, which selects
-     `id, question_id, option_text, sort_order` — **no `is_correct`**.
+2. **`get-admin-quiz` edge function** (`supabase/functions/get-admin-quiz/`)
+   - Validates JWT, requires admin role via the shared helper.
+   - Returns `is_correct` for the editor and admin preview.
+   - Non-admins get `403`.
 
-3. **Column-level RLS — `docs/migrations/20260625000000_secure_quiz_options_and_module_ratings.sql`**
-   - `REVOKE SELECT (is_correct) ON public.quiz_options FROM authenticated, anon;`
-   - Safe columns re-granted explicitly to `authenticated` and `anon`.
-   - `service_role` keeps full access (used by the edge function only).
-   - **This migration MUST be applied via the Supabase SQL Editor before the
-     hosted-preview QA pass.** Without it, the answer key remains readable
-     even though no client code requests it.
+3. **`submit-quiz-attempt` edge function** — now a thin wrapper around the
+   SECURITY DEFINER RPC `public.internal_submit_quiz_attempt(uuid, bigint, jsonb)`.
+   It only authenticates, shape-checks the body, calls the RPC, and maps
+   raised error tokens (`quiz_unavailable`, `forbidden`,
+   `no_attempts_remaining`, `admin_preview_blocked`, `invalid_question_ref`,
+   `invalid_option_ref`, `duplicate_question`, `missing_answer`,
+   `extra_answer`) to safe public codes. SQL errors are logged server-side
+   only and surfaced to the client as `submission_failed`.
 
-## Admin preview path (unchanged, still safe)
+4. **Transactional grading RPC** (defined in
+   `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`,
+   pending review).
+   - `pg_advisory_xact_lock` keyed on `(user_id, quiz_id)` serialises
+     concurrent submissions, enforcing `max_attempts` under contention.
+   - Re-verifies access using the same access rule.
+   - Rejects admin callers (`admin_preview_blocked`) — admin preview must
+     never write attempts.
+   - Validates exactly one answer per question (no duplicates, no missing
+     answers, no foreign question/option refs).
+   - Inserts `quiz_attempts` + `quiz_answers` in the same transaction;
+     any failure rolls the attempt back.
+   - Returns `{ score, passed, attempts_remaining }` only — `is_correct`
+     never re-crosses the boundary.
 
-`QuizCard previewAsAdmin` calls `loadAdminQuiz` and grades locally for the
-admin only. The admin already legitimately reads `is_correct` (admin SELECT
-policies on `quiz_options`). It never writes a `quiz_attempts` row.
+5. **Frontend** (`src/manus/services/quiz.ts`)
+   - `loadMemberQuiz` → `supabase.functions.invoke('get-member-quiz', …)`.
+   - `loadAdminQuiz` → `supabase.functions.invoke('get-admin-quiz', …)`.
+   - The browser no longer queries `quiz_options` directly.
+   - `QuizCard` stores the edge function's `{ score, passed, attemptsRemaining }`
+     in local state and renders it immediately — no transient 0% flash while
+     the attempts history refetches in the background.
 
-## RPC contract
+## Database hardening (migration pending review)
 
-`POST /functions/v1/submit-quiz-attempt`
+Authoritative file:
+`docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`.
+Earlier file `docs/migrations/20260625000000_*.sql` is now a stub that
+points here.
 
-Request:
-```json
-{ "quiz_id": 12, "answers": [{ "question_id": 34, "option_id": 56 }] }
-```
+Key changes the migration applies (not yet executed):
 
-Responses:
-- `200 { score, passed, attempts_remaining }`
-- `400 { error: "invalid_question_ref" | "invalid_option_ref" | "invalid_json" | … }`
-- `401 { error: "unauthorized" }`
-- `403 { error: "forbidden" }`
-- `404 { error: "quiz_unavailable" }`
-- `409 { error: "no_attempts_remaining" }`
+- `REVOKE SELECT ON TABLE public.quiz_options FROM authenticated, anon;`
+  This is the critical step the previous draft missed.
+- Drops any SELECT RLS policy on `quiz_options` so the table is reachable
+  only via service-role (the three edge functions above).
+- Creates `public.internal_submit_quiz_attempt(uuid, bigint, jsonb)` —
+  SECURITY DEFINER, `search_path=''`, `service_role`-only EXECUTE.
+- Creates `public.module_ratings` with grants + RLS, plus
+  `public.can_access_module(uuid, bigint)` so INSERT/UPDATE policies require
+  the rater to actually have access to the underlying course.
+- Creates `public.module_rating_summary(bigint)` (SECURITY DEFINER) that
+  checks `can_access_module` before returning the average. `anon` is
+  intentionally NOT granted EXECUTE.
 
-## Verification checklist (post-migration)
+## Verification (this round)
 
-- [ ] `select is_correct from quiz_options limit 1` as `authenticated` → permission error.
-- [ ] `select id, option_text from quiz_options limit 1` as `authenticated` → returns rows for published quizzes the user can access.
-- [ ] Submit attempt as member → `quiz_attempts` row created, score matches server truth.
-- [ ] Submit attempt without access → `403 forbidden`.
-- [ ] Submit past `max_attempts` → `409 no_attempts_remaining`.
+- `bun run typecheck` — clean.
+- `bun run lint` — 0 errors (17 pre-existing warnings).
+- `bun run test` — **194 passed (previously 189)**.
+- `bun run build` — entry index 137.30 kB, build successful.
+
+New tests (5 added):
+- `src/manus/services/quiz.routing.test.ts` (4 tests) — asserts member and
+  admin loads route through the edge functions, never `supabase.from(...)`;
+  member payload contains no `is_correct`.
+- `src/manus/components/learning/QuizCard.test.tsx` (1 test) — submits a
+  quiz and asserts the score renders straight from the edge response even
+  when the attempts refetch returns no history (no 0% flash).
+
+## What still requires action before runtime QA
+
+1. Apply `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
+   via the Supabase SQL Editor. The Lovable migration runner refuses
+   direct file writes under `supabase/migrations/`; copy/apply manually.
+2. Approve the colour-theory pilot quiz in
+   `docs/PHASE_2_PILOT_QUIZ_PROPOSAL.md` with **APPROVE_PILOT_QUIZ**.
+3. Run the QA personas described in `docs/PHASE_2_QA_RUNBOOK.md` against
+   the hosted preview.
+
+Stripe remains `ADIADO` — no changes this round.

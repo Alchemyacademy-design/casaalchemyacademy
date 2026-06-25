@@ -129,58 +129,60 @@ export function isQuizPublishable(
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db: any = supabase;
 
-/** Member load: fetches quiz + questions + options WITHOUT is_correct. */
+function shapeQuestions<TOption extends { sort_order: number }>(
+  raw: Array<QuestionRow & { quiz_options: TOption[] }> | null | undefined,
+): Array<QuestionRow & { options: TOption[] }> {
+  return (raw ?? []).map((q) => ({
+    ...q,
+    options: (q.quiz_options ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
+  }));
+}
+
+/**
+ * Member load — always via the `get-member-quiz` edge function. The browser
+ * is NEVER allowed to read `quiz_options.is_correct`; even with PostgREST
+ * grants locked down, this path is the contract. Returns null if the quiz
+ * is not published or the caller has no access.
+ */
 export async function loadMemberQuiz(quizId: number): Promise<{
   quiz: QuizRow;
   questions: MemberQuestion[];
 } | null> {
-  const { data: quiz, error } = await db
-    .from("quizzes")
-    .select("id,course_id,lesson_id,title,description,passing_score,max_attempts,status")
-    .eq("id", quizId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!quiz || quiz.status !== "published") return null;
-  const { data: questions, error: qErr } = await db
-    .from("quiz_questions")
-    .select("id,quiz_id,question_text,points,explanation,sort_order,quiz_options(id,question_id,option_text,sort_order)")
-    .eq("quiz_id", quizId)
-    .order("sort_order");
-  if (qErr) throw qErr;
-  return {
-    quiz: quiz as QuizRow,
-    questions: ((questions ?? []) as Array<QuestionRow & { quiz_options: MemberOption[] }>).map((q) => ({
-      ...q,
-      options: (q.quiz_options ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
-    })),
-  };
+  const { data, error } = await supabase.functions.invoke<{
+    quiz?: QuizRow;
+    questions?: Array<QuestionRow & { quiz_options: MemberOption[] }>;
+    error?: string;
+  }>("get-member-quiz", { body: { quiz_id: quizId } });
+  if (error) {
+    const msg = (error as { message?: string }).message ?? "";
+    if (msg.toLowerCase().includes("forbidden")) return null;
+    if (msg.toLowerCase().includes("quiz_unavailable")) return null;
+    throw new Error("Failed to load quiz");
+  }
+  if (!data || data.error || !data.quiz) return null;
+  return { quiz: data.quiz, questions: shapeQuestions<MemberOption>(data.questions) };
 }
 
-/** Admin load: includes is_correct so the editor and preview-grading can use it. */
+/**
+ * Admin load — always via the `get-admin-quiz` edge function, which requires
+ * the admin role. Includes `is_correct` for editor + admin Preview Mode.
+ */
 export async function loadAdminQuiz(quizId: number): Promise<{
   quiz: QuizRow;
   questions: AdminQuestion[];
 } | null> {
-  const { data: quiz, error } = await db
-    .from("quizzes")
-    .select("id,course_id,lesson_id,title,description,passing_score,max_attempts,status")
-    .eq("id", quizId)
-    .maybeSingle();
-  if (error) throw error;
-  if (!quiz) return null;
-  const { data: questions, error: qErr } = await db
-    .from("quiz_questions")
-    .select("id,quiz_id,question_text,points,explanation,sort_order,quiz_options(id,question_id,option_text,is_correct,sort_order)")
-    .eq("quiz_id", quizId)
-    .order("sort_order");
-  if (qErr) throw qErr;
-  return {
-    quiz: quiz as QuizRow,
-    questions: ((questions ?? []) as Array<QuestionRow & { quiz_options: OptionRow[] }>).map((q) => ({
-      ...q,
-      options: (q.quiz_options ?? []).slice().sort((a, b) => a.sort_order - b.sort_order),
-    })),
-  };
+  const { data, error } = await supabase.functions.invoke<{
+    quiz?: QuizRow;
+    questions?: Array<QuestionRow & { quiz_options: OptionRow[] }>;
+    error?: string;
+  }>("get-admin-quiz", { body: { quiz_id: quizId } });
+  if (error) {
+    const msg = (error as { message?: string }).message ?? "";
+    if (msg.toLowerCase().includes("forbidden")) throw new Error("Admin access required");
+    throw new Error("Failed to load quiz");
+  }
+  if (!data || data.error || !data.quiz) return null;
+  return { quiz: data.quiz, questions: shapeQuestions<OptionRow>(data.questions) };
 }
 
 export async function listAttempts(quizId: number): Promise<AttemptRow[]> {
@@ -241,10 +243,15 @@ export async function submitAttempt(quizId: number, selections: SelectionMap): P
       quiz_unavailable: "This quiz is no longer available.",
       forbidden: "You do not have access to this quiz.",
       no_attempts_remaining: "You have no attempts remaining.",
+      admin_preview_blocked: "Admin preview cannot record attempts.",
       invalid_question_ref: "One of the answers is invalid. Please reload and try again.",
       invalid_option_ref: "One of the answers is invalid. Please reload and try again.",
+      duplicate_question: "Each question can only be answered once.",
+      missing_answer: "Please answer every question before submitting.",
+      extra_answer: "Submission contains an answer to an unknown question.",
+      submission_failed: "Could not submit your quiz. Please try again.",
     };
-    throw new Error(map[data.error] ?? data.message ?? data.error);
+    throw new Error(map[data.error] ?? "Could not submit your quiz. Please try again.");
   }
   return {
     score: data.score,
