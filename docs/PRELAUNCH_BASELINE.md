@@ -19,31 +19,55 @@
 
 ## 2. Routes inventory
 
+Source of truth: `src/App.tsx`. Every `<Route>` declared there is listed below.
+
 ### Public
 - `/` (Home)
+- `/plans`
 - `/login`
 - `/signup`
-- `/reset-password` (request) and `/auth/update-password` (set new password)
+- `/reset-password`
+- `/forgot-password` (alias → `ResetPassword`)
 - `/auth/callback`
-- `/plans` (visible to unpaid authenticated users; not gated by membership)
+- `/auth/update-password`
+- `/auth/continue` (`PostAuthRedirect`)
+- `/activate`
+- `/courses` (`Guides` — public catalogue)
+- `/courses/:id` (gating evaluated inside the page)
+- `/404`
+- `*` (catch-all → `NotFound`)
 
 ### Authenticated (member-facing)
 - `/dashboard` (membership-only)
-- `/mycourses`
-- `/courses/:id`
-- `/modules/:id`
+- `/mycourses` (`Modules`)
+- `/mycourses/:id` (`ModuleDetail`)
+- `/modules` (redirect → `/mycourses`)
+- `/modules/:id` (`ModuleDetail`)
 - `/profile`
 - `/community`, `/suppliers`, `/events`, `/magazine`, `/live-workshops` (membership-only)
 - `/payment/success`, `/payment/cancel`
 
-### Admin (gated by `useAuth().isAdmin` → `has_role(auth.uid(),'admin')`)
+### Admin (gated by `<AdminGuard>` → `useAuth().isAdmin` → `has_role(auth.uid(),'admin')`)
 - `/admin`
+- `/admin/analytics`
 - `/admin/courses`
+- `/admin/courses/new`
 - `/admin/courses/:id`
-- `/admin/students`, `/admin/events`, `/admin/workshops`, `/admin/magazine`,
-  `/admin/deals`, `/admin/suppliers`, `/admin/supplier-categories`,
-  `/admin/plans`, `/admin/certificates`, `/admin/lessons-bulk`,
-  `/admin/analytics`, `/admin/diagnostics`, `/admin/users/:id`
+- `/admin/content-import` (redirect → `/admin/courses`)
+- `/admin/import` (redirect → `/admin/courses`)
+- `/admin/lessons` (`AdminLessonsBulk`)
+- `/admin/students`
+- `/admin/diagnostics`
+- `/admin/events`
+- `/admin/workshops`
+- `/admin/magazine`
+- `/admin/suppliers`
+- `/admin/supplier-categories`
+- `/admin/deals`
+- `/admin/plans`
+- `/admin/certificates`
+- `/admin/users/:id`
+- `/admin/phase-2-preview` (redirect → `/admin/courses`)
 
 ## 3. Critical tables (Supabase `public` schema)
 
