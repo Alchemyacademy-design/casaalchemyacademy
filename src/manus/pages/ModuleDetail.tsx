@@ -21,6 +21,7 @@ import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import ModuleRating from "@/manus/components/learning/ModuleRating";
 import { useAuth } from "@/manus/hooks/useAuth";
 
 
@@ -353,6 +354,13 @@ export default function ModuleDetail() {
                     }
                     return null;
                   })()}
+
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
+                    <ModuleRating moduleId={moduleId} readOnly={isAdmin} />
+                  </div>
+
+
 
 
 

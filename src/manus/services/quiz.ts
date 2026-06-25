@@ -197,62 +197,60 @@ export async function listAttempts(quizId: number): Promise<AttemptRow[]> {
 }
 
 /**
- * Submit a member attempt. Server-side RLS is authoritative; this function:
- *  - rejects answers whose question_id does not belong to the quiz (anti-replay);
- *  - inserts the attempt + answers in one logical flow;
- *  - recomputes score from quiz_options.is_correct read after insert, not from
- *    any client-supplied truth.
+ * Submit a member attempt — authoritative grading runs in the
+ * `submit-quiz-attempt` edge function. The browser never reads
+ * `quiz_options.is_correct` for members; it only forwards the user's selections
+ * to the server, which validates access, applies max_attempts, grades, and
+ * persists the attempt.
+ *
+ * Returns the minimum surface the UI needs: { score, passed, attemptsRemaining }.
  */
-export async function submitAttempt(quizId: number, selections: SelectionMap): Promise<AttemptRow> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Authentication required");
-  const admin = await loadAdminQuiz(quizId);
-  if (!admin) throw new Error("Quiz unavailable");
-  if (admin.quiz.status !== "published") throw new Error("Quiz unavailable");
-  // Reject foreign question ids.
-  const allowed = new Set(admin.questions.map((q) => q.id));
-  for (const qid of Object.keys(selections)) {
-    if (!allowed.has(Number(qid))) {
-      throw new Error("Invalid question reference");
-    }
-  }
-  // Enforce max_attempts.
-  if (admin.quiz.max_attempts != null) {
-    const prior = await listAttempts(quizId);
-    const submitted = prior.filter((a) => a.submitted_at != null).length;
-    if (submitted >= admin.quiz.max_attempts) {
-      throw new Error("No attempts remaining");
-    }
-  }
+export type SubmitResult = {
+  score: number;
+  passed: boolean;
+  attemptsRemaining: number | null;
+};
 
-  const graded = gradeAttempt(admin.questions, selections, admin.quiz.passing_score);
-  const now = new Date().toISOString();
-  const { data: attempt, error: insErr } = await db
-    .from("quiz_attempts")
-    .insert({
-      user_id: user.id,
-      quiz_id: quizId,
-      score: graded.score,
-      passed: graded.passed,
-      started_at: now,
-      submitted_at: now,
-    })
-    .select()
-    .single();
-  if (insErr) throw insErr;
+export async function submitAttempt(quizId: number, selections: SelectionMap): Promise<SubmitResult> {
+  const answers = Object.entries(selections)
+    .filter(([, optionId]) => optionId != null)
+    .map(([qid, optionId]) => ({
+      question_id: Number(qid),
+      option_id: Number(optionId),
+    }));
 
-  const answers = graded.perQuestion.map((r) => ({
-    attempt_id: attempt.id,
-    question_id: r.questionId,
-    option_id: r.selectedOptionId,
-    is_correct: r.isCorrect,
-    points_awarded: r.pointsAwarded,
-  }));
-  if (answers.length) {
-    const { error: ansErr } = await db.from("quiz_answers").insert(answers);
-    if (ansErr) throw ansErr;
+  const { data, error } = await supabase.functions.invoke<{
+    score: number;
+    passed: boolean;
+    attempts_remaining: number | null;
+    error?: string;
+    message?: string;
+  }>("submit-quiz-attempt", {
+    body: { quiz_id: quizId, answers },
+  });
+
+  if (error) {
+    // The Supabase JS client wraps non-2xx as FunctionsHttpError; surface a
+    // user-readable message without exposing internals.
+    const message = (error as { message?: string }).message ?? "Quiz submission failed";
+    throw new Error(message);
   }
-  return attempt as AttemptRow;
+  if (!data) throw new Error("Quiz submission failed");
+  if (data.error) {
+    const map: Record<string, string> = {
+      quiz_unavailable: "This quiz is no longer available.",
+      forbidden: "You do not have access to this quiz.",
+      no_attempts_remaining: "You have no attempts remaining.",
+      invalid_question_ref: "One of the answers is invalid. Please reload and try again.",
+      invalid_option_ref: "One of the answers is invalid. Please reload and try again.",
+    };
+    throw new Error(map[data.error] ?? data.message ?? data.error);
+  }
+  return {
+    score: data.score,
+    passed: data.passed,
+    attemptsRemaining: data.attempts_remaining,
+  };
 }
 
 /** Did the user pass any published required quiz for this course? */

@@ -99,3 +99,51 @@ RATING_STATUS = DEFERRED_NO_SCHEMA
 STRIPE_STATUS = ADIADO
 WHITE_SCREEN_STATUS = RESOLVED_AND_RUNTIME_VALIDATED (sandbox)
 ```
+
+---
+
+## 2026-06-25 — Student Journey & Quiz Hardening pass
+
+### Code changes
+- New edge function `supabase/functions/submit-quiz-attempt/index.ts` —
+  server-authoritative grading. Deployed.
+- `src/manus/services/quiz.ts::submitAttempt` rewritten to call the edge
+  function via `supabase.functions.invoke`. No member code path reads
+  `quiz_options.is_correct` anymore.
+- `src/manus/components/learning/ModuleRating.tsx` — new component (5 stars,
+  average + count, loading/error/Retry/empty, write disabled in admin preview).
+- `src/manus/pages/ModuleDetail.tsx` — renders `ModuleRating` after the quiz.
+
+### Migration written but NOT YET APPLIED
+`docs/migrations/20260625000000_secure_quiz_options_and_module_ratings.sql`
+- Column-level REVOKE of `quiz_options.is_correct` from `authenticated`/`anon`.
+- New `public.module_ratings` table + RLS + `module_rating_summary` SECDEF.
+- **Action required:** apply via Supabase SQL Editor before runtime QA.
+
+### Pilot quiz
+`docs/PHASE_2_PILOT_QUIZ_PROPOSAL.md` — 5 questions, 4 options each, drafted.
+**No rows inserted.** Awaiting `APPROVE_PILOT_QUIZ`.
+
+### QA runbook
+`docs/PHASE_2_QA_RUNBOOK.md` — qa-no-access / qa-member / qa-entitlement /
+admin matrix. **No accounts created.**
+
+### Gates (local)
+- `bun run typecheck` ✅
+- `bun run test` ✅ 189/189
+- `bun run lint` ✅ 0 errors (17 pre-existing warnings)
+- `bun run build` ✅ entry `index` 137.3 kB
+- Stripe calls in changed paths: 0
+
+### Updated flags
+
+```
+STUDENT_JOURNEY_STATUS = IMPLEMENTED_PENDING_RUNTIME_QA
+QUIZ_STATUS            = SECURE_RENDERED_PENDING_RUNTIME_VALIDATION
+RATING_STATUS          = IMPLEMENTED_PENDING_MIGRATION
+PILOT_QUIZ_CONTENT     = AWAITING_ADMIN_APPROVAL
+STRIPE_STATUS          = ADIADO (unchanged)
+```
+
+Quiz will only be promoted to `SECURE_RENDERED_AND_RUNTIME_VALIDATED` after the
+hosted-preview QA pass against the three personas.

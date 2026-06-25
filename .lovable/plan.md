@@ -1,73 +1,124 @@
+# Premortem — Student Journey & Quiz Hardening (Phase 2 Closure)
 
-# Plano — Auditoria Final e Encerramento do Stripe Live
+Status target before runtime QA: `STUDENT_JOURNEY_STATUS = IMPLEMENTED_PENDING_RUNTIME_QA`.
+Quiz status target: `SECURE_RENDERED_AND_RUNTIME_VALIDATED` (only after hosted-preview runs with real QA accounts).
 
-Objetivo: executar Fases A–K de forma segura, deixar tudo pronto para o teste live controlado (Fase L) e parar para sua autorização. `STRIPE_LIVE_ENABLED` permanece `false` durante toda a execução. Nenhum segredo será exibido, pedido pelo chat ou gravado em arquivo.
+Stripe stays off. No pilot quiz content will be written without explicit approval. No QA users created in this execution.
 
-## Regras inegociáveis aplicadas
-- Nenhum produto/preço novo no Stripe. Nenhuma alteração de valor/recorrência. Nenhum delete de histórico.
-- Migrations apenas idempotentes, com transação e validação final que aborta em falha.
-- Webhook continua sendo o único escritor financeiro.
-- Diagnóstico não usa `webhookFunctionActive: true` / `checkoutFunctionActive: true` como constantes.
-- Fases 2, 3, 4 não serão iniciadas.
+---
 
-## Fase A — Inventário real
-Levantar e registrar (sem segredos): secrets esperados vs detectados (yes/no), edge functions e versões implantadas, tabelas/RPCs/migrations financeiras, rotas e hooks que chamam checkout, estado real de `stripe_products`, `stripe_prices`, `stripe_customers`, `stripe_checkout_sessions`, `stripe_payments`, `stripe_subscriptions`, `stripe_webhook_events`, `memberships`, `course_entitlements`, RLS e policies relevantes, índices e unique constraints. Confrontar repo × Supabase deploy × DB real.
+## Premortem — what will go wrong if we skip a step
 
-## Fase B — Secrets
-Auditar nomes (não valores) dos 7 obrigatórios + 5 opcionais já suportados. Para cada um: `configured`, `prefixValid`, `environmentCompatible`, `urlValid`. Se algum dos 7 obrigatórios estiver ausente, abrir o formulário seguro do Secret Manager (sem pedir valor no chat) e parar até preenchimento.
+1. **Client-side grading leaks `is_correct`.** Today `submitAttempt` calls `loadAdminQuiz` which selects `is_correct` from `quiz_options`. Any authenticated user can read correct answers via PostgREST before submitting. **P0 security bug.**
+2. **RLS on `quiz_options` likely allows authenticated read.** Even after we move grading server-side, if RLS is not tightened the leak persists. Must audit + lock.
+3. **`max_attempts` and `published` are enforced in the browser.** A crafted request bypasses both. Must move to RPC/Edge with `SECURITY DEFINER`.
+4. **"Admin preview only" pages mislead audit.** CourseDetail/ModuleDetail must render the real journey for paying members, not just an admin banner.
+5. **No `module_ratings` table.** Rating UI without schema = fake. Need migration + RLS + aggregation.
+6. **Cross-tab/route guards untested for the three personas** (no-access, membership, entitlement). Without RTL tests we cannot claim the journey works.
+7. **Runtime QA conflated with unit tests.** Gates require hosted-preview runs; we will *not* declare VALIDATED here.
 
-## Fase C+D — Preços canônicos + migration oficial
-Criar migration nova, versionada e idempotente em `supabase/migrations/` que:
-1. abre transação;
-2. inspeciona constraints;
-3. `INSERT … ON CONFLICT DO UPDATE` em `stripe_products` para `prod_UYpfuiZ9vyi86D`, `prod_UYpYjAVuppRhis`, `prod_UiwxdgrcqKGV5q`;
-4. `INSERT … ON CONFLICT DO UPDATE` em `stripe_prices` para os 3 price IDs canônicos com `livemode=true`, `active=true`, `is_checkout_default=true`, `course_id=null`, currency/amount/interval exatos do brief, metadata `{"source":"stripe_live_csv_2026_06","validated":true}`;
-5. `UPDATE … SET is_checkout_default=false` apenas em outros registros `livemode=true` do mesmo `plan_key`;
-6. preserva integralmente registros `livemode=false` e históricos;
-7. valida no fim: 1 default monthly + 1 annual + 1 individual = 3 totais; `RAISE EXCEPTION` se diferente, abortando a transação.
+---
 
-Após aplicar, conferir histórico de migrations no Supabase.
+## Scope of this execution
 
-## Fase E — Auditoria do checkout
-Conferir em `create-checkout-session/index.ts` os 15 critérios (auth + email confirmado + gate live + price do DB + valor/recorrência/livemode validados + idempotency + rate limit + customer↔user_id + metadata completa + URLs vindas de secrets + nenhum segredo retornado), e regras por plano (monthly subscription, annual payment, individual subscription 3 meses com `course_id` validado e curso `published`). Corrigir desvios encontrados sem mudar contratos.
+### A. Secure quiz submission (P0)
+- New Edge Function `submit-quiz-attempt` (verify_jwt validation in code, CORS, Zod input).
+  - Resolves `auth.uid()` from the JWT.
+  - Loads quiz + questions + options with the **service role** (server-only) and checks: `status='published'`, user has membership OR entitlement for `course_id` OR is admin, every `question_id` belongs to the quiz, every `option_id` belongs to its question, `submitted` attempts < `max_attempts`.
+  - Grades server-side, inserts `quiz_attempts` + `quiz_answers` in one logical flow.
+  - Returns `{ score, passed, attempts_remaining }`. Never returns `is_correct` for unsubmitted state.
+- Refactor `src/manus/services/quiz.ts`:
+  - `submitAttempt` → calls the edge function via `supabase.functions.invoke`.
+  - `loadMemberQuiz` keeps the existing **no-`is_correct`** select; remove any code path where members touch `loadAdminQuiz`.
+  - `QuizCard` no longer imports `loadAdminQuiz` for member flows; admin preview path stays guarded by `isAdmin`.
+- RLS migration on `quiz_options` and `quiz_questions`:
+  - Members may read `quiz_options(id, question_id, option_text, sort_order)` of **published** quizzes they have access to, **excluding** `is_correct` — enforced by revoking column privilege on `is_correct` from `authenticated` and granting only the safe columns. Admin keeps full read via `has_role(auth.uid(),'admin')`.
+  - Audit and re-issue GRANTs in the same migration.
 
-## Fase F — Auditoria do webhook
-Conferir `stripe-webhook/index.ts` e `_shared/billing-core.ts`: POST-only, raw body, signature + livemode, claim idempotente, sem price IDs hardcoded, sem leak em erro, suporte aos 11 eventos com semântica correta (subscription.created não libera sozinho, invoice.paid libera mensal/curso, anual libera 12 meses uma única vez, refund/dispute revogam, dispute closed só restaura idempotente).
+### B. Real student rendering on `/courses/:id` and `/modules/:id`
+- `CourseDetail` renders, for users with access: hero, About, lessons list, **inline Quiz (real submission)**, **Rating**, sidebar of modules. Loading/error/empty states use `QueryStateView`.
+- `ModuleDetail` renders: `LessonSidebar`, video, materials, Mark Complete, Previous / `Lesson X of Y` / Next, progress. Admin-preview banner becomes additive, never a replacement.
+- Access gating leaves `GlobalAccessController` unchanged but ensures CourseDetail returns a neutral "Course unavailable or you do not have access" surface when the access check fails inside the page (defense in depth).
 
-## Fase G — RPCs / single writer
-Conferir as 6 RPCs `internal_*` + wrappers: `SECURITY DEFINER` mínimo, `search_path` seguro, permissões mínimas, frontend sem acesso, validação user_id/course_id, proteção contra evento velho/duplicado, anual não duplica para 24 meses, invoice duplicada não duplica pagamento.
+### C. Quiz visual to PDF spec
+- White card, `Instrument Serif` heading `Quiz: Question X of Y`, A/B/C/D options with selection state, Previous (left) / `X / Y` (center) / Next (right), Submit on last, states for loading/error/Retry/submitting/passed/failed/attempts/Restart. Tokens only — no DM Sans.
 
-## Fase H — Páginas de retorno
-`/payment/success`: nunca grava acesso, refaz `auth-me`, refaz consulta de entitlements com retry+timeout, só mostra "ativo" quando o DB confirmar, CTA para Dashboard/My Courses. `/payment/cancel`: não toca DB, volta a planos.
+### D. Real ratings
+- Migration `module_ratings(id, user_id uuid → auth.users, module_id bigint → course_modules, rating smallint CHECK 1..5, created_at, updated_at, UNIQUE(user_id, module_id))` with grants + RLS:
+  - `authenticated` may `SELECT` own row and `INSERT/UPDATE` where `user_id = auth.uid()`.
+  - Aggregates via `SECURITY DEFINER` function `module_rating_summary(module_id) → (avg numeric, count int)` so members never read other rows.
+  - Admin read-all via `has_role`.
+- UI component `ModuleRating` with 5 stars, "Your rating", average, count, loading/error/Retry/empty.
 
-## Fase I — Diagnóstico honesto
-Refatorar `billing-config-status` e `AdminDiagnostics.tsx` para devolver:
-- `functionConfigured`, `functionDeploymentKnown`, `functionOperationallyTested`, `deploymentStatus`
-- separar `configurationReady`, `checkoutGateEnabled`, `operationallyValidated`
-- `operationallyValidated` só `true` quando houver webhook processado + checkout controlado + pagamento + membership/entitlement + auth-me OK no DB.
+### E. Tests (Vitest + RTL)
+- `quiz.service` test: client `submitAttempt` calls edge function, never reads `is_correct`.
+- `QuizCard` test: renders PDF structure, disables Submit until all answered, surfaces server result.
+- `CourseDetail` test per persona: no-access → neutral message; membership → full render; entitlement → only owned course; admin → drafts visible with preview badge but no attempt write.
+- `ModuleRating` test: optimistic update, error retry, anonymous aggregate read.
+- Edge function Deno tests for `submit-quiz-attempt`: rejects unpublished quiz, foreign question, exceeded attempts, no access; grades correctly.
 
-Remover qualquer `true` constante para deployment de função.
+### F. Pilot quiz content (PROPOSAL ONLY — no DB write)
+- Deliver markdown proposal in `docs/PHASE_2_PILOT_QUIZ_PROPOSAL.md` with title, description, 5 questions × 4 options, correct option marked, explanation, points, `passing_score=70`, `max_attempts=3`. **Stop and wait for approval before any insert.**
 
-## Fase J — Webhook no Stripe (orientação)
-Confirmar endpoint `https://omzwtfnqffseemrlylwu.supabase.co/functions/v1/stripe-webhook` com os 11 eventos. Quando `STRIPE_WEBHOOK_SECRET` precisar entrar/rotacionar, abrir formulário seguro. Diagnóstico só marca webhook como validado após evento real recebido (linha em `stripe_webhook_events`).
+### G. Documentation
+- `docs/PHASE_2_STUDENT_JOURNEY.md` — access model, route map, statuses.
+- `docs/PHASE_2_QUIZ_SECURITY.md` — threat model, RPC contract, RLS diff.
+- `docs/PHASE_2_QA_RUNBOOK.md` — procedure for qa-member, qa-entitlement, qa-no-access (to be executed later).
+- Update `docs/PHASE_2_VISUAL_ACCEPTANCE.md` and `docs/PHASE_2_COMPLETION_REPORT.md` with the new statuses.
 
-## Fase K — Testes
-Cobrir/atualizar os 27 cenários listados no brief em `src/manus/services/billing-runtime.test.ts` (e companion onde aplicável). Rodar e registrar exit codes reais:
-- `bun run typecheck`
-- `bun run test`
-- `bun run build`
-- `bun run lint` (sem esconder exit 1 pré-existente)
+### H. Gates (run locally; hosted-preview runtime QA is a separate later step)
+- `bun run typecheck`, `bun run test`, `bun run lint`, `bun run build`.
+- Verify zero Stripe calls in changed paths.
+- Manual hosted-preview validation deferred — status stays `IMPLEMENTED_PENDING_RUNTIME_QA`.
 
-## Fase M — Relatório
-Atualizar `docs/STRIPE_LIVE_CLOSURE_REPORT.md` com: commit, migration aplicada, tabelas/RPCs/funções auditadas, prices/products, nomes de secrets (sem valores), endpoint+eventos, testes+exit codes, snapshot do banco antes/depois, rollback, pendências, evidências. Status final desta execução: `SECRETS_CONFIGURED_LIVE_DISABLED` ou `READY_FOR_CONTROLLED_LIVE_TEST` (nunca `LIVE_VALIDATED` agora).
+---
 
-## Parada obrigatória
-Ao terminar Fase K + relatório, **parar**. Listar ações manuais restantes (criar/conferir webhook no Stripe, autorizar Fase L). Não flipar `STRIPE_LIVE_ENABLED`. Não tocar comunidade/aprendizagem.
+## Out of scope (explicit)
+- Creating qa-* users or seeding any pilot quiz rows.
+- Stripe configuration or live mode.
+- Phase 4.
+- Any change to `auth`, `storage`, `realtime` schemas.
 
-## Detalhes técnicos
-- Migration: `supabase/migrations/<timestamp>_stripe_live_canonical_defaults.sql`, transação única, `pg_advisory_xact_lock` por `plan_key|livemode|currency` (reaproveitar padrão de `internal_activate_validated_stripe_price`), validação final via `SELECT count(*)` por plan_key e total=3.
-- Diagnóstico: novo shape JSON publicado por `billing-config-status`, com camada `configurationReady`/`checkoutGateEnabled`/`operationallyValidated`; `AdminDiagnostics` consome os novos campos.
-- Operational validation: queries leves em `stripe_webhook_events`, `stripe_checkout_sessions`, `stripe_payments`, `memberships` filtradas por `livemode=true`.
-- Nenhum arquivo `.env*` será gravado com segredos; segredos ficam apenas no Supabase Functions Secrets via `secrets--add_secret`/`update_secret`.
+---
 
-Confirma que posso seguir nessa ordem (A→K + relatório) e parar antes da Fase L?
+## Technical details
+
+**Edge function** `supabase/functions/submit-quiz-attempt/index.ts`
+- CORS via `npm:@supabase/supabase-js@2/cors`.
+- Zod body: `{ quiz_id: number, answers: { question_id: number, option_id: number }[] }`.
+- Validate JWT via `supabase.auth.getUser(token)` using anon client; then use service-role client for data.
+- Access check: `has_role(uid,'admin')` OR active membership row OR active `course_entitlements` row for the quiz's `course_id`.
+- Returns 200 `{ score, passed, attempts_remaining }`, 400 on validation, 403 on access, 409 on `max_attempts`.
+
+**RLS migration** (`docs/migrations/<ts>_secure_quiz_options_and_module_ratings.sql`)
+- `REVOKE SELECT (is_correct) ON public.quiz_options FROM authenticated;`
+- `GRANT SELECT (id, question_id, option_text, sort_order) ON public.quiz_options TO authenticated;`
+- Keep admin-readable via existing `has_role` policy (verify and tighten if needed).
+- `CREATE TABLE public.module_ratings(...)` + GRANT + RLS + policies + `module_rating_summary` SECURITY DEFINER function with `GRANT EXECUTE TO authenticated, anon`.
+
+**Client changes**
+- `src/manus/services/quiz.ts`: replace `submitAttempt` body with `supabase.functions.invoke('submit-quiz-attempt', { body })`. Remove `loadAdminQuiz` call from member flow.
+- `src/manus/components/learning/QuizCard.tsx`: keep current UX, route grading through new service.
+- `src/manus/components/learning/ModuleRating.tsx`: new file.
+- `CourseDetail.tsx` / `ModuleDetail.tsx`: render quiz + rating inline alongside existing structure.
+
+**Risks & mitigations**
+- *Edge function cold start latency* — acceptable; loading state covered.
+- *RLS regression on `quiz_options`* — column-level revoke is reversible; add Deno test that anon/authenticated SELECT of `is_correct` fails.
+- *Rating aggregate exposure* — only avg/count exposed, never per-user rows.
+
+---
+
+## Deliverables checklist
+- [ ] Edge function `submit-quiz-attempt` + Deno tests
+- [ ] Migration: `quiz_options` column-level RLS + `module_ratings` table/RLS/function
+- [ ] Service refactor (`quiz.ts`) + `ModuleRating` component
+- [ ] CourseDetail / ModuleDetail integrate Quiz + Rating on real routes
+- [ ] PDF-spec visual pass on QuizCard
+- [ ] Persona RTL tests (no-access, membership, entitlement, admin)
+- [ ] Docs: STUDENT_JOURNEY, QUIZ_SECURITY, QA_RUNBOOK, updates to COMPLETION/ACCEPTANCE
+- [ ] Pilot quiz content **proposal** committed to docs, NOT inserted
+- [ ] Gates: typecheck / test / lint / build green
+- [ ] Status set to `IMPLEMENTED_PENDING_RUNTIME_QA`; quiz NOT yet `SECURE_RENDERED_AND_RUNTIME_VALIDATED`
+
+Approve to proceed, or tell me which sections to drop/reorder.
