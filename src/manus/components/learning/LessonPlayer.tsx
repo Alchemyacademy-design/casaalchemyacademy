@@ -1,117 +1,167 @@
-import { ExternalLink, PlayCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ExternalLink, PlayCircle, RotateCw, AlertTriangle } from "lucide-react";
+import {
+  parseVideoUrl,
+  stripQueryForDisplay,
+  type ParsedVideo,
+} from "@/manus/lib/video-url";
 
 export type LessonPlayerProps = {
   videoUrl: string | null | undefined;
   title?: string;
-  /** Optional poster image url for the empty / unknown states. */
   className?: string;
+  /** Show discreet diagnostic info (provider, normalised URL, type). */
+  isAdmin?: boolean;
 };
 
-type Parsed =
-  | { kind: "youtube"; embed: string }
-  | { kind: "vimeo"; embed: string }
-  | { kind: "file"; src: string; mime: string }
-  | { kind: "external"; href: string }
-  | { kind: "none" };
-
-const FILE_MIME: Record<string, string> = {
-  mp4: "video/mp4",
-  webm: "video/webm",
-  ogg: "video/ogg",
-  ogv: "video/ogg",
-};
-
-export function parseLessonVideo(rawUrl: string | null | undefined): Parsed {
-  if (!rawUrl || typeof rawUrl !== "string" || !rawUrl.trim()) return { kind: "none" };
-  let url: URL;
-  try {
-    url = new URL(rawUrl.trim());
-  } catch {
-    return { kind: "none" };
+/** Re-export so existing tests in LessonPlayer.test.tsx keep working. */
+export function parseLessonVideo(raw: string | null | undefined): {
+  kind: "youtube" | "vimeo" | "file" | "external" | "none";
+  embed?: string;
+  src?: string;
+  mime?: string;
+  href?: string;
+} {
+  const p = parseVideoUrl(raw);
+  if (p.provider === "youtube") return { kind: "youtube", embed: p.embed };
+  if (p.provider === "vimeo") return { kind: "vimeo", embed: p.embed };
+  if (p.provider === "dropbox" || p.provider === "file") {
+    return { kind: "file", src: p.src, mime: p.mime };
   }
-  if (url.protocol !== "http:" && url.protocol !== "https:") return { kind: "none" };
-  const host = url.hostname.replace(/^www\./, "").toLowerCase();
-
-  // YouTube
-  if (host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com") {
-    if (url.pathname === "/watch") {
-      const id = url.searchParams.get("v");
-      if (id && /^[\w-]{6,20}$/.test(id)) {
-        return { kind: "youtube", embed: `https://www.youtube.com/embed/${id}` };
-      }
-    }
-    const embedMatch = url.pathname.match(/^\/embed\/([\w-]{6,20})/);
-    if (embedMatch) return { kind: "youtube", embed: `https://www.youtube.com/embed/${embedMatch[1]}` };
-    const shortMatch = url.pathname.match(/^\/shorts\/([\w-]{6,20})/);
-    if (shortMatch) return { kind: "youtube", embed: `https://www.youtube.com/embed/${shortMatch[1]}` };
-  }
-  if (host === "youtu.be") {
-    const id = url.pathname.replace(/^\//, "");
-    if (/^[\w-]{6,20}$/.test(id)) {
-      return { kind: "youtube", embed: `https://www.youtube.com/embed/${id}` };
-    }
-  }
-
-  // Vimeo
-  if (host === "vimeo.com") {
-    const id = url.pathname.split("/").filter(Boolean)[0];
-    if (id && /^\d+$/.test(id)) {
-      return { kind: "vimeo", embed: `https://player.vimeo.com/video/${id}` };
-    }
-  }
-  if (host === "player.vimeo.com") {
-    const match = url.pathname.match(/^\/video\/(\d+)/);
-    if (match) return { kind: "vimeo", embed: `https://player.vimeo.com/video/${match[1]}` };
-  }
-
-  // Direct file
-  const ext = url.pathname.split(".").pop()?.toLowerCase() ?? "";
-  if (ext in FILE_MIME) {
-    return { kind: "file", src: url.toString(), mime: FILE_MIME[ext] };
-  }
-
-  // Recognised http(s) but not embeddable — offer safe external link.
-  return { kind: "external", href: url.toString() };
+  if (p.provider === "external") return { kind: "external", href: p.href };
+  return { kind: "none" };
 }
 
-export default function LessonPlayer({ videoUrl, title, className }: LessonPlayerProps) {
-  const parsed = parseLessonVideo(videoUrl);
+function AdminDiagnostics({ parsed }: { parsed: ParsedVideo }) {
+  if (parsed.provider === "none") return null;
+  const url =
+    parsed.provider === "youtube" || parsed.provider === "vimeo"
+      ? parsed.embed
+      : parsed.provider === "dropbox" || parsed.provider === "file"
+        ? parsed.src
+        : parsed.href;
+  const display = stripQueryForDisplay(url);
+  const type =
+    parsed.kind === "iframe" ? "iframe embed" : parsed.kind === "file" ? "html5 video" : "external link";
+  return (
+    <p className="mt-2 text-[11px] text-foreground/50 font-mono break-all" aria-label="Admin video diagnostics">
+      provider={parsed.provider} · type={type} · url={display}
+    </p>
+  );
+}
+
+export default function LessonPlayer({ videoUrl, title, className, isAdmin }: LessonPlayerProps) {
+  const parsed = parseVideoUrl(videoUrl);
   const accessibleTitle = title?.trim() || "Lesson video";
+  const [errored, setErrored] = useState(false);
+  const [loading, setLoading] = useState(parsed.provider !== "none" && parsed.provider !== "external");
+  const [attempt, setAttempt] = useState(0);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  if (parsed.kind === "youtube" || parsed.kind === "vimeo") {
+  useEffect(() => {
+    setErrored(false);
+    setLoading(parsed.provider !== "none" && parsed.provider !== "external");
+  }, [videoUrl, attempt, parsed.provider]);
+
+  const retry = () => {
+    setErrored(false);
+    setAttempt((n) => n + 1);
+  };
+
+  // === Error fallback ===
+  if (errored && (parsed.provider === "dropbox" || parsed.provider === "file" || parsed.provider === "youtube" || parsed.provider === "vimeo")) {
+    const externalHref =
+      parsed.provider === "dropbox" || parsed.provider === "file"
+        ? parsed.src
+        : parsed.embed;
     return (
-      <div className={`relative w-full aspect-video overflow-hidden rounded-lg bg-black ${className ?? ""}`}>
-        <iframe
-          src={parsed.embed}
-          title={accessibleTitle}
-          loading="lazy"
-          allow="encrypted-media; picture-in-picture; fullscreen"
-          allowFullScreen
-          referrerPolicy="strict-origin-when-cross-origin"
-          sandbox="allow-scripts allow-same-origin allow-presentation"
-          className="absolute inset-0 h-full w-full border-0"
-        />
+      <div
+        className={`relative w-full aspect-video flex flex-col items-center justify-center gap-3 rounded-lg border border-border/50 bg-muted/30 text-foreground/70 p-6 text-center ${className ?? ""}`}
+        role="alert"
+      >
+        <AlertTriangle className="w-6 h-6 text-amber-600" />
+        <p className="text-sm font-medium">Unable to play this video.</p>
+        {isAdmin && (
+          <p className="text-xs text-foreground/60 max-w-sm">
+            Confirm that the shared link allows public viewing.
+          </p>
+        )}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={retry}
+            className="inline-flex items-center gap-1 text-xs uppercase tracking-wider border border-border/60 px-3 py-1.5 rounded-md hover:bg-card"
+          >
+            <RotateCw className="w-3 h-3" /> Retry
+          </button>
+          <a
+            href={externalHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-xs uppercase tracking-wider border border-border/60 px-3 py-1.5 rounded-md hover:bg-card"
+          >
+            <ExternalLink className="w-3 h-3" /> Open externally
+          </a>
+        </div>
+        {isAdmin && <AdminDiagnostics parsed={parsed} />}
       </div>
     );
   }
 
-  if (parsed.kind === "file") {
+  if (parsed.provider === "youtube" || parsed.provider === "vimeo") {
     return (
-      <div className={`relative w-full aspect-video overflow-hidden rounded-lg bg-black ${className ?? ""}`}>
-        <video
-          controls
-          preload="metadata"
-          aria-label={accessibleTitle}
-          className="absolute inset-0 h-full w-full"
-        >
-          <source src={parsed.src} type={parsed.mime} />
-          Your browser does not support embedded video.
-        </video>
+      <div className={className}>
+        <div className="relative w-full aspect-video overflow-hidden rounded-lg bg-black">
+          <iframe
+            key={attempt}
+            src={parsed.embed}
+            title={accessibleTitle}
+            loading="lazy"
+            allow="encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
+            sandbox="allow-scripts allow-same-origin allow-presentation"
+            className="absolute inset-0 h-full w-full border-0"
+            onLoad={() => setLoading(false)}
+            onError={() => setErrored(true)}
+          />
+        </div>
+        {isAdmin && <AdminDiagnostics parsed={parsed} />}
       </div>
     );
   }
 
-  if (parsed.kind === "external") {
+  if (parsed.provider === "dropbox" || parsed.provider === "file") {
+    return (
+      <div className={className}>
+        <div className="relative w-full aspect-video overflow-hidden rounded-lg bg-black">
+          {loading && (
+            <div className="absolute inset-0 flex items-center justify-center text-white/60 text-xs animate-pulse">
+              Loading video…
+            </div>
+          )}
+          <video
+            key={attempt}
+            ref={videoRef}
+            controls
+            preload="metadata"
+            playsInline
+            aria-label={accessibleTitle}
+            className="absolute inset-0 h-full w-full"
+            onLoadedMetadata={() => setLoading(false)}
+            onCanPlay={() => setLoading(false)}
+            onError={() => { setErrored(true); setLoading(false); }}
+          >
+            <source src={parsed.src} type={parsed.mime} />
+            Your browser does not support embedded video.
+          </video>
+        </div>
+        {isAdmin && <AdminDiagnostics parsed={parsed} />}
+      </div>
+    );
+  }
+
+  if (parsed.provider === "external") {
     return (
       <div
         className={`relative w-full aspect-video flex items-center justify-center rounded-lg border border-border/50 bg-muted/30 ${className ?? ""}`}
@@ -126,6 +176,7 @@ export default function LessonPlayer({ videoUrl, title, className }: LessonPlaye
         >
           <ExternalLink className="w-4 h-4" /> Open video externally
         </a>
+        {isAdmin && <AdminDiagnostics parsed={parsed} />}
       </div>
     );
   }
