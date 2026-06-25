@@ -16,18 +16,40 @@
 | Lovable project | `aa3b388c-6623-43ee-8740-326108415543` |
 | Protected admin | `contact@casaalchemystudio.com` |
 | Migration source of truth | `docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql` |
-| Expected SHA-256 | `6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb` |
+| Expected SHA-256 (prior audit) | `6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb` |
+| **Current SHA-256 (Phase 1A correction)** | **`9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060`** |
 | Stripe | `STRIPE_STATUS=ADIADO`, `STRIPE_LIVE_ENABLED=false` |
 
 > Git state assertions (branch existence, PR open/draft, remote CI green) are
 > outside the agent's authority and must be confirmed by the human operator
 > on GitHub before promotion. See §11.
+>
+> **Governance violation logged.** The prior revision of this report and the
+> prior migration file were committed against `main` because the Lovable
+> agent has no authority to switch git branches inside the sandbox. The
+> operator must cherry-pick / rebase these documents onto
+> `prelaunch/phase-0-1-hardening` and ensure no future commits land on
+> `main`. Recorded in §11.
 
 ## 1. Hash revalidation (Etapa 1)
 
 `sha256sum docs/migrations/20260625120000_secure_quiz_and_module_ratings.sql`
-→ **`6a7d8f16cc343b1c708c97e711a8864d6f243d9c2074878192516f60da9006cb`**
-→ **MATCHES** expected hash. File length: 337 lines. No drift.
+→ **`9b2b72af28f3f331657484d49ad255f79095e6d3a9fc4b69719b77eb9d3c9060`** (file length: 350 lines).
+
+**Hash drift vs. prior audit**: the SQL was modified in this turn to fix two
+audit-blockers (see §4.1). The previous hash
+`6a7d8f16…9006cb` is now stale. Diff summary:
+
+- Entitlement access branch now `JOIN public.courses c ON c.id = e.course_id`
+  with `c.archived_at is null`.
+- Membership access branch now `JOIN public.courses c ON c.id = v_quiz.course_id`
+  with `c.archived_at is null`.
+- After loading `v_expected_q`, the RPC raises `quiz_has_no_questions` when
+  the quiz has zero questions (no attempt row is written).
+
+No other lines changed. All other audit checks below were re-verified against
+the new file.
+
 
 ## 2. Static SQL audit (Etapa 2)
 
