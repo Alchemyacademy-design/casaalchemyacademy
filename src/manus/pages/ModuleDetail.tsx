@@ -355,6 +355,13 @@ export default function ModuleDetail() {
                     return null;
                   })()}
 
+                  <div>
+                    <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
+                    <ModuleRating moduleId={moduleId} readOnly={isAdmin} />
+                  </div>
+
+
+
 
 
                   {(() => {
