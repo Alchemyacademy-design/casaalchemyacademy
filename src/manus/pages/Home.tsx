@@ -274,7 +274,8 @@ export default function Home() {
                 number: typeof mod.id === "number" ? mod.id : idx + 1,
                 thumbnail: mod.thumbnail,
                 lessonCount: mod.lessons.length || undefined,
-                published: true,
+                published: !mod.isDraft,
+                adminPreview: !!mod.isAdminPreview,
                 // While Stripe is deferred (pré-lançamento), every course
                 // that is not explicitly available shows Coming Soon and
                 // never opens a financial checkout flow.
@@ -287,31 +288,33 @@ export default function Home() {
 
 
             {/* Membership Perks Card */}
-            <div style={{
-              border: "1px solid var(--aa-cream-dark)",
-              backgroundImage: "url('/img/perks.jpg')",
-              backgroundSize: "cover",
-              backgroundPosition: "center",
-              minHeight: "280px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "space-between",
-              padding: "1.75rem",
-              position: "relative",
-              overflow: "hidden",
-              gridColumn: "span 4",
-            }}>
+            <div
+              className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4"
+              style={{
+                border: "1px solid var(--aa-cream-dark)",
+                backgroundImage: "url('/img/perks.jpg')",
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                minHeight: "280px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between",
+                padding: "1.75rem",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
               <div className="absolute inset-0 bg-black/60" />
               <div className="relative z-10">
                 <h3 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>Membership Perks</h3>
-                <div className="grid grid-cols-2 gap-6 max-w-2xl mx-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
                   <ul className="space-y-3">
                     {[
                       "Access to all courses available",
                       "The A Tribe - Community Forum",
                       "Live Workshops",
                     ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
                       </li>
                     ))}
@@ -322,7 +325,7 @@ export default function Home() {
                       "Exclusive Deals",
                       "Access to cheat sheets and special suppliers",
                     ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
                       </li>
                     ))}
@@ -330,12 +333,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative z-10 mt-4">
-                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
+                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
               </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* ── Offers ── */}
       <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: "url('/img/offers-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
