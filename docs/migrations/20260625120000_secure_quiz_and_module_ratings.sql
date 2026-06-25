@@ -8,13 +8,29 @@
 --
 -- This file SUPERSEDES the earlier docs/migrations/20260625000000_*.sql draft.
 --
--- Rollback:
+-- Rollback (DDL only):
 --   - DROP FUNCTION public.internal_submit_quiz_attempt(uuid, bigint, jsonb);
 --   - DROP FUNCTION public.module_rating_summary(bigint);
---   - DROP FUNCTION public.can_access_module(uuid, bigint);
+--   - DROP FUNCTION public.can_access_module(bigint);
 --   - DROP TABLE public.module_ratings;
 --   - Re-grant SELECT on public.quiz_options to authenticated, anon if a
 --     downgrade requires it (NOT recommended — would re-expose the answer key).
+--
+-- ROLLBACK DATA SAFETY:
+--   - Safe with zero data loss ONLY while public.module_ratings has no rows
+--     (i.e. before any member submits a rating).
+--   - After the first rating is inserted, DROP TABLE destroys all ratings;
+--     a downgrade then REQUIRES a prior `pg_dump`/CSV export of
+--     public.module_ratings, restored after re-creation.
+--   - public.internal_submit_quiz_attempt / public.module_rating_summary /
+--     public.can_access_module are pure functions — dropping them never
+--     destroys data.
+--
+-- The entire migration is wrapped in a single explicit transaction so a
+-- failure in any block leaves the database unchanged. Do NOT remove the
+-- BEGIN/COMMIT envelope when running it through the SQL Editor.
+
+begin;
 
 -- =====================================================================
 -- 1) Lock down quiz_options so the answer key is unreadable from the browser
