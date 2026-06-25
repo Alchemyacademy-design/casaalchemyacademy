@@ -3,7 +3,11 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "prelaunch/**"
+      - "release/**"
+      - "hotfix/**"
 
 permissions:
   contents: read
@@ -23,17 +27,49 @@ jobs:
         with:
           bun-version: latest
 
+      - name: Cache Bun dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.bun/install/cache
+            node_modules
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
       - name: Install dependencies (frozen lockfile)
         run: bun install --frozen-lockfile
 
       - name: Typecheck
+        id: typecheck
         run: bun run typecheck
 
       - name: Test
+        id: test
         run: bun run test
 
       - name: Lint
+        id: lint
         run: bun run lint
 
       - name: Build
+        id: build
         run: bun run build
+
+      - name: Workflow summary
+        if: always()
+        run: |
+          {
+            echo "# CI Summary"
+            echo ""
+            echo "| Step | Outcome |"
+            echo "|------|---------|"
+            echo "| Typecheck | ${{ steps.typecheck.outcome }} |"
+            echo "| Test      | ${{ steps.test.outcome }} |"
+            echo "| Lint      | ${{ steps.lint.outcome }} |"
+            echo "| Build     | ${{ steps.build.outcome }} |"
+            echo ""
+            echo "- Commit: \`${{ github.sha }}\`"
+            echo "- Ref: \`${{ github.ref }}\`"
+            echo "- Event: \`${{ github.event_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
