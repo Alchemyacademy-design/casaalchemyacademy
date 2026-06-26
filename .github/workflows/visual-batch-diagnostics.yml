@@ -1,0 +1,27 @@
+name: Visual batch diagnostics
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  vitest-diagnostics:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - name: Capture Vitest output
+        continue-on-error: true
+        run: bun run test 2>&1 | tee vitest-output.txt
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-batch-vitest-diagnostics
+          path: vitest-output.txt
+          retention-days: 1
