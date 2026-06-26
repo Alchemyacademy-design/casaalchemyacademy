@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, BookOpen, Clock3, Layers3, Lock } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
 import QuizCard from "@/manus/components/learning/QuizCard";
-
+import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 
 type Lesson = {
   id: number;
@@ -59,27 +59,26 @@ async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Cour
     return (catalog.courses.find((course) => course.id === id) as unknown as Course | undefined) ?? null;
   }
 
-  let builder = supabase
+  const { data, error } = await supabase
     .from("courses")
     .select(
       "id,title,slug,subtitle,description,cover_image_path,status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
         "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
     )
-    .eq("id", id);
-  if (!includeDrafts) builder = builder.eq("status", "published");
-  const { data, error } = await builder
+    .eq("id", id)
+    .eq("status", "published")
     .order("sort_order", { foreignTable: "course_modules", ascending: true })
     .order("sort_order", { foreignTable: "course_modules.lessons", ascending: true })
     .maybeSingle();
+
   if (error) throw error;
   if (!data) return null;
+
   const course = data as unknown as Course;
-  if (!includeDrafts) {
-    course.course_modules = course.course_modules
-      .filter((m) => m.status === "published")
-      .map((m) => ({ ...m, lessons: m.lessons.filter((l) => l.status === "published") }));
-  }
+  course.course_modules = course.course_modules
+    .filter((module) => module.status === "published")
+    .map((module) => ({ ...module, lessons: module.lessons.filter((lesson) => lesson.status === "published") }));
   return course;
 }
 
@@ -102,49 +101,52 @@ export default function CourseDetail() {
     enabled: Number.isFinite(courseId),
     staleTime: 2 * 60 * 1000,
   });
-  const isCourseNotFound = !isLoading && !error && course === null;
 
   const accessState = {
     isAdmin,
     isMember,
     hasCourseAccess,
-    entitlementCourseIds: (activeEntitlements ?? []).map((e) => Number(e.course_id)).filter(Boolean),
+    entitlementCourseIds: (activeEntitlements ?? []).map((item) => Number(item.course_id)).filter(Boolean),
   };
   const accessible = !course || canAccessCourse(course.id, course.access_plan_keys, accessState);
 
-  const allLessons: Lesson[] = useMemo(
-    () => (course?.course_modules ?? []).flatMap((m) => m.lessons),
+  const allLessons = useMemo<Lesson[]>(
+    () => (course?.course_modules ?? []).flatMap((module) => module.lessons),
     [course],
   );
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
   const completedIds = useMemo(
-    () => new Set<number>(progress.filter((p: { completed: boolean; lessonId: number }) => p.completed).map((p) => Number(p.lessonId))),
+    () =>
+      new Set<number>(
+        progress
+          .filter((item: { completed: boolean; lessonId: number }) => item.completed)
+          .map((item) => Number(item.lessonId)),
+      ),
     [progress],
   );
 
-  // Course-level published quizzes (not bound to a specific lesson).
   const courseQuizzesQuery = useQuery({
     queryKey: ["course-quizzes", courseId],
     enabled: Number.isFinite(courseId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error: quizError } = await supabase
         .from("quizzes")
         .select("id,title,status,lesson_id")
         .eq("course_id", courseId)
         .eq("status", "published")
         .is("lesson_id", null);
-      if (error) throw error;
+      if (quizError) throw quizError;
       return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
     },
   });
 
-
-
   if (!Number.isFinite(courseId)) {
     return (
       <MemberLayout>
-        <div className="p-10 text-sm text-foreground/70">Invalid course id.</div>
+        <MemberPage>
+          <div className="aa-empty-state">Invalid course id.</div>
+        </MemberPage>
       </MemberLayout>
     );
   }
@@ -152,7 +154,7 @@ export default function CourseDetail() {
   if (error) {
     return (
       <MemberLayout>
-        <div className="p-6 md:p-10">
+        <MemberPage>
           <QueryStateView
             isLoading={false}
             isFetching={isFetching}
@@ -162,7 +164,7 @@ export default function CourseDetail() {
           >
             <></>
           </QueryStateView>
-        </div>
+        </MemberPage>
       </MemberLayout>
     );
   }
@@ -170,221 +172,201 @@ export default function CourseDetail() {
   if (isLoading) {
     return (
       <MemberLayout>
-        <div className="p-10 text-sm text-foreground/70" role="status" aria-busy="true">
-          Loading course…
-        </div>
+        <MemberPage>
+          <div className="aa-empty-state" role="status" aria-busy="true">
+            Loading course…
+          </div>
+        </MemberPage>
       </MemberLayout>
     );
   }
 
-  if (isCourseNotFound || !course) {
+  if (!course) {
     return (
       <MemberLayout>
-        <div className="p-10 text-sm text-foreground/70">
-          Course unavailable or you do not have access.{" "}
-          <Link to="/mycourses" className="underline">Back to courses</Link>
-        </div>
+        <MemberPage>
+          <div className="aa-empty-state">
+            <h1 className="font-serif text-3xl text-primary">Course unavailable</h1>
+            <p className="mt-2 text-sm">This course may not be published or your account may not have access.</p>
+            <Link to="/mycourses" className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-accent">
+              <ArrowLeft className="h-3.5 w-3.5" /> Back to courses
+            </Link>
+          </div>
+        </MemberPage>
       </MemberLayout>
     );
   }
-
 
   const totalModules = course.course_modules.length;
   const totalLessons = allLessons.length;
-  const completedCount = allLessons.filter((l) => completedIds.has(l.id)).length;
-  const totalDurationSeconds = allLessons.reduce((sum, l) => sum + (l.duration_seconds ?? 0), 0);
+  const completedCount = allLessons.filter((lesson) => completedIds.has(lesson.id)).length;
+  const totalDurationSeconds = allLessons.reduce((sum, lesson) => sum + (lesson.duration_seconds ?? 0), 0);
   const durationLabel = formatDuration(totalDurationSeconds);
-
   const resumeLessonId = pickResumeLessonId(
     allLessons,
     progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>,
   );
-  const resumeLesson = allLessons.find((l) => l.id === resumeLessonId) ?? allLessons[0] ?? null;
-  const startHref = resumeLesson
-    ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}`
-    : null;
+  const resumeLesson = allLessons.find((lesson) => lesson.id === resumeLessonId) ?? allLessons[0] ?? null;
+  const startHref = resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
   const hasStarted = completedCount > 0;
-
-  const aggregatedMaterials = allLessons
-    .filter((l) => !!l.external_resource_url)
-    .slice(0, 6);
+  const aggregatedMaterials = allLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
 
   return (
     <MemberLayout>
-      <div className="p-6 md:p-10 bg-background">
-        <div className="mb-6">
-          <Link to="/mycourses" className="text-xs inline-flex items-center gap-1 text-foreground/60 hover:text-foreground">
-            <ArrowLeft className="w-3 h-3" /> All courses
+      <MemberPage>
+        <div className="mb-5">
+          <Link to="/mycourses" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground transition hover:text-accent">
+            <ArrowLeft className="h-3.5 w-3.5" /> All courses
           </Link>
         </div>
 
-        <div className="grid lg:grid-cols-[1fr_320px] gap-8">
-          <div>
-            {course.cover_image_path && (
-              <div
-                className="w-full aspect-[16/7] rounded-lg overflow-hidden mb-6 bg-muted"
-                style={{
-                  backgroundImage: `url(${course.cover_image_path})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                }}
-                aria-hidden="true"
-              />
-            )}
+        <section
+          className="aa-course-hero mb-8"
+          style={
+            course.cover_image_path
+              ? { backgroundImage: `url(${course.cover_image_path})`, backgroundSize: "cover", backgroundPosition: "center" }
+              : undefined
+          }
+        >
+          <div className="aa-course-hero-content">
+            <div className="mb-4 flex flex-wrap gap-2">
+              <StatusPill tone="accent">Course</StatusPill>
+              {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
+              {isAdmin ? <StatusPill tone="warning">Admin Preview</StatusPill> : null}
+            </div>
+            <h1 className="font-serif text-4xl leading-none text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
+            {course.subtitle ? <p className="mt-4 max-w-2xl text-sm leading-7 text-white/82 sm:text-base">{course.subtitle}</p> : null}
+          </div>
+        </section>
 
-            <div className="mb-6">
-              <p className="text-xs uppercase tracking-widest text-foreground/55 mb-2">Course</p>
-              <h1 className="font-serif text-3xl md:text-4xl mb-2 text-foreground" style={{ fontWeight: 300 }}>
-                {course.title}
-              </h1>
-              {course.subtitle && (
-                <p className="text-sm text-foreground/70">{course.subtitle}</p>
-              )}
-              {course.status !== "published" && (
-                <span className="inline-block mt-2 text-[10px] uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-800 rounded">
-                  {course.status}
-                </span>
-              )}
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0">
+            <div className="aa-course-meta mb-8">
+              <span className="aa-meta-pill"><Layers3 className="h-3.5 w-3.5 text-accent" /> {totalModules} module{totalModules === 1 ? "" : "s"}</span>
+              <span className="aa-meta-pill"><BookOpen className="h-3.5 w-3.5 text-accent" /> {totalLessons} lesson{totalLessons === 1 ? "" : "s"}</span>
+              <span className="aa-meta-pill"><Clock3 className="h-3.5 w-3.5 text-accent" /> {durationLabel || "Duration pending"}</span>
             </div>
 
-            {course.description && (
-              <p className="text-sm leading-relaxed text-foreground/75 mb-6 whitespace-pre-wrap">
-                {course.description}
-              </p>
-            )}
+            {course.description ? (
+              <section className="aa-panel mb-8 p-5 sm:p-7">
+                <p className="aa-eyebrow">About this course</p>
+                <div className="whitespace-pre-wrap text-sm leading-8 text-foreground/75">{course.description}</div>
+              </section>
+            ) : null}
 
-            <div className="flex flex-wrap gap-6 text-xs text-foreground/65 mb-6">
-              <span><strong className="text-foreground/85">{totalModules}</strong> module{totalModules === 1 ? "" : "s"}</span>
-              <span><strong className="text-foreground/85">{totalLessons}</strong> lesson{totalLessons === 1 ? "" : "s"}</span>
-              <span>
-                {durationLabel
-                  ? <><strong className="text-foreground/85">{durationLabel}</strong> total</>
-                  : "Duration not available"}
-              </span>
-            </div>
-
-            {!accessible && (
-              <Card className="p-4 mb-6 border-amber-200 bg-amber-50/60 flex items-start gap-3">
-                <Lock className="w-4 h-4 mt-0.5 text-amber-700" />
-                <div className="text-sm text-amber-900">
-                  This course requires a membership.{" "}
-                  <Link to="/plans" className="underline">View plans</Link>.
+            {!accessible ? (
+              <Card className="mb-8 flex items-start gap-3 border-amber-300/70 bg-amber-50/70 p-5 text-amber-950">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                <div className="text-sm leading-6">
+                  This course requires membership access. <Link to="/plans" className="font-semibold underline">View plans</Link>.
                 </div>
               </Card>
-            )}
+            ) : null}
 
-            {accessible && startHref && (
-              <div className="mb-8">
-                <Link to={startHref}>
-                  <Button>{hasStarted ? "Continue Course" : "Start Course"}</Button>
-                </Link>
-                {hasStarted && resumeLesson && (
-                  <p className="text-xs text-foreground/55 mt-2">
-                    Last lesson: {resumeLesson.title}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {course.course_modules.length > 0 && (
-              <section className="mb-8">
-                <h2 className="font-serif text-xl mb-3 text-foreground">Modules overview</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {course.course_modules.map((m) => {
-                    const moduleCompleted = m.lessons.filter((l) => completedIds.has(l.id)).length;
+            {course.course_modules.length > 0 ? (
+              <section className="mb-10">
+                <SectionHeader title="Modules overview" description="A clear view of the complete course before you begin." />
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {course.course_modules.map((module) => {
+                    const moduleCompleted = module.lessons.filter((lesson) => completedIds.has(lesson.id)).length;
                     return (
                       <ModuleCard
-                        key={m.id}
-                        id={m.id}
-                        title={m.title}
-                        description={m.description}
-                        lessonCount={m.lessons.length}
+                        key={module.id}
+                        id={module.id}
+                        title={module.title}
+                        description={module.description}
+                        lessonCount={module.lessons.length}
                         completedCount={moduleCompleted}
-                        href={`/modules/${m.id}`}
-                        badge={m.status !== "published" ? m.status : undefined}
+                        href={`/modules/${module.id}`}
+                        badge={module.status !== "published" ? module.status : undefined}
                       />
                     );
                   })}
                 </div>
               </section>
-            )}
+            ) : null}
 
-            <section className="mb-8">
-
-              <h2 className="font-serif text-xl mb-3 text-foreground">Learning path</h2>
-              <LearningPath
-                modules={course.course_modules.map((m) => ({
-                  id: m.id,
-                  title: m.title,
-                  description: m.description,
-                  lessons: m.lessons.map((l) => ({
-                    id: l.id,
-                    title: l.title,
-                    completed: completedIds.has(l.id),
-                    locked: !accessible && !l.is_preview,
-                  })),
-                }))}
-                activeLessonId={resumeLesson?.id ?? null}
-                buildLessonHref={(moduleId, lessonId) => `/modules/${moduleId}#lesson-${lessonId}`}
-              />
+            <section className="mb-10">
+              <SectionHeader title="Learning path" description="Follow the course in sequence or return directly to a previous lesson." />
+              <div className="aa-panel overflow-hidden p-3 sm:p-5">
+                <LearningPath
+                  modules={course.course_modules.map((module) => ({
+                    id: module.id,
+                    title: module.title,
+                    description: module.description,
+                    lessons: module.lessons.map((lesson) => ({
+                      id: lesson.id,
+                      title: lesson.title,
+                      completed: completedIds.has(lesson.id),
+                      locked: !accessible && !lesson.is_preview,
+                    })),
+                  }))}
+                  activeLessonId={resumeLesson?.id ?? null}
+                  buildLessonHref={(moduleId, lessonId) => `/modules/${moduleId}#lesson-${lessonId}`}
+                />
+              </div>
             </section>
 
-            {aggregatedMaterials.length > 0 && (
-              <section className="mb-8">
-                <h2 className="font-serif text-xl mb-3 text-foreground">Materials</h2>
-                <div className="flex flex-col gap-2">
-                  {aggregatedMaterials.map((l) => (
-                    <LessonMaterial key={l.id} url={l.external_resource_url} label={l.title} />
+            {aggregatedMaterials.length > 0 ? (
+              <section className="mb-10">
+                <SectionHeader title="Materials" description="Resources collected from across the course." />
+                <div className="aa-panel flex flex-col gap-2 p-4">
+                  {aggregatedMaterials.map((lesson) => (
+                    <LessonMaterial key={lesson.id} url={lesson.external_resource_url} label={lesson.title} />
                   ))}
                 </div>
               </section>
-            )}
+            ) : null}
 
-            {(courseQuizzesQuery.data ?? []).length > 0 && (
-              <section className="mb-8 space-y-4">
-                <h2 className="font-serif text-xl mb-3 text-foreground">Course quizzes</h2>
-                {(courseQuizzesQuery.data ?? []).map((q) => (
-                  <QuizCard key={q.id} quizId={q.id} previewAsAdmin={isAdmin} />
+            {(courseQuizzesQuery.data ?? []).length > 0 ? (
+              <section className="mb-10 space-y-4">
+                <SectionHeader title="Course quizzes" description="Knowledge checks connected to this course." />
+                {(courseQuizzesQuery.data ?? []).map((quiz) => (
+                  <QuizCard key={quiz.id} quizId={quiz.id} previewAsAdmin={isAdmin} />
                 ))}
               </section>
-            )}
+            ) : null}
 
-            {isAdmin && (courseQuizzesQuery.data ?? []).length === 0 && (
-              <section className="mb-8" aria-label="Admin notice">
-                <Card className="p-4 text-xs text-foreground/70 flex items-center justify-between gap-3">
-                  <span>
-                    <span className="inline-block mr-2 px-2 py-0.5 rounded-sm text-[10px] uppercase tracking-[0.18em]"
-                      style={{ background: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)" }}>
-                      Admin Preview
-                    </span>
-                    No quiz configured yet — add one from the course admin.
-                  </span>
-                  <Link to={`/admin/courses/${course.id}`} className="underline text-primary shrink-0">
-                    Manage course →
-                  </Link>
+            {isAdmin && (courseQuizzesQuery.data ?? []).length === 0 ? (
+              <section className="mb-10" aria-label="Admin notice">
+                <Card className="flex flex-col gap-3 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <span><StatusPill tone="warning">Admin Preview</StatusPill> <span className="ml-2">No course-level quiz is configured yet.</span></span>
+                  <Link to={`/admin/courses/${course.id}`} className="shrink-0 font-semibold text-accent underline">Manage course →</Link>
                 </Card>
               </section>
-            )}
+            ) : null}
           </div>
 
-
-
           <aside className="space-y-4">
-            <Card className="p-4">
-              <CourseProgress completed={completedCount} total={totalLessons} />
-            </Card>
-
-            {isAdmin && (
-              <Link
-                to={`/admin/courses/${course.id}`}
-                className="block text-center text-xs underline text-foreground/60"
-              >
-                Manage in admin →
-              </Link>
-            )}
+            <div className="aa-panel aa-sticky-panel overflow-hidden">
+              <div className="border-b border-border bg-secondary/35 p-5">
+                <p className="aa-eyebrow">Your progress</p>
+                <CourseProgress completed={completedCount} total={totalLessons} />
+              </div>
+              <div className="p-5">
+                {accessible && startHref ? (
+                  <Link to={startHref} className="block">
+                    <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                      {hasStarted ? "Continue Course" : "Start Course"}
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                ) : (
+                  <Link to="/plans" className="block">
+                    <Button variant="outline" className="w-full">View membership</Button>
+                  </Link>
+                )}
+                {hasStarted && resumeLesson ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Resume from: {resumeLesson.title}</p> : null}
+                {isAdmin ? (
+                  <Link to={`/admin/courses/${course.id}`} className="mt-4 block text-center text-xs font-semibold text-accent underline">
+                    Manage in admin →
+                  </Link>
+                ) : null}
+              </div>
+            </div>
           </aside>
         </div>
-      </div>
+      </MemberPage>
     </MemberLayout>
   );
 }
