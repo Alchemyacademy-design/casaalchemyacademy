@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
+import "@/manus/styles/official-platform.css";
 import "@/manus/styles/official-module-route.css";
 import { queryClient } from "@/manus/lib/query-client";
 import CrossTabQuerySync from "@/manus/components/CrossTabQuerySync";
