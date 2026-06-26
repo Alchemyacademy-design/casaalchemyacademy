@@ -348,7 +348,7 @@ export default function Home() {
 
 
       {/* ── Offers ── */}
-      <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: "url('/img/offers-bg.jpg')", backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
+      <section id="offers" style={{ backgroundColor: "#000000", padding: "6rem 0", backgroundImage: `url('${offersBgAsset.url}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", position: "relative" }}>
         <div style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0, 0, 0, 0.7)", zIndex: 1 }}></div>
         <div style={{ position: "relative", zIndex: 2 }}>
         <div className="container">
