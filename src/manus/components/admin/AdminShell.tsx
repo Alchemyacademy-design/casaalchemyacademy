@@ -67,12 +67,11 @@ function AdminSidebarInner() {
     <Sidebar collapsible="icon">
       <SidebarHeader className="px-4 py-5">
         <Link to="/admin" className="flex items-center gap-2">
-          <div
-            className="h-8 w-8 rounded flex items-center justify-center font-serif text-base"
-            style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)" }}
-          >
-            A
-          </div>
+          <img
+            src="/img/logo.png"
+            alt="Casa Alchemy Academy"
+            className="h-9 w-9 object-contain shrink-0"
+          />
           {!collapsed && (
             <div className="leading-tight">
               <div className="font-serif text-sm tracking-[0.18em]">CASA ALCHEMY</div>
