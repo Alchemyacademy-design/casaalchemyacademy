@@ -647,6 +647,15 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                       <Input type="number" value={value === null || value === undefined ? "" : String(value)} onChange={(e) => set(e.target.value)} />
                     ) : f.type === "json" ? (
                       <Textarea value={(value as string) ?? ""} onChange={(e) => set(e.target.value)} rows={6} className="font-mono text-xs" />
+                    ) : f.type === "file" ? (
+                      <FileUploadField
+                        value={(value as string) ?? null}
+                        onChange={(v) => set(v ?? "")}
+                        folder={f.uploadFolder ?? table}
+                        accept={f.accept}
+                        preview={f.preview}
+                        placeholder={f.placeholder}
+                      />
                     ) : (
                       <Input value={(value as string) ?? ""} onChange={(e) => set(e.target.value)} placeholder={f.placeholder} />
                     )}
