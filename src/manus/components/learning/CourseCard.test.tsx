@@ -43,11 +43,21 @@ describe("CourseCard", () => {
     expect(screen.queryByRole("link")).toBeNull();
   });
 
-  it("shows lock icon when locked and links to fallback href (e.g. /plans)", () => {
+  it("when locked, links to fallback href (/plans) with 'View plans' CTA", () => {
     renderCard({
       course: { id: 1, title: "X", locked: true, href: "/plans" },
     });
     expect(screen.getByLabelText(/locked/i)).toBeInTheDocument();
+    const link = screen.getByRole("link", { name: /view plans/i });
+    expect(link).toHaveAttribute("href", "/plans");
+  });
+
+  it("when locked without href, shows disabled 'Available soon' CTA and no link", () => {
+    renderCard({
+      course: { id: 1, title: "X", locked: true },
+    });
+    expect(screen.queryByRole("link")).toBeNull();
+    expect(screen.getByRole("button", { name: /available soon/i })).toBeDisabled();
   });
 
   it("Start CTA when no progress, Continue when partial, Review when complete", () => {

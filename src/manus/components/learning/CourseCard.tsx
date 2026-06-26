@@ -42,7 +42,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   const numberLabel =
     number == null ? null : typeof number === "number" ? String(number).padStart(2, "0") : number;
   const completed = percent === 100;
-  const canVisit = Boolean(href && !locked && !comingSoon);
+  const canVisit = Boolean(href && !comingSoon);
   const isLanding = variant === "landing";
 
   const content = (
@@ -117,7 +117,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Coming soon</span>
             ) : canVisit ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">
-                {variant === "landing" ? "View Course" : completed ? "Review" : percent > 0 ? "Continue" : "Start"}
+                {locked ? "View plans" : variant === "landing" ? "View Course" : completed ? "Review" : percent > 0 ? "Continue" : "Start"}
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
             ) : (

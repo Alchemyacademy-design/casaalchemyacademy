@@ -207,9 +207,11 @@ export default function CourseDetail() {
     progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>,
   );
   const resumeLesson = allLessons.find((lesson) => lesson.id === resumeLessonId) ?? allLessons[0] ?? null;
-  const startHref = resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
+  const startHref = accessible && resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
   const hasStarted = completedCount > 0;
-  const aggregatedMaterials = allLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
+  const visibleLessons = accessible ? allLessons : allLessons.filter((lesson) => lesson.is_preview === true);
+  const aggregatedMaterials = visibleLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
+  const visibleQuizzes = accessible ? (courseQuizzesQuery.data ?? []) : [];
 
   return (
     <MemberLayout>
@@ -263,7 +265,7 @@ export default function CourseDetail() {
               </Card>
             ) : null}
 
-            {course.course_modules.length > 0 ? (
+            {accessible && course.course_modules.length > 0 ? (
               <section className="mb-10">
                 <SectionHeader title="Modules overview" description="A clear view of the complete course before you begin." />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -318,10 +320,10 @@ export default function CourseDetail() {
               </section>
             ) : null}
 
-            {(courseQuizzesQuery.data ?? []).length > 0 ? (
+            {visibleQuizzes.length > 0 ? (
               <section className="mb-10 space-y-4">
                 <SectionHeader title="Course quizzes" description="Knowledge checks connected to this course." />
-                {(courseQuizzesQuery.data ?? []).map((quiz) => (
+                {visibleQuizzes.map((quiz) => (
                   <QuizCard key={quiz.id} quizId={quiz.id} previewAsAdmin={isAdmin} />
                 ))}
               </section>
