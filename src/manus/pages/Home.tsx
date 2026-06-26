@@ -5,7 +5,6 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
-import offersBgAsset from "@/assets/offers-bg.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 
