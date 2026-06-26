@@ -33,16 +33,9 @@ export default function Plans() {
   const alreadyHasAccess = isAdmin || isMember || activeEntitlements.length > 0;
 
   return (
-    <div
-      className="min-h-screen px-4 py-10 relative"
-      style={{
-        backgroundImage: "linear-gradient(rgba(255,251,245,0.88), rgba(255,251,245,0.92)), url('/img/plans-bg.jpg')",
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        backgroundAttachment: "fixed",
-      }}
-    >
+    <div className="aa-plans-bg min-h-screen px-4 py-10 relative">
       <div className="max-w-5xl mx-auto relative">
+
         <div className="text-center mb-10">
           <p className="section-label mb-2">Choose your access</p>
           <h1 className="font-serif text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>Select the option that fits you</h1>
