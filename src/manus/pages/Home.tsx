@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
-import lorenaPhoto from "@/assets/lorena-couto.webp.asset.json";
+const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 
 
