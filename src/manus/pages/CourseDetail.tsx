@@ -265,7 +265,7 @@ export default function CourseDetail() {
               </Card>
             ) : null}
 
-            {course.course_modules.length > 0 ? (
+            {accessible && course.course_modules.length > 0 ? (
               <section className="mb-10">
                 <SectionHeader title="Modules overview" description="A clear view of the complete course before you begin." />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
