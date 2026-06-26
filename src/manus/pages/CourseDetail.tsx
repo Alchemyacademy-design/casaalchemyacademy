@@ -207,9 +207,11 @@ export default function CourseDetail() {
     progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>,
   );
   const resumeLesson = allLessons.find((lesson) => lesson.id === resumeLessonId) ?? allLessons[0] ?? null;
-  const startHref = resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
+  const startHref = accessible && resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
   const hasStarted = completedCount > 0;
-  const aggregatedMaterials = allLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
+  const visibleLessons = accessible ? allLessons : allLessons.filter((lesson) => lesson.is_preview === true);
+  const aggregatedMaterials = visibleLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
+  const visibleQuizzes = accessible ? (courseQuizzesQuery.data ?? []) : [];
 
   return (
     <MemberLayout>
