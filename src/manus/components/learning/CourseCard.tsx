@@ -42,7 +42,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   const numberLabel =
     number == null ? null : typeof number === "number" ? String(number).padStart(2, "0") : number;
   const completed = percent === 100;
-  const canVisit = Boolean(href && !locked && !comingSoon);
+  const canVisit = Boolean(href && !comingSoon);
   const isLanding = variant === "landing";
 
   const content = (
