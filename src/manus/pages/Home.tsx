@@ -132,14 +132,17 @@ export default function Home() {
         };
         const isPublished = row.status === "published";
         const isDraft = !isPublished;
+        // Fallback to static MODULES thumbnail (by id, then by index) when the
+        // DB row has no cover uploaded yet — keeps the landing visually rich.
+        const fallback =
+          MODULES.find((m) => m.id === row.id)?.thumbnail ?? MODULES[i]?.thumbnail ?? null;
         return {
           id: row.id ?? i + 1,
           title: row.title ?? "Untitled",
           tagline: row.tagline ?? row.description ?? "",
           lessons: [],
-          // Admins can open drafts; visitors only see published courses.
           available: isPublished || isAdmin,
-          thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? null,
+          thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? fallback,
           href: `/courses/${row.id}`,
           isDraft,
           isAdminPreview: isAdmin && isDraft,
@@ -147,6 +150,7 @@ export default function Home() {
       })
     : MODULES.map((m): DisplayModule => ({ ...m, href: undefined }))
   ).filter((m) => m.id !== 9);
+
 
 
   return (
@@ -196,9 +200,10 @@ export default function Home() {
           backgroundImage: "url('/img/hero.jpg')",
           backgroundSize: "cover",
           backgroundPosition: "center",
-          opacity: 0.5,
+          opacity: 0.85,
         }} />
-        <div className="absolute inset-0" style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }} />
+        <div className="absolute inset-0" style={{ backgroundColor: "rgba(0, 0, 0, 0.45)" }} />
+
 
         <div className="relative container flex items-center" style={{ minHeight: "92vh" }}>
           <div className="max-w-2xl">
