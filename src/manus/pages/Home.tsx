@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
-import lorenaPhoto from "@/assets/lorena-couto.jpg.asset.json";
+import lorenaPhoto from "@/assets/lorena-couto.webp.asset.json";
 
 
 
@@ -456,7 +456,7 @@ export default function Home() {
                 style={{ display: "flex", alignItems: "center" }}
               >
                 <img
-                  src="/img/casa-logo.svg"
+                  src="/img/casa-logo.png"
                   alt="Casa"
                   style={{ height: "70px", objectFit: "contain" }}
                 />
@@ -469,7 +469,7 @@ export default function Home() {
                 style={{ display: "flex", alignItems: "center" }}
               >
                 <img
-                  src="/img/lighthouse-logo.svg"
+                  src="/img/lighthouse-logo.png"
                   alt="Lighthouse for the Community"
                   style={{ height: "70px", objectFit: "contain" }}
                 />
