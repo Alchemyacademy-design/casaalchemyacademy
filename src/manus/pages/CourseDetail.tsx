@@ -320,10 +320,10 @@ export default function CourseDetail() {
               </section>
             ) : null}
 
-            {(courseQuizzesQuery.data ?? []).length > 0 ? (
+            {visibleQuizzes.length > 0 ? (
               <section className="mb-10 space-y-4">
                 <SectionHeader title="Course quizzes" description="Knowledge checks connected to this course." />
-                {(courseQuizzesQuery.data ?? []).map((quiz) => (
+                {visibleQuizzes.map((quiz) => (
                   <QuizCard key={quiz.id} quizId={quiz.id} previewAsAdmin={isAdmin} />
                 ))}
               </section>
