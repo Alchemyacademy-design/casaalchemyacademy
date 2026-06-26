@@ -1,1 +1,19 @@
-/* Route-scoped official module styles. */
+/* Official render for the real lesson route. */
+body:has([aria-controls="mobile-lesson-sidebar"]) .min-h-screen.bg-background{background:radial-gradient(circle at 90% 0%,hsl(var(--accent)/.08),transparent 28rem),hsl(var(--background))}
+body:has([aria-controls="mobile-lesson-sidebar"]) .min-h-screen>div:first-child{border-color:hsl(var(--border));background:hsl(var(--background)/.95);backdrop-filter:blur(18px)}
+body:has([aria-controls="mobile-lesson-sidebar"]) .min-h-screen :where(.container){width:min(100%,88rem)}
+body:has([aria-controls="mobile-lesson-sidebar"]) .min-h-screen>div:first-child a{color:hsl(var(--muted-foreground));font-size:.68rem;font-weight:700;letter-spacing:.13em;text-transform:uppercase}
+body:has([aria-controls="mobile-lesson-sidebar"]) :where(h1,[class*="lg:col-span-3"] h2){font-family:"Instrument Serif",Georgia,serif;font-weight:400;line-height:1;color:hsl(var(--foreground))}
+body:has([aria-controls="mobile-lesson-sidebar"]) h1{font-size:clamp(2rem,4vw,3.65rem)}
+body:has([aria-controls="mobile-lesson-sidebar"]) [class*="lg:col-span-3"]>.space-y-6>div:first-child h2{font-size:clamp(2.15rem,4vw,3.75rem)}
+body:has([aria-controls="mobile-lesson-sidebar"]) :where(aside>div,#mobile-lesson-sidebar>div){overflow:hidden;border:1px solid hsl(var(--border));border-radius:.9rem;background:hsl(var(--card));box-shadow:var(--aa-shadow-card)}
+body:has([aria-controls="mobile-lesson-sidebar"]) :where(aside,#mobile-lesson-sidebar) button{min-height:3.55rem;border:1px solid transparent;border-radius:.65rem}
+body:has([aria-controls="mobile-lesson-sidebar"]) :where(aside,#mobile-lesson-sidebar) button[aria-current="true"]{border-color:hsl(var(--accent)/.34);background:hsl(var(--accent)/.14);color:hsl(var(--foreground))}
+body:has([aria-controls="mobile-lesson-sidebar"]) [class*="lg:col-span-3"]>.space-y-6>div:nth-child(2){overflow:hidden;border:1px solid hsl(var(--border));border-radius:.95rem;background:hsl(20 42% 9%);box-shadow:var(--aa-shadow-soft)}
+body:has([aria-controls="mobile-lesson-sidebar"]) :where(.prose,.space-y-6>.p-4.flex){border:1px solid hsl(var(--border));border-radius:.9rem;background:hsl(var(--card));box-shadow:var(--aa-shadow-card)}
+body:has([aria-controls="mobile-lesson-sidebar"]) .prose{color:hsl(var(--foreground)/.78);line-height:1.85}
+body:has([aria-controls="mobile-lesson-sidebar"]) .space-y-6>div>p.text-xs{color:hsl(var(--accent));font-weight:700;letter-spacing:.16em}
+body:has([aria-controls="mobile-lesson-sidebar"]) .space-y-6>.p-4.flex{background:hsl(var(--secondary)/.32);box-shadow:none}
+body:has([aria-controls="mobile-lesson-sidebar"]) [aria-controls="mobile-lesson-sidebar"]{border:1px solid hsl(var(--border));border-radius:.6rem;background:hsl(var(--card));color:hsl(var(--foreground));font-weight:650}
+body:has([aria-controls="mobile-lesson-sidebar"]) .space-y-6:not(:has(.prose))::before{content:"Lesson notes are ready for the final content in Admin Center.";display:block;border:1px dashed hsl(var(--border));border-radius:.9rem;background:hsl(var(--secondary)/.28);padding:1rem;color:hsl(var(--muted-foreground));font-size:.78rem}
+@media(min-width:1024px){body:has([aria-controls="mobile-lesson-sidebar"]) .min-h-screen>.container>.grid{grid-template-columns:18.5rem minmax(0,1fr);gap:2rem}body:has([aria-controls="mobile-lesson-sidebar"]) :where(aside,[class*="lg:col-span-3"]){grid-column:auto}}
