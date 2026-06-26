@@ -140,8 +140,17 @@ export async function swapSortOrder<T extends { id: number; sort_order: number }
 }
 
 export async function uploadCoverImage(file: File, folder: "courses" | "modules" | "lessons"): Promise<string> {
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "png";
-  const key = `${folder}/${crypto.randomUUID()}.${ext}`;
+  return uploadPublicAsset(file, folder);
+}
+
+/**
+ * Generic upload helper for the `public-assets` Supabase Storage bucket.
+ * Returns a public URL suitable for direct rendering (images) or anchor `href` (PDFs).
+ */
+export async function uploadPublicAsset(file: File, folder: string): Promise<string> {
+  const safeFolder = folder.replace(/[^a-z0-9/_-]/gi, "-").replace(/^\/+|\/+$/g, "") || "uploads";
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
+  const key = `${safeFolder}/${crypto.randomUUID()}.${ext}`;
   const { error } = await supabase.storage.from("public-assets").upload(key, file, {
     cacheControl: "3600",
     upsert: false,

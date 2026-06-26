@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import AdminShell from "@/manus/components/admin/AdminShell";
+import FileUploadField from "@/manus/components/admin/FileUploadField";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
@@ -46,7 +47,8 @@ export type FieldType =
   | "boolean"
   | "datetime"
   | "select"
-  | "json";
+  | "json"
+  | "file";
 
 export interface FieldDef {
   name: string;
@@ -60,6 +62,12 @@ export interface FieldDef {
   hideInForm?: boolean;
   /** Render override for table cell */
   render?: (row: Record<string, unknown>) => ReactNode;
+  /** For `type: "file"`: storage folder under the `public-assets` bucket. */
+  uploadFolder?: string;
+  /** For `type: "file"`: accept attribute (e.g. "image/*" or "application/pdf"). */
+  accept?: string;
+  /** For `type: "file"`: render an image preview in the form. Defaults to true for image accept. */
+  preview?: boolean;
 }
 
 /**
@@ -639,6 +647,15 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                       <Input type="number" value={value === null || value === undefined ? "" : String(value)} onChange={(e) => set(e.target.value)} />
                     ) : f.type === "json" ? (
                       <Textarea value={(value as string) ?? ""} onChange={(e) => set(e.target.value)} rows={6} className="font-mono text-xs" />
+                    ) : f.type === "file" ? (
+                      <FileUploadField
+                        value={(value as string) ?? null}
+                        onChange={(v) => set(v ?? "")}
+                        folder={f.uploadFolder ?? table}
+                        accept={f.accept}
+                        preview={f.preview}
+                        placeholder={f.placeholder}
+                      />
                     ) : (
                       <Input value={(value as string) ?? ""} onChange={(e) => set(e.target.value)} placeholder={f.placeholder} />
                     )}
