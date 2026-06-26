@@ -163,6 +163,27 @@
   backdrop-filter: blur(20px);
 }
 
+/* Mobile menu lives on a light background, so the sidebar-foreground
+   tokens (designed for the dark desktop sidebar) become invisible.
+   Override nav-link colors to use foreground tokens for adequate contrast. */
+.aa-mobile-menu .aa-member-nav-label {
+  color: hsl(var(--muted-foreground));
+}
+.aa-mobile-menu .aa-member-nav-link {
+  color: hsl(var(--foreground) / 0.82);
+}
+.aa-mobile-menu .aa-member-nav-link:hover {
+  border-color: hsl(var(--border));
+  background: hsl(var(--secondary) / 0.55);
+  color: hsl(var(--foreground));
+}
+.aa-mobile-menu .aa-member-nav-link[aria-current="page"],
+.aa-mobile-menu .aa-member-nav-link.is-active {
+  border-color: hsl(var(--accent) / 0.45);
+  background: hsl(var(--accent) / 0.18);
+  color: hsl(var(--foreground));
+}
+
 .aa-page {
   width: min(100%, 88rem);
   margin: 0 auto;
