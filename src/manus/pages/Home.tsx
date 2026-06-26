@@ -486,17 +486,18 @@ export default function Home() {
 
       {/* ── About Lorena ── */}
       <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "0" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", minHeight: "100vh", alignItems: "stretch" }}>
-          {/* Photo - Full Height Left */}
+        <div className="aa-lorena-grid">
+          {/* Photo */}
           <div style={{ overflow: "hidden" }}>
             <img
               src={lorenaPhoto.url}
               alt="Lorena Couto, founder of Casa Alchemy"
-              style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center top" }}
+              className="aa-lorena-photo"
             />
           </div>
-          {/* Text - Right Side */}
-          <div style={{ padding: "6rem", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          {/* Text */}
+          <div className="aa-lorena-text" style={{ display: "flex", flexDirection: "column", justifyContent: "center" }}>
+
             <p className="section-label mb-5" style={{ color: "var(--aa-gold)" }}>About Lorena Couto</p>
             <h2 className="font-serif text-4xl md:text-5xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.15 }}>
               Designing with purpose, chemistry, and respect
