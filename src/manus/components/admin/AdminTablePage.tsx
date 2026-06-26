@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import AdminShell from "@/manus/components/admin/AdminShell";
+import FileUploadField from "@/manus/components/admin/FileUploadField";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
