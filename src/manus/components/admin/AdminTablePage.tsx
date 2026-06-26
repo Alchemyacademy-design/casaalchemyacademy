@@ -46,7 +46,8 @@ export type FieldType =
   | "boolean"
   | "datetime"
   | "select"
-  | "json";
+  | "json"
+  | "file";
 
 export interface FieldDef {
   name: string;
@@ -60,6 +61,12 @@ export interface FieldDef {
   hideInForm?: boolean;
   /** Render override for table cell */
   render?: (row: Record<string, unknown>) => ReactNode;
+  /** For `type: "file"`: storage folder under the `public-assets` bucket. */
+  uploadFolder?: string;
+  /** For `type: "file"`: accept attribute (e.g. "image/*" or "application/pdf"). */
+  accept?: string;
+  /** For `type: "file"`: render an image preview in the form. Defaults to true for image accept. */
+  preview?: boolean;
 }
 
 /**
