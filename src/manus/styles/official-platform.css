@@ -1,52 +1,45 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+/*
+ * Platform-wide structural refinements only.
+ * Brand typography and palette remain owned by src/index.css:
+ * Instrument Serif + Manrope, Sandstone, Cacao, Chocolate,
+ * Terracotta, Avocado, Moss and White.
+ */
 
-:root {
-  --aa-olive-dark:#3D3A2A;
-  --aa-olive-mid:#68634B;
-  --aa-olive-light:#A9A488;
-  --aa-cream:#F5F0E8;
-  --aa-cream-dark:#EDE5D8;
-  --aa-gold:#C4A05A;
-  --aa-gold-light:#D7BA7D;
-  --aa-text-dark:#2A2925;
-  --aa-text-mid:#5C5B55;
-  --aa-text-light:#8A8982;
-  --aa-white:#FFFFFF;
-  --background:39 39% 94%;
-  --foreground:60 6% 15%;
-  --primary:56 19% 20%;
-  --primary-foreground:39 39% 94%;
-  --secondary:38 31% 89%;
-  --secondary-foreground:56 19% 20%;
-  --accent:40 47% 56%;
-  --accent-foreground:56 19% 20%;
-  --border:37 27% 84%;
-  --input:37 27% 84%;
-  --ring:40 47% 56%;
-  --radius:.125rem;
-  --sidebar-background:56 19% 20%;
-  --sidebar-foreground:39 39% 94%;
-  --sidebar-accent:55 18% 16%;
-  --sidebar-accent-foreground:39 39% 94%;
-  --sidebar-border:54 14% 29%;
+.aa-panel,.aa-panel-soft,.aa-stat-card,.course-card,.card{
+  border-color:var(--aa-cream-dark)!important;
+  box-shadow:none!important;
 }
 
-body{background:var(--aa-cream);color:var(--aa-text-dark);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.65}
-h1,h2,h3,h4,h5,h6,.font-serif{font-family:'Cormorant Garamond',Georgia,serif!important;letter-spacing:.01em}
-button,input,textarea,select{font-family:'DM Sans',sans-serif}
-.section-label,.aa-eyebrow{color:var(--aa-gold);font-family:'DM Sans',sans-serif;font-size:.65rem;font-weight:500;letter-spacing:.22em;text-transform:uppercase}
-.gold-divider{background:var(--aa-gold)}
-.btn-gold,.btn,.btn-small{background:var(--aa-gold);border-color:var(--aa-gold);color:var(--aa-olive-dark);font-family:'DM Sans',sans-serif}
-.btn-gold:hover,.btn:hover{background:var(--aa-gold-light);border-color:var(--aa-gold-light)}
-.btn-cream{background:var(--aa-cream);border-color:var(--aa-cream);color:var(--aa-olive-dark);font-family:'DM Sans',sans-serif}
-.aa-panel,.aa-panel-soft,.aa-stat-card,.course-card,.card{border-radius:0!important;border-color:var(--aa-cream-dark)!important;box-shadow:none!important}
-.aa-display-title,.aa-section-title,.aa-stat-value,.aa-learning-title,.aa-learning-lesson-title{font-family:'Cormorant Garamond',Georgia,serif!important}
-.aa-member-sidebar,[data-sidebar='sidebar']{background:linear-gradient(180deg,var(--aa-olive-dark),#2F2D21)!important}
-.aa-member-nav-link,[data-sidebar='menu-button']{border-radius:0!important;border-left:2px solid transparent!important;font-family:'DM Sans',sans-serif}
-.aa-member-nav-link:hover,.aa-member-nav-link.is-active,.aa-member-nav-link[aria-current='page'],[data-sidebar='menu-button']:hover{border-left-color:var(--aa-gold)!important;background:rgba(255,255,255,.06)!important}
+.aa-display-title,.aa-section-title,.aa-stat-value,.aa-learning-title,.aa-learning-lesson-title{
+  font-family:'Instrument Serif',Georgia,serif!important;
+}
+
+.aa-member-sidebar,[data-sidebar='sidebar']{
+  background:var(--aa-olive-dark)!important;
+}
+
+.aa-member-nav-link,[data-sidebar='menu-button']{
+  font-family:'Manrope',sans-serif;
+}
+
+.aa-member-nav-link:hover,
+.aa-member-nav-link.is-active,
+.aa-member-nav-link[aria-current='page'],
+[data-sidebar='menu-button']:hover{
+  border-left-color:var(--aa-gold)!important;
+  background:rgba(255,255,255,.06)!important;
+}
+
 .aa-progress-fill{background:var(--aa-gold)!important}
+
 .module-card-hover{transition:transform .25s ease,box-shadow .25s ease}
-.module-card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(61,58,42,.12)}
+.module-card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(31,10,3,.12)}
 
-/* legacy /manus-storage/* overrides removed — using /img/* assets directly */
+/* Keep mobile navigation readable without changing the desktop aesthetic. */
+.aa-mobile-menu .aa-member-nav-link{color:hsl(var(--foreground))!important}
+.aa-mobile-menu .aa-member-nav-label{color:hsl(var(--muted-foreground))!important}
 
+@media(prefers-reduced-motion:reduce){
+  .module-card-hover{transition:none}
+  .module-card-hover:hover{transform:none}
+}
