@@ -51,8 +51,9 @@ jobs:
           if bun run test > /tmp/alchemy-tests.log 2>&1; then
             cat /tmp/alchemy-tests.log
           else
-            echo "Tests failed. Showing the final 180 lines:"
-            tail -n 180 /tmp/alchemy-tests.log
+            echo "TEST_FAILURE_SUMMARY_BEGIN"
+            tail -n 220 /tmp/alchemy-tests.log | tac
+            echo "TEST_FAILURE_SUMMARY_END"
             exit 1
           fi
 
