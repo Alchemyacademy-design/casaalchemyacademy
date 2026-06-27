@@ -51,11 +51,18 @@ jobs:
           if bun run test > /tmp/alchemy-tests.log 2>&1; then
             cat /tmp/alchemy-tests.log
           else
-            echo "TEST_FAILURE_SUMMARY_BEGIN"
-            tail -n 220 /tmp/alchemy-tests.log | tac
-            echo "TEST_FAILURE_SUMMARY_END"
+            tail -n 260 /tmp/alchemy-tests.log > /tmp/test-failure.txt
+            cat /tmp/test-failure.txt
             exit 1
           fi
+
+      - name: Upload test failure report
+        if: failure() && steps.test.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-failure-report
+          path: /tmp/test-failure.txt
+          retention-days: 1
 
       - name: Lint
         id: lint
