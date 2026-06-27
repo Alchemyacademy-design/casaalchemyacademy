@@ -5,6 +5,7 @@ import App from "./App";
 import "./index.css";
 import "@/manus/styles/official-platform.css";
 import "@/manus/styles/official-module-route.css";
+import "@/manus/styles/academy-design-system.css";
 import { queryClient } from "@/manus/lib/query-client";
 import CrossTabQuerySync from "@/manus/components/CrossTabQuerySync";
 
@@ -28,9 +29,9 @@ function reportStartupError(err: unknown) {
     const root = document.getElementById("root");
     if (root) {
       root.innerHTML =
-        '<div style="padding:24px;font-family:system-ui,sans-serif;color:#3b3a2f;background:#f5f0e8;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px">' +
-        '<h1 style="font-size:18px;margin:0">Alchemy Academy could not start.</h1>' +
-        '<button onclick="location.reload()" style="background:#c9b87a;color:#3b3a2f;border:0;padding:10px 18px;cursor:pointer">Reload</button>' +
+        '<div style="padding:24px;font-family:DM Sans,system-ui,sans-serif;color:#2A2318;background:#F5F0E8;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px">' +
+        '<h1 style="font-family:Cormorant Garamond,Georgia,serif;font-size:24px;font-weight:400;margin:0;color:#3D3A2A">Alchemy Academy could not start.</h1>' +
+        '<button onclick="location.reload()" style="background:#3D3A2A;color:#F5F0E8;border:0;padding:10px 18px;cursor:pointer">Reload</button>' +
         "</div>";
     }
   }
