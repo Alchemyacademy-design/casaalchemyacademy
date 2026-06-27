@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,9 +29,12 @@ export function useCommunityAuthorProfiles(authorIds: string[]) {
 }
 
 export function useCommunityReplyCounts(postIds: number[]) {
+  const queryClient = useQueryClient();
   const ids = [...new Set(postIds.filter(Boolean))];
-  return useQuery({
-    queryKey: ["community", "reply-counts", sortedKey(ids)],
+  const queryKey = ["community", "reply-counts", sortedKey(ids)] as const;
+
+  const query = useQuery({
+    queryKey,
     enabled: ids.length > 0,
     staleTime: 30 * 1000,
     queryFn: async () => {
@@ -45,6 +49,23 @@ export function useCommunityReplyCounts(postIds: number[]) {
       return counts;
     },
   });
+
+  useEffect(() => {
+    if (ids.length === 0) return;
+    const channel = supabase
+      .channel(`community_reply_counts:${sortedKey(ids)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "community_replies" },
+        () => queryClient.invalidateQueries({ queryKey: ["community", "reply-counts"] }),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [ids.join(","), queryClient]);
+
+  return query;
 }
 
 type ModerationPatch = {
