@@ -17,7 +17,6 @@ import {
   Tag,
   CreditCard,
   Award,
-  
 } from "lucide-react";
 import {
   Sidebar,
@@ -57,7 +56,6 @@ const NAV = [
   { title: "Students", url: "/admin/students", icon: Users },
   { title: "Diagnostics", url: "/admin/diagnostics", icon: Activity },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
-  
 ];
 
 function AdminSidebarInner() {
@@ -65,7 +63,7 @@ function AdminSidebarInner() {
   const collapsed = state === "collapsed";
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-5">
+      <SidebarHeader className="px-4 py-5 border-b border-sidebar-border/60">
         <Link to="/admin" className="flex items-center gap-2">
           <img
             src="/img/logo.png"
@@ -74,15 +72,15 @@ function AdminSidebarInner() {
           />
           {!collapsed && (
             <div className="leading-tight">
-              <div className="font-serif text-sm tracking-[0.18em]">CASA ALCHEMY</div>
-              <div className="text-[10px] uppercase tracking-[0.15em] opacity-70">Admin Center</div>
+              <div className="font-serif text-base tracking-[0.16em] text-sidebar-foreground">CASA ALCHEMY</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/65">Admin Center</div>
             </div>
           )}
         </Link>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Manage</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-sidebar-foreground/55 uppercase tracking-[0.18em] text-[10px]">Manage</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {NAV.map((item) => (
@@ -92,7 +90,11 @@ function AdminSidebarInner() {
                       to={item.url}
                       end={item.exact}
                       className={({ isActive }) =>
-                        `flex items-center gap-2 ${isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : ""}`
+                        `flex items-center gap-2 border-l-2 ${
+                          isActive
+                            ? "bg-sidebar-accent text-sidebar-accent-foreground border-[var(--aa-gold)]"
+                            : "border-transparent"
+                        }`
                       }
                     >
                       <item.icon className="h-4 w-4" />
@@ -105,7 +107,7 @@ function AdminSidebarInner() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="px-2 pb-3">
+      <SidebarFooter className="px-2 pb-3 border-t border-sidebar-border/60 pt-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild tooltip="Back to platform">
@@ -143,16 +145,16 @@ export default function AdminShell({
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="aa-admin-shell min-h-screen flex w-full bg-background">
         <AdminSidebarInner />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b border-border/60 bg-card/70 backdrop-blur px-4 sticky top-0 z-30">
+          <header className="h-16 flex items-center gap-3 border-b border-border bg-card/90 backdrop-blur px-5 sticky top-0 z-30">
             <SidebarTrigger />
             <nav className="flex items-center gap-1 text-xs text-foreground/60">
               <Link to="/admin" className="hover:text-foreground">Admin Center</Link>
               {crumbs.map((c, i) => (
                 <span key={i} className="flex items-center gap-1">
-                  <ChevronRight className="w-3 h-3" />
+                  <ChevronRight className="w-3 h-3 text-[var(--aa-gold)]" />
                   {c.to ? (
                     <Link to={c.to} className="hover:text-foreground">{c.label}</Link>
                   ) : (
@@ -167,11 +169,12 @@ export default function AdminShell({
               </Button>
             </div>
           </header>
-          <main className="flex-1 px-6 py-6 max-w-[1400px] w-full">
-            <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
+          <main className="flex-1 px-6 py-8 lg:px-10 max-w-[1400px] w-full">
+            <div className="flex items-end justify-between gap-4 flex-wrap mb-8 pb-5 border-b border-border">
               <div>
-                <h1 className="font-serif text-3xl" style={{ color: "var(--aa-olive-dark)" }}>{title}</h1>
-                {description && <p className="text-sm text-foreground/70 mt-1 max-w-2xl">{description}</p>}
+                <p className="section-label mb-2">Administration</p>
+                <h1 className="font-serif text-4xl md:text-5xl" style={{ color: "var(--aa-olive-dark)" }}>{title}</h1>
+                {description && <p className="text-sm text-foreground/70 mt-2 max-w-2xl">{description}</p>}
               </div>
               {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
             </div>
