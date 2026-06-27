@@ -1,25 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 /*
- * Platform-wide structural refinements only.
- * Brand typography and palette remain owned by src/index.css:
- * Instrument Serif + Manrope, Sandstone, Cacao, Chocolate,
- * Terracotta, Avocado, Moss and White.
+ * VISUAL AUTHORITY
+ * The Academy Design System and Courses documentation are the only visual
+ * source of truth. The Upgrade Plan contributes functionality only.
  */
+:root {
+  --aa-olive-dark:#3D3A2A;
+  --aa-olive-mid:#5C5840;
+  --aa-olive-light:#8A8660;
+  --aa-cream:#F5F0E8;
+  --aa-cream-dark:#EDE5D8;
+  --aa-gold:#C4A05A;
+  --aa-gold-light:#D4B06A;
+  --aa-text-dark:#2A2318;
+  --aa-text-mid:#5C5248;
+  --aa-text-light:#8A7E72;
+  --aa-white:#FFFFFF;
+
+  --background:37 39% 94%;
+  --foreground:37 27% 13%;
+  --card:0 0% 100%;
+  --card-foreground:37 27% 13%;
+  --popover:0 0% 100%;
+  --popover-foreground:37 27% 13%;
+  --primary:51 18% 20%;
+  --primary-foreground:37 39% 94%;
+  --secondary:37 37% 89%;
+  --secondary-foreground:51 18% 20%;
+  --muted:37 25% 92%;
+  --muted-foreground:30 10% 49%;
+  --accent:40 47% 56%;
+  --accent-foreground:51 18% 20%;
+  --border:37 25% 84%;
+  --input:37 25% 92%;
+  --ring:40 47% 56%;
+  --sidebar-background:0 0% 100%;
+  --sidebar-foreground:37 27% 13%;
+  --sidebar-primary:40 47% 56%;
+  --sidebar-primary-foreground:37 27% 13%;
+  --sidebar-accent:37 37% 89%;
+  --sidebar-accent-foreground:37 27% 13%;
+  --sidebar-border:37 25% 84%;
+  --sidebar-ring:40 47% 56%;
+  --radius:.25rem;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family:'DM Sans',sans-serif!important;
+}
+
+h1,h2,h3,h4,h5,h6,
+.font-serif,
+.aa-display-title,
+.aa-section-title,
+.aa-stat-value,
+.aa-learning-title,
+.aa-learning-lesson-title,
+.brand,
+.side-brand {
+  font-family:'Cormorant Garamond',Georgia,serif!important;
+}
 
 .aa-panel,.aa-panel-soft,.aa-stat-card,.course-card,.card{
   border-color:var(--aa-cream-dark)!important;
   box-shadow:none!important;
 }
 
-.aa-display-title,.aa-section-title,.aa-stat-value,.aa-learning-title,.aa-learning-lesson-title{
-  font-family:'Instrument Serif',Georgia,serif!important;
-}
-
+/* Courses documentation: light 256px member sidebar with gold active state. */
 .aa-member-sidebar,[data-sidebar='sidebar']{
-  background:var(--aa-olive-dark)!important;
+  background:rgba(255,255,255,.94)!important;
+  color:var(--aa-text-dark)!important;
+  border-right:1px solid var(--aa-cream-dark)!important;
 }
 
 .aa-member-nav-link,[data-sidebar='menu-button']{
-  font-family:'Manrope',sans-serif;
+  font-family:'DM Sans',sans-serif!important;
+  color:var(--aa-text-dark)!important;
 }
 
 .aa-member-nav-link:hover,
@@ -27,17 +88,39 @@
 .aa-member-nav-link[aria-current='page'],
 [data-sidebar='menu-button']:hover{
   border-left-color:var(--aa-gold)!important;
-  background:rgba(255,255,255,.06)!important;
+  background:rgba(196,160,90,.16)!important;
+  color:var(--aa-text-dark)!important;
 }
 
 .aa-progress-fill{background:var(--aa-gold)!important}
 
 .module-card-hover{transition:transform .25s ease,box-shadow .25s ease}
-.module-card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(31,10,3,.12)}
+.module-card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 40px rgba(42,35,24,.12)}
 
-/* Keep mobile navigation readable without changing the desktop aesthetic. */
-.aa-mobile-menu .aa-member-nav-link{color:hsl(var(--foreground))!important}
-.aa-mobile-menu .aa-member-nav-label{color:hsl(var(--muted-foreground))!important}
+.btn-gold{
+  background:var(--aa-olive-dark)!important;
+  color:var(--aa-cream)!important;
+  border:1px solid var(--aa-olive-dark)!important;
+  font-family:'DM Sans',sans-serif!important;
+  font-size:.68rem!important;
+  font-weight:500!important;
+  letter-spacing:.2em!important;
+  text-transform:uppercase!important;
+}
+.btn-gold:hover{background:var(--aa-olive-mid)!important}
+
+.section-label{
+  font-family:'DM Sans',sans-serif!important;
+  font-size:.65rem!important;
+  letter-spacing:.22em!important;
+  font-weight:500!important;
+  color:var(--aa-gold)!important;
+}
+
+.gold-divider{background:var(--aa-gold)!important}
+
+.aa-mobile-menu .aa-member-nav-link{color:var(--aa-text-dark)!important}
+.aa-mobile-menu .aa-member-nav-label{color:var(--aa-text-mid)!important}
 
 @media(prefers-reduced-motion:reduce){
   .module-card-hover{transition:none}
