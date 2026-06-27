@@ -1,0 +1,606 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Filter,
+  Hash,
+  Loader2,
+  Lock,
+  MessageCircle,
+  Pin,
+  Plus,
+  Search,
+  Send,
+  Trash2,
+  Unlock,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/manus/hooks/useAuth";
+import {
+  type CommunityPost,
+  useChannelBySlug,
+  useChannels,
+  useCreatePost,
+  useCreateReply,
+  useDeletePost,
+  useDeleteReply,
+  usePostReactions,
+  usePostsInfinite,
+  useReplies,
+  useReplyReactions,
+  useSpaces,
+  useToggleReaction,
+} from "@/manus/hooks/community/useCommunityData";
+import {
+  type CommunityAuthorProfile,
+  useCommunityAuthorProfiles,
+  useCommunityReplyCounts,
+  useModerateCommunityPost,
+} from "@/manus/hooks/community/useCommunityPremiumData";
+import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/community-deeplink";
+import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
+import "@/manus/styles/community-premium.css";
+
+const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
+const STORAGE_KEY = "community:last";
+
+type FilterMode = "all" | "pinned" | "mine" | "hidden";
+
+type Props = {
+  initialSpaceSlug?: string;
+  initialChannelSlug?: string;
+  initialDraftTitle?: string;
+  initialDraftBody?: string;
+};
+
+function relativeTime(iso: string) {
+  const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 1) return "agora";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} h`;
+  return `${Math.floor(hours / 24)} d`;
+}
+
+function profileName(profile: CommunityAuthorProfile | undefined, own: boolean) {
+  if (own) return profile?.display_name || profile?.full_name || "Você";
+  return profile?.display_name || profile?.full_name || "Membro da Academy";
+}
+
+function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: boolean }) {
+  const name = profileName(profile, own);
+  const initials = name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AA";
+
+  return profile?.avatar_path ? (
+    <img src={profile.avatar_path} alt="" loading="lazy" className="aa-community-avatar" />
+  ) : (
+    <span className="aa-community-avatar aa-community-avatar-fallback" aria-hidden="true">{initials}</span>
+  );
+}
+
+function useDebouncedValue(value: string, delay = 300) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+  return debounced;
+}
+
+export default function CommunityPremium({
+  initialSpaceSlug,
+  initialChannelSlug,
+  initialDraftTitle,
+  initialDraftBody,
+}: Props) {
+  const { user, isAdmin } = useAuth();
+  const userId = user?.id ?? null;
+  const { data: spaces = [], isLoading: spacesLoading, isError: spacesError, refetch: refetchSpaces } = useSpaces();
+  const [spaceId, setSpaceId] = useState<number | null>(null);
+  const [channelId, setChannelId] = useState<number | null>(null);
+  const [openPost, setOpenPost] = useState<CommunityPost | null>(null);
+  const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
+  const [channelDialogOpen, setChannelDialogOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterMode>("all");
+  const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
+  const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
+  const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
+
+  useEffect(() => {
+    if (!spaces.length || spaceId) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+      setSpaceId(spaces.some((space) => space.id === saved?.spaceId) ? saved.spaceId : spaces[0].id);
+    } catch {
+      setSpaceId(spaces[0].id);
+    }
+  }, [spaces, spaceId]);
+
+  const { data: channels = [], isLoading: channelsLoading } = useChannels(spaceId);
+  const { data: matchedChannel, isLoading: deepLinkLoading } = useChannelBySlug(initialChannelSlug, initialSpaceSlug);
+  const deepLinkKey = `${initialSpaceSlug ?? ""}|${initialChannelSlug ?? ""}`;
+  const appliedDeepLink = useRef("");
+
+  useEffect(() => {
+    if (!initialChannelSlug || deepLinkLoading || appliedDeepLink.current === deepLinkKey) return;
+    const result = resolveDeepLinkChannel(initialChannelSlug, matchedChannel);
+    if (!result) return;
+    appliedDeepLink.current = deepLinkKey;
+    if (result.kind === "not-found") {
+      toast.message(`O canal “${initialChannelSlug}” não está disponível. Escolha outro canal para publicar o rascunho.`);
+      return;
+    }
+    setSpaceId(result.spaceId);
+    setChannelId(result.channelId);
+  }, [deepLinkKey, deepLinkLoading, initialChannelSlug, matchedChannel]);
+
+  useEffect(() => {
+    if (!channels.length) {
+      setChannelId(null);
+      return;
+    }
+    if (channelId && channels.some((channel) => channel.id === channelId)) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null");
+      setChannelId(channels.some((channel) => channel.id === saved?.channelId) ? saved.channelId : channels[0].id);
+    } catch {
+      setChannelId(channels[0].id);
+    }
+  }, [channelId, channels]);
+
+  useEffect(() => {
+    if (!spaceId || !channelId) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ spaceId, channelId }));
+  }, [spaceId, channelId]);
+
+  useEffect(() => {
+    setDraftTitle(initialDraftTitle ?? "");
+    setDraftBody(initialDraftBody ?? "");
+  }, [initialDraftBody, initialDraftTitle]);
+
+  useEffect(() => {
+    setSearch("");
+    setFilter("all");
+    setOpenPost(null);
+  }, [channelId]);
+
+  const postsQuery = usePostsInfinite(channelId);
+  const posts = useMemo(() => dedupePostPages(postsQuery.data?.pages ?? []), [postsQuery.data]);
+  const postIds = useMemo(() => posts.map((post) => post.id), [posts]);
+  const authorIds = useMemo(() => posts.map((post) => post.author_id), [posts]);
+  const { data: profiles = [] } = useCommunityAuthorProfiles(authorIds);
+  const profileMap = useMemo(() => new Map(profiles.map((profile) => [profile.id, profile])), [profiles]);
+  const { data: replyCounts = {} } = useCommunityReplyCounts(postIds);
+  const { data: postReactions = [] } = usePostReactions(postIds);
+  const createPost = useCreatePost(channelId, userId);
+  const deletePost = useDeletePost(channelId);
+  const toggleReaction = useToggleReaction();
+  const moderatePost = useModerateCommunityPost();
+
+  const reactionsByPost = useMemo(() => {
+    const map = new Map<number, Array<{ reaction: string; count: number; mine: boolean }>>();
+    for (const item of postReactions) {
+      if (!item.post_id) continue;
+      const list = map.get(item.post_id) ?? [];
+      const found = list.find((entry) => entry.reaction === item.reaction);
+      if (found) {
+        found.count += 1;
+        if (item.user_id === userId) found.mine = true;
+      } else {
+        list.push({ reaction: item.reaction, count: 1, mine: item.user_id === userId });
+      }
+      map.set(item.post_id, list);
+    }
+    return map;
+  }, [postReactions, userId]);
+
+  const visiblePosts = useMemo(() => {
+    return posts.filter((post) => {
+      if (!isAdmin && post.hidden_at) return false;
+      if (filter === "hidden" && !post.hidden_at) return false;
+      if (filter !== "hidden" && post.hidden_at) return false;
+      if (filter === "pinned" && !post.pinned) return false;
+      if (filter === "mine" && post.author_id !== userId) return false;
+      if (debouncedSearch.length >= 2) {
+        const haystack = `${post.title} ${post.body}`.toLocaleLowerCase();
+        if (!haystack.includes(debouncedSearch)) return false;
+      }
+      return true;
+    });
+  }, [debouncedSearch, filter, isAdmin, posts, userId]);
+
+  const activeSpace = spaces.find((space) => space.id === spaceId) ?? null;
+  const activeChannel = channels.find((channel) => channel.id === channelId) ?? null;
+
+  async function publishPost() {
+    if (!draftBody.trim()) return;
+    try {
+      await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
+      setDraftTitle("");
+      setDraftBody("");
+      toast.success("Publicação enviada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível publicar");
+    }
+  }
+
+  async function removePost(post: CommunityPost) {
+    if (!window.confirm("Remover esta publicação? Ela será preservada no histórico de moderação.")) return;
+    try {
+      await deletePost.mutateAsync(post.id);
+      setOpenPost((current) => current?.id === post.id ? null : current);
+      toast.success("Publicação removida");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+    }
+  }
+
+  async function applyModeration(post: CommunityPost, action: "pin" | "lock" | "hide") {
+    if (!isAdmin || !userId || !channelId) return;
+    const patch = action === "pin"
+      ? { pinned: !post.pinned }
+      : action === "lock"
+        ? { locked: !post.locked }
+        : { hidden_at: post.hidden_at ? null : new Date().toISOString() };
+    const actionName = action === "pin"
+      ? (post.pinned ? "unpin_post" : "pin_post")
+      : action === "lock"
+        ? (post.locked ? "unlock_post" : "lock_post")
+        : (post.hidden_at ? "restore_post" : "hide_post");
+    try {
+      const updated = await moderatePost.mutateAsync({
+        id: post.id,
+        channelId,
+        patch,
+        action: actionName,
+        moderatorId: userId,
+      });
+      setOpenPost((current) => current?.id === post.id ? updated : current);
+      toast.success("Moderação atualizada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a moderação");
+    }
+  }
+
+  if (spacesLoading) {
+    return <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>;
+  }
+
+  if (spacesError) {
+    return (
+      <div className="aa-community-state">
+        <p>Não foi possível carregar a comunidade.</p>
+        <Button onClick={() => refetchSpaces()}>Tentar novamente</Button>
+      </div>
+    );
+  }
+
+  return (
+    <section className="aa-community-shell">
+      <aside className="aa-community-spaces" aria-label="Espaços da comunidade">
+        <p className="aa-community-rail-label">Spaces</p>
+        {spaces.map((space) => (
+          <button
+            key={space.id}
+            type="button"
+            className={space.id === spaceId ? "is-active" : ""}
+            onClick={() => setSpaceId(space.id)}
+            title={space.name}
+          >
+            {space.name.slice(0, 2).toUpperCase()}
+          </button>
+        ))}
+        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="Novo espaço"><Plus size={16} /></button>}
+      </aside>
+
+      <aside className="aa-community-channels">
+        <header>
+          <p className="section-label">Community space</p>
+          <h2>{activeSpace?.name ?? "Community"}</h2>
+          {activeSpace?.description && <p>{activeSpace.description}</p>}
+        </header>
+        <ScrollArea className="flex-1">
+          <nav aria-label="Canais da comunidade">
+            {channelsLoading && <p className="aa-community-muted">Carregando canais…</p>}
+            {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">Nenhum canal publicado.</p>}
+            {channels.map((channel) => (
+              <button
+                type="button"
+                key={channel.id}
+                className={channel.id === channelId ? "is-active" : ""}
+                onClick={() => setChannelId(channel.id)}
+              >
+                <Hash size={14} /><span>{channel.name}</span>
+              </button>
+            ))}
+          </nav>
+        </ScrollArea>
+        {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> Novo canal</Button>}
+      </aside>
+
+      <main className="aa-community-main">
+        <header className="aa-community-header">
+          <div>
+            <p className="section-label">Member conversation</p>
+            <h1>{activeChannel?.name ?? "Selecione um canal"}</h1>
+            {activeChannel?.description && <p>{activeChannel.description}</p>}
+          </div>
+          <div className="aa-community-mobile-selects">
+            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Selecionar espaço">
+              {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
+            </select>
+            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Selecionar canal">
+              {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}
+            </select>
+          </div>
+        </header>
+
+        {activeChannel && (
+          <div className="aa-community-toolbar">
+            <label>
+              <Search size={15} />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar publicações…" />
+            </label>
+            <div className="aa-community-filters" aria-label="Filtros">
+              <Filter size={14} />
+              {(["all", "pinned", "mine"] as FilterMode[]).map((mode) => (
+                <button key={mode} type="button" className={filter === mode ? "is-active" : ""} onClick={() => setFilter(mode)}>
+                  {mode === "all" ? "Todos" : mode === "pinned" ? "Fixados" : "Meus"}
+                </button>
+              ))}
+              {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Ocultos</button>}
+            </div>
+          </div>
+        )}
+
+        <ScrollArea className="aa-community-feed">
+          <div className="aa-community-feed-inner">
+            {postsQuery.isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
+            {postsQuery.isError && (
+              <div className="aa-community-state">
+                <p>Não foi possível carregar as publicações.</p>
+                <Button onClick={() => postsQuery.refetch()}>Tentar novamente</Button>
+              </div>
+            )}
+            {!postsQuery.isLoading && !postsQuery.isError && visiblePosts.length === 0 && activeChannel && (
+              <div className="aa-community-state">
+                <p>{posts.length ? "Nenhuma publicação corresponde aos filtros." : `Seja a primeira pessoa a iniciar uma conversa em #${activeChannel.name}.`}</p>
+              </div>
+            )}
+
+            {visiblePosts.map((post) => {
+              const own = post.author_id === userId;
+              const profile = profileMap.get(post.author_id);
+              const reactions = reactionsByPost.get(post.id) ?? [];
+              return (
+                <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""}`}>
+                  <div className="aa-community-post-author">
+                    <ProfileMark profile={profile} own={own} />
+                    <div>
+                      <strong>{profileName(profile, own)}</strong>
+                      <span>{relativeTime(post.created_at)}{own ? " · você" : ""}</span>
+                    </div>
+                    <div className="aa-community-post-flags">
+                      {post.pinned && <span><Pin size={12} /> Fixado</span>}
+                      {post.locked && <span><Lock size={12} /> Fechado</span>}
+                      {post.hidden_at && <span><EyeOff size={12} /> Oculto</span>}
+                    </div>
+                  </div>
+
+                  <button type="button" className="aa-community-post-copy" onClick={() => setOpenPost(post)}>
+                    <h3>{post.title}</h3>
+                    <p>{post.body}</p>
+                  </button>
+
+                  <div className="aa-community-post-actions">
+                    <div className="aa-community-reactions">
+                      {reactions.map((reaction) => (
+                        <button
+                          type="button"
+                          key={reaction.reaction}
+                          className={reaction.mine ? "is-active" : ""}
+                          onClick={() => userId && toggleReaction.mutate({ reaction: reaction.reaction, userId, postId: post.id })}
+                        >
+                          {reaction.reaction} <span>{reaction.count}</span>
+                        </button>
+                      ))}
+                      {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
+                        <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, postId: post.id })}>{emoji}</button>
+                      ))}
+                    </div>
+                    <button type="button" className="aa-community-reply-count" onClick={() => setOpenPost(post)}>
+                      <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "resposta" : "respostas"}
+                    </button>
+                  </div>
+
+                  {(own || isAdmin) && (
+                    <div className="aa-community-moderation">
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "pin")}><Pin size={14} /> {post.pinned ? "Desafixar" : "Fixar"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reabrir" : "Fechar"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restaurar" : "Ocultar"}</button>}
+                      <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remover</button>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+
+            {postsQuery.hasNextPage && (
+              <Button variant="outline" disabled={postsQuery.isFetchingNextPage} onClick={() => postsQuery.fetchNextPage()}>
+                {postsQuery.isFetchingNextPage && <Loader2 size={14} className="animate-spin" />} Carregar mais
+              </Button>
+            )}
+          </div>
+        </ScrollArea>
+
+        {activeChannel && userId && (
+          <footer className="aa-community-composer">
+            <div>
+              <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Título da publicação" maxLength={140} />
+              <Textarea
+                value={draftBody}
+                onChange={(event) => setDraftBody(event.target.value)}
+                placeholder={`Compartilhe uma ideia, uma dúvida ou seu progresso em #${activeChannel.name}…`}
+                rows={3}
+                maxLength={5000}
+              />
+              <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publicar</Button></div>
+            </div>
+          </footer>
+        )}
+      </main>
+
+      <Sheet open={!!openPost} onOpenChange={(open) => !open && setOpenPost(null)}>
+        <SheetContent side="right" className="aa-community-thread">
+          {openPost && (
+            <ThreadPanel
+              post={openPost}
+              userId={userId}
+              isAdmin={isAdmin}
+              profileMap={profileMap}
+              onClose={() => setOpenPost(null)}
+              onDelete={() => removePost(openPost)}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+
+      <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
+      <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
+    </section>
+  );
+}
+
+function ThreadPanel({
+  post,
+  userId,
+  isAdmin,
+  profileMap: parentProfiles,
+  onClose,
+  onDelete,
+}: {
+  post: CommunityPost;
+  userId: string | null;
+  isAdmin: boolean;
+  profileMap: Map<string, CommunityAuthorProfile>;
+  onClose: () => void;
+  onDelete: () => void;
+}) {
+  const { data: replies = [], isLoading, isError, refetch } = useReplies(post.id);
+  const createReply = useCreateReply(post.id, userId);
+  const deleteReply = useDeleteReply(post.id);
+  const toggleReaction = useToggleReaction();
+  const [draft, setDraft] = useState("");
+  const replyIds = useMemo(() => replies.map((reply) => reply.id), [replies]);
+  const replyAuthors = useMemo(() => replies.map((reply) => reply.author_id), [replies]);
+  const { data: replyProfiles = [] } = useCommunityAuthorProfiles(replyAuthors);
+  const profiles = useMemo(() => new Map([...parentProfiles, ...replyProfiles.map((profile) => [profile.id, profile] as const)]), [parentProfiles, replyProfiles]);
+  const { data: replyReactions = [] } = useReplyReactions(replyIds);
+
+  const groupedReactions = useMemo(() => {
+    const map = new Map<number, Array<{ reaction: string; count: number; mine: boolean }>>();
+    for (const item of replyReactions) {
+      if (!item.reply_id) continue;
+      const list = map.get(item.reply_id) ?? [];
+      const found = list.find((entry) => entry.reaction === item.reaction);
+      if (found) {
+        found.count += 1;
+        if (item.user_id === userId) found.mine = true;
+      } else {
+        list.push({ reaction: item.reaction, count: 1, mine: item.user_id === userId });
+      }
+      map.set(item.reply_id, list);
+    }
+    return map;
+  }, [replyReactions, userId]);
+
+  async function submitReply() {
+    if (!draft.trim()) return;
+    try {
+      await createReply.mutateAsync(draft.trim());
+      setDraft("");
+      toast.success("Resposta publicada");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível responder");
+    }
+  }
+
+  async function removeReply(replyId: number) {
+    if (!window.confirm("Remover esta resposta?")) return;
+    try {
+      await deleteReply.mutateAsync(replyId);
+      toast.success("Resposta removida");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+    }
+  }
+
+  return (
+    <div className="aa-community-thread-inner">
+      <SheetHeader className="aa-community-thread-header">
+        <Button variant="ghost" size="icon" onClick={onClose}><ArrowLeft size={16} /></Button>
+        <div>
+          <p className="section-label">Conversation</p>
+          <SheetTitle>{post.title}</SheetTitle>
+          <p>{post.body}</p>
+        </div>
+        {(isAdmin || post.author_id === userId) && <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 size={15} /></Button>}
+      </SheetHeader>
+
+      <ScrollArea className="flex-1">
+        <div className="aa-community-thread-replies">
+          {isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
+          {isError && <div className="aa-community-state"><p>Não foi possível carregar as respostas.</p><Button onClick={() => refetch()}>Tentar novamente</Button></div>}
+          {!isLoading && !isError && replies.length === 0 && <div className="aa-community-state"><p>A conversa ainda não recebeu respostas.</p></div>}
+          {replies.map((reply) => {
+            const own = reply.author_id === userId;
+            const profile = profiles.get(reply.author_id);
+            const reactions = groupedReactions.get(reply.id) ?? [];
+            return (
+              <article key={reply.id} className="aa-community-reply">
+                <div className="aa-community-post-author">
+                  <ProfileMark profile={profile} own={own} />
+                  <div><strong>{profileName(profile, own)}</strong><span>{relativeTime(reply.created_at)}</span></div>
+                  {(own || isAdmin) && <button type="button" onClick={() => removeReply(reply.id)}><Trash2 size={13} /></button>}
+                </div>
+                <p>{reply.body}</p>
+                <div className="aa-community-reactions">
+                  {reactions.map((reaction) => (
+                    <button type="button" key={reaction.reaction} className={reaction.mine ? "is-active" : ""} onClick={() => userId && toggleReaction.mutate({ reaction: reaction.reaction, userId, replyId: reply.id })}>
+                      {reaction.reaction} <span>{reaction.count}</span>
+                    </button>
+                  ))}
+                  {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
+                    <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, replyId: reply.id })}>{emoji}</button>
+                  ))}
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </ScrollArea>
+
+      {post.locked ? (
+        <div className="aa-community-thread-locked"><Lock size={15} /> Esta conversa foi encerrada pela moderação.</div>
+      ) : userId ? (
+        <footer className="aa-community-thread-composer">
+          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Escreva uma resposta…" />
+          <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Responder</Button></div>
+        </footer>
+      ) : null}
+    </div>
+  );
+}
