@@ -1,0 +1,338 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap');
+
+/*
+ * Official Alchemy Academy design authority.
+ * Source: Courses Design Documentation v1.0.
+ * This layer intentionally changes presentation only: no layout logic,
+ * permissions, routes, queries, mutations or component behaviour.
+ */
+:root {
+  --aa-olive-dark: #3D3A2A;
+  --aa-olive-mid: #5C5840;
+  --aa-olive-light: #8A8660;
+  --aa-cream: #F5F0E8;
+  --aa-cream-dark: #EDE5D8;
+  --aa-gold: #C4A05A;
+  --aa-gold-light: #D4B06A;
+  --aa-text-dark: #2A2318;
+  --aa-text-mid: #5C5248;
+  --aa-text-light: #8A7E72;
+  --aa-white: #FFFFFF;
+
+  /* shadcn semantic tokens mapped to the same visual system */
+  --background: 37 39% 94%;
+  --foreground: 37 27% 13%;
+  --card: 0 0% 100%;
+  --card-foreground: 37 27% 13%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 37 27% 13%;
+  --primary: 51 18% 20%;
+  --primary-foreground: 37 39% 94%;
+  --secondary: 37 37% 89%;
+  --secondary-foreground: 51 18% 20%;
+  --muted: 37 37% 89%;
+  --muted-foreground: 30 10% 49%;
+  --accent: 40 47% 56%;
+  --accent-foreground: 51 18% 20%;
+  --border: 37 37% 89%;
+  --input: 37 37% 89%;
+  --ring: 40 47% 56%;
+  --radius: .35rem;
+
+  --sidebar-background: 51 18% 20%;
+  --sidebar-foreground: 37 39% 94%;
+  --sidebar-primary: 40 47% 56%;
+  --sidebar-primary-foreground: 51 18% 20%;
+  --sidebar-accent: 51 18% 31%;
+  --sidebar-accent-foreground: 37 39% 94%;
+  --sidebar-border: 54 18% 46%;
+  --sidebar-ring: 40 47% 56%;
+}
+
+html,
+body,
+#root {
+  background: var(--aa-cream);
+  color: var(--aa-text-dark);
+}
+
+body,
+button,
+input,
+textarea,
+select,
+label,
+table,
+[role="dialog"],
+[role="menu"] {
+  font-family: 'DM Sans', sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-serif,
+.brand,
+.side-brand {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+}
+
+h1,
+h2 {
+  font-weight: 300;
+  letter-spacing: .01em;
+}
+
+h3,
+h4,
+h5,
+h6 {
+  font-weight: 400;
+}
+
+.section-label {
+  color: var(--aa-gold);
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  font-weight: 500;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+}
+
+/* Shared controls */
+button,
+[role="button"],
+a {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: .2s;
+  transition-timing-function: ease;
+}
+
+.btn,
+.btn-gold,
+.btn-small {
+  background: var(--aa-olive-dark) !important;
+  border: 1px solid var(--aa-olive-dark) !important;
+  color: var(--aa-cream) !important;
+  font-family: 'DM Sans', sans-serif !important;
+  font-size: .68rem;
+  font-weight: 500;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.btn:hover,
+.btn-gold:hover,
+.btn-small:hover {
+  background: var(--aa-olive-mid) !important;
+  border-color: var(--aa-olive-mid) !important;
+}
+
+.btn-outline {
+  border-color: var(--aa-olive-dark) !important;
+  color: var(--aa-olive-dark) !important;
+}
+
+input,
+textarea,
+select,
+.field {
+  border-color: var(--aa-cream-dark) !important;
+  background: var(--aa-white) !important;
+  color: var(--aa-text-dark) !important;
+}
+
+input:focus,
+textarea:focus,
+select:focus,
+.field:focus {
+  border-color: var(--aa-gold) !important;
+  box-shadow: 0 0 0 2px rgba(196,160,90,.16) !important;
+  outline: none;
+}
+
+::placeholder {
+  color: var(--aa-text-light) !important;
+  opacity: .75;
+}
+
+/* Cards, dialogs, menus and tables */
+.bg-card,
+[data-radix-popper-content-wrapper] > div,
+[role="dialog"],
+[role="menu"],
+.card,
+.course-card,
+.stat,
+.supplier-grid article {
+  background-color: var(--aa-white) !important;
+}
+
+.border,
+.border-b,
+.border-t,
+.border-l,
+.border-r,
+table,
+th,
+td {
+  border-color: var(--aa-cream-dark) !important;
+}
+
+.rounded-xl,
+.rounded-2xl {
+  border-radius: .5rem !important;
+}
+
+.shadow,
+.shadow-sm,
+.shadow-md,
+.shadow-lg,
+.shadow-xl {
+  box-shadow: 0 12px 40px rgba(61,58,42,.08) !important;
+}
+
+/* Public/member chrome */
+.public-header,
+.member-header {
+  background: rgba(245,240,232,.96) !important;
+  border-color: var(--aa-cream-dark) !important;
+}
+
+.sidebar,
+[data-sidebar="sidebar"] {
+  background: var(--aa-olive-dark) !important;
+  color: var(--aa-cream) !important;
+}
+
+.side-link,
+.sidebar-nav-item,
+[data-sidebar="menu-button"] {
+  color: rgba(245,240,232,.72) !important;
+  font-family: 'DM Sans', sans-serif !important;
+}
+
+.side-link:hover,
+.side-link.active,
+.sidebar-nav-item:hover,
+.sidebar-nav-item.active,
+[data-sidebar="menu-button"]:hover,
+[data-sidebar="menu-button"] [aria-current="page"] {
+  background: rgba(255,255,255,.06) !important;
+  color: var(--aa-cream) !important;
+}
+
+/* Admin Center: same Academy system, not a separate SaaS theme */
+.aa-admin-shell,
+body:has(a[href="/admin"]) {
+  --background: 37 39% 94%;
+  --foreground: 37 27% 13%;
+  --card: 0 0% 100%;
+  --primary: 51 18% 20%;
+  --primary-foreground: 37 39% 94%;
+  --accent: 40 47% 56%;
+  --accent-foreground: 51 18% 20%;
+  --secondary: 37 37% 89%;
+  --muted: 37 37% 89%;
+  --border: 37 37% 89%;
+  --input: 37 37% 89%;
+  --ring: 40 47% 56%;
+}
+
+.aa-admin-shell main,
+body:has(a[href="/admin"]) main {
+  background: var(--aa-cream);
+}
+
+.aa-admin-shell header,
+body:has(a[href="/admin"]) header.bg-card\/70 {
+  background: rgba(255,255,255,.88) !important;
+  border-color: var(--aa-cream-dark) !important;
+}
+
+.aa-admin-shell h1,
+.aa-admin-shell h2,
+.aa-admin-shell h3,
+body:has(a[href="/admin"]) main h1,
+body:has(a[href="/admin"]) main h2,
+body:has(a[href="/admin"]) main h3 {
+  color: var(--aa-olive-dark) !important;
+}
+
+.aa-admin-shell table,
+body:has(a[href="/admin"]) table {
+  background: var(--aa-white);
+  border: 1px solid var(--aa-cream-dark);
+}
+
+.aa-admin-shell thead,
+body:has(a[href="/admin"]) thead {
+  background: var(--aa-cream-dark);
+  color: var(--aa-olive-dark);
+}
+
+.aa-admin-shell th,
+body:has(a[href="/admin"]) th {
+  font-family: 'DM Sans', sans-serif;
+  font-size: .65rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.aa-admin-shell tbody tr:hover,
+body:has(a[href="/admin"]) tbody tr:hover {
+  background: rgba(196,160,90,.08);
+}
+
+/* Status surfaces */
+.badge,
+[data-state="active"] {
+  border-color: var(--aa-gold) !important;
+}
+
+.text-accent,
+.fill-accent {
+  color: var(--aa-gold) !important;
+}
+
+.bg-accent {
+  background-color: var(--aa-gold) !important;
+  color: var(--aa-olive-dark) !important;
+}
+
+.bg-accent\/10,
+.bg-accent\/20 {
+  background-color: rgba(196,160,90,.12) !important;
+}
+
+/* Image cards preserve the documented dark overlay behaviour. */
+.module-card-hover {
+  border-color: var(--aa-cream-dark) !important;
+  transition: transform .25s ease, box-shadow .25s ease;
+}
+
+.module-card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(61,58,42,.12);
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid var(--aa-gold) !important;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
