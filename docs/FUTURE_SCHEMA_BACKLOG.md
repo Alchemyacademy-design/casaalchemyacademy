@@ -31,6 +31,10 @@ Worker + tabela de regras `automation_rules` e fila `automation_jobs`. Edge func
 ## Learning paths personalizadas
 Hoje derivado de `sort_order`. Para trilhas curadas por persona: `learning_paths` + `learning_path_steps (path_id, course_id, order)`.
 
+## Vídeo editorial gerenciável por edição da Magazine
+O schema atual de `magazine_issues` possui capa e `external_file_url`, mas não possui um campo próprio para vídeo opcional. A experiência atual pode exibir o vídeo editorial documentado como asset estático, porém o administrador não consegue cadastrar ou trocar esse vídeo pela interface sem evolução de schema.
+Precisa, no futuro e somente após autorização de migration: coluna nullable `external_video_url text` em `magazine_issues`, validação de URL externa e manutenção das permissões atuais. Não hospedar o vídeo pesado no Supabase Storage.
+
 ## Auditoria avançada
 Atualmente `admin_access_audit_log` é tratado como "indisponível" se faltar. Auditoria completa exige tabela definitiva + trigger por mutation administrativa.
 
