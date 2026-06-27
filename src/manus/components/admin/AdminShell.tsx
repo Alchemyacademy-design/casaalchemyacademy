@@ -63,17 +63,20 @@ function AdminSidebarInner() {
   const collapsed = state === "collapsed";
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader className="px-4 py-5 border-b border-sidebar-border/60">
-        <Link to="/admin" className="flex items-center gap-2">
+      <SidebarHeader className={`border-b border-sidebar-border/60 ${collapsed ? "px-0 py-3" : "px-4 py-5"}`}>
+        <Link
+          to="/admin"
+          className={`flex items-center min-w-0 ${collapsed ? "justify-center" : "gap-3"}`}
+        >
           <img
             src="/img/logo.png"
             alt="Casa Alchemy Academy"
-            className="h-9 w-9 object-contain shrink-0"
+            className={`object-contain shrink-0 ${collapsed ? "h-8 w-8" : "h-10 w-10"}`}
           />
           {!collapsed && (
-            <div className="leading-tight">
-              <div className="font-serif text-base tracking-[0.16em] text-sidebar-foreground">CASA ALCHEMY</div>
-              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/65">Admin Center</div>
+            <div className="leading-tight min-w-0">
+              <div className="font-serif text-base tracking-[0.16em] text-sidebar-foreground truncate">CASA ALCHEMY</div>
+              <div className="text-[10px] uppercase tracking-[0.18em] text-sidebar-foreground/65 truncate">Admin Center</div>
             </div>
           )}
         </Link>
