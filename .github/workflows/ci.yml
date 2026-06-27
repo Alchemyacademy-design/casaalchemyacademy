@@ -46,7 +46,15 @@ jobs:
 
       - name: Test
         id: test
-        run: bun run test
+        shell: bash
+        run: |
+          if bun run test > /tmp/alchemy-tests.log 2>&1; then
+            cat /tmp/alchemy-tests.log
+          else
+            echo "Tests failed. Showing the final 180 lines:"
+            tail -n 180 /tmp/alchemy-tests.log
+            exit 1
+          fi
 
       - name: Lint
         id: lint
