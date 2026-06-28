@@ -24,7 +24,11 @@ export default defineConfig(({ mode }) => ({
           if (id.includes("/lucide-react/")) return "vendor-lucide";
           if (id.includes("/framer-motion/")) return "vendor-framer";
           if (id.includes("/date-fns/")) return "vendor-datefns";
-          if (id.includes("/recharts/") || id.includes("/d3-")) return "vendor-charts";
+          // NOTE: do NOT manually chunk recharts/d3 together. Recharts and the
+          // d3-* packages have intra-package circular re-exports that Rollup
+          // resolves correctly only when it controls chunk boundaries. Forcing
+          // them into a single manual chunk produces a TDZ ("Cannot access
+          // 'S' before initialization") at runtime in the production build.
           return undefined;
         },
       },
