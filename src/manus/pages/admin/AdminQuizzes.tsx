@@ -147,7 +147,7 @@ export default function AdminQuizzes() {
     <AdminShell
       crumbs={[{ label: "Admin", to: "/admin" }, { label: "Quizzes" }]}
       title="Quizzes"
-      subtitle="Pilot knowledge-check bank — 10 modules × 5 questions, mapped one-to-one to the official courses."
+      description="Pilot knowledge-check bank — 10 modules × 5 questions, mapped one-to-one to the official courses."
       actions={
         <Button
           size="sm"
