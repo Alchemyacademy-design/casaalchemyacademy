@@ -70,14 +70,13 @@ async function fetchOverview(): Promise<Row[]> {
       }
     }
 
-    // Prefer the pilot quiz title when multiple quizzes exist on a course.
+    // Prefer the pilot quiz matching the module title; fall back to the first.
     for (const p of PILOT_MAP) {
       const course = courseBySlug.get(p.slug);
       if (!course) continue;
       const courseQuizzes = (quizzes ?? []).filter(
         (q: { course_id: number }) => q.course_id === course.id,
       );
-      const pilotTitle = `${p.module.replace("Module ", "Module ")} · ${p.title} — Knowledge Check`;
       const match =
         courseQuizzes.find((q: { title: string }) => q.title.includes(p.title)) ??
         courseQuizzes[0];
@@ -88,7 +87,6 @@ async function fetchOverview(): Promise<Row[]> {
           question_count: countByQuiz.get(match.id) ?? 0,
         });
       }
-      void pilotTitle;
     }
   }
 
