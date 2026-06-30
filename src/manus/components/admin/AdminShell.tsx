@@ -17,6 +17,7 @@ import {
   Tag,
   CreditCard,
   Award,
+  FileQuestion,
 } from "lucide-react";
 import {
   Sidebar,
