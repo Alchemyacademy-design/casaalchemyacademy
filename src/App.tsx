@@ -54,6 +54,7 @@ const AdminSupplierCategories = lazyWithRetry(() => import("@/manus/pages/admin/
 const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
 const AdminPlans = lazyWithRetry(() => import("@/manus/pages/admin/AdminPlans"), "AdminPlans");
 const AdminCertificates = lazyWithRetry(() => import("@/manus/pages/admin/AdminCertificates"), "AdminCertificates");
+const AdminQuizzes = lazyWithRetry(() => import("@/manus/pages/admin/AdminQuizzes"), "AdminQuizzes");
 
 
 export default function App() {
