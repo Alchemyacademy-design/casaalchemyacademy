@@ -108,6 +108,7 @@ export default function App() {
             <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />
             <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
             <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
+            <Route path="/admin/quizzes" element={<AdminGuard><AdminQuizzes /></AdminGuard>} />
             <Route path="/admin/phase-2-preview" element={<Navigate to="/admin/courses" replace />} />
 
             <Route path="/dashboard" element={<Dashboard />} />
