@@ -1,7 +1,7 @@
 import { useState } from "react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ArrowLeft, BookOpen, ExternalLink, Eye, Loader2, PlayCircle, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Download, ExternalLink, Eye, Loader2, PlayCircle, X } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
 import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
