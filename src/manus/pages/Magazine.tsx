@@ -106,8 +106,8 @@ export default function Magazine() {
 
                 <article className="grid grid-cols-1 gap-0 border border-[var(--aa-cream-dark)] bg-white md:grid-cols-[.82fr_1.18fr]">
                   <div className="flex min-h-[420px] items-center justify-center bg-[var(--aa-cream-dark)]/35 p-6">
-                    {current.cover_image_path ? (
-                      <img src={current.cover_image_path} alt={current.title} loading="lazy" className="max-h-[620px] w-full max-w-md object-contain" />
+                    {currentCover ? (
+                      <img src={currentCover} alt={current.title} loading="lazy" className="max-h-[620px] w-full max-w-md object-contain" />
                     ) : (
                       <div className="aspect-[3/4] w-full max-w-sm bg-[var(--aa-olive-dark)]" />
                     )}
@@ -117,16 +117,17 @@ export default function Magazine() {
                     <h3 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)] md:text-5xl">{current.title}</h3>
                     {currentDescription && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{currentDescription}</p>}
                     <div className="mt-8 flex flex-wrap gap-3">
-                      <a href={current.external_file_url} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
+                      <a href={currentPdf} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
                         Read this issue <ExternalLink size={14} />
                       </a>
-                      <a href={current.external_file_url} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
+                      <a href={currentPdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
                         Download <Download size={14} />
                       </a>
                     </div>
                   </div>
                 </article>
               </section>
+
 
               <section>
                 <div className="mb-6 border-b border-[var(--aa-cream-dark)] pb-4"><p className="section-label mb-2">Library</p><h2 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)]">Archive</h2></div>
