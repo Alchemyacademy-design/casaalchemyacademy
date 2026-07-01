@@ -596,7 +596,19 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                         variant="ghost"
                         onClick={() => {
                           const r: Record<string, unknown> = { ...row };
-                          for (const f of fields) r[f.name] = toFormValue(row[f.name], f.type);
+                          for (const f of fields) {
+                            if (f.virtual && f.virtualHost && f.virtualMarker) {
+                              r[f.name] = extractVirtualMarker(row[f.virtualHost] as string | null, f.virtualMarker);
+                            } else {
+                              r[f.name] = toFormValue(row[f.name], f.type);
+                            }
+                          }
+                          // Strip markers from host columns so the textarea shows a clean value.
+                          for (const f of fields) {
+                            if (f.virtual && f.virtualHost && f.virtualMarker) {
+                              r[f.virtualHost] = stripVirtualMarker(row[f.virtualHost] as string | null, f.virtualMarker);
+                            }
+                          }
                           r[primaryKey] = row[primaryKey];
                           setEditing(r);
                         }}
