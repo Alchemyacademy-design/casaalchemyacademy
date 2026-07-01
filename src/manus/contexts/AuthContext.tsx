@@ -243,11 +243,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isAdmin = roles.includes("admin");
     const membership = access?.membership ?? null;
     const activeEntitlements = access?.activeEntitlements ?? [];
-    const isMember =
+    const realIsMember =
       membership?.status === "active" &&
       Boolean(membership.ends_at && membership.ends_at > new Date().toISOString());
-    const hasCourseAccess = activeEntitlements.length > 0;
-    const hasPaidAccess = isAdmin || isMember || hasCourseAccess;
+    // Admins get the full member experience by default so they can preview the
+    // platform exactly as paying students see it.
+    const isMember = isAdmin || realIsMember;
+    const hasCourseAccess = isAdmin || activeEntitlements.length > 0;
+    const hasPaidAccess = isAdmin || realIsMember || activeEntitlements.length > 0;
     const defaultPath = isAdmin
       ? "/admin"
       : isMember
