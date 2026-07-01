@@ -211,12 +211,12 @@ export default function Suppliers() {
 
         {/* Navigation Buttons */}
         <div className="flex items-center justify-between mt-12 pt-6 border-t border-border/50">
-          <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">
+          <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">
             ← Back
-          </a>
-          <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-gold transition">
+          </Link>
+          <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-gold transition">
             Exit
-          </a>
+          </Link>
         </div>
     </MemberLayout>
   );
