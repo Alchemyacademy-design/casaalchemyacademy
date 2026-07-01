@@ -39,7 +39,15 @@ async function fetchCourses(): Promise<CourseRow[]> {
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as unknown as CourseRow[];
+  return ((data ?? []) as unknown as CourseRow[]).map((course) => ({
+    ...course,
+    course_modules: (course.course_modules ?? [])
+      .filter((module) => module.status === "published")
+      .map((module) => ({
+        ...module,
+        lessons: (module.lessons ?? []).filter((lesson) => lesson.status === "published"),
+      })),
+  }));
 }
 
 export default function Modules() {
@@ -64,7 +72,7 @@ export default function Modules() {
 
   const lessonCountOf = (course: CourseRow) =>
     course.course_modules.reduce(
-      (sum, module) => sum + module.lessons.filter((lesson) => isAdmin || lesson.status === "published").length,
+      (sum, module) => sum + module.lessons.filter((lesson) => lesson.status === "published").length,
       0,
     );
 
