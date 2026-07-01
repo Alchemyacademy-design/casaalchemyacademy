@@ -14,13 +14,21 @@ export default function PaymentSuccess() {
     setSessionId(params.get("session_id"));
   }, []);
 
+  const [attempts, setAttempts] = useState(0);
   const { data: status, isLoading, refetch: refresh } = trpc.stripe.getPaymentStatus.useQuery(
     { sessionId: sessionId || undefined },
     {
       enabled: !!sessionId,
-      refetchInterval: (query) => query.state.data?.accessConfirmed ? false : 3000,
+      refetchInterval: (query) => {
+        if (query.state.data?.accessConfirmed) return false;
+        // Cap polling at ~2 minutes (40 x 3s) to avoid runaway requests.
+        return attempts < 40 ? 3000 : false;
+      },
     }
   );
+  useEffect(() => {
+    if (!isLoading) setAttempts((n) => n + 1);
+  }, [isLoading]);
 
   if (!sessionId) {
     return (
