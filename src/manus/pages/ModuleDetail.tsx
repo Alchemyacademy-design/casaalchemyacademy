@@ -113,21 +113,40 @@ export default function ModuleDetail() {
     },
   });
 
-  // Lesson-level published quiz (if any). Members only ever see published rows.
+  // Lesson-level published quizzes for this module.
   const lessonQuizQuery = useQuery({
-    queryKey: ["lesson-quiz", "module", moduleId],
-    enabled: isValidModuleId,
+    queryKey: ["lesson-quiz", "module", moduleId, (lessons ?? []).map((l) => l.id).join(",")],
+    enabled: isValidModuleId && (lessons?.length ?? 0) > 0,
     queryFn: async () => {
+      const ids = (lessons ?? []).map((l) => l.id);
+      if (!ids.length) return [] as Array<{ id: number; lesson_id: number | null }>;
       const { data, error } = await supabase
         .from("quizzes")
         .select("id,lesson_id")
         .eq("status", "published")
-        .in(
-          "lesson_id",
-          (lessonsQuery.data ?? []).map((l: { id: number }) => l.id),
-        );
+        .in("lesson_id", ids);
       if (error) throw error;
       return ((data ?? []) as Array<{ id: number; lesson_id: number | null }>);
+    },
+  });
+
+  // Course-level published quizzes (lesson_id IS NULL) for the module's course.
+  // These are what the pilot seeder creates and should render at the end of
+  // the module for students.
+  const courseQuizzesQuery = useQuery({
+    queryKey: ["module-course-quizzes", (module as { course_id?: number | null } | undefined)?.course_id],
+    enabled: !!((module as { course_id?: number | null } | undefined)?.course_id),
+    queryFn: async () => {
+      const cid = (module as { course_id?: number | null } | undefined)?.course_id;
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title")
+        .eq("course_id", cid!)
+        .eq("status", "published")
+        .is("lesson_id", null)
+        .order("id");
+      if (error) throw error;
+      return ((data ?? []) as Array<{ id: number; title: string }>);
     },
   });
 
