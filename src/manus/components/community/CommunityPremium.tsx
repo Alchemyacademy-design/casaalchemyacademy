@@ -422,7 +422,7 @@ export default function CommunityPremium({
                       ))}
                     </div>
                     <button type="button" className="aa-community-reply-count" onClick={() => setOpenPost(post)}>
-                      <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "resposta" : "respostas"}
+                      <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "reply" : "replies"}
                     </button>
                   </div>
 
