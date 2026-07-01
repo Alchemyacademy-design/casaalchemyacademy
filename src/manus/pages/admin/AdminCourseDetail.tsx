@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -32,6 +32,7 @@ import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
 import CertificatePreview from "@/manus/components/learning/CertificatePreview";
+import { parseVideoUrl, stripQueryForDisplay } from "@/manus/lib/video-url";
 
 import {
   createLesson,
@@ -706,6 +707,44 @@ export default function AdminCourseDetail() {
     enabled: !!courseId && modules.length > 0,
   });
 
+  const { data: scopedQuizzes = [] } = useQuery({
+    queryKey: ["admin", "course", courseId, "lesson-preview-quizzes", allLessons.map((l) => l.id).join(",")],
+    enabled: !!courseId && allLessons.length > 0,
+    queryFn: async () => {
+      const lessonIds = allLessons.map((lesson) => lesson.id);
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .in("lesson_id", lessonIds)
+        .order("id");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
+
+  const lessonPreviewRows = useMemo(() => {
+    const moduleById = new Map(modules.map((module) => [module.id, module] as const));
+    const quizzesByLesson = new Map<number, Array<{ id: number; title: string; status: string }>>();
+    for (const quiz of scopedQuizzes) {
+      if (!quiz.lesson_id) continue;
+      const list = quizzesByLesson.get(quiz.lesson_id) ?? [];
+      list.push({ id: quiz.id, title: quiz.title, status: quiz.status });
+      quizzesByLesson.set(quiz.lesson_id, list);
+    }
+    return allLessons
+      .slice()
+      .sort((a, b) => {
+        const ma = moduleById.get(a.module_id)?.sort_order ?? 0;
+        const mb = moduleById.get(b.module_id)?.sort_order ?? 0;
+        return ma - mb || a.sort_order - b.sort_order;
+      })
+      .map((lesson) => ({
+        lesson,
+        module: moduleById.get(lesson.module_id) ?? null,
+        quizzes: quizzesByLesson.get(lesson.id) ?? [],
+      }));
+  }, [allLessons, modules, scopedQuizzes]);
+
   const checklist: ChecklistItem[] = course
     ? [
         { label: "Has title", ok: Boolean(course.title?.trim()) },
@@ -992,17 +1031,23 @@ export default function AdminCourseDetail() {
                 Member pages only show published courses, published modules and published lessons. Use Lesson preview first, then publish all ready video lessons.
               </p>
             </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => publishReadyContent.mutate()}
-              disabled={publishReadyContent.isPending || modules.length === 0 || allLessons.length === 0}
-              className="shrink-0"
-            >
-              {publishReadyContent.isPending ? "Publishing…" : "Publish ready course content"}
-            </Button>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button asChild type="button" variant="outline">
+                <a href="#lesson-preview"><Eye className="mr-1 h-3.5 w-3.5" /> Lesson preview</a>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => publishReadyContent.mutate()}
+                disabled={publishReadyContent.isPending || modules.length === 0 || allLessons.length === 0}
+              >
+                {publishReadyContent.isPending ? "Publishing…" : "Publish ready course content"}
+              </Button>
+            </div>
           </Card>
         )}
+
+        <LessonPreviewPanel rows={lessonPreviewRows} />
 
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Modules &amp; lessons</h2>
