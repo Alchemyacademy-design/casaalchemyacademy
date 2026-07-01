@@ -326,9 +326,15 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
             value={quiz.status}
             onChange={(e) => {
               const next = e.currentTarget.value as QuizStatus;
-              if (next === "published" && !canPublish) {
-                toast.error("Cannot publish: each question needs ≥2 options with exactly one correct.");
-                return;
+              if (next === "published") {
+                if (!quiz.lesson_id) {
+                  toast.error("Set a lesson Scope before publishing — course-level quizzes are not shown in the lesson player.");
+                  return;
+                }
+                if (!canPublish) {
+                  toast.error("Cannot publish: each question needs ≥2 options with exactly one correct.");
+                  return;
+                }
               }
               patchQuiz({ status: next });
             }}
@@ -345,6 +351,11 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
         </div>
       </div>
 
+      {!quiz.lesson_id && (
+        <p className="text-xs text-amber-700">
+          This quiz has no lesson Scope. Members will NOT see it until you pick a lesson in the list above.
+        </p>
+      )}
       {!canPublish && (
         <p className="text-xs text-amber-700">
           To publish, give the quiz a title and ensure every question has at least 2 options with exactly one marked correct.

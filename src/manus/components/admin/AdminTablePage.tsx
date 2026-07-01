@@ -57,6 +57,8 @@ export interface FieldDef {
   required?: boolean;
   placeholder?: string;
   options?: { value: string; label: string }[];
+  /** For `type: "select"`: coerce the string value to a number before writing. */
+  numericValue?: boolean;
   defaultValue?: unknown;
   hideInTable?: boolean;
   hideInForm?: boolean;
@@ -394,7 +396,12 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
       const payload: Record<string, unknown> = {};
       for (const f of fields) {
         if (f.hideInForm) continue;
-        payload[f.name] = toDbValue(record[f.name], f.type);
+        let v: unknown = toDbValue(record[f.name], f.type);
+        if (f.type === "select" && f.numericValue && v !== null && v !== undefined && v !== "") {
+          const n = Number(v);
+          v = Number.isFinite(n) ? n : null;
+        }
+        payload[f.name] = v;
       }
       const id = record[primaryKey];
       const client = supabase.from(table) as unknown as {
@@ -633,11 +640,19 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                     ) : f.type === "boolean" ? (
                       <div className="pt-2"><Switch checked={Boolean(value)} onCheckedChange={set} /></div>
                     ) : f.type === "select" ? (
-                      <Select value={(value as string) ?? ""} onValueChange={set}>
+                      <Select
+                        value={value == null || value === "" ? "__unset__" : String(value)}
+                        onValueChange={(v) => set(v === "__unset__" ? "" : v)}
+                      >
                         <SelectTrigger><SelectValue placeholder={f.placeholder} /></SelectTrigger>
                         <SelectContent>
                           {f.options?.map((o) => (
-                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            <SelectItem
+                              key={o.value || "__unset__"}
+                              value={o.value === "" ? "__unset__" : o.value}
+                            >
+                              {o.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>

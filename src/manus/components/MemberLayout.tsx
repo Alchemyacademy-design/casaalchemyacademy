@@ -24,6 +24,7 @@ const discoveryNav: NavItem[] = [
   { label: "Magazine", href: "/magazine", icon: BookOpen },
   { label: "Events", href: "/events", icon: Calendar },
   { label: "Supplier List", href: "/suppliers", icon: Gift },
+  { label: "Exclusive Deals", href: "/deals", icon: Sparkles },
 ];
 
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {

@@ -36,6 +36,7 @@ type Row = {
   course_title: string | null;
   quiz_id: number | null;
   quiz_status: string | null;
+  quiz_lesson_id: number | null;
   question_count: number;
 };
 
@@ -51,11 +52,14 @@ async function fetchOverview(): Promise<Row[]> {
   );
 
   const courseIds = (courses ?? []).map((c: { id: number }) => c.id);
-  const quizzesBySlug = new Map<string, { id: number; status: string; question_count: number }>();
+  const quizzesBySlug = new Map<
+    string,
+    { id: number; status: string; lesson_id: number | null; question_count: number }
+  >();
   if (courseIds.length) {
     const { data: quizzes } = await db
       .from("quizzes")
-      .select("id, course_id, title, status")
+      .select("id, course_id, lesson_id, title, status")
       .in("course_id", courseIds);
 
     const quizIds = (quizzes ?? []).map((q: { id: number }) => q.id);
@@ -70,7 +74,6 @@ async function fetchOverview(): Promise<Row[]> {
       }
     }
 
-    // Prefer the pilot quiz matching the module title; fall back to the first.
     for (const p of PILOT_MAP) {
       const course = courseBySlug.get(p.slug);
       if (!course) continue;
@@ -84,6 +87,7 @@ async function fetchOverview(): Promise<Row[]> {
         quizzesBySlug.set(p.slug, {
           id: match.id,
           status: match.status,
+          lesson_id: match.lesson_id ?? null,
           question_count: countByQuiz.get(match.id) ?? 0,
         });
       }
@@ -101,6 +105,7 @@ async function fetchOverview(): Promise<Row[]> {
       course_title: course?.title ?? null,
       quiz_id: quiz?.id ?? null,
       quiz_status: quiz?.status ?? null,
+      quiz_lesson_id: quiz?.lesson_id ?? null,
       question_count: quiz?.question_count ?? 0,
     };
   });
@@ -133,12 +138,47 @@ export default function AdminQuizzes() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  const attachMutation = useMutation({
+    mutationFn: async (row: Row) => {
+      if (!row.quiz_id || !row.course_id) throw new Error("Quiz not seeded yet.");
+      const { data: firstModule } = await db
+        .from("course_modules")
+        .select("id")
+        .eq("course_id", row.course_id)
+        .eq("status", "published")
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!firstModule?.id) throw new Error("No published module in this course.");
+      const { data: firstLesson } = await db
+        .from("lessons")
+        .select("id")
+        .eq("module_id", firstModule.id)
+        .eq("status", "published")
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!firstLesson?.id) throw new Error("No published lesson in the first module.");
+      const { error } = await db
+        .from("quizzes")
+        .update({ lesson_id: firstLesson.id })
+        .eq("id", row.quiz_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quiz attached to first lesson.");
+      qc.invalidateQueries({ queryKey: ["admin-quizzes-overview"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
   const rows = overview.data ?? [];
   const totals = useMemo(() => {
     const seeded = rows.filter((r) => r.quiz_id != null).length;
     const published = rows.filter((r) => r.quiz_status === "published").length;
+    const bound = rows.filter((r) => r.quiz_lesson_id != null).length;
     const questions = rows.reduce((acc, r) => acc + r.question_count, 0);
-    return { seeded, published, questions };
+    return { seeded, published, bound, questions };
   }, [rows]);
 
   return (
@@ -161,7 +201,7 @@ export default function AdminQuizzes() {
         </Button>
       }
     >
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-4 gap-3">
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Seeded</p>
           <p className="text-2xl font-serif">{totals.seeded} / {PILOT_MAP.length}</p>
@@ -169,6 +209,10 @@ export default function AdminQuizzes() {
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Published</p>
           <p className="text-2xl font-serif">{totals.published} / {PILOT_MAP.length}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Bound to lesson</p>
+          <p className="text-2xl font-serif">{totals.bound} / {PILOT_MAP.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Total questions</p>
@@ -209,9 +253,16 @@ export default function AdminQuizzes() {
                 </td>
                 <td className="p-3">
                   {r.quiz_id ? (
-                    <Badge variant={r.quiz_status === "published" ? "default" : "secondary"}>
-                      {r.quiz_status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={r.quiz_status === "published" ? "default" : "secondary"} className="w-fit">
+                        {r.quiz_status}
+                      </Badge>
+                      {r.quiz_lesson_id ? (
+                        <span className="text-[10px] text-emerald-700">lesson #{r.quiz_lesson_id}</span>
+                      ) : (
+                        <span className="text-[10px] text-amber-700">unbound — hidden</span>
+                      )}
+                    </div>
                   ) : (
                     <Badge variant="outline">not seeded</Badge>
                   )}
@@ -230,6 +281,16 @@ export default function AdminQuizzes() {
                     >
                       <Eye className="w-3 h-3 mr-1" />
                       {previewQuizId === r.quiz_id ? "Hide" : "Preview"}
+                    </Button>
+                  )}
+                  {r.quiz_id && !r.quiz_lesson_id && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={attachMutation.isPending}
+                      onClick={() => attachMutation.mutate(r)}
+                    >
+                      Bind to first lesson
                     </Button>
                   )}
                   <Button

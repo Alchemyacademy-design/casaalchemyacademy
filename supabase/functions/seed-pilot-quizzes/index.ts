@@ -66,10 +66,35 @@ async function seedOne(admin: any, item: SeedQuiz, dryRun: boolean) {
     await admin.from("quizzes").delete().eq("id", existing.id);
   }
 
+  // Attach the quiz to the FIRST published lesson of the course so it renders
+  // inline in the lesson player. Without a lesson_id, ModuleDetail cannot pick
+  // it up (member query filters by lesson_id IN [...] and null never matches).
+  const { data: firstModule } = await admin
+    .from("course_modules")
+    .select("id")
+    .eq("course_id", course.id)
+    .eq("status", "published")
+    .order("sort_order", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  let firstLessonId: number | null = null;
+  if (firstModule?.id) {
+    const { data: firstLesson } = await admin
+      .from("lessons")
+      .select("id")
+      .eq("module_id", firstModule.id)
+      .eq("status", "published")
+      .order("sort_order", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    firstLessonId = firstLesson?.id ?? null;
+  }
+
   const { data: quizRow, error: qErr } = await admin
     .from("quizzes")
     .insert({
       course_id: course.id,
+      lesson_id: firstLessonId,
       title: item.quiz_title,
       description: item.description,
       passing_score: item.passing_score,
