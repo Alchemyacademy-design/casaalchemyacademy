@@ -673,7 +673,29 @@ export default function AdminCourseDetail() {
     : [];
 
   // ----- New course form -----
-  const [newForm, setNewForm] = useState({ title: "", slug: "" });
+  const [newForm, setNewForm] = useState({
+    title: "",
+    slug: "",
+    subtitle: "",
+    description: "",
+    cover_image_path: "" as string | null | "",
+  });
+  const [newCoverUploading, setNewCoverUploading] = useState(false);
+  const newCoverRef = useRef<HTMLInputElement>(null);
+
+  const uploadNewCover = async (file: File) => {
+    setNewCoverUploading(true);
+    try {
+      const url = await uploadCoverImage(file, "courses");
+      setNewForm((f) => ({ ...f, cover_image_path: url }));
+      toast.success("Cover uploaded");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+    } finally {
+      setNewCoverUploading(false);
+    }
+  };
+
   const createCourse = useMutation({
     mutationFn: async () => {
       const title = newForm.title.trim();
@@ -681,15 +703,23 @@ export default function AdminCourseDetail() {
       const slug = newForm.slug.trim() || slugify(title);
       const { data, error } = await supabase
         .from("courses")
-        .insert({ title, slug, status: "draft" as const })
+        .insert({
+          title,
+          slug,
+          subtitle: newForm.subtitle.trim() || null,
+          description: newForm.description.trim() || null,
+          cover_image_path: newForm.cover_image_path || null,
+          status: "draft" as const,
+        })
         .select()
         .single();
       if (error) throw error;
       return data;
     },
     onSuccess: (data) => {
-      toast.success("Course created");
+      toast.success("Course created — add modules & lessons below");
       qc.invalidateQueries({ queryKey: ["admin", "courses"] });
+      qc.invalidateQueries({ queryKey: ["admin", "courses-tree"] });
       navigate(`/admin/courses/${data.id}`, { replace: true });
     },
     onError: (e: unknown) => toast.error(errorMessage(e)),
@@ -733,9 +763,13 @@ export default function AdminCourseDetail() {
   if (isNew) {
     return (
       <AdminShell title="New course" crumbs={[{ label: "Courses", to: "/admin/courses" }, { label: "New" }]}>
-        <Card className="p-6 max-w-xl space-y-4">
+        <Card className="p-6 max-w-2xl space-y-4">
+          <p className="text-xs text-foreground/60">
+            Create the course first. After it's saved you'll add modules, lessons,
+            video links, thumbnails and quizzes — same editor used by all existing courses.
+          </p>
           <div>
-            <Label>Title</Label>
+            <Label>Title *</Label>
             <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} />
           </div>
           <div>
@@ -750,8 +784,40 @@ export default function AdminCourseDetail() {
               <Button type="button" variant="outline" onClick={() => setNewForm((f) => ({ ...f, slug: slugify(f.title) }))}>Auto</Button>
             </div>
           </div>
-          <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending}>
-            Create course
+          <div>
+            <Label>Subtitle</Label>
+            <Input value={newForm.subtitle} onChange={(e) => setNewForm((f) => ({ ...f, subtitle: e.target.value }))} />
+          </div>
+          <div>
+            <Label>Description</Label>
+            <Textarea rows={3} value={newForm.description} onChange={(e) => setNewForm((f) => ({ ...f, description: e.target.value }))} />
+          </div>
+          <div>
+            <Label>Cover thumbnail</Label>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="w-32 aspect-video bg-muted rounded overflow-hidden border flex items-center justify-center text-xs text-foreground/40">
+                {newForm.cover_image_path
+                  ? <img src={newForm.cover_image_path} alt="" className="w-full h-full object-cover" />
+                  : "No cover"}
+              </div>
+              <Button type="button" variant="outline" size="sm" disabled={newCoverUploading} onClick={() => newCoverRef.current?.click()}>
+                <Upload className="w-3 h-3 mr-1" /> {newCoverUploading ? "Uploading…" : "Upload cover"}
+              </Button>
+              <input
+                ref={newCoverRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) uploadNewCover(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+          </div>
+          <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
+            {createCourse.isPending ? "Creating…" : "Create course & continue"}
           </Button>
         </Card>
       </AdminShell>
