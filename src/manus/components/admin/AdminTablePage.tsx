@@ -640,11 +640,19 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                     ) : f.type === "boolean" ? (
                       <div className="pt-2"><Switch checked={Boolean(value)} onCheckedChange={set} /></div>
                     ) : f.type === "select" ? (
-                      <Select value={(value as string) ?? ""} onValueChange={set}>
+                      <Select
+                        value={value == null || value === "" ? "__unset__" : String(value)}
+                        onValueChange={(v) => set(v === "__unset__" ? "" : v)}
+                      >
                         <SelectTrigger><SelectValue placeholder={f.placeholder} /></SelectTrigger>
                         <SelectContent>
                           {f.options?.map((o) => (
-                            <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            <SelectItem
+                              key={o.value || "__unset__"}
+                              value={o.value === "" ? "__unset__" : o.value}
+                            >
+                              {o.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
