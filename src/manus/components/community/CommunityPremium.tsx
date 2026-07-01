@@ -62,7 +62,7 @@ type Props = {
 
 function relativeTime(iso: string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "agora";
+  if (minutes < 1) return "now";
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} h`;
@@ -70,8 +70,8 @@ function relativeTime(iso: string) {
 }
 
 function profileName(profile: CommunityAuthorProfile | undefined, own: boolean) {
-  if (own) return profile?.display_name || profile?.full_name || "Você";
-  return profile?.display_name || profile?.full_name || "Membro da Academy";
+  if (own) return profile?.display_name || profile?.full_name || "You";
+  return profile?.display_name || profile?.full_name || "Academy member";
 }
 
 function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: boolean }) {
