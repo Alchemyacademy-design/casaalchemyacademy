@@ -5,8 +5,9 @@
  *
  * Dropbox shared URLs (`dropbox.com`, `www.dropbox.com`,
  * `dl.dropboxusercontent.com`, including `/scl/fi/…`) are normalised:
- * the `dl` parameter is stripped and `raw=1` is forced when the path
- * has a video extension so the URL streams correctly in <video>.
+ * the `dl` parameter is stripped and `raw=1` is forced so the URL streams
+ * correctly in <video>. When Dropbox hides the extension, we still treat it
+ * as a lesson video and let the browser sniff the stream.
  * `rlkey` and any other parameters are preserved.
  *
  * This module never mutates the URL stored in the database — it only
@@ -70,11 +71,6 @@ export function normalizeVideoUrl(raw: string | null | undefined): string {
   const host = url.hostname.toLowerCase();
   if (!DROPBOX_HOSTS.has(host)) return url.toString();
 
-  const ext = extOf(url.pathname);
-  if (!(ext in FILE_MIME)) {
-    // Not a file extension we recognise — leave it alone.
-    return url.toString();
-  }
   // Force streaming host: dropbox.com wraps the file in an HTML preview even
   // with raw=1, but dl.dropboxusercontent.com serves the file bytes directly.
   if (host === "dropbox.com" || host === "www.dropbox.com") {
@@ -136,11 +132,8 @@ export function parseVideoUrl(raw: string | null | undefined): ParsedVideo {
   // Dropbox
   if (DROPBOX_HOSTS.has(url.hostname.toLowerCase())) {
     const ext = extOf(url.pathname);
-    if (ext in FILE_MIME) {
-      const src = normalizeVideoUrl(original);
-      return { provider: "dropbox", kind: "file", src, mime: FILE_MIME[ext], original };
-    }
-    return { provider: "external", kind: "external", href: original, original };
+    const src = normalizeVideoUrl(original);
+    return { provider: "dropbox", kind: "file", src, mime: FILE_MIME[ext] ?? "video/mp4", original };
   }
 
   // Direct file

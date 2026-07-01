@@ -112,7 +112,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         <div>
           <h2 className="font-semibold">Quizzes</h2>
           <p className="text-xs text-foreground/60">
-            Create knowledge-checks for this course. Members see only published quizzes.
+            Create lesson-scoped knowledge checks. Members see published quizzes inline on the matching lesson page.
           </p>
         </div>
         <Button size="sm" onClick={() => createQuiz.mutate()} disabled={createQuiz.isPending}>
@@ -140,7 +140,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
                 {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"} ·{" "}
                 {q.lesson_id
                   ? `lesson #${q.lesson_id}`
-                  : "end of module (course-level)"}
+                  : "course-level draft scope"}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <Label className="text-[11px] text-foreground/60">Scope</Label>
@@ -153,7 +153,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
                   className="h-8 rounded border bg-background px-2 text-xs max-w-[280px]"
                   aria-label="Quiz scope"
                 >
-                  <option value="">Course-level (renders on last lesson)</option>
+                  <option value="">Course-level / not shown in lesson player</option>
                   {(lessonsQuery.data ?? []).map((l) => (
                     <option key={l.id} value={l.id}>
                       {l.module_title} · {l.title}
@@ -180,7 +180,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         ))}
         {(listQuery.data ?? []).length === 0 && !listQuery.isLoading && (
           <div className="text-xs text-foreground/60">
-            <p>No quizzes yet. Use “New quiz” above to create one — it will appear inline on the course and lesson pages for students.</p>
+            <p>No quizzes yet. Use “New quiz” above, choose the lesson Scope, and publish it so it appears inline for students.</p>
           </div>
         )}
       </div>

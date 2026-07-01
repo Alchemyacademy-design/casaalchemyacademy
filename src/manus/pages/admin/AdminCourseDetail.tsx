@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, GripVertical, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, GripVertical, Plus, Trash2, Upload } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -118,10 +118,12 @@ function AutoSaveInput({
  * ============================================================ */
 function LessonRow({
   lesson,
+  moduleCoverImage,
   onDelete,
   onChanged,
 }: {
   lesson: Lesson;
+  moduleCoverImage?: string | null;
   onDelete: () => Promise<void>;
   onChanged: () => void;
 }) {
@@ -138,6 +140,22 @@ function LessonRow({
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState(lesson.external_video_url ?? "");
   useEffect(() => setUrl(lesson.external_video_url ?? ""), [lesson.external_video_url]);
+
+  const memberPreviewHref = `/modules/${lesson.module_id}#lesson-${lesson.id}`;
+
+  const quizScopeQuery = useQuery({
+    queryKey: ["admin", "lesson-preview", lesson.id, "quiz-scope"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .eq("lesson_id", lesson.id)
+        .order("id");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
 
   const save = async (patch: Parameters<typeof updateLesson>[1]) => {
     await updateLesson(lesson.id, patch);
@@ -171,6 +189,15 @@ function LessonRow({
         <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
           <StatusBadge status={lesson.status} />
         </button>
+        <a
+          href={memberPreviewHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded border border-border bg-background px-2 text-xs hover:bg-muted"
+          title="Lesson preview"
+        >
+          <Eye className="w-3 h-3" /> Preview
+        </a>
         <select
           value={lesson.status}
           onChange={(e) => save(statusTransition(e.currentTarget.value as ContentStatus))}
@@ -236,6 +263,31 @@ function LessonRow({
             </label>
           </div>
           <div className="space-y-3">
+            <div className="rounded-md border bg-muted/20 p-3 text-xs text-foreground/70">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="font-semibold text-foreground">Lesson preview</span>
+                <a href={memberPreviewHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">
+                  <Eye className="w-3 h-3" /> Open player
+                </a>
+              </div>
+              <ul className="space-y-1">
+                <li>Thumbnail: {moduleCoverImage ? "module thumbnail configured" : "module thumbnail missing"}</li>
+                <li>Video link: {lesson.external_video_url ? "configured" : "missing"}</li>
+                <li>Published: {lesson.status === "published" ? "yes" : "draft preview only"}</li>
+                <li>
+                  Quiz scope: {quizScopeQuery.isLoading
+                    ? "checking…"
+                    : (quizScopeQuery.data ?? []).length > 0
+                      ? (quizScopeQuery.data ?? []).map((q) => `${q.title || `Quiz #${q.id}`} (${q.status})`).join(", ")
+                      : "no quiz scoped to this lesson"}
+                </li>
+              </ul>
+              {moduleCoverImage ? (
+                <div className="mt-3 aspect-video overflow-hidden rounded border bg-muted">
+                  <img src={moduleCoverImage} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : null}
+            </div>
             <div>
               <Label className="text-xs">Preview</Label>
               <VideoPreview url={lesson.external_video_url} />
@@ -435,6 +487,7 @@ function ModuleSection({
                 <LessonRow
                   key={l.id}
                   lesson={l}
+                  moduleCoverImage={module.cover_image_path}
                   onDelete={() => handleArchiveLesson(l.id)}
                   onChanged={() => {
                     void refetch();
@@ -661,6 +714,7 @@ export default function AdminCourseDetail() {
         { label: "Has cover image", ok: Boolean(course.cover_image_path) },
         { label: "At least one module", ok: modules.length > 0 },
         { label: "All modules have lessons", ok: modules.every((m) => allLessons.some((l) => l.module_id === m.id)) },
+        { label: "All modules are published", ok: modules.length > 0 && modules.every((m) => m.status === "published") },
         {
           label: "All lessons have a video (URL or upload)",
           ok:
@@ -668,6 +722,14 @@ export default function AdminCourseDetail() {
             allLessons.every(
               (l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url),
             ),
+        },
+        {
+          label: "All video lessons are published",
+          ok:
+            allLessons.length > 0 &&
+            allLessons
+              .filter((l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url))
+              .every((l) => l.status === "published"),
         },
       ]
     : [];
@@ -757,6 +819,57 @@ export default function AdminCourseDetail() {
       toast.error(errorMessage(e));
     }
   };
+
+  const publishReadyContent = useMutation({
+    mutationFn: async () => {
+      if (!courseId) throw new Error("Course is not ready yet");
+      const now = new Date().toISOString();
+      const moduleIds = modules.map((m) => m.id);
+      const readyLessonIds = allLessons
+        .filter((l) => l.external_video_url?.trim() && !isPlaceholderVideo(l.external_video_url))
+        .map((l) => l.id);
+
+      const { error: courseError } = await supabase
+        .from("courses")
+        .update({ status: "published", published_at: now, archived_at: null })
+        .eq("id", courseId);
+      if (courseError) throw courseError;
+
+      if (moduleIds.length > 0) {
+        const { error: modulesError } = await supabase
+          .from("course_modules")
+          .update({ status: "published", published_at: now, archived_at: null })
+          .in("id", moduleIds);
+        if (modulesError) throw modulesError;
+      }
+
+      if (readyLessonIds.length > 0) {
+        const { error: lessonsError } = await supabase
+          .from("lessons")
+          .update({ status: "published", published_at: now, archived_at: null })
+          .in("id", readyLessonIds);
+        if (lessonsError) throw lessonsError;
+      }
+
+      return {
+        modules: moduleIds.length,
+        lessons: readyLessonIds.length,
+        skippedLessons: Math.max(0, allLessons.length - readyLessonIds.length),
+      };
+    },
+    onSuccess: (result) => {
+      toast.success(
+        `Published course, ${result.modules} module${result.modules === 1 ? "" : "s"}, and ${result.lessons} video lesson${result.lessons === 1 ? "" : "s"}.`,
+      );
+      if (result.skippedLessons > 0) {
+        toast.warning(`${result.skippedLessons} lesson${result.skippedLessons === 1 ? "" : "s"} stayed draft because no video link is configured.`);
+      }
+      void refetchCourse();
+      void refetchModules();
+      invalidateCourse();
+    },
+    onError: (e: unknown) => toast.error(errorMessage(e)),
+  });
 
 
 
@@ -868,6 +981,26 @@ export default function AdminCourseDetail() {
         {course && course.status !== "published" && !canPublish(checklist) && (
           <Card className="p-3 text-xs text-amber-700 border-amber-200 bg-amber-50/50">
             This course cannot be published yet — complete the checklist above.
+          </Card>
+        )}
+
+        {course && (
+          <Card className="flex flex-col gap-3 p-4 text-xs text-foreground/70 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-foreground">Member visibility</p>
+              <p>
+                Member pages only show published courses, published modules and published lessons. Use Lesson preview first, then publish all ready video lessons.
+              </p>
+            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => publishReadyContent.mutate()}
+              disabled={publishReadyContent.isPending || modules.length === 0 || allLessons.length === 0}
+              className="shrink-0"
+            >
+              {publishReadyContent.isPending ? "Publishing…" : "Publish ready course content"}
+            </Button>
           </Card>
         )}
 
