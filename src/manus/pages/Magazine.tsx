@@ -167,16 +167,37 @@ export default function Magazine() {
                       const pdf = normalizeDoc(issue.external_file_url);
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
-                      <a key={issue.id} href={pdf} target="_blank" rel="noreferrer" className="group border border-[var(--aa-cream-dark)] bg-white">
-                        <div className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)]" style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
-                          <div className="absolute inset-0 bg-black/15 transition group-hover:bg-black/30" />
-
-                        </div>
-                        <div className="p-6">
+                      <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
+                        <button
+                          type="button"
+                          onClick={() => pdf && setPreviewIssue({ title: issue.title, url: pdf })}
+                          disabled={!pdf}
+                          className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)] text-left"
+                          style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}
+                          aria-label={`Preview ${issue.title}`}
+                        >
+                          <div className="absolute inset-0 bg-black/15 transition group-hover:bg-black/40" />
+                          {pdf && (
+                            <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-[var(--aa-gold)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--aa-olive-dark)] opacity-0 transition group-hover:opacity-100">
+                              <Eye size={12} /> Preview
+                            </span>
+                          )}
+                        </button>
+                        <div className="flex-1 p-6">
                           {issue.published_on && <p className="section-label mb-2">{fmtDate(issue.published_on)}</p>}
                           <h3 className="font-serif text-2xl font-normal text-[var(--aa-olive-dark)]">{issue.title}</h3>
+                          {pdf && (
+                            <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.14em]">
+                              <button type="button" onClick={() => setPreviewIssue({ title: issue.title, url: pdf })} className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
+                                <Eye size={12} /> View
+                              </button>
+                              <a href={pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold text-[var(--aa-text-mid)] underline underline-offset-4">
+                                <ExternalLink size={12} /> New tab
+                              </a>
+                            </div>
+                          )}
                         </div>
-                      </a>
+                      </article>
                       );
                     })}
 
