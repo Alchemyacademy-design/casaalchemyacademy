@@ -1,7 +1,7 @@
 import { useState } from "react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, ExternalLink, Loader2, PlayCircle } from "lucide-react";
+import { ArrowLeft, BookOpen, ExternalLink, Eye, Loader2, PlayCircle, X } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
 import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
@@ -36,6 +36,8 @@ function fmtDate(iso?: string | null) {
 export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
+  const [showReader, setShowReader] = useState(false);
+  const [previewIssue, setPreviewIssue] = useState<{ title: string; url: string } | null>(null);
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
@@ -117,15 +119,41 @@ export default function Magazine() {
                     <h3 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)] md:text-5xl">{current.title}</h3>
                     {currentDescription && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{currentDescription}</p>}
                     <div className="mt-8 flex flex-wrap gap-3">
-                      <a href={currentPdf} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
-                        Read this issue <ExternalLink size={14} />
-                      </a>
-                      <a href={currentPdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
-                        Download <Download size={14} />
-                      </a>
+                      {currentPdf && (
+                        <button
+                          type="button"
+                          onClick={() => setShowReader((v) => !v)}
+                          className="btn-gold inline-flex items-center gap-2 px-6 py-3"
+                        >
+                          {showReader ? "Close reader" : "Read this issue"}
+                          {showReader ? <X size={14} /> : <BookOpen size={14} />}
+                        </button>
+                      )}
+                      {currentPdf && (
+                        <a href={currentPdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
+                          Open in new tab <ExternalLink size={14} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </article>
+
+                {showReader && currentPdf && (
+                  <div className="mt-6 border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
+                    <div className="flex items-center justify-between px-5 py-3 text-[var(--aa-cream)]">
+                      <p className="section-label !text-[var(--aa-gold)]">Reader · view only</p>
+                      <button type="button" onClick={() => setShowReader(false)} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 hover:text-white">
+                        Close <X size={14} />
+                      </button>
+                    </div>
+                    <iframe
+                      src={`${currentPdf}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      title={`${current.title} — reader`}
+                      className="h-[80vh] w-full bg-white"
+                      onContextMenu={(e) => e.preventDefault()}
+                    />
+                  </div>
+                )}
               </section>
 
 
@@ -139,16 +167,37 @@ export default function Magazine() {
                       const pdf = normalizeDoc(issue.external_file_url);
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
-                      <a key={issue.id} href={pdf} target="_blank" rel="noreferrer" className="group border border-[var(--aa-cream-dark)] bg-white">
-                        <div className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)]" style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
-                          <div className="absolute inset-0 bg-black/15 transition group-hover:bg-black/30" />
-
-                        </div>
-                        <div className="p-6">
+                      <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
+                        <button
+                          type="button"
+                          onClick={() => pdf && setPreviewIssue({ title: issue.title, url: pdf })}
+                          disabled={!pdf}
+                          className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)] text-left"
+                          style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}
+                          aria-label={`Preview ${issue.title}`}
+                        >
+                          <div className="absolute inset-0 bg-black/15 transition group-hover:bg-black/40" />
+                          {pdf && (
+                            <span className="absolute bottom-4 left-4 inline-flex items-center gap-2 bg-[var(--aa-gold)] px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--aa-olive-dark)] opacity-0 transition group-hover:opacity-100">
+                              <Eye size={12} /> Preview
+                            </span>
+                          )}
+                        </button>
+                        <div className="flex-1 p-6">
                           {issue.published_on && <p className="section-label mb-2">{fmtDate(issue.published_on)}</p>}
                           <h3 className="font-serif text-2xl font-normal text-[var(--aa-olive-dark)]">{issue.title}</h3>
+                          {pdf && (
+                            <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.14em]">
+                              <button type="button" onClick={() => setPreviewIssue({ title: issue.title, url: pdf })} className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
+                                <Eye size={12} /> View
+                              </button>
+                              <a href={pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold text-[var(--aa-text-mid)] underline underline-offset-4">
+                                <ExternalLink size={12} /> New tab
+                              </a>
+                            </div>
+                          )}
                         </div>
-                      </a>
+                      </article>
                       );
                     })}
 
@@ -158,6 +207,37 @@ export default function Magazine() {
             </>
           )}
         </div>
+
+        {previewIssue && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${previewIssue.title} preview`}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setPreviewIssue(null)}
+          >
+            <div
+              className="relative flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden bg-[#1F0A03] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-[var(--aa-cream)]">
+                <div>
+                  <p className="section-label !text-[var(--aa-gold)]">Reader · view only</p>
+                  <h4 className="font-serif text-xl">{previewIssue.title}</h4>
+                </div>
+                <button type="button" onClick={() => setPreviewIssue(null)} className="inline-flex items-center gap-2 border border-white/20 px-3 py-2 text-xs uppercase tracking-[0.14em] text-white/80 hover:bg-white/10">
+                  Close <X size={14} />
+                </button>
+              </div>
+              <iframe
+                src={`${previewIssue.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                title={`${previewIssue.title} — reader`}
+                className="flex-1 w-full bg-white"
+                onContextMenu={(e) => e.preventDefault()}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </MemberLayout>
   );
