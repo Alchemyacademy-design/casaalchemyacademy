@@ -335,14 +335,14 @@ export default function CommunityPremium({
         <header className="aa-community-header">
           <div>
             <p className="section-label">Member conversation</p>
-            <h1>{activeChannel?.name ?? "Selecione um canal"}</h1>
+            <h1>{activeChannel?.name ?? "Select a channel"}</h1>
             {activeChannel?.description && <p>{activeChannel.description}</p>}
           </div>
           <div className="aa-community-mobile-selects">
-            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Selecionar espaço">
+            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Select space">
               {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
             </select>
-            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Selecionar canal">
+            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Select channel">
               {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}
             </select>
           </div>
