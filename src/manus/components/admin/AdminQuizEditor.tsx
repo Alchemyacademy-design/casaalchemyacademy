@@ -28,6 +28,8 @@ function errMsg(e: unknown) {
   return e instanceof Error ? e.message : String(e);
 }
 
+type CourseLessonOption = { id: number; title: string; module_title: string; sort_order: number };
+
 export default function AdminQuizEditor({ courseId }: Props) {
   const qc = useQueryClient();
 
@@ -43,6 +45,32 @@ export default function AdminQuizEditor({ courseId }: Props) {
       return (data ?? []) as QuizRow[];
     },
     enabled: Number.isFinite(courseId) && courseId > 0,
+  });
+
+  // Lesson pool for the scope picker — lets admins bind a quiz to a specific
+  // lesson so it renders on that lesson page instead of only at the end.
+  const lessonsQuery = useQuery({
+    queryKey: ["admin-quiz-lesson-pool", courseId],
+    enabled: Number.isFinite(courseId) && courseId > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("course_modules")
+        .select("id,title,sort_order,lessons(id,title,sort_order)")
+        .eq("course_id", courseId)
+        .order("sort_order");
+      if (error) throw error;
+      const out: CourseLessonOption[] = [];
+      for (const m of (data ?? []) as Array<{
+        title: string;
+        sort_order: number;
+        lessons: Array<{ id: number; title: string; sort_order: number }> | null;
+      }>) {
+        for (const l of (m.lessons ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)) {
+          out.push({ id: l.id, title: l.title, module_title: m.title, sort_order: l.sort_order });
+        }
+      }
+      return out;
+    },
   });
 
   const [activeQuizId, setActiveQuizId] = useState<number | null>(null);
@@ -61,6 +89,18 @@ export default function AdminQuizEditor({ courseId }: Props) {
     onSuccess: (q) => {
       toast.success("Quiz created");
       setActiveQuizId(q.id);
+      qc.invalidateQueries({ queryKey: ["admin-quizzes", courseId] });
+    },
+    onError: (e) => toast.error(errMsg(e)),
+  });
+
+  const setScope = useMutation({
+    mutationFn: async ({ quizId, lessonId }: { quizId: number; lessonId: number | null }) => {
+      const { error } = await db.from("quizzes").update({ lesson_id: lessonId }).eq("id", quizId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quiz scope updated");
       qc.invalidateQueries({ queryKey: ["admin-quizzes", courseId] });
     },
     onError: (e) => toast.error(errMsg(e)),
