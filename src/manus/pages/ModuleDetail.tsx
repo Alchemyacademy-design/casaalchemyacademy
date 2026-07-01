@@ -10,7 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   buildLessonShareBody,
-  parseLessonHash,
+  resolveLessonFromLocation,
 } from "@/manus/services/community-deeplink";
 import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
