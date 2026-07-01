@@ -1,124 +1,81 @@
-# Premortem — Student Journey & Quiz Hardening (Phase 2 Closure)
+# Plano de Estabilização Funcional — Fase 2.7
 
-Status target before runtime QA: `STUDENT_JOURNEY_STATUS = IMPLEMENTED_PENDING_RUNTIME_QA`.
-Quiz status target: `SECURE_RENDERED_AND_RUNTIME_VALIDATED` (only after hosted-preview runs with real QA accounts).
+Objetivo: tudo que o admin publicar aparece corretamente na área de membros; comunidade funcional; upload de avatar; criação de novo curso idêntica aos existentes; vídeos Dropbox tocando de fato.
 
-Stripe stays off. No pilot quiz content will be written without explicit approval. No QA users created in this execution.
+## 1. Vídeos das aulas (Dropbox) tocando na área de membros
 
----
+**Sintoma**: link salvo no admin, mas aula mostra "Video coming soon" ou "Unable to play".
 
-## Premortem — what will go wrong if we skip a step
+Ações:
+- Auditar `parseVideoUrl` para Dropbox `/scl/fi/...` sem extensão no path (caso comum de link "Copy link"). Adicionar suporte a extensão detectada via querystring (`?dl=0`) e, quando ausente, reescrever `dropbox.com` → `dl.dropboxusercontent.com` mantendo `rlkey` e forçando `raw=1`.
+- Cobrir formato `dropbox.com/s/<id>/<file>.mp4?dl=0` (legado) além do atual `/scl/fi/`.
+- Em `LessonPlayer`, quando `provider === "external"` e a URL for Dropbox mas sem extensão reconhecida, exibir aviso claro no admin com instrução ("cole o link direto do arquivo, não da pasta").
+- Adicionar testes em `video-url.test.ts` para 4 formatos reais (scl/fi mp4, scl/fi mov, /s/ legacy, pasta compartilhada — deve cair em external).
+- Validar com Playwright em `/courses/:id` + `/modules/:moduleId` que o `<video>` tem `src` normalizado com `raw=1`.
 
-1. **Client-side grading leaks `is_correct`.** Today `submitAttempt` calls `loadAdminQuiz` which selects `is_correct` from `quiz_options`. Any authenticated user can read correct answers via PostgREST before submitting. **P0 security bug.**
-2. **RLS on `quiz_options` likely allows authenticated read.** Even after we move grading server-side, if RLS is not tightened the leak persists. Must audit + lock.
-3. **`max_attempts` and `published` are enforced in the browser.** A crafted request bypasses both. Must move to RPC/Edge with `SECURITY DEFINER`.
-4. **"Admin preview only" pages mislead audit.** CourseDetail/ModuleDetail must render the real journey for paying members, not just an admin banner.
-5. **No `module_ratings` table.** Rating UI without schema = fake. Need migration + RLS + aggregation.
-6. **Cross-tab/route guards untested for the three personas** (no-access, membership, entitlement). Without RTL tests we cannot claim the journey works.
-7. **Runtime QA conflated with unit tests.** Gates require hosted-preview runs; we will *not* declare VALIDATED here.
+## 2. Criar Novo Curso — mesma estrutura dos existentes
 
----
+**Sintoma**: botão "New course" abre rota `/admin/courses/new` que não existe (não há `AdminCourseNew.tsx`).
 
-## Scope of this execution
+Ações:
+- Criar `/admin/courses/new` reutilizando o mesmo formulário do `AdminCourseDetail` (form compartilhado: título, slug, subtitle, descrição, thumbnail via `ThumbnailField`, status, sort_order, plano requerido).
+- Após criação, redirecionar para `/admin/courses/:id` onde o admin já adiciona módulos, aulas (com o mesmo `LessonVideoUpload` + campo `external_video_url` + `VideoPreview`) e quizzes — fluxo idêntico aos cursos existentes.
+- Garantir que o INSERT respeite RLS de admin e defaults (`status='draft'`, `sort_order = max+1`).
 
-### A. Secure quiz submission (P0)
-- New Edge Function `submit-quiz-attempt` (verify_jwt validation in code, CORS, Zod input).
-  - Resolves `auth.uid()` from the JWT.
-  - Loads quiz + questions + options with the **service role** (server-only) and checks: `status='published'`, user has membership OR entitlement for `course_id` OR is admin, every `question_id` belongs to the quiz, every `option_id` belongs to its question, `submitted` attempts < `max_attempts`.
-  - Grades server-side, inserts `quiz_attempts` + `quiz_answers` in one logical flow.
-  - Returns `{ score, passed, attempts_remaining }`. Never returns `is_correct` for unsubmitted state.
-- Refactor `src/manus/services/quiz.ts`:
-  - `submitAttempt` → calls the edge function via `supabase.functions.invoke`.
-  - `loadMemberQuiz` keeps the existing **no-`is_correct`** select; remove any code path where members touch `loadAdminQuiz`.
-  - `QuizCard` no longer imports `loadAdminQuiz` for member flows; admin preview path stays guarded by `isAdmin`.
-- RLS migration on `quiz_options` and `quiz_questions`:
-  - Members may read `quiz_options(id, question_id, option_text, sort_order)` of **published** quizzes they have access to, **excluding** `is_correct` — enforced by revoking column privilege on `is_correct` from `authenticated` and granting only the safe columns. Admin keeps full read via `has_role(auth.uid(),'admin')`.
-  - Audit and re-issue GRANTs in the same migration.
+## 3. Renderização admin → membros (sanity pass)
 
-### B. Real student rendering on `/courses/:id` and `/modules/:id`
-- `CourseDetail` renders, for users with access: hero, About, lessons list, **inline Quiz (real submission)**, **Rating**, sidebar of modules. Loading/error/empty states use `QueryStateView`.
-- `ModuleDetail` renders: `LessonSidebar`, video, materials, Mark Complete, Previous / `Lesson X of Y` / Next, progress. Admin-preview banner becomes additive, never a replacement.
-- Access gating leaves `GlobalAccessController` unchanged but ensures CourseDetail returns a neutral "Course unavailable or you do not have access" surface when the access check fails inside the page (defense in depth).
+Para cada entidade editada no Admin Center, confirmar que o membro vê imediatamente:
 
-### C. Quiz visual to PDF spec
-- White card, `Instrument Serif` heading `Quiz: Question X of Y`, A/B/C/D options with selection state, Previous (left) / `X / Y` (center) / Next (right), Submit on last, states for loading/error/Retry/submitting/passed/failed/attempts/Restart. Tokens only — no DM Sans.
+| Admin | Membro | Verificação |
+|-------|--------|-------------|
+| Courses / Modules / Lessons | `/courses/:id`, `/modules/:id` | thumb, título, vídeo, materiais |
+| Quizzes | dentro da última aula do módulo | já corrigido — revalidar |
+| Magazine | `/magazine` | PDF + capa recém-upados |
+| Events / Workshops | `/events`, `/live-workshops` | data, link, registro |
+| Suppliers / Deals | `/suppliers`, `/deals` | listagem + categoria |
+| Plans | `/plans` | preço, features, CTA |
 
-### D. Real ratings
-- Migration `module_ratings(id, user_id uuid → auth.users, module_id bigint → course_modules, rating smallint CHECK 1..5, created_at, updated_at, UNIQUE(user_id, module_id))` with grants + RLS:
-  - `authenticated` may `SELECT` own row and `INSERT/UPDATE` where `user_id = auth.uid()`.
-  - Aggregates via `SECURITY DEFINER` function `module_rating_summary(module_id) → (avg numeric, count int)` so members never read other rows.
-  - Admin read-all via `has_role`.
-- UI component `ModuleRating` with 5 stars, "Your rating", average, count, loading/error/Retry/empty.
+Ação: criar `docs/PHASE_2_7_INTEGRATION_MATRIX.md` marcando cada célula verde/vermelha após smoke test manual + Playwright.
 
-### E. Tests (Vitest + RTL)
-- `quiz.service` test: client `submitAttempt` calls edge function, never reads `is_correct`.
-- `QuizCard` test: renders PDF structure, disables Submit until all answered, surfaces server result.
-- `CourseDetail` test per persona: no-access → neutral message; membership → full render; entitlement → only owned course; admin → drafts visible with preview badge but no attempt write.
-- `ModuleRating` test: optimistic update, error retry, anonymous aggregate read.
-- Edge function Deno tests for `submit-quiz-attempt`: rejects unpublished quiz, foreign question, exceeded attempts, no access; grades correctly.
+## 4. Upload de imagem de perfil + exibição na comunidade
 
-### F. Pilot quiz content (PROPOSAL ONLY — no DB write)
-- Deliver markdown proposal in `docs/PHASE_2_PILOT_QUIZ_PROPOSAL.md` with title, description, 5 questions × 4 options, correct option marked, explanation, points, `passing_score=70`, `max_attempts=3`. **Stop and wait for approval before any insert.**
+Backend:
+- Reusar bucket **public-assets** (já existe). Prefixo `avatars/{user_id}/{uuid}.{ext}`.
+- Policy de INSERT/UPDATE: usuário só grava dentro de `avatars/<auth.uid()>/…`. SELECT público (bucket já é público).
 
-### G. Documentation
-- `docs/PHASE_2_STUDENT_JOURNEY.md` — access model, route map, statuses.
-- `docs/PHASE_2_QUIZ_SECURITY.md` — threat model, RPC contract, RLS diff.
-- `docs/PHASE_2_QA_RUNBOOK.md` — procedure for qa-member, qa-entitlement, qa-no-access (to be executed later).
-- Update `docs/PHASE_2_VISUAL_ACCEPTANCE.md` and `docs/PHASE_2_COMPLETION_REPORT.md` with the new statuses.
+Frontend:
+- Em `Profile.tsx`, adicionar bloco "Profile picture": preview do avatar atual (`profile.avatar_path`), botão Upload (aceita jpg/png/webp, máx 2 MB), Remove.
+- Escrever `avatar_path` = URL pública final (ou `avatars://key` → resolver via `getPublicUrl` no client, análogo a `uploadPublicAsset`).
+- `CommunityPremium` já lê `profile.avatar_path` → nenhuma mudança lá, apenas garantir refetch após save.
+- Fallback: iniciais permanecem quando `avatar_path` for null.
 
-### H. Gates (run locally; hosted-preview runtime QA is a separate later step)
-- `bun run typecheck`, `bun run test`, `bun run lint`, `bun run build`.
-- Verify zero Stripe calls in changed paths.
-- Manual hosted-preview validation deferred — status stays `IMPLEMENTED_PENDING_RUNTIME_QA`.
+## 5. Comunidade funcional
 
----
+Auditoria dirigida:
+- Confirmar RLS de `community_spaces / channels / posts / replies / reactions` permite `authenticated` ler e escrever conforme escopo (post do próprio user; reply idem; reaction upsert por user).
+- Testar fluxo end-to-end: escolher space → channel → criar post com título/body → responder → reagir → deletar próprio post → moderar (admin).
+- Corrigir erros de invalidação do React Query após create/delete (revalidar `usePostsInfinite`, `useReplies`).
+- Adicionar Playwright cobrindo: criar post, ver avatar renderizado, reagir, refresh e permanecer.
 
-## Out of scope (explicit)
-- Creating qa-* users or seeding any pilot quiz rows.
-- Stripe configuration or live mode.
-- Phase 4.
-- Any change to `auth`, `storage`, `realtime` schemas.
+## 6. Testes e QA
 
----
+- Vitest: novos testes de `video-url`, `Profile.avatar`, `AdminCourseNew`.
+- Playwright autenticado como admin **e** como membro: /admin/courses/new, /courses/:id (play), /community (post+reação+avatar), /profile (upload).
+- Rodar `bun install`, typecheck, lint, test, build. Registrar contagem final.
 
-## Technical details
+## 7. Entregáveis
 
-**Edge function** `supabase/functions/submit-quiz-attempt/index.ts`
-- CORS via `npm:@supabase/supabase-js@2/cors`.
-- Zod body: `{ quiz_id: number, answers: { question_id: number, option_id: number }[] }`.
-- Validate JWT via `supabase.auth.getUser(token)` using anon client; then use service-role client for data.
-- Access check: `has_role(uid,'admin')` OR active membership row OR active `course_entitlements` row for the quiz's `course_id`.
-- Returns 200 `{ score, passed, attempts_remaining }`, 400 on validation, 403 on access, 409 on `max_attempts`.
+- Código nas áreas acima.
+- `docs/PHASE_2_7_INTEGRATION_MATRIX.md` (matriz admin↔membro).
+- `docs/PHASE_2_7_STABILIZATION_REPORT.md` (HEAD, mudanças, riscos, resultado dos testes, screenshots Playwright).
 
-**RLS migration** (`docs/migrations/<ts>_secure_quiz_options_and_module_ratings.sql`)
-- `REVOKE SELECT (is_correct) ON public.quiz_options FROM authenticated;`
-- `GRANT SELECT (id, question_id, option_text, sort_order) ON public.quiz_options TO authenticated;`
-- Keep admin-readable via existing `has_role` policy (verify and tighten if needed).
-- `CREATE TABLE public.module_ratings(...)` + GRANT + RLS + policies + `module_rating_summary` SECURITY DEFINER function with `GRANT EXECUTE TO authenticated, anon`.
+## Fora de escopo
+- Stripe / billing / webhooks.
+- Mudanças em `main` ou merge do PR.
+- Refatorações de design fora dos pontos citados.
 
-**Client changes**
-- `src/manus/services/quiz.ts`: replace `submitAttempt` body with `supabase.functions.invoke('submit-quiz-attempt', { body })`. Remove `loadAdminQuiz` call from member flow.
-- `src/manus/components/learning/QuizCard.tsx`: keep current UX, route grading through new service.
-- `src/manus/components/learning/ModuleRating.tsx`: new file.
-- `CourseDetail.tsx` / `ModuleDetail.tsx`: render quiz + rating inline alongside existing structure.
+## Detalhes técnicos-chave
 
-**Risks & mitigations**
-- *Edge function cold start latency* — acceptable; loading state covered.
-- *RLS regression on `quiz_options`* — column-level revoke is reversible; add Deno test that anon/authenticated SELECT of `is_correct` fails.
-- *Rating aggregate exposure* — only avg/count exposed, never per-user rows.
-
----
-
-## Deliverables checklist
-- [ ] Edge function `submit-quiz-attempt` + Deno tests
-- [ ] Migration: `quiz_options` column-level RLS + `module_ratings` table/RLS/function
-- [ ] Service refactor (`quiz.ts`) + `ModuleRating` component
-- [ ] CourseDetail / ModuleDetail integrate Quiz + Rating on real routes
-- [ ] PDF-spec visual pass on QuizCard
-- [ ] Persona RTL tests (no-access, membership, entitlement, admin)
-- [ ] Docs: STUDENT_JOURNEY, QUIZ_SECURITY, QA_RUNBOOK, updates to COMPLETION/ACCEPTANCE
-- [ ] Pilot quiz content **proposal** committed to docs, NOT inserted
-- [ ] Gates: typecheck / test / lint / build green
-- [ ] Status set to `IMPLEMENTED_PENDING_RUNTIME_QA`; quiz NOT yet `SECURE_RENDERED_AND_RUNTIME_VALIDATED`
-
-Approve to proceed, or tell me which sections to drop/reorder.
+- Dropbox regex atual em `video-url.ts` só reconhece extensão no path. Ampliar para: se host Dropbox e path `/scl/fi/…` sem extensão, ler último segmento do path — Dropbox sempre inclui o nome do arquivo com extensão no fim (`/scl/fi/<id>/<name.ext>`); portanto o parser já deveria pegar. Investigar se os links salvos foram truncados ou vieram no formato `?dl=0` sem extensão visível (link de pasta). Ajustar UI admin para rejeitar link de pasta.
+- Avatar upload: usar `supabase.storage.from('public-assets').upload(...)` + `getPublicUrl` → gravar URL absoluta em `profiles.avatar_path` para simplificar consumo (community já usa como `<img src>`).
+- New course: extrair `CourseForm` de `AdminCourseDetail` para componente compartilhado consumido por `AdminCourseDetail` e `AdminCourseNew`.
