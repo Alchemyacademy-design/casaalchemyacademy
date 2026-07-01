@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, HelpCircle, Lock } from "lucide-react";
+import { CheckCircle2, Circle, HelpCircle, Lock, PlayCircle } from "lucide-react";
 
 export type SidebarLesson = {
   id: number;
