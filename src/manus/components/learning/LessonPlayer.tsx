@@ -113,7 +113,7 @@ export default function LessonPlayer({ videoUrl, title, className, isAdmin }: Le
       <div className={className}>
         <div className="relative w-full aspect-video overflow-hidden rounded-lg bg-black">
           <iframe
-            key={attempt}
+            key={`${attempt}-${parsed.embed}`}
             src={parsed.embed}
             title={accessibleTitle}
             loading="lazy"
