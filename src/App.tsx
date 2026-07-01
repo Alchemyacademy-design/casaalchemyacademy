@@ -23,6 +23,7 @@ const Modules = lazyWithRetry(() => import("@/manus/pages/Modules"), "Modules");
 const ModuleDetail = lazyWithRetry(() => import("@/manus/pages/ModuleDetail"), "ModuleDetail");
 const Community = lazyWithRetry(() => import("@/manus/pages/Community"), "Community");
 const Suppliers = lazyWithRetry(() => import("@/manus/pages/Suppliers"), "Suppliers");
+const Deals = lazyWithRetry(() => import("@/manus/pages/Deals"), "Deals");
 const Dashboard = lazyWithRetry(() => import("@/manus/pages/Dashboard"), "Dashboard");
 const Guides = lazyWithRetry(() => import("@/manus/pages/Guides"), "Guides");
 const CourseDetail = lazyWithRetry(() => import("@/manus/pages/CourseDetail"), "CourseDetail");
