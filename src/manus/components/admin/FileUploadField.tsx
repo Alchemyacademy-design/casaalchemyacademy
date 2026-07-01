@@ -31,10 +31,12 @@ function kindFromAccept(accept: string): "image" | "pdf" | "video" | "other" {
 }
 
 function defaultMaxMB(kind: ReturnType<typeof kindFromAccept>): number {
+  // Workspace bucket cap is 50 MiB. Above that, admins should paste an
+  // external URL (Dropbox share link — auto-normalized at render).
   if (kind === "image") return 10;
-  if (kind === "pdf") return 100;
-  if (kind === "video") return 1024;
-  return 100;
+  if (kind === "pdf") return 50;
+  if (kind === "video") return 50;
+  return 50;
 }
 
 function mimeMatchesAccept(fileType: string, fileName: string, accept: string): boolean {
