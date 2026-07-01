@@ -133,14 +133,36 @@ export default function AdminQuizEditor({ courseId }: Props) {
               activeQuizId === q.id ? "border-primary" : ""
             }`}
           >
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-medium truncate">{q.title || "Untitled"}</p>
               <p className="text-[11px] text-foreground/60">
                 {q.status} · passing {q.passing_score}% ·{" "}
-                {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"}
+                {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"} ·{" "}
+                {q.lesson_id
+                  ? `lesson #${q.lesson_id}`
+                  : "end of module (course-level)"}
               </p>
+              <div className="mt-2 flex items-center gap-2">
+                <Label className="text-[11px] text-foreground/60">Scope</Label>
+                <select
+                  value={q.lesson_id ?? ""}
+                  onChange={(e) => {
+                    const v = e.currentTarget.value;
+                    setScope.mutate({ quizId: q.id, lessonId: v ? Number(v) : null });
+                  }}
+                  className="h-8 rounded border bg-background px-2 text-xs max-w-[280px]"
+                  aria-label="Quiz scope"
+                >
+                  <option value="">Course-level (renders on last lesson)</option>
+                  {(lessonsQuery.data ?? []).map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.module_title} · {l.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               <Button
                 size="sm"
                 variant="ghost"
