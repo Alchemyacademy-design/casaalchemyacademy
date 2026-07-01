@@ -282,8 +282,8 @@ export default function CommunityPremium({
   if (spacesError) {
     return (
       <div className="aa-community-state">
-        <p>Não foi possível carregar a comunidade.</p>
-        <Button onClick={() => refetchSpaces()}>Tentar novamente</Button>
+        <p>Could not load the community.</p>
+        <Button onClick={() => refetchSpaces()}>Try again</Button>
       </div>
     );
   }
