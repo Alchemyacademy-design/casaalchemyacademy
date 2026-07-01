@@ -14,6 +14,7 @@ type SupplierLike = {
   name?: string | null;
   room?: string | null;
   priceTier?: string | null;
+  category?: string | null;
   description?: string | null;
   websiteUrl?: string | null;
 };
@@ -25,12 +26,21 @@ export default function Suppliers() {
   const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
   const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFavOnly, setShowFavOnly] = useState(false);
 
   const favSet = new Set(favorites);
+  const availableCategories = Array.from(
+    new Set(
+      (suppliers as SupplierLike[])
+        .map((s) => s.category)
+        .filter((c): c is string => !!c),
+    ),
+  ).sort();
   const filtered = (suppliers as SupplierLike[]).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
     if (selectedTier && s.priceTier !== selectedTier) return false;
+    if (selectedCategory && s.category !== selectedCategory) return false;
     if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
   });
