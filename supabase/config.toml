@@ -23,3 +23,6 @@ verify_jwt = true
 
 [functions.seed-pilot-quizzes]
 verify_jwt = true
+
+[functions.apply-avatar-policies]
+verify_jwt = false
