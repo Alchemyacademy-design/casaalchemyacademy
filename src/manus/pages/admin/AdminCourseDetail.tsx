@@ -882,6 +882,11 @@ export default function AdminCourseDetail() {
   const publishReadyContent = useMutation({
     mutationFn: async () => {
       if (!courseId) throw new Error("Course is not ready yet");
+      if (orphanQuizzes.length > 0) {
+        throw new Error(
+          `Publish blocked: ${orphanQuizzes.length} quiz${orphanQuizzes.length === 1 ? "" : "zes"} still lack a lesson Scope. Open the Quiz editor and set the lesson before publishing.`,
+        );
+      }
       const now = new Date().toISOString();
       const moduleIds = modules.map((m) => m.id);
       const readyLessonIds = allLessons
