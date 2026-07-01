@@ -106,8 +106,8 @@ export default function Events() {
         </div>
       </div>
       <div className="flex items-center justify-between mt-12 pt-6 border-t border-border/50">
-        <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">← Back</a>
-        <a href="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-gold transition">Exit</a>
+        <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 hover:bg-card transition">← Back</Link>
+        <Link to="/dashboard" className="flex items-center gap-2 px-4 py-2 rounded-lg btn-gold transition">Exit</Link>
       </div>
     </MemberLayout>
   );
