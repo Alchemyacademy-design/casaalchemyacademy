@@ -36,6 +36,8 @@ function fmtDate(iso?: string | null) {
 export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
+  const [showReader, setShowReader] = useState(false);
+  const [previewIssue, setPreviewIssue] = useState<{ title: string; url: string } | null>(null);
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
