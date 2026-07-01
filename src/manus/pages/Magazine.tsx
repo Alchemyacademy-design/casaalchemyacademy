@@ -33,6 +33,17 @@ function fmtDate(iso?: string | null) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long" });
 }
 
+/**
+ * Dropbox serves PDFs with Content-Disposition: attachment, so pointing an
+ * <iframe> at the raw URL triggers a download instead of rendering. Wrap the
+ * public URL in Google's viewer (docs.google.com/gview) so it renders inline
+ * for any public PDF. Falls back to the raw URL if not a PDF-like link.
+ */
+function toInlineReaderUrl(url: string): string {
+  if (!url) return "";
+  return `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(url)}`;
+}
+
 export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
