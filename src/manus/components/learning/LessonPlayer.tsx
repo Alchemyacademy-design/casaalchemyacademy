@@ -141,7 +141,7 @@ export default function LessonPlayer({ videoUrl, title, className, isAdmin }: Le
             </div>
           )}
           <video
-            key={attempt}
+            key={`${attempt}-${parsed.src}`}
             ref={videoRef}
             controls
             preload="metadata"
