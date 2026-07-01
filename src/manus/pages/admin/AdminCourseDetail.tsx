@@ -1147,55 +1147,9 @@ function LessonPreviewPanel({ rows }: { rows: LessonPreviewRow[] }) {
 
       {open && rows.length > 0 ? (
         <div className="space-y-3">
-          {rows.map(({ lesson, module, quizzes }) => {
-            const parsed = parseVideoUrl(lesson.external_video_url);
-            const playerReady = ["youtube", "vimeo", "dropbox", "file"].includes(parsed.provider);
-            const displayUrl =
-              parsed.provider === "youtube" || parsed.provider === "vimeo"
-                ? parsed.embed
-                : parsed.provider === "dropbox" || parsed.provider === "file"
-                  ? parsed.src
-                  : parsed.provider === "external"
-                    ? parsed.href
-                    : "";
-
-            return (
-              <div key={lesson.id} className="grid gap-3 rounded-lg border bg-card/40 p-3 md:grid-cols-[120px_1fr_auto] md:items-start">
-                <div className="aspect-video overflow-hidden rounded border bg-muted text-[10px] text-foreground/45">
-                  {module?.cover_image_path ? (
-                    <img src={module.cover_image_path} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center p-2 text-center">No module thumbnail</div>
-                  )}
-                </div>
-                <div className="min-w-0 space-y-1 text-xs text-foreground/65">
-                  <p className="font-medium text-foreground">
-                    {module?.title ?? "Module"} · Lesson {lesson.sort_order}: {lesson.title || "Untitled lesson"}
-                  </p>
-                  <p>
-                    Status: <span className="font-medium">{lesson.status}</span> · Video:{" "}
-                    <span className={playerReady ? "text-emerald-700" : "text-amber-700"}>
-                      {lesson.external_video_url ? `${parsed.provider} ${playerReady ? "player-ready" : "external link"}` : "missing"}
-                    </span>
-                  </p>
-                  {displayUrl ? <p className="break-all font-mono text-[11px]">{stripQueryForDisplay(displayUrl)}</p> : null}
-                  <p>
-                    Quiz scope:{" "}
-                    {quizzes.length > 0 ? (
-                      quizzes.map((quiz) => `${quiz.title || `Quiz #${quiz.id}`} (${quiz.status})`).join(", ")
-                    ) : (
-                      <span className="text-amber-700">no quiz scoped to this lesson</span>
-                    )}
-                  </p>
-                </div>
-                <Button asChild size="sm" variant="outline" className="md:justify-self-end">
-                  <a href={`/modules/${lesson.module_id}#lesson-${lesson.id}`} target="_blank" rel="noopener noreferrer">
-                    <Eye className="mr-1 h-3.5 w-3.5" /> Open player
-                  </a>
-                </Button>
-              </div>
-            );
-          })}
+          {rows.map((row) => (
+            <LessonPreviewRow key={row.lesson.id} row={row} />
+          ))}
         </div>
       ) : null}
     </Card>
