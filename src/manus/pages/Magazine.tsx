@@ -5,6 +5,17 @@ import { ArrowLeft, Download, ExternalLink, Loader2, PlayCircle } from "lucide-r
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
+const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
+
+function extractVideoUrl(description?: string | null): string | null {
+  if (!description) return null;
+  const m = /\[\[video:([^\]]*)\]\]/.exec(description);
+  return m?.[1]?.trim() || null;
+}
+function cleanDescription(description?: string | null): string {
+  if (!description) return "";
+  return description.replace(VIDEO_MARKER_RE, "").trim();
+}
 
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
@@ -15,6 +26,9 @@ export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [current, ...archives] = issues;
+  const currentVideo = extractVideoUrl(current?.description) ?? WINTER_VIDEO_URL;
+  const currentDescription = cleanDescription(current?.description);
+
 
   return (
     <MemberLayout>
@@ -37,7 +51,8 @@ export default function Magazine() {
               <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_.55fr]">
                 <video
                   className="aspect-video h-full w-full bg-black object-cover"
-                  src={WINTER_VIDEO_URL}
+                  src={currentVideo}
+                  key={currentVideo}
                   controls
                   playsInline
                   preload="metadata"
@@ -86,7 +101,7 @@ export default function Magazine() {
                   <div className="flex flex-col justify-center p-8 md:p-12">
                     <p className="section-label mb-3">Member edition</p>
                     <h3 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)] md:text-5xl">{current.title}</h3>
-                    {current.description && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{current.description}</p>}
+                    {currentDescription && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{currentDescription}</p>}
                     <div className="mt-8 flex flex-wrap gap-3">
                       <a href={current.external_file_url} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
                         Read this issue <ExternalLink size={14} />

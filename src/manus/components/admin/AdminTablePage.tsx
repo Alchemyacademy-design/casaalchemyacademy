@@ -70,6 +70,32 @@ export interface FieldDef {
   accept?: string;
   /** For `type: "file"`: render an image preview in the form. Defaults to true for image accept. */
   preview?: boolean;
+  /**
+   * Virtual field — value is not a real DB column. Persisted inside another
+   * text column (`virtualHost`) as a `[[virtualMarker:VALUE]]` marker.
+   * Used to add extra fields (e.g. video upload) without a schema migration.
+   */
+  virtual?: boolean;
+  virtualHost?: string;
+  virtualMarker?: string;
+}
+
+const virtualMarkerRe = (key: string) =>
+  new RegExp(`\\s*\\[\\[${key}:([^\\]]*)\\]\\]\\s*`, "g");
+
+export function extractVirtualMarker(host: string | null | undefined, marker: string): string {
+  if (!host) return "";
+  const m = virtualMarkerRe(marker).exec(host);
+  return m?.[1] ?? "";
+}
+export function stripVirtualMarker(host: string | null | undefined, marker: string): string {
+  if (!host) return "";
+  return host.replace(virtualMarkerRe(marker), "").trim();
+}
+export function upsertVirtualMarker(host: string | null | undefined, marker: string, value: string): string {
+  const cleaned = stripVirtualMarker(host, marker);
+  if (!value) return cleaned;
+  return cleaned ? `${cleaned}\n[[${marker}:${value}]]` : `[[${marker}:${value}]]`;
 }
 
 /**
@@ -204,7 +230,13 @@ export function buildMinimalSelect(args: {
 }): string {
   const cols = new Set<string>();
   cols.add(args.primaryKey);
-  for (const f of args.fields) cols.add(f.name);
+  for (const f of args.fields) {
+    if (f.virtual) {
+      if (f.virtualHost) cols.add(f.virtualHost);
+      continue;
+    }
+    cols.add(f.name);
+  }
   if (args.orderBy) cols.add(args.orderBy.column);
   for (const s of args.searchFields ?? []) cols.add(s);
   for (const c of args.extra ?? []) cols.add(c);
@@ -395,7 +427,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     mutationFn: async (record: Record<string, unknown>) => {
       const payload: Record<string, unknown> = {};
       for (const f of fields) {
-        if (f.hideInForm) continue;
+        if (f.hideInForm || f.virtual) continue;
         let v: unknown = toDbValue(record[f.name], f.type);
         if (f.type === "select" && f.numericValue && v !== null && v !== undefined && v !== "") {
           const n = Number(v);
@@ -403,6 +435,15 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         }
         payload[f.name] = v;
       }
+      // Merge virtual fields into their host columns via `[[marker:VALUE]]`.
+      for (const f of fields) {
+        if (!f.virtual || !f.virtualHost || !f.virtualMarker) continue;
+        const raw = (record[f.name] as string | null | undefined) ?? "";
+        const host = payload[f.virtualHost];
+        const nextHost = upsertVirtualMarker(typeof host === "string" ? host : "", f.virtualMarker, raw);
+        payload[f.virtualHost] = nextHost || null;
+      }
+
       const id = record[primaryKey];
       const client = supabase.from(table) as unknown as {
         update: (p: Record<string, unknown>) => {
@@ -555,7 +596,19 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                         variant="ghost"
                         onClick={() => {
                           const r: Record<string, unknown> = { ...row };
-                          for (const f of fields) r[f.name] = toFormValue(row[f.name], f.type);
+                          for (const f of fields) {
+                            if (f.virtual && f.virtualHost && f.virtualMarker) {
+                              r[f.name] = extractVirtualMarker(row[f.virtualHost] as string | null, f.virtualMarker);
+                            } else {
+                              r[f.name] = toFormValue(row[f.name], f.type);
+                            }
+                          }
+                          // Strip markers from host columns so the textarea shows a clean value.
+                          for (const f of fields) {
+                            if (f.virtual && f.virtualHost && f.virtualMarker) {
+                              r[f.virtualHost] = stripVirtualMarker(row[f.virtualHost] as string | null, f.virtualMarker);
+                            }
+                          }
                           r[primaryKey] = row[primaryKey];
                           setEditing(r);
                         }}
