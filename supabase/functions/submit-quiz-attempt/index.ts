@@ -29,6 +29,9 @@ function json(body: unknown, status = 200) {
 type Answer = { question_id: number; option_id: number };
 type Body = { quiz_id: number; answers: Answer[] };
 
+// deno-lint-ignore no-explicit-any
+type SupabaseAdmin = any;
+
 function parseBody(value: unknown): { ok: true; data: Body } | { ok: false; error: string } {
   if (!value || typeof value !== "object") return { ok: false, error: "invalid body" };
   const v = value as Record<string, unknown>;
@@ -66,6 +69,88 @@ function mapRpcError(message: string): { code: string; status: number } {
   return { code: "submission_failed", status: 500 };
 }
 
+async function isAdminUser(admin: SupabaseAdmin, userId: string): Promise<boolean> {
+  const { data } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", "admin").limit(1);
+  return (data ?? []).length > 0;
+}
+
+async function submitAdminStudentAttempt(admin: SupabaseAdmin, userId: string, body: Body) {
+  const { data: quiz, error: quizErr } = await admin
+    .from("quizzes")
+    .select("id, course_id, status, passing_score, max_attempts")
+    .eq("id", body.quiz_id)
+    .maybeSingle();
+  if (quizErr) throw quizErr;
+  if (!quiz || quiz.status !== "published") return { error: "quiz_unavailable", status: 404 };
+
+  if (quiz.max_attempts != null) {
+    const { count, error: countErr } = await admin
+      .from("quiz_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("quiz_id", body.quiz_id)
+      .not("submitted_at", "is", null);
+    if (countErr) throw countErr;
+    if ((count ?? 0) >= quiz.max_attempts) return { error: "no_attempts_remaining", status: 409 };
+  }
+
+  const { data: questions, error: qErr } = await admin
+    .from("quiz_questions")
+    .select("id, points, quiz_options(id, is_correct)")
+    .eq("quiz_id", body.quiz_id);
+  if (qErr) throw qErr;
+  if (!questions?.length) return { error: "quiz_has_no_questions", status: 400 };
+
+  const answerByQuestion = new Map<number, number>();
+  for (const answer of body.answers) {
+    if (answerByQuestion.has(answer.question_id)) return { error: "duplicate_question", status: 400 };
+    answerByQuestion.set(answer.question_id, answer.option_id);
+  }
+
+  let total = 0;
+  let earned = 0;
+  const answerRows: Array<{ question_id: number; option_id: number; is_correct: boolean; points_awarded: number }> = [];
+  for (const q of questions as Array<{ id: number; points: number | null; quiz_options?: Array<{ id: number; is_correct: boolean }> }>) {
+    const optionId = answerByQuestion.get(q.id);
+    if (optionId == null) return { error: "missing_answer", status: 400 };
+    const selected = (q.quiz_options ?? []).find((o) => o.id === optionId);
+    if (!selected) return { error: "invalid_option_ref", status: 400 };
+    const points = Math.max(0, Number(q.points ?? 1));
+    const correct = !!selected.is_correct;
+    total += points;
+    earned += correct ? points : 0;
+    answerRows.push({ question_id: q.id, option_id: optionId, is_correct: correct, points_awarded: correct ? points : 0 });
+    answerByQuestion.delete(q.id);
+  }
+  if (answerByQuestion.size > 0) return { error: "extra_answer", status: 400 };
+
+  const score = total > 0 ? Math.round((earned / total) * 100) : 0;
+  const passed = total > 0 && score >= Number(quiz.passing_score ?? 0);
+  const now = new Date().toISOString();
+  const { data: attempt, error: attemptErr } = await admin
+    .from("quiz_attempts")
+    .insert({ user_id: userId, quiz_id: body.quiz_id, started_at: now, submitted_at: now, score, passed })
+    .select("id")
+    .single();
+  if (attemptErr) throw attemptErr;
+  const { error: answersErr } = await admin
+    .from("quiz_answers")
+    .insert(answerRows.map((row) => ({ attempt_id: attempt.id, ...row })));
+  if (answersErr) throw answersErr;
+
+  let attemptsRemaining = null;
+  if (quiz.max_attempts != null) {
+    const { count } = await admin
+      .from("quiz_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("quiz_id", body.quiz_id)
+      .not("submitted_at", "is", null);
+    attemptsRemaining = Math.max(0, Number(quiz.max_attempts) - Number(count ?? 0));
+  }
+  return { score, passed, attempts_remaining: attemptsRemaining };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -95,6 +180,17 @@ Deno.serve(async (req) => {
   if (!parsed.ok) return json({ error: parsed.error }, 400);
 
   const admin = createClient(SUPABASE_URL, SERVICE);
+
+  if (await isAdminUser(admin, userId)) {
+    try {
+      const result = await submitAdminStudentAttempt(admin, userId, parsed.data);
+      if ("error" in result) return json({ error: result.error }, result.status);
+      return json(result);
+    } catch (e) {
+      console.error("[submit-quiz-attempt] admin student attempt error", e);
+      return json({ error: "submission_failed" }, 500);
+    }
+  }
 
   const { data, error } = await admin.rpc("internal_submit_quiz_attempt", {
     p_user_id: userId,
