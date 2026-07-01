@@ -116,7 +116,7 @@ export default function ModuleDetail() {
 
   // Lesson-level published quizzes for this module.
   const lessonQuizQuery = useQuery({
-    queryKey: ["lesson-quiz", "module", moduleId, { admin: isAdmin }, (lessons ?? []).map((l) => l.id).join(",")],
+    queryKey: ["lesson-quiz", "module", moduleId, "published", (lessons ?? []).map((l) => l.id).join(",")],
     enabled: isValidModuleId && (lessons?.length ?? 0) > 0,
     queryFn: async () => {
       const ids = (lessons ?? []).map((l) => l.id);
@@ -125,7 +125,7 @@ export default function ModuleDetail() {
         .from("quizzes")
         .select("id,lesson_id,status")
         .in("lesson_id", ids);
-      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
+      query = query.eq("status", "published");
       const { data, error } = await query;
       if (error) throw error;
       return ((data ?? []) as Array<{ id: number; lesson_id: number | null; status: string }>);
@@ -134,30 +134,12 @@ export default function ModuleDetail() {
 
   // Course-level quizzes are intentionally not rendered inside the lesson
   // player. Admins use this notice to attach each quiz to the correct lesson.
-  const courseQuizzesQuery = useQuery({
-    queryKey: ["module-course-quizzes", { admin: isAdmin }, (module as { course_id?: number | null } | undefined)?.course_id],
-    enabled: isAdmin && !!((module as { course_id?: number | null } | undefined)?.course_id),
-    queryFn: async () => {
-      const cid = (module as { course_id?: number | null } | undefined)?.course_id;
-      let query = supabase
-        .from("quizzes")
-        .select("id,title,status")
-        .eq("course_id", cid!)
-        .is("lesson_id", null)
-        .order("id");
-      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
-      const { data, error } = await query;
-      if (error) throw error;
-      return ((data ?? []) as Array<{ id: number; title: string; status: string }>);
-    },
-  });
-
   // Fetch sibling modules (same course) so Next/Previous can cross module
   // boundaries when the user reaches the edge of the current module.
   const currentCourseId: number | null =
     (module as { course_id?: number | null } | undefined)?.course_id ?? null;
   const siblingModulesQuery = useQuery({
-    queryKey: ["module-siblings", currentCourseId, { admin: isAdmin }],
+    queryKey: ["module-siblings", currentCourseId, "published"],
     enabled: !!currentCourseId,
     queryFn: async () => {
       let query = supabase
@@ -166,7 +148,7 @@ export default function ModuleDetail() {
         .eq("course_id", currentCourseId!)
         .order("sort_order", { ascending: true })
         .order("id", { ascending: true });
-      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
+      query = query.eq("status", "published");
       const { data, error } = await query;
       if (error) throw error;
       return ((data ?? []) as Array<{ id: number; sort_order: number; status: string }>);
@@ -268,8 +250,6 @@ export default function ModuleDetail() {
     : null;
 
   const lessonQuizIds = new Set((lessonQuizQuery.data ?? []).map((q) => Number(q.lesson_id)).filter(Boolean));
-  const activeLessonHasVideo = Boolean(activeLesson?.videoUrl?.trim());
-
   const sidebarLessons = lessons.map((l) => ({
     id: l.id,
     title: l.title,
@@ -410,12 +390,12 @@ export default function ModuleDetail() {
                     </div>
                   </div>
 
-                  <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} isAdmin={isAdmin} />
+                  <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} isAdmin={false} />
 
                   {activeLessonQuiz ? (
                     <div>
                       <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Lesson quiz</p>
-                      <QuizCard quizId={activeLessonQuiz.id} previewAsAdmin={isAdmin} />
+                      <QuizCard quizId={activeLessonQuiz.id} previewAsAdmin={false} />
                     </div>
                   ) : null}
 
@@ -432,28 +412,9 @@ export default function ModuleDetail() {
                     />
                   </div>
 
-                  {isAdmin &&
-                    (!activeLessonHasVideo || !activeLessonQuiz) && (
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
-                          Admin Preview
-                        </p>
-                        <Card className="space-y-1 p-3 text-xs text-foreground/70">
-                          {!activeLessonHasVideo ? <p>No video link is configured for this lesson yet.</p> : null}
-                          {!activeLessonQuiz ? <p>No quiz is scoped to this lesson yet. Open the course editor, set the quiz Scope to this lesson, then preview again.</p> : null}
-                        </Card>
-                      </div>
-                    )}
-
-                  {isAdmin && (courseQuizzesQuery.data ?? []).length > 0 ? (
-                    <Card className="p-3 text-xs text-amber-700 border-amber-200 bg-amber-50/50">
-                      {(courseQuizzesQuery.data ?? []).length} course-level quiz{(courseQuizzesQuery.data ?? []).length === 1 ? "" : "zes"} still need a lesson scope before members see them inside the player.
-                    </Card>
-                  ) : null}
-
                   <div>
                     <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
-                    <ModuleRating moduleId={moduleId} readOnly={isAdmin} />
+                    <ModuleRating moduleId={moduleId} />
                   </div>
 
 
