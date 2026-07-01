@@ -10,7 +10,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   buildLessonShareBody,
-  parseLessonHash,
+  resolveLessonFromLocation,
 } from "@/manus/services/community-deeplink";
 import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
@@ -152,18 +152,48 @@ export default function ModuleDetail() {
     },
   });
 
+  // Fetch sibling modules (same course) so Next/Previous can cross module
+  // boundaries when the user reaches the edge of the current module.
+  const currentCourseId: number | null =
+    (module as { course_id?: number | null } | undefined)?.course_id ?? null;
+  const siblingModulesQuery = useQuery({
+    queryKey: ["module-siblings", currentCourseId, { admin: isAdmin }],
+    enabled: !!currentCourseId,
+    queryFn: async () => {
+      let query = supabase
+        .from("course_modules")
+        .select("id,sort_order,status")
+        .eq("course_id", currentCourseId!)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true });
+      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
+      const { data, error } = await query;
+      if (error) throw error;
+      return ((data ?? []) as Array<{ id: number; sort_order: number; status: string }>);
+    },
+  });
+
+  const siblingModules = siblingModulesQuery.data ?? [];
+  const currentModuleIndex = siblingModules.findIndex((m) => m.id === moduleId);
+  const previousModule =
+    currentModuleIndex > 0 ? siblingModules[currentModuleIndex - 1] : null;
+  const nextModule =
+    currentModuleIndex >= 0 && currentModuleIndex < siblingModules.length - 1
+      ? siblingModules[currentModuleIndex + 1]
+      : null;
+
   const appliedKeyRef = useRef<string | null>(null);
   useEffect(() => {
-
     if (!Number.isFinite(moduleId) || moduleId <= 0) return;
     if (!lessons.length) return;
-    const hash = location.hash || "";
-    const key = `${moduleId}:${hash}`;
+    // Include search + hash in the key so back/forward, refresh, and
+    // ?lesson=<id> deep links all resync the active lesson.
+    const key = `${moduleId}:${location.search}:${location.hash}`;
     if (appliedKeyRef.current === key) return;
-    const fromHash = parseLessonHash(hash, lessons);
+    const resolved = resolveLessonFromLocation(location.search, location.hash, lessons);
     appliedKeyRef.current = key;
-    setActiveLessonId(fromHash ?? lessons[0].id);
-  }, [moduleId, lessons, location.hash]);
+    setActiveLessonId(resolved ?? lessons[0].id);
+  }, [moduleId, lessons, location.search, location.hash]);
 
   const activeLesson = activeLessonId
     ? lessons.find((l) => l.id === activeLessonId)
@@ -188,21 +218,50 @@ export default function ModuleDetail() {
   const currentLessonIndex = activeLesson ? lessons.findIndex((l) => l.id === activeLesson.id) : 0;
   const previousLesson = currentLessonIndex > 0 ? lessons[currentLessonIndex - 1] : null;
   const nextLesson = currentLessonIndex < lessons.length - 1 ? lessons[currentLessonIndex + 1] : null;
+  const hasPrevious = !!previousLesson || !!previousModule;
+  const hasNext = !!nextLesson || !!nextModule;
 
   const selectLesson = (id: number) => {
     setActiveLessonId(id);
     setMobileSidebar(false);
+    // Persist the active lesson in BOTH the query string (survives refresh /
+    // share) and the hash (legacy deep links). Use navigate() so React Router
+    // pushes a real history entry and browser back/forward step through
+    // lessons in order.
+    const sp = new URLSearchParams(location.search);
+    sp.set("lesson", String(id));
+    const nextSearch = `?${sp.toString()}`;
     const nextHash = `#lesson-${id}`;
-    if (location.hash !== nextHash) {
-      // Push a real history entry so browser back/forward navigates between
-      // lessons (and React Router's location updates so the sync effect stays
-      // consistent with the active lesson).
-      navigate(`${location.pathname}${location.search}${nextHash}`);
+    if (location.search !== nextSearch || location.hash !== nextHash) {
+      navigate(`${location.pathname}${nextSearch}${nextHash}`);
     }
     if (typeof window !== "undefined") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
+
+  const goToPrevious = () => {
+    if (previousLesson) {
+      selectLesson(previousLesson.id);
+      return;
+    }
+    if (previousModule) {
+      // Jump to the previous module; the effect above resolves the first
+      // lesson when no ?lesson=<id> is present.
+      navigate(`/modules/${previousModule.id}`);
+    }
+  };
+
+  const goToNext = () => {
+    if (nextLesson) {
+      selectLesson(nextLesson.id);
+      return;
+    }
+    if (nextModule) {
+      navigate(`/modules/${nextModule.id}`);
+    }
+  };
+
 
   const activeLessonQuiz = activeLesson
     ? (lessonQuizQuery.data ?? []).find((q) => q.lesson_id === activeLesson.id)
@@ -473,10 +532,10 @@ export default function ModuleDetail() {
                   <LessonNavigation
                     currentIndex={currentLessonIndex}
                     total={lessons.length}
-                    hasPrevious={!!previousLesson}
-                    hasNext={!!nextLesson}
-                    onPrevious={() => previousLesson && selectLesson(previousLesson.id)}
-                    onNext={() => nextLesson && selectLesson(nextLesson.id)}
+                    hasPrevious={hasPrevious}
+                    hasNext={hasNext}
+                    onPrevious={goToPrevious}
+                    onNext={goToNext}
                   />
                 </div>
               ) : (
