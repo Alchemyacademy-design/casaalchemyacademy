@@ -2,7 +2,7 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, Share2, HelpCircle, MessageSquare, Menu, AlertTriangle } from "lucide-react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
