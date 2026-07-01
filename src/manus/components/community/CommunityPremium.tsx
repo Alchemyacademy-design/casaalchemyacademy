@@ -594,11 +594,11 @@ function ThreadPanel({
       </ScrollArea>
 
       {post.locked ? (
-        <div className="aa-community-thread-locked"><Lock size={15} /> Esta conversa foi encerrada pela moderação.</div>
+        <div className="aa-community-thread-locked"><Lock size={15} /> This conversation was closed by moderation.</div>
       ) : userId ? (
         <footer className="aa-community-thread-composer">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Escreva uma resposta…" />
-          <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Responder</Button></div>
+          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Write a reply…" />
+          <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
     </div>
