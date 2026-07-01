@@ -42,7 +42,7 @@ function CommunityContent({
 
   if (!selectionReady) {
     return (
-      <div className="aa-community-loading" aria-label="Carregando conversa">
+      <div className="aa-community-loading" aria-label="Loading conversation">
         <Loader2 className="animate-spin" />
       </div>
     );
