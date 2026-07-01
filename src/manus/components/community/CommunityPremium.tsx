@@ -352,16 +352,16 @@ export default function CommunityPremium({
           <div className="aa-community-toolbar">
             <label>
               <Search size={15} />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar publicações…" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search posts…" />
             </label>
-            <div className="aa-community-filters" aria-label="Filtros">
+            <div className="aa-community-filters" aria-label="Filters">
               <Filter size={14} />
               {(["all", "pinned", "mine"] as FilterMode[]).map((mode) => (
                 <button key={mode} type="button" className={filter === mode ? "is-active" : ""} onClick={() => setFilter(mode)}>
-                  {mode === "all" ? "Todos" : mode === "pinned" ? "Fixados" : "Meus"}
+                  {mode === "all" ? "All" : mode === "pinned" ? "Pinned" : "Mine"}
                 </button>
               ))}
-              {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Ocultos</button>}
+              {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Hidden</button>}
             </div>
           </div>
         )}
