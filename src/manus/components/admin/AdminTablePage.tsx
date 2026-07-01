@@ -427,7 +427,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     mutationFn: async (record: Record<string, unknown>) => {
       const payload: Record<string, unknown> = {};
       for (const f of fields) {
-        if (f.hideInForm) continue;
+        if (f.hideInForm || f.virtual) continue;
         let v: unknown = toDbValue(record[f.name], f.type);
         if (f.type === "select" && f.numericValue && v !== null && v !== undefined && v !== "") {
           const n = Number(v);
@@ -435,6 +435,15 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         }
         payload[f.name] = v;
       }
+      // Merge virtual fields into their host columns via `[[marker:VALUE]]`.
+      for (const f of fields) {
+        if (!f.virtual || !f.virtualHost || !f.virtualMarker) continue;
+        const raw = (record[f.name] as string | null | undefined) ?? "";
+        const host = payload[f.virtualHost];
+        const nextHost = upsertVirtualMarker(typeof host === "string" ? host : "", f.virtualMarker, raw);
+        payload[f.virtualHost] = nextHost || null;
+      }
+
       const id = record[primaryKey];
       const client = supabase.from(table) as unknown as {
         update: (p: Record<string, unknown>) => {
