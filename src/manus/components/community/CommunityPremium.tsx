@@ -428,10 +428,10 @@ export default function CommunityPremium({
 
                   {(own || isAdmin) && (
                     <div className="aa-community-moderation">
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "pin")}><Pin size={14} /> {post.pinned ? "Desafixar" : "Fixar"}</button>}
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reabrir" : "Fechar"}</button>}
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restaurar" : "Ocultar"}</button>}
-                      <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remover</button>
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "pin")}><Pin size={14} /> {post.pinned ? "Unpin" : "Pin"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reopen" : "Close"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restore" : "Hide"}</button>}
+                      <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remove</button>
                     </div>
                   )}
                 </article>
