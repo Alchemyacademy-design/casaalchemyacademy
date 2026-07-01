@@ -563,8 +563,8 @@ function ThreadPanel({
       <ScrollArea className="flex-1">
         <div className="aa-community-thread-replies">
           {isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
-          {isError && <div className="aa-community-state"><p>Não foi possível carregar as respostas.</p><Button onClick={() => refetch()}>Tentar novamente</Button></div>}
-          {!isLoading && !isError && replies.length === 0 && <div className="aa-community-state"><p>A conversa ainda não recebeu respostas.</p></div>}
+          {isError && <div className="aa-community-state"><p>Could not load replies.</p><Button onClick={() => refetch()}>Try again</Button></div>}
+          {!isLoading && !isError && replies.length === 0 && <div className="aa-community-state"><p>This conversation has no replies yet.</p></div>}
           {replies.map((reply) => {
             const own = reply.author_id === userId;
             const profile = profiles.get(reply.author_id);
