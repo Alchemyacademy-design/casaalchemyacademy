@@ -440,7 +440,7 @@ export default function CommunityPremium({
 
             {postsQuery.hasNextPage && (
               <Button variant="outline" disabled={postsQuery.isFetchingNextPage} onClick={() => postsQuery.fetchNextPage()}>
-                {postsQuery.isFetchingNextPage && <Loader2 size={14} className="animate-spin" />} Carregar mais
+                {postsQuery.isFetchingNextPage && <Loader2 size={14} className="animate-spin" />} Load more
               </Button>
             )}
           </div>
