@@ -128,11 +128,11 @@ export function CreateChannelDialog({
   const submit = async () => {
     const finalSlug = slug.trim() || slugify(name);
     if (!name.trim() || !finalSlug) {
-      toast.error("Nome é obrigatório");
+      toast.error("Name is required");
       return;
     }
     if (!spaceId) {
-      toast.error("Selecione um Space");
+      toast.error("Select a Space");
       return;
     }
     try {
@@ -141,13 +141,13 @@ export function CreateChannelDialog({
         slug: finalSlug,
         description: description.trim() || undefined,
       });
-      toast.success("Canal criado");
+      toast.success("Channel created");
       setName("");
       setSlug("");
       setDescription("");
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao criar canal");
+      toast.error(err instanceof Error ? err.message : "Failed to create channel");
     }
   };
 
@@ -155,21 +155,21 @@ export function CreateChannelDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Novo canal</DialogTitle>
+          <DialogTitle>New channel</DialogTitle>
           <DialogDescription>
-            Canais ficam dentro do Space selecionado.
+            Channels live inside the selected Space.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Nome</Label>
+            <Label>Name</Label>
             <Input
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 if (!slug) setSlug(slugify(e.target.value));
               }}
-              placeholder="geral"
+              placeholder="general"
             />
           </div>
           <div>
@@ -177,11 +177,11 @@ export function CreateChannelDialog({
             <Input
               value={slug}
               onChange={(e) => setSlug(slugify(e.target.value))}
-              placeholder="geral"
+              placeholder="general"
             />
           </div>
           <div>
-            <Label>Descrição (opcional)</Label>
+            <Label>Description (optional)</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -191,11 +191,11 @@ export function CreateChannelDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            Cancel
           </Button>
           <Button onClick={submit} disabled={createChannel.isPending}>
             {createChannel.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Criar
+            Create
           </Button>
         </DialogFooter>
       </DialogContent>
