@@ -230,7 +230,13 @@ export function buildMinimalSelect(args: {
 }): string {
   const cols = new Set<string>();
   cols.add(args.primaryKey);
-  for (const f of args.fields) cols.add(f.name);
+  for (const f of args.fields) {
+    if (f.virtual) {
+      if (f.virtualHost) cols.add(f.virtualHost);
+      continue;
+    }
+    cols.add(f.name);
+  }
   if (args.orderBy) cols.add(args.orderBy.column);
   for (const s of args.searchFields ?? []) cols.add(s);
   for (const c of args.extra ?? []) cols.add(c);
