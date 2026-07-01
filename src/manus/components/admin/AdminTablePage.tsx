@@ -57,6 +57,8 @@ export interface FieldDef {
   required?: boolean;
   placeholder?: string;
   options?: { value: string; label: string }[];
+  /** For `type: "select"`: coerce the string value to a number before writing. */
+  numericValue?: boolean;
   defaultValue?: unknown;
   hideInTable?: boolean;
   hideInForm?: boolean;
