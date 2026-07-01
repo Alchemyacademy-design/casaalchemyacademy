@@ -15,7 +15,6 @@ import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
-import QuizCard from "@/manus/components/learning/QuizCard";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 
 type Lesson = {
@@ -127,14 +126,14 @@ export default function CourseDetail() {
   );
 
   const courseQuizzesQuery = useQuery({
-    queryKey: ["course-quizzes", courseId],
-    enabled: Number.isFinite(courseId),
+    queryKey: ["course-quizzes", courseId, { admin: isAdmin }],
+    enabled: isAdmin && Number.isFinite(courseId),
     queryFn: async () => {
       const { data, error: quizError } = await supabase
         .from("quizzes")
         .select("id,title,status,lesson_id")
         .eq("course_id", courseId)
-        .eq("status", "published")
+        .in("status", ["draft", "published"])
         .is("lesson_id", null);
       if (quizError) throw quizError;
       return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
@@ -211,7 +210,6 @@ export default function CourseDetail() {
   const hasStarted = completedCount > 0;
   const visibleLessons = accessible ? allLessons : allLessons.filter((lesson) => lesson.is_preview === true);
   const aggregatedMaterials = visibleLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
-  const visibleQuizzes = accessible ? (courseQuizzesQuery.data ?? []) : [];
 
   return (
     <MemberLayout>
@@ -320,19 +318,17 @@ export default function CourseDetail() {
               </section>
             ) : null}
 
-            {visibleQuizzes.length > 0 ? (
-              <section className="mb-10 space-y-4">
-                <SectionHeader title="Course quizzes" description="Knowledge checks connected to this course." />
-                {visibleQuizzes.map((quiz) => (
-                  <QuizCard key={quiz.id} quizId={quiz.id} previewAsAdmin={isAdmin} />
-                ))}
-              </section>
-            ) : null}
-
-            {isAdmin && (courseQuizzesQuery.data ?? []).length === 0 ? (
+            {isAdmin ? (
               <section className="mb-10" aria-label="Admin notice">
                 <Card className="flex flex-col gap-3 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                  <span><StatusPill tone="warning">Admin Preview</StatusPill> <span className="ml-2">No course-level quiz is configured yet.</span></span>
+                  <span>
+                    <StatusPill tone="warning">Admin Preview</StatusPill>{" "}
+                    <span className="ml-2">
+                      {(courseQuizzesQuery.data ?? []).length > 0
+                        ? `${(courseQuizzesQuery.data ?? []).length} course-level quiz${(courseQuizzesQuery.data ?? []).length === 1 ? "" : "zes"} need a lesson Scope before members see them in the lesson player.`
+                        : "Quizzes should be scoped to lessons to appear inside the lesson player."}
+                    </span>
+                  </span>
                   <Link to={`/admin/courses/${course.id}`} className="shrink-0 font-semibold text-accent underline">Manage course →</Link>
                 </Card>
               </section>

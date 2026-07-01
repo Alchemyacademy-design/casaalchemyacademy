@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, GripVertical, Plus, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, GripVertical, Plus, Trash2, Upload } from "lucide-react";
 import {
   DndContext,
   KeyboardSensor,
@@ -32,6 +32,7 @@ import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
 import CertificatePreview from "@/manus/components/learning/CertificatePreview";
+import { parseVideoUrl, stripQueryForDisplay } from "@/manus/lib/video-url";
 
 import {
   createLesson,
@@ -118,10 +119,12 @@ function AutoSaveInput({
  * ============================================================ */
 function LessonRow({
   lesson,
+  moduleCoverImage,
   onDelete,
   onChanged,
 }: {
   lesson: Lesson;
+  moduleCoverImage?: string | null;
   onDelete: () => Promise<void>;
   onChanged: () => void;
 }) {
@@ -138,6 +141,22 @@ function LessonRow({
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState(lesson.external_video_url ?? "");
   useEffect(() => setUrl(lesson.external_video_url ?? ""), [lesson.external_video_url]);
+
+  const memberPreviewHref = `/modules/${lesson.module_id}#lesson-${lesson.id}`;
+
+  const quizScopeQuery = useQuery({
+    queryKey: ["admin", "lesson-preview", lesson.id, "quiz-scope"],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .eq("lesson_id", lesson.id)
+        .order("id");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
 
   const save = async (patch: Parameters<typeof updateLesson>[1]) => {
     await updateLesson(lesson.id, patch);
@@ -171,6 +190,15 @@ function LessonRow({
         <button onClick={toggleStatus} title="Toggle status" className="shrink-0">
           <StatusBadge status={lesson.status} />
         </button>
+        <a
+          href={memberPreviewHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex h-8 shrink-0 items-center gap-1 rounded border border-border bg-background px-2 text-xs hover:bg-muted"
+          title="Lesson preview"
+        >
+          <Eye className="w-3 h-3" /> Preview
+        </a>
         <select
           value={lesson.status}
           onChange={(e) => save(statusTransition(e.currentTarget.value as ContentStatus))}
@@ -236,6 +264,31 @@ function LessonRow({
             </label>
           </div>
           <div className="space-y-3">
+            <div className="rounded-md border bg-muted/20 p-3 text-xs text-foreground/70">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <span className="font-semibold text-foreground">Lesson preview</span>
+                <a href={memberPreviewHref} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-accent underline">
+                  <Eye className="w-3 h-3" /> Open player
+                </a>
+              </div>
+              <ul className="space-y-1">
+                <li>Thumbnail: {moduleCoverImage ? "module thumbnail configured" : "module thumbnail missing"}</li>
+                <li>Video link: {lesson.external_video_url ? "configured" : "missing"}</li>
+                <li>Published: {lesson.status === "published" ? "yes" : "draft preview only"}</li>
+                <li>
+                  Quiz scope: {quizScopeQuery.isLoading
+                    ? "checking…"
+                    : (quizScopeQuery.data ?? []).length > 0
+                      ? (quizScopeQuery.data ?? []).map((q) => `${q.title || `Quiz #${q.id}`} (${q.status})`).join(", ")
+                      : "no quiz scoped to this lesson"}
+                </li>
+              </ul>
+              {moduleCoverImage ? (
+                <div className="mt-3 aspect-video overflow-hidden rounded border bg-muted">
+                  <img src={moduleCoverImage} alt="" className="h-full w-full object-cover" />
+                </div>
+              ) : null}
+            </div>
             <div>
               <Label className="text-xs">Preview</Label>
               <VideoPreview url={lesson.external_video_url} />
@@ -435,6 +488,7 @@ function ModuleSection({
                 <LessonRow
                   key={l.id}
                   lesson={l}
+                  moduleCoverImage={module.cover_image_path}
                   onDelete={() => handleArchiveLesson(l.id)}
                   onChanged={() => {
                     void refetch();
@@ -653,6 +707,44 @@ export default function AdminCourseDetail() {
     enabled: !!courseId && modules.length > 0,
   });
 
+  const { data: scopedQuizzes = [] } = useQuery({
+    queryKey: ["admin", "course", courseId, "lesson-preview-quizzes", allLessons.map((l) => l.id).join(",")],
+    enabled: !!courseId && allLessons.length > 0,
+    queryFn: async () => {
+      const lessonIds = allLessons.map((lesson) => lesson.id);
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status,lesson_id")
+        .in("lesson_id", lessonIds)
+        .order("id");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
+    },
+  });
+
+  const lessonPreviewRows = useMemo(() => {
+    const moduleById = new Map(modules.map((module) => [module.id, module] as const));
+    const quizzesByLesson = new Map<number, Array<{ id: number; title: string; status: string }>>();
+    for (const quiz of scopedQuizzes) {
+      if (!quiz.lesson_id) continue;
+      const list = quizzesByLesson.get(quiz.lesson_id) ?? [];
+      list.push({ id: quiz.id, title: quiz.title, status: quiz.status });
+      quizzesByLesson.set(quiz.lesson_id, list);
+    }
+    return allLessons
+      .slice()
+      .sort((a, b) => {
+        const ma = moduleById.get(a.module_id)?.sort_order ?? 0;
+        const mb = moduleById.get(b.module_id)?.sort_order ?? 0;
+        return ma - mb || a.sort_order - b.sort_order;
+      })
+      .map((lesson) => ({
+        lesson,
+        module: moduleById.get(lesson.module_id) ?? null,
+        quizzes: quizzesByLesson.get(lesson.id) ?? [],
+      }));
+  }, [allLessons, modules, scopedQuizzes]);
+
   const checklist: ChecklistItem[] = course
     ? [
         { label: "Has title", ok: Boolean(course.title?.trim()) },
@@ -661,6 +753,7 @@ export default function AdminCourseDetail() {
         { label: "Has cover image", ok: Boolean(course.cover_image_path) },
         { label: "At least one module", ok: modules.length > 0 },
         { label: "All modules have lessons", ok: modules.every((m) => allLessons.some((l) => l.module_id === m.id)) },
+        { label: "All modules are published", ok: modules.length > 0 && modules.every((m) => m.status === "published") },
         {
           label: "All lessons have a video (URL or upload)",
           ok:
@@ -668,6 +761,14 @@ export default function AdminCourseDetail() {
             allLessons.every(
               (l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url),
             ),
+        },
+        {
+          label: "All video lessons are published",
+          ok:
+            allLessons.length > 0 &&
+            allLessons
+              .filter((l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url))
+              .every((l) => l.status === "published"),
         },
       ]
     : [];
@@ -757,6 +858,57 @@ export default function AdminCourseDetail() {
       toast.error(errorMessage(e));
     }
   };
+
+  const publishReadyContent = useMutation({
+    mutationFn: async () => {
+      if (!courseId) throw new Error("Course is not ready yet");
+      const now = new Date().toISOString();
+      const moduleIds = modules.map((m) => m.id);
+      const readyLessonIds = allLessons
+        .filter((l) => l.external_video_url?.trim() && !isPlaceholderVideo(l.external_video_url))
+        .map((l) => l.id);
+
+      const { error: courseError } = await supabase
+        .from("courses")
+        .update({ status: "published", published_at: now, archived_at: null })
+        .eq("id", courseId);
+      if (courseError) throw courseError;
+
+      if (moduleIds.length > 0) {
+        const { error: modulesError } = await supabase
+          .from("course_modules")
+          .update({ status: "published", published_at: now, archived_at: null })
+          .in("id", moduleIds);
+        if (modulesError) throw modulesError;
+      }
+
+      if (readyLessonIds.length > 0) {
+        const { error: lessonsError } = await supabase
+          .from("lessons")
+          .update({ status: "published", published_at: now, archived_at: null })
+          .in("id", readyLessonIds);
+        if (lessonsError) throw lessonsError;
+      }
+
+      return {
+        modules: moduleIds.length,
+        lessons: readyLessonIds.length,
+        skippedLessons: Math.max(0, allLessons.length - readyLessonIds.length),
+      };
+    },
+    onSuccess: (result) => {
+      toast.success(
+        `Published course, ${result.modules} module${result.modules === 1 ? "" : "s"}, and ${result.lessons} video lesson${result.lessons === 1 ? "" : "s"}.`,
+      );
+      if (result.skippedLessons > 0) {
+        toast.warning(`${result.skippedLessons} lesson${result.skippedLessons === 1 ? "" : "s"} stayed draft because no video link is configured.`);
+      }
+      void refetchCourse();
+      void refetchModules();
+      invalidateCourse();
+    },
+    onError: (e: unknown) => toast.error(errorMessage(e)),
+  });
 
 
 
@@ -871,6 +1023,32 @@ export default function AdminCourseDetail() {
           </Card>
         )}
 
+        {course && (
+          <Card className="flex flex-col gap-3 p-4 text-xs text-foreground/70 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="font-semibold text-foreground">Member visibility</p>
+              <p>
+                Member pages only show published courses, published modules and published lessons. Use Lesson preview first, then publish all ready video lessons.
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-wrap gap-2">
+              <Button asChild type="button" variant="outline">
+                <a href="#lesson-preview"><Eye className="mr-1 h-3.5 w-3.5" /> Lesson preview</a>
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => publishReadyContent.mutate()}
+                disabled={publishReadyContent.isPending || modules.length === 0 || allLessons.length === 0}
+              >
+                {publishReadyContent.isPending ? "Publishing…" : "Publish ready course content"}
+              </Button>
+            </div>
+          </Card>
+        )}
+
+        <LessonPreviewPanel rows={lessonPreviewRows} />
+
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Modules &amp; lessons</h2>
           <Button onClick={handleAddModule}><Plus className="w-4 h-4 mr-1" /> Add module</Button>
@@ -910,6 +1088,92 @@ export default function AdminCourseDetail() {
       </div>
 
     </AdminShell>
+  );
+}
+
+type LessonPreviewRow = {
+  lesson: Lesson;
+  module: Module | null;
+  quizzes: Array<{ id: number; title: string; status: string }>;
+};
+
+function LessonPreviewPanel({ rows }: { rows: LessonPreviewRow[] }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <Card id="lesson-preview" className="p-5 space-y-4 scroll-mt-24">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold">Lesson preview</h2>
+          <p className="text-xs text-foreground/60">
+            Verify module thumbnail, lesson link, embedded player readiness and quiz scope before publishing.
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" onClick={() => setOpen((v) => !v)}>
+          {open ? "Hide" : "Show"} preview
+        </Button>
+      </div>
+
+      {open && rows.length === 0 ? (
+        <p className="rounded-md border border-dashed p-4 text-sm text-foreground/60">
+          No lessons yet. Add a module and lessons below, then return here to preview them.
+        </p>
+      ) : null}
+
+      {open && rows.length > 0 ? (
+        <div className="space-y-3">
+          {rows.map(({ lesson, module, quizzes }) => {
+            const parsed = parseVideoUrl(lesson.external_video_url);
+            const playerReady = ["youtube", "vimeo", "dropbox", "file"].includes(parsed.provider);
+            const displayUrl =
+              parsed.provider === "youtube" || parsed.provider === "vimeo"
+                ? parsed.embed
+                : parsed.provider === "dropbox" || parsed.provider === "file"
+                  ? parsed.src
+                  : parsed.provider === "external"
+                    ? parsed.href
+                    : "";
+
+            return (
+              <div key={lesson.id} className="grid gap-3 rounded-lg border bg-card/40 p-3 md:grid-cols-[120px_1fr_auto] md:items-start">
+                <div className="aspect-video overflow-hidden rounded border bg-muted text-[10px] text-foreground/45">
+                  {module?.cover_image_path ? (
+                    <img src={module.cover_image_path} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full items-center justify-center p-2 text-center">No module thumbnail</div>
+                  )}
+                </div>
+                <div className="min-w-0 space-y-1 text-xs text-foreground/65">
+                  <p className="font-medium text-foreground">
+                    {module?.title ?? "Module"} · Lesson {lesson.sort_order}: {lesson.title || "Untitled lesson"}
+                  </p>
+                  <p>
+                    Status: <span className="font-medium">{lesson.status}</span> · Video:{" "}
+                    <span className={playerReady ? "text-emerald-700" : "text-amber-700"}>
+                      {lesson.external_video_url ? `${parsed.provider} ${playerReady ? "player-ready" : "external link"}` : "missing"}
+                    </span>
+                  </p>
+                  {displayUrl ? <p className="break-all font-mono text-[11px]">{stripQueryForDisplay(displayUrl)}</p> : null}
+                  <p>
+                    Quiz scope:{" "}
+                    {quizzes.length > 0 ? (
+                      quizzes.map((quiz) => `${quiz.title || `Quiz #${quiz.id}`} (${quiz.status})`).join(", ")
+                    ) : (
+                      <span className="text-amber-700">no quiz scoped to this lesson</span>
+                    )}
+                  </p>
+                </div>
+                <Button asChild size="sm" variant="outline" className="md:justify-self-end">
+                  <a href={`/modules/${lesson.module_id}#lesson-${lesson.id}`} target="_blank" rel="noopener noreferrer">
+                    <Eye className="mr-1 h-3.5 w-3.5" /> Open player
+                  </a>
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
+    </Card>
   );
 }
 

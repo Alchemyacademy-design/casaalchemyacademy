@@ -115,38 +115,39 @@ export default function ModuleDetail() {
 
   // Lesson-level published quizzes for this module.
   const lessonQuizQuery = useQuery({
-    queryKey: ["lesson-quiz", "module", moduleId, (lessons ?? []).map((l) => l.id).join(",")],
+    queryKey: ["lesson-quiz", "module", moduleId, { admin: isAdmin }, (lessons ?? []).map((l) => l.id).join(",")],
     enabled: isValidModuleId && (lessons?.length ?? 0) > 0,
     queryFn: async () => {
       const ids = (lessons ?? []).map((l) => l.id);
-      if (!ids.length) return [] as Array<{ id: number; lesson_id: number | null }>;
-      const { data, error } = await supabase
+      if (!ids.length) return [] as Array<{ id: number; lesson_id: number | null; status: string }>;
+      let query = supabase
         .from("quizzes")
-        .select("id,lesson_id")
-        .eq("status", "published")
+        .select("id,lesson_id,status")
         .in("lesson_id", ids);
+      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
+      const { data, error } = await query;
       if (error) throw error;
-      return ((data ?? []) as Array<{ id: number; lesson_id: number | null }>);
+      return ((data ?? []) as Array<{ id: number; lesson_id: number | null; status: string }>);
     },
   });
 
-  // Course-level published quizzes (lesson_id IS NULL) for the module's course.
-  // These are what the pilot seeder creates and should render at the end of
-  // the module for students.
+  // Course-level quizzes are intentionally not rendered inside the lesson
+  // player. Admins use this notice to attach each quiz to the correct lesson.
   const courseQuizzesQuery = useQuery({
-    queryKey: ["module-course-quizzes", (module as { course_id?: number | null } | undefined)?.course_id],
-    enabled: !!((module as { course_id?: number | null } | undefined)?.course_id),
+    queryKey: ["module-course-quizzes", { admin: isAdmin }, (module as { course_id?: number | null } | undefined)?.course_id],
+    enabled: isAdmin && !!((module as { course_id?: number | null } | undefined)?.course_id),
     queryFn: async () => {
       const cid = (module as { course_id?: number | null } | undefined)?.course_id;
-      const { data, error } = await supabase
+      let query = supabase
         .from("quizzes")
-        .select("id,title")
+        .select("id,title,status")
         .eq("course_id", cid!)
-        .eq("status", "published")
         .is("lesson_id", null)
         .order("id");
+      query = isAdmin ? query.in("status", ["draft", "published"]) : query.eq("status", "published");
+      const { data, error } = await query;
       if (error) throw error;
-      return ((data ?? []) as Array<{ id: number; title: string }>);
+      return ((data ?? []) as Array<{ id: number; title: string; status: string }>);
     },
   });
 
@@ -190,12 +191,21 @@ export default function ModuleDetail() {
   const selectLesson = (id: number) => {
     setActiveLessonId(id);
     setMobileSidebar(false);
+    window.history.replaceState(null, "", `${location.pathname}#lesson-${id}`);
   };
+
+  const activeLessonQuiz = activeLesson
+    ? (lessonQuizQuery.data ?? []).find((q) => q.lesson_id === activeLesson.id)
+    : null;
+
+  const lessonQuizIds = new Set((lessonQuizQuery.data ?? []).map((q) => Number(q.lesson_id)).filter(Boolean));
+  const activeLessonHasVideo = Boolean(activeLesson?.videoUrl?.trim());
 
   const sidebarLessons = lessons.map((l) => ({
     id: l.id,
     title: l.title,
     number: l.number ?? null,
+    hasQuiz: lessonQuizIds.has(l.id),
   }));
 
   if (!isValidModuleId) {
@@ -331,7 +341,14 @@ export default function ModuleDetail() {
                     </div>
                   </div>
 
-                  <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} />
+                  <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} isAdmin={isAdmin} />
+
+                  {activeLessonQuiz ? (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Lesson quiz</p>
+                      <QuizCard quizId={activeLessonQuiz.id} previewAsAdmin={isAdmin} />
+                    </div>
+                  ) : null}
 
                   {activeLesson.content && (
                     <Card className="p-8 prose prose-invert max-w-none">
@@ -346,46 +363,24 @@ export default function ModuleDetail() {
                     />
                   </div>
 
-                  {(() => {
-                    const quizForLesson = (lessonQuizQuery.data ?? []).find(
-                      (q) => q.lesson_id === activeLesson.id,
-                    );
-                    if (quizForLesson) {
-                      return (
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Knowledge check</p>
-                          <QuizCard quizId={quizForLesson.id} previewAsAdmin={isAdmin} />
-                        </div>
-                      );
-                    }
-                    return null;
-                  })()}
-
-                  {/* Course-level quizzes surface on the last lesson of the module,
-                      so the pilot bank (course_id set, lesson_id null) becomes
-                      visible to students without extra admin wiring. */}
-                  {currentLessonIndex === lessons.length - 1 &&
-                    (courseQuizzesQuery.data ?? []).map((cq) => (
-                      <div key={cq.id}>
-                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
-                          Module quiz
-                        </p>
-                        <QuizCard quizId={cq.id} previewAsAdmin={isAdmin} />
-                      </div>
-                    ))}
-
                   {isAdmin &&
-                    !((lessonQuizQuery.data ?? []).some((q) => q.lesson_id === activeLesson.id)) &&
-                    !(currentLessonIndex === lessons.length - 1 && (courseQuizzesQuery.data ?? []).length > 0) && (
+                    (!activeLessonHasVideo || !activeLessonQuiz) && (
                       <div>
                         <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
                           Admin Preview
                         </p>
-                        <Card className="p-3 text-xs text-foreground/70">
-                          No quiz configured for this lesson. Course-level quizzes render on the last lesson of the module.
+                        <Card className="space-y-1 p-3 text-xs text-foreground/70">
+                          {!activeLessonHasVideo ? <p>No video link is configured for this lesson yet.</p> : null}
+                          {!activeLessonQuiz ? <p>No quiz is scoped to this lesson yet. Open the course editor, set the quiz Scope to this lesson, then preview again.</p> : null}
                         </Card>
                       </div>
                     )}
+
+                  {isAdmin && (courseQuizzesQuery.data ?? []).length > 0 ? (
+                    <Card className="p-3 text-xs text-amber-700 border-amber-200 bg-amber-50/50">
+                      {(courseQuizzesQuery.data ?? []).length} course-level quiz{(courseQuizzesQuery.data ?? []).length === 1 ? "" : "zes"} still need a lesson scope before members see them inside the player.
+                    </Card>
+                  ) : null}
 
                   <div>
                     <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
@@ -470,8 +465,8 @@ export default function ModuleDetail() {
                     total={lessons.length}
                     hasPrevious={!!previousLesson}
                     hasNext={!!nextLesson}
-                    onPrevious={() => previousLesson && setActiveLessonId(previousLesson.id)}
-                    onNext={() => nextLesson && setActiveLessonId(nextLesson.id)}
+                    onPrevious={() => previousLesson && selectLesson(previousLesson.id)}
+                    onNext={() => nextLesson && selectLesson(nextLesson.id)}
                   />
                 </div>
               ) : (

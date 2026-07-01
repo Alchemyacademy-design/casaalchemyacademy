@@ -1,10 +1,11 @@
-import { CheckCircle2, Circle, Lock } from "lucide-react";
+import { CheckCircle2, Circle, HelpCircle, Lock } from "lucide-react";
 
 export type SidebarLesson = {
   id: number;
   title: string;
   number?: number | string | null;
   locked?: boolean;
+  hasQuiz?: boolean;
 };
 
 export type LessonSidebarProps = {
@@ -54,11 +55,14 @@ export default function LessonSidebar({
                   <Circle className="w-4 h-4 flex-shrink-0 opacity-70" aria-hidden="true" />
                 )}
                 <span className="flex-1 min-w-0">
-                  {l.number != null && (
-                    <span className="block text-[10px] uppercase tracking-wider opacity-70">
-                      Lesson {l.number}
-                    </span>
-                  )}
+                  <span className="flex items-center gap-2 text-[10px] uppercase tracking-wider opacity-70">
+                    {l.number != null ? <span>Lesson {l.number}</span> : null}
+                    {l.hasQuiz ? (
+                      <span className="inline-flex items-center gap-1" title="Lesson quiz">
+                        <HelpCircle className="h-3 w-3" aria-hidden="true" /> Quiz
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="block truncate font-medium">{l.title}</span>
                 </span>
               </button>

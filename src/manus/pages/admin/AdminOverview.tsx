@@ -72,8 +72,8 @@ export default function AdminOverview() {
         recentAuditRes,
       ] = await Promise.all([
         supabase.from("courses").select("id,status,cover_image_path"),
-        supabase.from("course_modules").select("id", { count: "exact", head: true }),
-        supabase.from("lessons").select("id,status,external_video_url,cover_image_path"),
+        supabase.from("course_modules").select("id,cover_image_path"),
+        supabase.from("lessons").select("id,status,external_video_url"),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
         supabase
           .from("memberships")
@@ -101,7 +101,8 @@ export default function AdminOverview() {
       ]);
 
       const courses = (coursesRes.data ?? []) as unknown as Array<{ id: number; status: string; cover_image_path: string | null }>;
-      const lessons = (lessonsRes.data ?? []) as unknown as Array<{ id: number; status: string; external_video_url: string | null; cover_image_path: string | null }>;
+      const modules = (modulesRes.data ?? []) as unknown as Array<{ id: number; cover_image_path: string | null }>;
+      const lessons = (lessonsRes.data ?? []) as unknown as Array<{ id: number; status: string; external_video_url: string | null }>;
       const progressRows = (progressRes.data ?? []) as Array<{ watched_percent: number | null }>;
       const avgProgress = progressRows.length
         ? Math.round(
@@ -114,7 +115,7 @@ export default function AdminOverview() {
         totalCourses: courses.length,
         publishedCourses: courses.filter((c) => c.status === "published").length,
         draftCourses: courses.filter((c) => c.status === "draft").length,
-        totalModules: modulesRes.count ?? 0,
+        totalModules: modules.length,
         totalLessons: lessons.length,
         missingVideos: lessons.filter(
           (l) => !l.external_video_url || isPlaceholderVideo(l.external_video_url),
@@ -122,8 +123,8 @@ export default function AdminOverview() {
         missingThumbs: courses.filter(
           (c) => !c.cover_image_path || isLegacyAssetPath(c.cover_image_path),
         ).length,
-        missingLessonThumbs: lessons.filter(
-          (l) => !l.cover_image_path || isLegacyAssetPath(l.cover_image_path),
+        missingLessonThumbs: modules.filter(
+          (m) => !m.cover_image_path || isLegacyAssetPath(m.cover_image_path),
         ).length,
         students: profilesCount.count ?? 0,
         activeMembers: activeMembersCount.count ?? 0,

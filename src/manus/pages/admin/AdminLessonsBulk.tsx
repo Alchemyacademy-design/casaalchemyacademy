@@ -13,10 +13,9 @@ import {
   isPlaceholderVideo,
   statusTransition,
   updateLesson,
-  uploadCoverImage,
   type ContentStatus,
 } from "@/manus/lib/admin-content";
-import { Save, Trash2, Upload, ExternalLink } from "lucide-react";
+import { Save, Trash2, ExternalLink } from "lucide-react";
 
 interface Row {
   id: number;
@@ -28,11 +27,11 @@ interface Row {
   title: string;
   description: string | null;
   external_video_url: string | null;
-  cover_image_path: string | null;
+  module_cover_image_path: string | null;
   status: ContentStatus;
 }
 
-type Patch = Partial<Pick<Row, "title" | "description" | "external_video_url" | "cover_image_path" | "status">>;
+type Patch = Partial<Pick<Row, "title" | "description" | "external_video_url" | "status">>;
 
 const STATUSES: ContentStatus[] = ["draft", "published", "archived"];
 
@@ -51,7 +50,7 @@ export default function AdminLessonsBulk() {
       setLoading(true);
       const { data, error } = await supabase
         .from("lessons")
-        .select("id, module_id, sort_order, title, description, external_video_url, cover_image_path, status, course_modules!inner(id, title, course_id, sort_order, courses!inner(id, title, sort_order))")
+        .select("id, module_id, sort_order, title, description, external_video_url, status, course_modules!inner(id, title, course_id, sort_order, cover_image_path, courses!inner(id, title, sort_order))")
         .is("archived_at", null)
         .order("sort_order", { ascending: true })
         .limit(1000);
@@ -67,10 +66,10 @@ export default function AdminLessonsBulk() {
         title: string | null;
         description: string | null;
         external_video_url: string | null;
-        cover_image_path: string | null;
         status: ContentStatus;
         course_modules?: {
           title?: string | null;
+          cover_image_path?: string | null;
           courses?: { id?: number | null; title?: string | null } | null;
         } | null;
       };
@@ -84,7 +83,7 @@ export default function AdminLessonsBulk() {
         title: l.title ?? "",
         description: l.description,
         external_video_url: l.external_video_url,
-        cover_image_path: l.cover_image_path,
+        module_cover_image_path: l.course_modules?.cover_image_path ?? null,
         status: l.status,
       }));
       mapped.sort((a, b) =>
@@ -109,9 +108,8 @@ export default function AdminLessonsBulk() {
       const effStatus = (dirty[r.id]?.status ?? r.status) as ContentStatus;
       if (filterStatus !== "all" && effStatus !== filterStatus) return false;
       const effUrl = dirty[r.id]?.external_video_url ?? r.external_video_url;
-      const effCover = dirty[r.id]?.cover_image_path ?? r.cover_image_path;
       if (filterFlag === "no-video" && effUrl && !isPlaceholderVideo(effUrl)) return false;
-      if (filterFlag === "no-thumb" && effCover) return false;
+      if (filterFlag === "no-thumb" && r.module_cover_image_path) return false;
       if (search && !r.title.toLowerCase().includes(search.toLowerCase())) return false;
       return true;
     });
@@ -190,20 +188,10 @@ export default function AdminLessonsBulk() {
     toast.success("Archived");
   };
 
-  const handleUpload = async (id: number, file: File) => {
-    try {
-      const url = await uploadCoverImage(file, "lessons");
-      patch(id, { cover_image_path: url });
-      toast.success("Thumbnail uploaded — remember to Save");
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
   return (
     <AdminShell
       title="Bulk lesson editor"
-      description="Edit titles, video URLs, descriptions, thumbnails and status across all lessons."
+      description="Edit titles, video URLs, descriptions and status across all lessons. Lesson thumbnails use the parent module cover."
       crumbs={[{ label: "Bulk lessons" }]}
       actions={
         <>
@@ -271,7 +259,7 @@ export default function AdminLessonsBulk() {
                 <th className="p-2 text-left">Title</th>
                 <th className="p-2 text-left">Video URL</th>
                 <th className="p-2 text-left">Description</th>
-                <th className="p-2 text-left">Thumbnail</th>
+                <th className="p-2 text-left">Module thumbnail</th>
                 <th className="p-2 text-left">Status</th>
               </tr>
             </thead>
@@ -320,22 +308,12 @@ export default function AdminLessonsBulk() {
                       />
                     </td>
                     <td className="p-2 min-w-[140px]">
-                      {eff.cover_image_path && (
-                        <img src={eff.cover_image_path} alt="" className="w-20 h-12 object-cover rounded mb-1" />
+                      {r.module_cover_image_path ? (
+                        <img src={r.module_cover_image_path} alt="" className="w-20 h-12 object-cover rounded mb-1" />
+                      ) : (
+                        <span className="text-xs text-amber-700">Missing module thumbnail</span>
                       )}
-                      <label className="inline-flex items-center gap-1 text-xs cursor-pointer text-foreground/70 hover:text-foreground">
-                        <Upload className="w-3 h-3" /> Upload
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) handleUpload(r.id, f);
-                            e.target.value = "";
-                          }}
-                        />
-                      </label>
+                      <div className="mt-1 text-[10px] text-foreground/50">Edit in the course module.</div>
                     </td>
                     <td className="p-2">
                       <Select value={eff.status} onValueChange={(v: ContentStatus) => patch(r.id, { status: v })}>
