@@ -330,12 +330,7 @@ export default function Magazine() {
                   Close <X size={14} />
                 </button>
               </div>
-              <iframe
-                src={toInlineReaderUrl(previewIssue.url)}
-                title={`${previewIssue.title} — reader`}
-                className="flex-1 w-full bg-white"
-                onContextMenu={(e) => e.preventDefault()}
-              />
+              <NativePdfViewer url={previewIssue.url} title={`${previewIssue.title} — reader`} className="flex-1 w-full" />
             </div>
           </div>
         )}
