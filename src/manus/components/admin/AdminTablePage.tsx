@@ -396,7 +396,12 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
       const payload: Record<string, unknown> = {};
       for (const f of fields) {
         if (f.hideInForm) continue;
-        payload[f.name] = toDbValue(record[f.name], f.type);
+        let v: unknown = toDbValue(record[f.name], f.type);
+        if (f.type === "select" && f.numericValue && v !== null && v !== undefined && v !== "") {
+          const n = Number(v);
+          v = Number.isFinite(n) ? n : null;
+        }
+        payload[f.name] = v;
       }
       const id = record[primaryKey];
       const client = supabase.from(table) as unknown as {
