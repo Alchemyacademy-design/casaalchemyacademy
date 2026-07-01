@@ -723,6 +723,21 @@ export default function AdminCourseDetail() {
     },
   });
 
+  const { data: orphanQuizzes = [] } = useQuery({
+    queryKey: ["admin", "course", courseId, "orphan-quizzes"],
+    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title,status")
+        .eq("course_id", courseId!)
+        .is("lesson_id", null)
+        .in("status", ["draft", "published"]);
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; status: string }>;
+    },
+  });
+
   const lessonPreviewRows = useMemo(() => {
     const moduleById = new Map(modules.map((module) => [module.id, module] as const));
     const quizzesByLesson = new Map<number, Array<{ id: number; title: string; status: string }>>();
