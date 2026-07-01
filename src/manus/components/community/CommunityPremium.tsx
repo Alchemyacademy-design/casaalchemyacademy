@@ -449,15 +449,15 @@ export default function CommunityPremium({
         {activeChannel && userId && (
           <footer className="aa-community-composer">
             <div>
-              <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Título da publicação" maxLength={140} />
+              <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
               <Textarea
                 value={draftBody}
                 onChange={(event) => setDraftBody(event.target.value)}
-                placeholder={`Compartilhe uma ideia, uma dúvida ou seu progresso em #${activeChannel.name}…`}
+                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}…`}
                 rows={3}
                 maxLength={5000}
               />
-              <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publicar</Button></div>
+              <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publish</Button></div>
             </div>
           </footer>
         )}
