@@ -532,19 +532,19 @@ function ThreadPanel({
     try {
       await createReply.mutateAsync(draft.trim());
       setDraft("");
-      toast.success("Resposta publicada");
+      toast.success("Reply posted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível responder");
+      toast.error(error instanceof Error ? error.message : "Could not reply");
     }
   }
 
   async function removeReply(replyId: number) {
-    if (!window.confirm("Remover esta resposta?")) return;
+    if (!window.confirm("Remove this reply?")) return;
     try {
       await deleteReply.mutateAsync(replyId);
-      toast.success("Resposta removida");
+      toast.success("Reply removed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+      toast.error(error instanceof Error ? error.message : "Could not remove");
     }
   }
 
