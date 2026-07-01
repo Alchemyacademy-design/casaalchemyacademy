@@ -70,6 +70,32 @@ export interface FieldDef {
   accept?: string;
   /** For `type: "file"`: render an image preview in the form. Defaults to true for image accept. */
   preview?: boolean;
+  /**
+   * Virtual field — value is not a real DB column. Persisted inside another
+   * text column (`virtualHost`) as a `[[virtualMarker:VALUE]]` marker.
+   * Used to add extra fields (e.g. video upload) without a schema migration.
+   */
+  virtual?: boolean;
+  virtualHost?: string;
+  virtualMarker?: string;
+}
+
+const virtualMarkerRe = (key: string) =>
+  new RegExp(`\\s*\\[\\[${key}:([^\\]]*)\\]\\]\\s*`, "g");
+
+export function extractVirtualMarker(host: string | null | undefined, marker: string): string {
+  if (!host) return "";
+  const m = virtualMarkerRe(marker).exec(host);
+  return m?.[1] ?? "";
+}
+export function stripVirtualMarker(host: string | null | undefined, marker: string): string {
+  if (!host) return "";
+  return host.replace(virtualMarkerRe(marker), "").trim();
+}
+export function upsertVirtualMarker(host: string | null | undefined, marker: string, value: string): string {
+  const cleaned = stripVirtualMarker(host, marker);
+  if (!value) return cleaned;
+  return cleaned ? `${cleaned}\n[[${marker}:${value}]]` : `[[${marker}:${value}]]`;
 }
 
 /**
