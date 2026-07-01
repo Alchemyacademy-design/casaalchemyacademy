@@ -786,6 +786,10 @@ export default function AdminCourseDetail() {
               .filter((l) => l.external_video_url && !isPlaceholderVideo(l.external_video_url))
               .every((l) => l.status === "published"),
         },
+        {
+          label: "All quizzes scoped to a lesson",
+          ok: orphanQuizzes.length === 0,
+        },
       ]
     : [];
 
