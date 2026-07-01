@@ -391,12 +391,12 @@ export default function CommunityPremium({
                     <ProfileMark profile={profile} own={own} />
                     <div>
                       <strong>{profileName(profile, own)}</strong>
-                      <span>{relativeTime(post.created_at)}{own ? " · você" : ""}</span>
+                      <span>{relativeTime(post.created_at)}{own ? " · you" : ""}</span>
                     </div>
                     <div className="aa-community-post-flags">
-                      {post.pinned && <span><Pin size={12} /> Fixado</span>}
-                      {post.locked && <span><Lock size={12} /> Fechado</span>}
-                      {post.hidden_at && <span><EyeOff size={12} /> Oculto</span>}
+                      {post.pinned && <span><Pin size={12} /> Pinned</span>}
+                      {post.locked && <span><Lock size={12} /> Closed</span>}
+                      {post.hidden_at && <span><EyeOff size={12} /> Hidden</span>}
                     </div>
                   </div>
 
