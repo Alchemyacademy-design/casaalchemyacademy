@@ -1,60 +1,85 @@
-# Phase 2.8 — Full platform stabilization + English-only UI
+# Plano — Renderização de Quizzes + Auditoria do Admin Center
 
-Two goals, one pass:
-1. Every user-facing string in English (Home + Admin já estão; Community é o maior offender).
-2. Fix concrete broken integrations found in the audit.
-
----
-
-## Part A — Language (English everywhere)
-
-**Community is the biggest gap (~60 PT strings across 4 files).** Everything else is already EN.
-
-Files to translate in one sweep:
-- `src/manus/components/community/CommunityPremium.tsx` — 40+ strings (toasts, placeholders, buttons, aria-labels, empty states, `window.confirm`s).
-- `src/manus/components/community/CommunityCenter.tsx` — 20+ strings (kept only if we don't delete it — see B-6).
-- `src/manus/components/community/CommunityDialogs.tsx` — "Novo Space", "Novo canal", labels, placeholders, toasts.
-- `src/manus/pages/Community.tsx` — `aria-label="Carregando conversa"`.
-
-Approach: direct string replacement (no i18n framework — Home/Admin are hard-coded EN, we stay consistent).
+## Objetivo
+1. Garantir que quizzes editados/publicados no admin apareçam corretamente nas aulas/módulos da plataforma.
+2. Tornar cada item do menu da Central Administradora 100% funcional (CRUD do admin → renderiza para o aluno).
 
 ---
 
-## Part B — Functionality fixes (priority order)
+## Parte A — Correção do Fluxo de Quizzes
 
-| # | Area | Fix |
-|---|------|-----|
-| B-1 | **ModuleRating** hard-errors — table/RPC not in DB | Guard the component: render nothing (or "Ratings coming soon") when the query returns a Postgres "relation does not exist" error, so module pages don't crash. Migration stays pending for a follow-up turn. |
-| B-2 | **Community delete via `window.confirm`** blocked on iOS WebView | Replace both confirms in `CommunityPremium.tsx` with shadcn `<AlertDialog>`. |
-| B-3 | **Post-payment nav** goes to public Guides page | `PaymentSuccess.tsx` + `PaymentCancel.tsx`: `navigate("/mycourses")`. |
-| B-4 | **Full-reload `<a href>`** in member area | Convert to `<Link>` / `useNavigate` in `Events.tsx`, `LiveWorkshops.tsx`, `Suppliers.tsx`. |
-| B-5 | **Dashboard `ComingUp`** fires auth queries when logged out | Add `enabled: isAuthenticated` to `useMyRegistrations` / `useRegisterForTarget`. |
-| B-6 | **Duplicate Community component** (`CommunityCenter` vs `CommunityPremium`) | Confirm `CommunityPremium` is the live one (it's what `Community.tsx` imports); delete `CommunityCenter.tsx` + its test. Removes half the PT translation work too. |
-| B-7 | **Stale "Stripe billing coming soon" banner** in `Plans.tsx` + inline error string in `SubscribeModal` | Gate both behind `VITE_BILLING_ENABLED` env flag; when unset, keep current disabled-state but drop the hard-coded banner text and check the flag instead of matching error strings. |
-| B-8 | **Community CTA** in `ModuleDetail` → `?channel=undefined` | Only render the CTA button when `ctaChannelMap` has a match. |
-| B-9 | **"Logout" vs "Sign out"** in `MemberLayout` | Standardize to "Sign out". |
-| B-10 | **Magazine hardcoded video path** | Read from `magazine_issues.video_url` (nullable); fallback to hiding the section — no new column required if we reuse `external_file_url` when present. |
-| B-11 | **PaymentSuccess infinite polling** | Cap `refetchInterval` after 10 attempts, then show "Still processing — refresh in a minute." |
-| B-12 | **Silent certificate errors** | Add `toast.error` in `CertificateSection` catch block. |
-| B-13 | **Plans "Contact us" button** permanently disabled | Turn into `<a href="mailto:contact@casaalchemystudio.com">`. |
+### A1. Bug crítico: quizzes "course-level" nunca aparecem
+Hoje, quando um quiz é criado sem `lesson_id` (default), ele fica invisível no player. O `seed-pilot-quizzes` cria exatamente nesse formato — por isso os 10 quizzes semeados não aparecem.
+
+**Correção:**
+- `AdminQuizEditor.tsx`: tornar o seletor de escopo (curso/módulo/aula) obrigatório antes de permitir `status = published`; bloquear publish quando `lesson_id` for null (a menos que se decida por escopo "final do módulo").
+- `ModuleDetail.tsx`: além de quizzes por `lesson_id`, também buscar quizzes com `module_id` = módulo atual e `lesson_id = null` e renderizar como "Quiz do módulo" após a última aula.
+- `get-member-quiz`: manter o gate por `status = 'published'` e validar acesso pelo `course_id` (já ok).
+
+### A2. Painel `/admin/quizzes` funcional de verdade
+Hoje é só "seed + preview". Vamos transformar em CRUD completo:
+- Listagem paginada de todos os quizzes (join com curso/módulo/aula).
+- Botão "Editar" abre o `AdminQuizEditor` existente inline.
+- Botão "Criar quiz" com seletor de curso + escopo obrigatório.
+- Coluna com status (draft/published/archived) e contador de perguntas.
+- Aviso vermelho quando um quiz publicado estiver órfão (sem lesson_id nem module_id) — link direto para corrigir.
+
+### A3. Publicação segura
+- Checklist antes de publicar: ≥1 pergunta, todas com ≥2 opções e ≥1 correta, escopo definido, passing_score válido.
+- Ao publicar, invalidar query cache de `lessonQuiz` para o módulo alvo.
+
+### A4. Verificação end-to-end
+- Testes: `quiz.routing.test.ts` cobrindo (a) quiz de aula, (b) quiz de módulo, (c) quiz órfão não aparece.
+- Playwright: login admin → criar quiz em aula → publicar → abrir a aula na área de membros → responder → conferir tentativa em `quiz_attempts`.
 
 ---
 
-## Out of scope (explicit)
-- Stripe / checkout / webhook logic changes.
-- New DB migrations (module_ratings migration remains a follow-up; B-1 just prevents the crash).
-- Design/visual redesign, image swaps, admin surface refactors.
-- Auth schema.
+## Parte B — Auditoria do Menu Admin
+
+Legenda: ✅ funcional · 🟡 parcial · 🔴 não funcional
+
+| # | Item | Status | Ação |
+|---|---|---|---|
+| 1 | Overview | ✅ | Nada a fazer |
+| 2 | Courses | ✅ | Nada a fazer (CRUD → Modules/CourseDetail) |
+| 3 | Lessons (bulk) | ✅ | Nada a fazer |
+| 4 | **Quizzes** | 🟡 | Ver Parte A |
+| 5 | Events | ✅ | Nada a fazer |
+| 6 | Live workshops | ✅ | Nada a fazer |
+| 7 | Magazine | ✅ | Nada a fazer |
+| 8 | **Suppliers** | 🟡 | Trocar campo `category_id` (number puro) por **select** populado de `supplier_categories` |
+| 9 | **Supplier categories** | 🟡 | Adicionar filtro por categoria na página `/suppliers` (aluno) |
+| 10 | **Deals** | 🔴 | Criar página membro `/deals` consumindo `useDeals()` (hook já existe); adicionar link na sidebar do membro |
+| 11 | **Plans** | 🟡 | Expor campos `stripe_*_price_id` no editor (edição controlada) + botão "Validar preço no Stripe" via edge function existente |
+| 12 | **Certificates** | 🟡 | Ao inserir/emitir manualmente pelo admin, validar % de conclusão do aluno (ou marcar como override com auditoria) |
+| 13 | Students | ✅ | Nada a fazer |
+| 14 | Diagnostics | ✅ | Nada a fazer |
+| 15 | Analytics | ✅ | Nada a fazer |
 
 ---
 
-## Verification
-- `bun test` + `tsgo` + `bun run build`.
-- Playwright smoke: `/dashboard`, `/community`, `/mycourses`, `/courses/:slug`, `/plans`, `/profile`, logged-out `/dashboard`.
-- Grep sweep for remaining non-EN strings: `rg "ção|ão|õe|ê|ú|Não|Você|Cancelar|Publicar|Responder|Remover|Buscar|Nenhum" src/manus src/pages src/components`.
+## Ordem de execução sugerida
 
-## Deliverable
-- Code changes above.
-- `docs/PHASE_2_8_STABILIZATION_REPORT.md` with before/after string counts and per-fix status.
+1. **Parte A (quizzes)** — bloqueio crítico, primeiro.
+2. **Deals** — criar rota `/deals` (impacto visível imediato para o aluno).
+3. **Suppliers + Supplier categories** — dropdown + filtro.
+4. **Plans** — expor `stripe_price_id` no admin.
+5. **Certificates** — validação de conclusão no insert admin.
+6. Rodar Playwright end-to-end + `bun test` + verificar logs das edge functions.
 
-Confirmar para eu executar? Ou quer que eu ajuste escopo (ex.: adiar B-7/B-10, incluir tradução de emails)?
+## Detalhes técnicos
+
+- Arquivos principais a alterar:
+  - `src/manus/components/admin/AdminQuizEditor.tsx`
+  - `src/manus/pages/admin/AdminQuizzes.tsx`
+  - `src/manus/pages/ModuleDetail.tsx`
+  - `src/manus/lib/trpc.ts` (nova query `quizzes.byModule`)
+  - `src/manus/pages/admin/AdminSuppliers.tsx` + `AdminTablePage` (suporte a `select` async)
+  - `src/manus/pages/Suppliers.tsx` (filtro categoria)
+  - `src/manus/pages/Deals.tsx` (novo) + rota em `App.tsx` + link em `MemberLayout`
+  - `src/manus/pages/admin/AdminPlans.tsx` (campos Stripe)
+  - `src/manus/pages/admin/AdminCertificates.tsx` (validação)
+- Sem migração de schema nova (todas as tabelas já existem).
+- Sem novas secrets.
+
+Confirma pra eu executar?
