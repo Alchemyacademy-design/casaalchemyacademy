@@ -113,21 +113,40 @@ export default function ModuleDetail() {
     },
   });
 
-  // Lesson-level published quiz (if any). Members only ever see published rows.
+  // Lesson-level published quizzes for this module.
   const lessonQuizQuery = useQuery({
-    queryKey: ["lesson-quiz", "module", moduleId],
-    enabled: isValidModuleId,
+    queryKey: ["lesson-quiz", "module", moduleId, (lessons ?? []).map((l) => l.id).join(",")],
+    enabled: isValidModuleId && (lessons?.length ?? 0) > 0,
     queryFn: async () => {
+      const ids = (lessons ?? []).map((l) => l.id);
+      if (!ids.length) return [] as Array<{ id: number; lesson_id: number | null }>;
       const { data, error } = await supabase
         .from("quizzes")
         .select("id,lesson_id")
         .eq("status", "published")
-        .in(
-          "lesson_id",
-          (lessonsQuery.data ?? []).map((l: { id: number }) => l.id),
-        );
+        .in("lesson_id", ids);
       if (error) throw error;
       return ((data ?? []) as Array<{ id: number; lesson_id: number | null }>);
+    },
+  });
+
+  // Course-level published quizzes (lesson_id IS NULL) for the module's course.
+  // These are what the pilot seeder creates and should render at the end of
+  // the module for students.
+  const courseQuizzesQuery = useQuery({
+    queryKey: ["module-course-quizzes", (module as { course_id?: number | null } | undefined)?.course_id],
+    enabled: !!((module as { course_id?: number | null } | undefined)?.course_id),
+    queryFn: async () => {
+      const cid = (module as { course_id?: number | null } | undefined)?.course_id;
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title")
+        .eq("course_id", cid!)
+        .eq("status", "published")
+        .is("lesson_id", null)
+        .order("id");
+      if (error) throw error;
+      return ((data ?? []) as Array<{ id: number; title: string }>);
     },
   });
 
@@ -339,21 +358,34 @@ export default function ModuleDetail() {
                         </div>
                       );
                     }
-                    if (isAdmin) {
-                      return (
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
-                            Admin Preview
-                          </p>
-                          <Card className="p-3 text-xs text-foreground/70">
-                            No quiz configured for this lesson. Add one from the course admin to make
-                            it visible to students here.
-                          </Card>
-                        </div>
-                      );
-                    }
                     return null;
                   })()}
+
+                  {/* Course-level quizzes surface on the last lesson of the module,
+                      so the pilot bank (course_id set, lesson_id null) becomes
+                      visible to students without extra admin wiring. */}
+                  {currentLessonIndex === lessons.length - 1 &&
+                    (courseQuizzesQuery.data ?? []).map((cq) => (
+                      <div key={cq.id}>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
+                          Module quiz
+                        </p>
+                        <QuizCard quizId={cq.id} previewAsAdmin={isAdmin} />
+                      </div>
+                    ))}
+
+                  {isAdmin &&
+                    !((lessonQuizQuery.data ?? []).some((q) => q.lesson_id === activeLesson.id)) &&
+                    !(currentLessonIndex === lessons.length - 1 && (courseQuizzesQuery.data ?? []).length > 0) && (
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
+                          Admin Preview
+                        </p>
+                        <Card className="p-3 text-xs text-foreground/70">
+                          No quiz configured for this lesson. Course-level quizzes render on the last lesson of the module.
+                        </Card>
+                      </div>
+                    )}
 
                   <div>
                     <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
