@@ -192,7 +192,16 @@ export default function ModuleDetail() {
   const selectLesson = (id: number) => {
     setActiveLessonId(id);
     setMobileSidebar(false);
-    window.history.replaceState(null, "", `${location.pathname}#lesson-${id}`);
+    const nextHash = `#lesson-${id}`;
+    if (location.hash !== nextHash) {
+      // Push a real history entry so browser back/forward navigates between
+      // lessons (and React Router's location updates so the sync effect stays
+      // consistent with the active lesson).
+      navigate(`${location.pathname}${location.search}${nextHash}`);
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const activeLessonQuiz = activeLesson
