@@ -283,6 +283,16 @@ export default function AdminQuizzes() {
                       {previewQuizId === r.quiz_id ? "Hide" : "Preview"}
                     </Button>
                   )}
+                  {r.quiz_id && !r.quiz_lesson_id && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      disabled={attachMutation.isPending}
+                      onClick={() => attachMutation.mutate(r)}
+                    >
+                      Bind to first lesson
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
