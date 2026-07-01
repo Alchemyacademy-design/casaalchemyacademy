@@ -109,6 +109,9 @@ export default function ModuleRating({ moduleId, readOnly = false }: Props) {
   }
 
   if (summaryQuery.error || myQuery.error) {
+    if (isUnavailable(summaryQuery.error) || isUnavailable(myQuery.error)) {
+      return null;
+    }
     return (
       <Card className="p-5 space-y-3">
         <p className="text-sm text-destructive">Failed to load rating.</p>
