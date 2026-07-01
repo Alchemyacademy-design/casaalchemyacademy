@@ -253,9 +253,16 @@ export default function AdminQuizzes() {
                 </td>
                 <td className="p-3">
                   {r.quiz_id ? (
-                    <Badge variant={r.quiz_status === "published" ? "default" : "secondary"}>
-                      {r.quiz_status}
-                    </Badge>
+                    <div className="flex flex-col gap-1">
+                      <Badge variant={r.quiz_status === "published" ? "default" : "secondary"} className="w-fit">
+                        {r.quiz_status}
+                      </Badge>
+                      {r.quiz_lesson_id ? (
+                        <span className="text-[10px] text-emerald-700">lesson #{r.quiz_lesson_id}</span>
+                      ) : (
+                        <span className="text-[10px] text-amber-700">unbound — hidden</span>
+                      )}
+                    </div>
                   ) : (
                     <Badge variant="outline">not seeded</Badge>
                   )}
