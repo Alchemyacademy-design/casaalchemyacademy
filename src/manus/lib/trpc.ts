@@ -65,22 +65,39 @@ const mapLesson = (l: LessonRow): LessonRow => ({
 });
 
 async function modulesList() {
-  // No status filter: RLS restricts non-admins to published rows while
-  // admins also receive drafts (preview-as-student requirement).
-  const { data, error } = await db.from("course_modules").select("*").order("sort_order");
+  // Member-facing routes always render the student catalogue. Admin-only draft
+  // access stays in the Admin Center via admin-content-catalog.
+  const { data, error } = await db
+    .from("course_modules")
+    .select("*")
+    .eq("status", "published")
+    .is("archived_at", null)
+    .order("sort_order");
   if (error) throw error;
   return ((data as ModuleRow[] | null) ?? []).map(mapModule);
 }
 async function moduleById(input?: Input) {
   const id = (input as { id?: number | string } | undefined)?.id;
-  const { data, error } = await db.from("course_modules").select("*").eq("id", id).maybeSingle();
+  const { data, error } = await db
+    .from("course_modules")
+    .select("*")
+    .eq("id", id)
+    .eq("status", "published")
+    .is("archived_at", null)
+    .maybeSingle();
   if (error) throw error;
   if (!data) throw new Error("Module not found");
   return mapModule(data as ModuleRow);
 }
 async function lessonsByModule(input?: Input) {
   const moduleId = (input as { moduleId?: number | string } | undefined)?.moduleId;
-  const { data, error } = await db.from("lessons").select("*").eq("module_id", moduleId).order("sort_order");
+  const { data, error } = await db
+    .from("lessons")
+    .select("*")
+    .eq("module_id", moduleId)
+    .eq("status", "published")
+    .is("archived_at", null)
+    .order("sort_order");
   if (error) throw error;
   return ((data as LessonRow[] | null) ?? []).map(mapLesson);
 }

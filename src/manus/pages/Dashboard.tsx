@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, BookOpen, Calendar, Clock, TrendingUp } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { CertificateSection } from "@/manus/components/CertificateSection";
@@ -15,7 +14,6 @@ import {
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
-import { getCoursesTree } from "@/manus/services/admin-content";
 import {
   useMyRegistrations,
   useRegisterForTarget,
@@ -31,31 +29,11 @@ export default function Dashboard() {
     if (!loading && !isAuthenticated) navigate("/login");
   }, [isAuthenticated, loading, navigate]);
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery();
   const memberModules = trpc.modules.list.useQuery(undefined, {
-    enabled: !isAdmin,
     staleTime: 5 * 60 * 1000,
   });
-  const adminModules = useQuery({
-    queryKey: ["dashboard", "admin-modules"],
-    enabled: isAdmin,
-    staleTime: 5 * 60 * 1000,
-    queryFn: async (): Promise<ModuleRow[]> => {
-      const catalog = await getCoursesTree();
-      return catalog.courses.flatMap((course) =>
-        course.course_modules.map((module) => ({
-          ...module,
-          course_id: course.id,
-          number: module.sort_order,
-          tagline: module.description ?? undefined,
-          lessonCount: module.lessons.length,
-          isPublished: module.status === "published",
-        })),
-      );
-    },
-  });
-
-  const modules = isAdmin ? (adminModules.data ?? []) : (memberModules.data ?? []);
+  const modules = memberModules.data ?? [];
 
   if (loading) {
     return (
@@ -73,18 +51,16 @@ export default function Dashboard() {
   const allModules = modules as ModuleRow[];
   const progressRows = progress as ProgressRow[];
   const startedIds = new Set(progressRows.map((item) => item.moduleId));
-  const enrolledModules = isAdmin
-    ? allModules
-    : [
-        ...allModules.filter((module) => startedIds.has(module.id)),
-        ...allModules.filter((module) => !startedIds.has(module.id)),
-      ];
+  const enrolledModules = [
+    ...allModules.filter((module) => startedIds.has(module.id)),
+    ...allModules.filter((module) => !startedIds.has(module.id)),
+  ];
 
   const totalLessons = allModules.reduce((sum, module) => sum + (module.lessonCount || 0), 0);
   const completedLessons = progressRows.filter((item) => item.completed).length;
   const overallProgress = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
   const accessLabel = isAdmin
-    ? "Administrator"
+    ? "Student View"
     : ((user as { membershipTier?: string } | null)?.membershipTier || "Free access");
 
   const primaryCourseId = (allModules.find((module) => module.course_id != null)?.course_id ?? null) as

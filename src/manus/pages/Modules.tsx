@@ -9,7 +9,6 @@ import { MemberPage, MemberPageHeader, StatusPill } from "@/manus/components/mem
 import { supabase } from "@/integrations/supabase/client";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse } from "@/manus/services/learning";
 
 type CourseRow = {
@@ -30,12 +29,7 @@ type CourseRow = {
 
 type StatusFilter = "all" | "not_started" | "in_progress" | "completed";
 
-async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
-  if (includeDrafts) {
-    const catalog = await getCoursesTree();
-    return catalog.courses as unknown as CourseRow[];
-  }
-
+async function fetchCourses(): Promise<CourseRow[]> {
   const { data, error } = await supabase
     .from("courses")
     .select(
@@ -45,12 +39,20 @@ async function fetchCourses(includeDrafts: boolean): Promise<CourseRow[]> {
     .order("sort_order", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as unknown as CourseRow[];
+  return ((data ?? []) as unknown as CourseRow[]).map((course) => ({
+    ...course,
+    course_modules: (course.course_modules ?? [])
+      .filter((module) => module.status === "published")
+      .map((module) => ({
+        ...module,
+        lessons: (module.lessons ?? []).filter((lesson) => lesson.status === "published"),
+      })),
+  }));
 }
 
 export default function Modules() {
   const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
-  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
@@ -63,14 +65,14 @@ export default function Modules() {
   const hasAnyPaidAccess = isAdmin || isMember || hasCourseAccess;
 
   const { data: courses = [], isLoading, error, refetch } = useQuery({
-    queryKey: ["modules-page", "courses", { admin: isAdmin }],
-    queryFn: () => fetchCourses(isAdmin),
+    queryKey: ["modules-page", "courses", "published"],
+    queryFn: fetchCourses,
     staleTime: 5 * 60 * 1000,
   });
 
   const lessonCountOf = (course: CourseRow) =>
     course.course_modules.reduce(
-      (sum, module) => sum + module.lessons.filter((lesson) => isAdmin || lesson.status === "published").length,
+      (sum, module) => sum + module.lessons.filter((lesson) => lesson.status === "published").length,
       0,
     );
 
@@ -115,13 +117,11 @@ export default function Modules() {
           eyebrow="The Curriculum"
           title="Courses available"
           description={
-            isAdmin
-              ? "You are viewing the real catalogue with draft visibility enabled. Students only see published courses."
-              : hasAnyPaidAccess
+            hasAnyPaidAccess
                 ? "Move through the curriculum at your own pace and return exactly where you left off."
                 : "Start with the courses available to you, then unlock the complete curriculum when you are ready."
           }
-          action={isAdmin ? <StatusPill tone="warning">Admin Preview</StatusPill> : undefined}
+          action={isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : undefined}
         />
 
         {!hasAnyPaidAccess ? (
@@ -193,7 +193,6 @@ export default function Modules() {
                   const percent = getProgress(course.id, lessonCount);
                   const accessible = canAccessCourse(course.id, course.access_plan_keys, accessState);
                   const locked = !accessible;
-                  const draft = course.status !== "published";
 
                   return (
                     <CourseCard
@@ -207,10 +206,9 @@ export default function Modules() {
                         thumbnail: course.cover_image_path,
                         lessonCount,
                         progressPercent: percent,
-                        published: !draft,
+                        published: true,
                         locked,
                         href: locked ? "/plans" : `/courses/${course.id}`,
-                        adminPreview: isAdmin && draft,
                       }}
                     />
                   );
