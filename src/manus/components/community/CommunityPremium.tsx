@@ -62,7 +62,7 @@ type Props = {
 
 function relativeTime(iso: string) {
   const minutes = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60000));
-  if (minutes < 1) return "agora";
+  if (minutes < 1) return "now";
   if (minutes < 60) return `${minutes} min`;
   const hours = Math.floor(minutes / 60);
   if (hours < 24) return `${hours} h`;
@@ -70,8 +70,8 @@ function relativeTime(iso: string) {
 }
 
 function profileName(profile: CommunityAuthorProfile | undefined, own: boolean) {
-  if (own) return profile?.display_name || profile?.full_name || "Você";
-  return profile?.display_name || profile?.full_name || "Membro da Academy";
+  if (own) return profile?.display_name || profile?.full_name || "You";
+  return profile?.display_name || profile?.full_name || "Academy member";
 }
 
 function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: boolean }) {
@@ -140,7 +140,7 @@ export default function CommunityPremium({
     if (!result) return;
     appliedDeepLink.current = deepLinkKey;
     if (result.kind === "not-found") {
-      toast.message(`O canal “${initialChannelSlug}” não está disponível. Escolha outro canal para publicar o rascunho.`);
+      toast.message(`Channel “${initialChannelSlug}” is not available. Pick another channel to post your draft.`);
       return;
     }
     setSpaceId(result.spaceId);
@@ -231,20 +231,20 @@ export default function CommunityPremium({
       await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
       setDraftTitle("");
       setDraftBody("");
-      toast.success("Publicação enviada");
+      toast.success("Post published");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível publicar");
+      toast.error(error instanceof Error ? error.message : "Could not publish");
     }
   }
 
   async function removePost(post: CommunityPost) {
-    if (!window.confirm("Remover esta publicação? Ela será preservada no histórico de moderação.")) return;
+    if (!window.confirm("Remove this post? It will be preserved in the moderation history.")) return;
     try {
       await deletePost.mutateAsync(post.id);
       setOpenPost((current) => current?.id === post.id ? null : current);
-      toast.success("Publicação removida");
+      toast.success("Post removed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+      toast.error(error instanceof Error ? error.message : "Could not remove");
     }
   }
 
@@ -269,9 +269,9 @@ export default function CommunityPremium({
         moderatorId: userId,
       });
       setOpenPost((current) => current?.id === post.id ? updated : current);
-      toast.success("Moderação atualizada");
+      toast.success("Moderation updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a moderação");
+      toast.error(error instanceof Error ? error.message : "Could not update moderation");
     }
   }
 
@@ -282,15 +282,15 @@ export default function CommunityPremium({
   if (spacesError) {
     return (
       <div className="aa-community-state">
-        <p>Não foi possível carregar a comunidade.</p>
-        <Button onClick={() => refetchSpaces()}>Tentar novamente</Button>
+        <p>Could not load the community.</p>
+        <Button onClick={() => refetchSpaces()}>Try again</Button>
       </div>
     );
   }
 
   return (
     <section className="aa-community-shell">
-      <aside className="aa-community-spaces" aria-label="Espaços da comunidade">
+      <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
           <button
@@ -303,7 +303,7 @@ export default function CommunityPremium({
             {space.name.slice(0, 2).toUpperCase()}
           </button>
         ))}
-        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="Novo espaço"><Plus size={16} /></button>}
+        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="New space"><Plus size={16} /></button>}
       </aside>
 
       <aside className="aa-community-channels">
@@ -313,9 +313,9 @@ export default function CommunityPremium({
           {activeSpace?.description && <p>{activeSpace.description}</p>}
         </header>
         <ScrollArea className="flex-1">
-          <nav aria-label="Canais da comunidade">
-            {channelsLoading && <p className="aa-community-muted">Carregando canais…</p>}
-            {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">Nenhum canal publicado.</p>}
+          <nav aria-label="Community channels">
+            {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
+            {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">No channels published.</p>}
             {channels.map((channel) => (
               <button
                 type="button"
@@ -328,21 +328,21 @@ export default function CommunityPremium({
             ))}
           </nav>
         </ScrollArea>
-        {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> Novo canal</Button>}
+        {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
       </aside>
 
       <main className="aa-community-main">
         <header className="aa-community-header">
           <div>
             <p className="section-label">Member conversation</p>
-            <h1>{activeChannel?.name ?? "Selecione um canal"}</h1>
+            <h1>{activeChannel?.name ?? "Select a channel"}</h1>
             {activeChannel?.description && <p>{activeChannel.description}</p>}
           </div>
           <div className="aa-community-mobile-selects">
-            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Selecionar espaço">
+            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Select space">
               {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
             </select>
-            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Selecionar canal">
+            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Select channel">
               {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}
             </select>
           </div>
@@ -352,16 +352,16 @@ export default function CommunityPremium({
           <div className="aa-community-toolbar">
             <label>
               <Search size={15} />
-              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar publicações…" />
+              <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search posts…" />
             </label>
-            <div className="aa-community-filters" aria-label="Filtros">
+            <div className="aa-community-filters" aria-label="Filters">
               <Filter size={14} />
               {(["all", "pinned", "mine"] as FilterMode[]).map((mode) => (
                 <button key={mode} type="button" className={filter === mode ? "is-active" : ""} onClick={() => setFilter(mode)}>
-                  {mode === "all" ? "Todos" : mode === "pinned" ? "Fixados" : "Meus"}
+                  {mode === "all" ? "All" : mode === "pinned" ? "Pinned" : "Mine"}
                 </button>
               ))}
-              {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Ocultos</button>}
+              {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Hidden</button>}
             </div>
           </div>
         )}
@@ -371,13 +371,13 @@ export default function CommunityPremium({
             {postsQuery.isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
             {postsQuery.isError && (
               <div className="aa-community-state">
-                <p>Não foi possível carregar as publicações.</p>
-                <Button onClick={() => postsQuery.refetch()}>Tentar novamente</Button>
+                <p>Could not load posts.</p>
+                <Button onClick={() => postsQuery.refetch()}>Try again</Button>
               </div>
             )}
             {!postsQuery.isLoading && !postsQuery.isError && visiblePosts.length === 0 && activeChannel && (
               <div className="aa-community-state">
-                <p>{posts.length ? "Nenhuma publicação corresponde aos filtros." : `Seja a primeira pessoa a iniciar uma conversa em #${activeChannel.name}.`}</p>
+                <p>{posts.length ? "No posts match the filters." : `Be the first to start a conversation in #${activeChannel.name}.`}</p>
               </div>
             )}
 
@@ -391,12 +391,12 @@ export default function CommunityPremium({
                     <ProfileMark profile={profile} own={own} />
                     <div>
                       <strong>{profileName(profile, own)}</strong>
-                      <span>{relativeTime(post.created_at)}{own ? " · você" : ""}</span>
+                      <span>{relativeTime(post.created_at)}{own ? " · you" : ""}</span>
                     </div>
                     <div className="aa-community-post-flags">
-                      {post.pinned && <span><Pin size={12} /> Fixado</span>}
-                      {post.locked && <span><Lock size={12} /> Fechado</span>}
-                      {post.hidden_at && <span><EyeOff size={12} /> Oculto</span>}
+                      {post.pinned && <span><Pin size={12} /> Pinned</span>}
+                      {post.locked && <span><Lock size={12} /> Closed</span>}
+                      {post.hidden_at && <span><EyeOff size={12} /> Hidden</span>}
                     </div>
                   </div>
 
@@ -422,16 +422,16 @@ export default function CommunityPremium({
                       ))}
                     </div>
                     <button type="button" className="aa-community-reply-count" onClick={() => setOpenPost(post)}>
-                      <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "resposta" : "respostas"}
+                      <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "reply" : "replies"}
                     </button>
                   </div>
 
                   {(own || isAdmin) && (
                     <div className="aa-community-moderation">
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "pin")}><Pin size={14} /> {post.pinned ? "Desafixar" : "Fixar"}</button>}
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reabrir" : "Fechar"}</button>}
-                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restaurar" : "Ocultar"}</button>}
-                      <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remover</button>
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "pin")}><Pin size={14} /> {post.pinned ? "Unpin" : "Pin"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reopen" : "Close"}</button>}
+                      {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restore" : "Hide"}</button>}
+                      <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remove</button>
                     </div>
                   )}
                 </article>
@@ -440,7 +440,7 @@ export default function CommunityPremium({
 
             {postsQuery.hasNextPage && (
               <Button variant="outline" disabled={postsQuery.isFetchingNextPage} onClick={() => postsQuery.fetchNextPage()}>
-                {postsQuery.isFetchingNextPage && <Loader2 size={14} className="animate-spin" />} Carregar mais
+                {postsQuery.isFetchingNextPage && <Loader2 size={14} className="animate-spin" />} Load more
               </Button>
             )}
           </div>
@@ -449,15 +449,15 @@ export default function CommunityPremium({
         {activeChannel && userId && (
           <footer className="aa-community-composer">
             <div>
-              <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Título da publicação" maxLength={140} />
+              <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
               <Textarea
                 value={draftBody}
                 onChange={(event) => setDraftBody(event.target.value)}
-                placeholder={`Compartilhe uma ideia, uma dúvida ou seu progresso em #${activeChannel.name}…`}
+                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}…`}
                 rows={3}
                 maxLength={5000}
               />
-              <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publicar</Button></div>
+              <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publish</Button></div>
             </div>
           </footer>
         )}
@@ -532,19 +532,19 @@ function ThreadPanel({
     try {
       await createReply.mutateAsync(draft.trim());
       setDraft("");
-      toast.success("Resposta publicada");
+      toast.success("Reply posted");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível responder");
+      toast.error(error instanceof Error ? error.message : "Could not reply");
     }
   }
 
   async function removeReply(replyId: number) {
-    if (!window.confirm("Remover esta resposta?")) return;
+    if (!window.confirm("Remove this reply?")) return;
     try {
       await deleteReply.mutateAsync(replyId);
-      toast.success("Resposta removida");
+      toast.success("Reply removed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+      toast.error(error instanceof Error ? error.message : "Could not remove");
     }
   }
 
@@ -563,8 +563,8 @@ function ThreadPanel({
       <ScrollArea className="flex-1">
         <div className="aa-community-thread-replies">
           {isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
-          {isError && <div className="aa-community-state"><p>Não foi possível carregar as respostas.</p><Button onClick={() => refetch()}>Tentar novamente</Button></div>}
-          {!isLoading && !isError && replies.length === 0 && <div className="aa-community-state"><p>A conversa ainda não recebeu respostas.</p></div>}
+          {isError && <div className="aa-community-state"><p>Could not load replies.</p><Button onClick={() => refetch()}>Try again</Button></div>}
+          {!isLoading && !isError && replies.length === 0 && <div className="aa-community-state"><p>This conversation has no replies yet.</p></div>}
           {replies.map((reply) => {
             const own = reply.author_id === userId;
             const profile = profiles.get(reply.author_id);
@@ -594,11 +594,11 @@ function ThreadPanel({
       </ScrollArea>
 
       {post.locked ? (
-        <div className="aa-community-thread-locked"><Lock size={15} /> Esta conversa foi encerrada pela moderação.</div>
+        <div className="aa-community-thread-locked"><Lock size={15} /> This conversation was closed by moderation.</div>
       ) : userId ? (
         <footer className="aa-community-thread-composer">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Escreva uma resposta…" />
-          <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Responder</Button></div>
+          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Write a reply…" />
+          <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
     </div>

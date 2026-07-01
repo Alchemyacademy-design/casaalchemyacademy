@@ -18,6 +18,17 @@ const db: any = supabase;
 
 type Summary = { avg_rating: number; total: number };
 
+// Errors raised when the module_ratings migration has not been applied yet.
+// We treat them as "feature disabled" and hide the component silently.
+const UNAVAILABLE_CODES = new Set(["42883", "42P01", "PGRST202", "PGRST205"]);
+function isUnavailable(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const code = (err as { code?: string }).code;
+  const message = (err as { message?: string }).message ?? "";
+  if (code && UNAVAILABLE_CODES.has(code)) return true;
+  return /does not exist|schema cache|module_rating_summary|module_ratings/i.test(message);
+}
+
 async function loadSummary(moduleId: number): Promise<Summary> {
   const { data, error } = await db.rpc("module_rating_summary", { p_module_id: moduleId });
   if (error) throw error;
@@ -98,6 +109,9 @@ export default function ModuleRating({ moduleId, readOnly = false }: Props) {
   }
 
   if (summaryQuery.error || myQuery.error) {
+    if (isUnavailable(summaryQuery.error) || isUnavailable(myQuery.error)) {
+      return null;
+    }
     return (
       <Card className="p-5 space-y-3">
         <p className="text-sm text-destructive">Failed to load rating.</p>

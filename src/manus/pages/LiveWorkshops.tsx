@@ -1,4 +1,5 @@
 import MemberLayout from "@/manus/components/MemberLayout";
+import { Link } from "react-router-dom";
 import { Calendar, Clock, ExternalLink, Loader2, Lock, CheckCircle2 } from "lucide-react";
 import { useUpcomingWorkshops, usePastWorkshops, useMyRegistrations, useRegisterForTarget } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -100,8 +101,8 @@ export default function LiveWorkshops() {
           </div>
 
           <div className="flex gap-4 justify-between mt-12 pt-6 border-t" style={{ borderColor: "var(--aa-cream-dark)" }}>
-            <a href="/dashboard" className="px-6 py-2 rounded text-sm font-medium" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-text-dark)" }}>← Back</a>
-            <a href="/dashboard" className="px-6 py-2 rounded text-sm font-medium" style={{ backgroundColor: "var(--aa-olive-dark)", color: "var(--aa-white)" }}>Exit</a>
+            <Link to="/dashboard" className="px-6 py-2 rounded text-sm font-medium" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-text-dark)" }}>← Back</Link>
+            <Link to="/dashboard" className="px-6 py-2 rounded text-sm font-medium" style={{ backgroundColor: "var(--aa-olive-dark)", color: "var(--aa-white)" }}>Exit</Link>
           </div>
         </div>
       </div>
