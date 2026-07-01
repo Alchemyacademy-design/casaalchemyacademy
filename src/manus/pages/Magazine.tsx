@@ -5,6 +5,17 @@ import { ArrowLeft, Download, ExternalLink, Loader2, PlayCircle } from "lucide-r
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
+const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
+
+function extractVideoUrl(description?: string | null): string | null {
+  if (!description) return null;
+  const m = /\[\[video:([^\]]*)\]\]/.exec(description);
+  return m?.[1]?.trim() || null;
+}
+function cleanDescription(description?: string | null): string {
+  if (!description) return "";
+  return description.replace(VIDEO_MARKER_RE, "").trim();
+}
 
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
@@ -15,6 +26,9 @@ export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [current, ...archives] = issues;
+  const currentVideo = extractVideoUrl(current?.description) ?? WINTER_VIDEO_URL;
+  const currentDescription = cleanDescription(current?.description);
+
 
   return (
     <MemberLayout>
