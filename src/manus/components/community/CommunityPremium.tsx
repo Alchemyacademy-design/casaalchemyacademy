@@ -313,9 +313,9 @@ export default function CommunityPremium({
           {activeSpace?.description && <p>{activeSpace.description}</p>}
         </header>
         <ScrollArea className="flex-1">
-          <nav aria-label="Canais da comunidade">
-            {channelsLoading && <p className="aa-community-muted">Carregando canais…</p>}
-            {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">Nenhum canal publicado.</p>}
+          <nav aria-label="Community channels">
+            {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
+            {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">No channels published.</p>}
             {channels.map((channel) => (
               <button
                 type="button"
@@ -328,7 +328,7 @@ export default function CommunityPremium({
             ))}
           </nav>
         </ScrollArea>
-        {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> Novo canal</Button>}
+        {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
       </aside>
 
       <main className="aa-community-main">
