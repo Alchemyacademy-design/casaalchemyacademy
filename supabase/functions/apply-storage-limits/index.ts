@@ -8,8 +8,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const BUCKET = "public-assets";
-// 2 GiB — high enough for full magazine PDFs and long-form videos.
-const FILE_SIZE_LIMIT = 2 * 1024 * 1024 * 1024;
+// 500 MiB — highest limit the workspace policy accepts. Larger assets
+// should be hosted externally (Dropbox) and pasted as a URL.
+const FILE_SIZE_LIMIT = 500 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = [
   "image/*",
   "application/pdf",
