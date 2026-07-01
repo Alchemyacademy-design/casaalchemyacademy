@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
-import { getCoursesTree } from "@/manus/services/admin-content";
 import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
@@ -52,12 +51,7 @@ type Course = {
   course_modules: Module[];
 };
 
-async function fetchCourseTree(id: number, includeDrafts: boolean): Promise<Course | null> {
-  if (includeDrafts) {
-    const catalog = await getCoursesTree();
-    return (catalog.courses.find((course) => course.id === id) as unknown as Course | undefined) ?? null;
-  }
-
+async function fetchCourseTree(id: number): Promise<Course | null> {
   const { data, error } = await supabase
     .from("courses")
     .select(
@@ -95,8 +89,8 @@ export default function CourseDetail() {
   const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
 
   const { data: course, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["public", "course", courseId, { admin: isAdmin }],
-    queryFn: () => fetchCourseTree(courseId, isAdmin),
+    queryKey: ["public", "course", courseId, "published"],
+    queryFn: () => fetchCourseTree(courseId),
     enabled: Number.isFinite(courseId),
     staleTime: 2 * 60 * 1000,
   });
@@ -114,7 +108,7 @@ export default function CourseDetail() {
     [course],
   );
 
-  const { data: progress = [] } = trpc.lessons.progress.useQuery(undefined, { enabled: !isAdmin });
+  const { data: progress = [] } = trpc.lessons.progress.useQuery();
   const completedIds = useMemo(
     () =>
       new Set<number>(
@@ -124,21 +118,6 @@ export default function CourseDetail() {
       ),
     [progress],
   );
-
-  const courseQuizzesQuery = useQuery({
-    queryKey: ["course-quizzes", courseId, { admin: isAdmin }],
-    enabled: isAdmin && Number.isFinite(courseId),
-    queryFn: async () => {
-      const { data, error: quizError } = await supabase
-        .from("quizzes")
-        .select("id,title,status,lesson_id")
-        .eq("course_id", courseId)
-        .in("status", ["draft", "published"])
-        .is("lesson_id", null);
-      if (quizError) throw quizError;
-      return (data ?? []) as Array<{ id: number; title: string; status: string; lesson_id: number | null }>;
-    },
-  });
 
   if (!Number.isFinite(courseId)) {
     return (
@@ -206,7 +185,7 @@ export default function CourseDetail() {
     progress as Array<{ lessonId: number; completed: boolean; last_watched_at?: string | null }>,
   );
   const resumeLesson = allLessons.find((lesson) => lesson.id === resumeLessonId) ?? allLessons[0] ?? null;
-  const startHref = accessible && resumeLesson ? `/modules/${resumeLesson.module_id}#lesson-${resumeLesson.id}` : null;
+  const startHref = accessible && resumeLesson ? `/modules/${resumeLesson.module_id}?lesson=${resumeLesson.id}#lesson-${resumeLesson.id}` : null;
   const hasStarted = completedCount > 0;
   const visibleLessons = accessible ? allLessons : allLessons.filter((lesson) => lesson.is_preview === true);
   const aggregatedMaterials = visibleLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
@@ -232,7 +211,7 @@ export default function CourseDetail() {
             <div className="mb-4 flex flex-wrap gap-2">
               <StatusPill tone="accent">Course</StatusPill>
               {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
-              {isAdmin ? <StatusPill tone="warning">Admin Preview</StatusPill> : null}
+              {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
             </div>
             <h1 className="font-serif text-4xl leading-none text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
             {course.subtitle ? <p className="mt-4 max-w-2xl text-sm leading-7 text-white/82 sm:text-base">{course.subtitle}</p> : null}
@@ -302,7 +281,7 @@ export default function CourseDetail() {
                     })),
                   }))}
                   activeLessonId={resumeLesson?.id ?? null}
-                  buildLessonHref={(moduleId, lessonId) => `/modules/${moduleId}#lesson-${lessonId}`}
+                  buildLessonHref={(moduleId, lessonId) => `/modules/${moduleId}?lesson=${lessonId}#lesson-${lessonId}`}
                 />
               </div>
             </section>
@@ -315,22 +294,6 @@ export default function CourseDetail() {
                     <LessonMaterial key={lesson.id} url={lesson.external_resource_url} label={lesson.title} />
                   ))}
                 </div>
-              </section>
-            ) : null}
-
-            {isAdmin ? (
-              <section className="mb-10" aria-label="Admin notice">
-                <Card className="flex flex-col gap-3 p-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
-                  <span>
-                    <StatusPill tone="warning">Admin Preview</StatusPill>{" "}
-                    <span className="ml-2">
-                      {(courseQuizzesQuery.data ?? []).length > 0
-                        ? `${(courseQuizzesQuery.data ?? []).length} course-level quiz${(courseQuizzesQuery.data ?? []).length === 1 ? "" : "zes"} need a lesson Scope before members see them in the lesson player.`
-                        : "Quizzes should be scoped to lessons to appear inside the lesson player."}
-                    </span>
-                  </span>
-                  <Link to={`/admin/courses/${course.id}`} className="shrink-0 font-semibold text-accent underline">Manage course →</Link>
-                </Card>
               </section>
             ) : null}
           </div>
@@ -355,11 +318,6 @@ export default function CourseDetail() {
                   </Link>
                 )}
                 {hasStarted && resumeLesson ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Resume from: {resumeLesson.title}</p> : null}
-                {isAdmin ? (
-                  <Link to={`/admin/courses/${course.id}`} className="mt-4 block text-center text-xs font-semibold text-accent underline">
-                    Manage in admin →
-                  </Link>
-                ) : null}
               </div>
             </div>
           </aside>
