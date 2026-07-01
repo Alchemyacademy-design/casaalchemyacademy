@@ -135,10 +135,14 @@ export default function Magazine() {
                   <p className="border border-dashed border-[var(--aa-cream-dark)] p-8 text-sm text-[var(--aa-text-mid)]">Previous editions will appear here as they are published.</p>
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {archives.map((issue) => (
-                      <a key={issue.id} href={issue.external_file_url} target="_blank" rel="noreferrer" className="group border border-[var(--aa-cream-dark)] bg-white">
-                        <div className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)]" style={{ backgroundImage: issue.cover_image_path ? `url('${issue.cover_image_path}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
+                    {archives.map((issue) => {
+                      const pdf = normalizeDoc(issue.external_file_url);
+                      const cover = normalizeDoc(issue.cover_image_path);
+                      return (
+                      <a key={issue.id} href={pdf} target="_blank" rel="noreferrer" className="group border border-[var(--aa-cream-dark)] bg-white">
+                        <div className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)]" style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}>
                           <div className="absolute inset-0 bg-black/15 transition group-hover:bg-black/30" />
+
                         </div>
                         <div className="p-6">
                           {issue.published_on && <p className="section-label mb-2">{fmtDate(issue.published_on)}</p>}
