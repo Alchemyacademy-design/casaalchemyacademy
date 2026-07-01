@@ -47,6 +47,7 @@ export default function AdminSuppliers() {
           name: "category_id",
           label: "Category",
           type: "select",
+          numericValue: true,
           options: categoryOptions,
           render: (row: Record<string, unknown>) => {
             const id = row.category_id as number | null;
