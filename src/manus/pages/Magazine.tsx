@@ -190,23 +190,6 @@ export default function Magazine() {
                     </aside>
                   </div>
                 )}
-
-                {showReader && currentPdf && (
-                  <div className="mt-6 border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
-                    <div className="flex items-center justify-between px-5 py-3 text-[var(--aa-cream)]">
-                      <p className="section-label !text-[var(--aa-gold)]">Reader · view only</p>
-                      <button type="button" onClick={() => setShowReader(false)} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 hover:text-white">
-                        Close <X size={14} />
-                      </button>
-                    </div>
-                    <iframe
-                      src={toInlineReaderUrl(currentPdf)}
-                      title={`${current.title} — reader`}
-                      className="h-[80vh] w-full bg-white"
-                      onContextMenu={(e) => e.preventDefault()}
-                    />
-                  </div>
-                )}
               </section>
 
 
