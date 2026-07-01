@@ -49,6 +49,8 @@ export default function LessonSidebar({
               >
                 {l.locked ? (
                   <Lock className="w-4 h-4 flex-shrink-0 opacity-70" aria-hidden="true" />
+                ) : isActive ? (
+                  <PlayCircle className="w-4 h-4 flex-shrink-0 text-accent" aria-hidden="true" />
                 ) : isCompleted ? (
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                 ) : (
