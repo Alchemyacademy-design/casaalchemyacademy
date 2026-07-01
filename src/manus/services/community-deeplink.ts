@@ -45,6 +45,40 @@ export function parseLessonHash(
   return lessons.some((l) => l.id === id) ? id : null;
 }
 
+/**
+ * Reads a lesson id from the query string (`?lesson=<id>`). Returns the id
+ * only when it exists in the lessons array (foreign ids are rejected).
+ */
+export function parseLessonSearch(
+  search: string | null | undefined,
+  lessons: Array<{ id: number }>,
+): number | null {
+  if (!search) return null;
+  const sp = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  const raw = sp.get("lesson");
+  if (!raw) return null;
+  const id = Number(raw);
+  if (!Number.isFinite(id)) return null;
+  return lessons.some((l) => l.id === id) ? id : null;
+}
+
+/**
+ * Resolves the active lesson id from either `?lesson=<id>` (preferred, so
+ * refreshing a shared URL restores the same lesson) or `#lesson-<id>`
+ * (legacy hash), falling back to the first lesson when nothing matches.
+ */
+export function resolveLessonFromLocation(
+  search: string | null | undefined,
+  hash: string | null | undefined,
+  lessons: Array<{ id: number }>,
+): number | null {
+  return (
+    parseLessonSearch(search, lessons) ??
+    parseLessonHash(hash, lessons) ??
+    (lessons[0]?.id ?? null)
+  );
+}
+
 /* ----------------------------- Pagination ----------------------------- */
 
 export const POSTS_PAGE_SIZE = 20;
