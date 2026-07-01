@@ -358,21 +358,34 @@ export default function ModuleDetail() {
                         </div>
                       );
                     }
-                    if (isAdmin) {
-                      return (
-                        <div>
-                          <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
-                            Admin Preview
-                          </p>
-                          <Card className="p-3 text-xs text-foreground/70">
-                            No quiz configured for this lesson. Add one from the course admin to make
-                            it visible to students here.
-                          </Card>
-                        </div>
-                      );
-                    }
                     return null;
                   })()}
+
+                  {/* Course-level quizzes surface on the last lesson of the module,
+                      so the pilot bank (course_id set, lesson_id null) becomes
+                      visible to students without extra admin wiring. */}
+                  {currentLessonIndex === lessons.length - 1 &&
+                    (courseQuizzesQuery.data ?? []).map((cq) => (
+                      <div key={cq.id}>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
+                          Module quiz
+                        </p>
+                        <QuizCard quizId={cq.id} previewAsAdmin={isAdmin} />
+                      </div>
+                    ))}
+
+                  {isAdmin &&
+                    !((lessonQuizQuery.data ?? []).some((q) => q.lesson_id === activeLesson.id)) &&
+                    !(currentLessonIndex === lessons.length - 1 && (courseQuizzesQuery.data ?? []).length > 0) && (
+                      <div>
+                        <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">
+                          Admin Preview
+                        </p>
+                        <Card className="p-3 text-xs text-foreground/70">
+                          No quiz configured for this lesson. Course-level quizzes render on the last lesson of the module.
+                        </Card>
+                      </div>
+                    )}
 
                   <div>
                     <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
