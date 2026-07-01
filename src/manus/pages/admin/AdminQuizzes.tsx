@@ -36,6 +36,7 @@ type Row = {
   course_title: string | null;
   quiz_id: number | null;
   quiz_status: string | null;
+  quiz_lesson_id: number | null;
   question_count: number;
 };
 
@@ -51,11 +52,14 @@ async function fetchOverview(): Promise<Row[]> {
   );
 
   const courseIds = (courses ?? []).map((c: { id: number }) => c.id);
-  const quizzesBySlug = new Map<string, { id: number; status: string; question_count: number }>();
+  const quizzesBySlug = new Map<
+    string,
+    { id: number; status: string; lesson_id: number | null; question_count: number }
+  >();
   if (courseIds.length) {
     const { data: quizzes } = await db
       .from("quizzes")
-      .select("id, course_id, title, status")
+      .select("id, course_id, lesson_id, title, status")
       .in("course_id", courseIds);
 
     const quizIds = (quizzes ?? []).map((q: { id: number }) => q.id);
@@ -70,7 +74,6 @@ async function fetchOverview(): Promise<Row[]> {
       }
     }
 
-    // Prefer the pilot quiz matching the module title; fall back to the first.
     for (const p of PILOT_MAP) {
       const course = courseBySlug.get(p.slug);
       if (!course) continue;
@@ -84,6 +87,7 @@ async function fetchOverview(): Promise<Row[]> {
         quizzesBySlug.set(p.slug, {
           id: match.id,
           status: match.status,
+          lesson_id: match.lesson_id ?? null,
           question_count: countByQuiz.get(match.id) ?? 0,
         });
       }
@@ -101,6 +105,7 @@ async function fetchOverview(): Promise<Row[]> {
       course_title: course?.title ?? null,
       quiz_id: quiz?.id ?? null,
       quiz_status: quiz?.status ?? null,
+      quiz_lesson_id: quiz?.lesson_id ?? null,
       question_count: quiz?.question_count ?? 0,
     };
   });
