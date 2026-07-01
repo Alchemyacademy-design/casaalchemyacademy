@@ -51,7 +51,8 @@ export default function Magazine() {
               <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_.55fr]">
                 <video
                   className="aspect-video h-full w-full bg-black object-cover"
-                  src={WINTER_VIDEO_URL}
+                  src={currentVideo}
+                  key={currentVideo}
                   controls
                   playsInline
                   preload="metadata"
