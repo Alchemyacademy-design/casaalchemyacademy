@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Loader2, LogOut } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMyProfile, useUpdateMyProfile, useMyMemberships } from "@/manus/hooks/usePublicContent";
+import AvatarUpload from "@/manus/components/AvatarUpload";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -49,6 +50,19 @@ export default function Profile() {
               <div className="flex items-center gap-2 text-sm" style={{ color: "var(--aa-text-mid)" }}><Loader2 className="animate-spin" size={16} /> Loading…</div>
             ) : (
               <div className="space-y-6">
+                {user && (
+                  <div>
+                    <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Profile picture</label>
+                    <AvatarUpload
+                      userId={user.id}
+                      currentUrl={profile?.avatar_path ?? null}
+                      displayName={displayName || fullName || user.email || "Member"}
+                      onChange={async (newUrl) => {
+                        await update.mutateAsync({ avatar_path: newUrl });
+                      }}
+                    />
+                  </div>
+                )}
                 <div>
                   <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Full Name</label>
                   <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)}
