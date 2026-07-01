@@ -134,6 +134,8 @@ export default function Magazine() {
                         <button
                           type="button"
                           onClick={() => setShowReader((v) => !v)}
+                          aria-expanded={showReader}
+                          aria-controls="magazine-inline-reader"
                           className="btn-gold inline-flex items-center gap-2 px-6 py-3"
                         >
                           {showReader ? "Close reader" : "Read this issue"}
@@ -145,9 +147,49 @@ export default function Magazine() {
                           Open in new tab <ExternalLink size={14} />
                         </a>
                       )}
+                      {currentPdf && (
+                        <a href={currentPdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
+                          Download <Download size={14} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </article>
+
+                {showReader && currentPdf && (
+                  <div id="magazine-inline-reader" className="mt-6 grid grid-cols-1 gap-0 border border-[var(--aa-cream-dark)] bg-[#1F0A03] lg:grid-cols-[1fr_260px]">
+                    <div className="order-2 lg:order-1">
+                      <iframe
+                        src={toInlineReaderUrl(currentPdf)}
+                        title={`${current.title} — reader`}
+                        className="h-[80vh] w-full bg-white"
+                        onContextMenu={(e) => e.preventDefault()}
+                      />
+                    </div>
+                    <aside className="order-1 flex flex-col gap-4 p-5 text-[var(--aa-cream)] lg:order-2 lg:border-l lg:border-white/10">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="section-label !text-[var(--aa-gold)]">Reader</p>
+                          <h4 className="font-serif text-xl leading-snug">{current.title}</h4>
+                        </div>
+                        <button type="button" onClick={() => setShowReader(false)} aria-label="Close reader" className="rounded border border-white/20 p-1 text-white/70 hover:bg-white/10">
+                          <X size={14} />
+                        </button>
+                      </div>
+                      <p className="text-xs leading-6 text-white/60">
+                        Rendered inline via a public document viewer — no download required. Use the buttons below to open the source file if you prefer.
+                      </p>
+                      <div className="mt-auto flex flex-col gap-2">
+                        <a href={currentPdf} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-2 bg-[var(--aa-gold)] px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--aa-olive-dark)]">
+                          <ExternalLink size={13} /> Open in new tab
+                        </a>
+                        <a href={currentPdf} target="_blank" rel="noreferrer" download className="inline-flex items-center justify-center gap-2 border border-white/30 px-4 py-3 text-xs font-semibold uppercase tracking-[0.14em] text-white hover:bg-white/10">
+                          <Download size={13} /> Download PDF
+                        </a>
+                      </div>
+                    </aside>
+                  </div>
+                )}
 
                 {showReader && currentPdf && (
                   <div className="mt-6 border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
