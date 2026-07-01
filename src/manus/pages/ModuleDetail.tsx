@@ -532,10 +532,10 @@ export default function ModuleDetail() {
                   <LessonNavigation
                     currentIndex={currentLessonIndex}
                     total={lessons.length}
-                    hasPrevious={!!previousLesson}
-                    hasNext={!!nextLesson}
-                    onPrevious={() => previousLesson && selectLesson(previousLesson.id)}
-                    onNext={() => nextLesson && selectLesson(nextLesson.id)}
+                    hasPrevious={hasPrevious}
+                    hasNext={hasNext}
+                    onPrevious={goToPrevious}
+                    onNext={goToNext}
                   />
                 </div>
               ) : (
