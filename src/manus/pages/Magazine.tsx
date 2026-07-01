@@ -229,12 +229,7 @@ export default function Magazine() {
                 {showReader && currentPdf && (
                   <div id="magazine-inline-reader" className="mt-6 grid grid-cols-1 gap-0 border border-[var(--aa-cream-dark)] bg-[#1F0A03] lg:grid-cols-[1fr_260px]">
                     <div className="order-2 lg:order-1">
-                      <iframe
-                        src={toInlineReaderUrl(currentPdf)}
-                        title={`${current.title} — reader`}
-                        className="h-[80vh] w-full bg-white"
-                        onContextMenu={(e) => e.preventDefault()}
-                      />
+                      <NativePdfViewer url={currentPdf} title={`${current.title} — reader`} className="h-[80vh] w-full" />
                     </div>
                     <aside className="order-1 flex flex-col gap-4 p-5 text-[var(--aa-cream)] lg:order-2 lg:border-l lg:border-white/10">
                       <div className="flex items-start justify-between gap-3">
