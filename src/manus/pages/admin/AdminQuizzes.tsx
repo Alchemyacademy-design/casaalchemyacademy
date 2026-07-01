@@ -201,7 +201,7 @@ export default function AdminQuizzes() {
         </Button>
       }
     >
-      <div className="grid sm:grid-cols-3 gap-3">
+      <div className="grid sm:grid-cols-4 gap-3">
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Seeded</p>
           <p className="text-2xl font-serif">{totals.seeded} / {PILOT_MAP.length}</p>
@@ -209,6 +209,10 @@ export default function AdminQuizzes() {
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Published</p>
           <p className="text-2xl font-serif">{totals.published} / {PILOT_MAP.length}</p>
+        </Card>
+        <Card className="p-4">
+          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Bound to lesson</p>
+          <p className="text-2xl font-serif">{totals.bound} / {PILOT_MAP.length}</p>
         </Card>
         <Card className="p-4">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">Total questions</p>
