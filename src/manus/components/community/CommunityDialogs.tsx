@@ -40,7 +40,7 @@ export function CreateSpaceDialog({
   const submit = async () => {
     const finalSlug = slug.trim() || slugify(name);
     if (!name.trim() || !finalSlug) {
-      toast.error("Nome é obrigatório");
+      toast.error("Name is required");
       return;
     }
     try {
@@ -49,13 +49,13 @@ export function CreateSpaceDialog({
         slug: finalSlug,
         description: description.trim() || undefined,
       });
-      toast.success("Space criado");
+      toast.success("Space created");
       setName("");
       setSlug("");
       setDescription("");
       onOpenChange(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao criar Space");
+      toast.error(err instanceof Error ? err.message : "Failed to create space");
     }
   };
 
@@ -63,21 +63,21 @@ export function CreateSpaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Novo Space</DialogTitle>
+          <DialogTitle>New Space</DialogTitle>
           <DialogDescription>
-            Um Space agrupa canais por tema (ex.: Mentorias, Networking).
+            A Space groups channels by theme (e.g. Mentorship, Networking).
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div>
-            <Label>Nome</Label>
+            <Label>Name</Label>
             <Input
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
                 if (!slug) setSlug(slugify(e.target.value));
               }}
-              placeholder="Mentorias"
+              placeholder="Mentorship"
             />
           </div>
           <div>
@@ -85,11 +85,11 @@ export function CreateSpaceDialog({
             <Input
               value={slug}
               onChange={(e) => setSlug(slugify(e.target.value))}
-              placeholder="mentorias"
+              placeholder="mentorship"
             />
           </div>
           <div>
-            <Label>Descrição (opcional)</Label>
+            <Label>Description (optional)</Label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -99,11 +99,11 @@ export function CreateSpaceDialog({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
+            Cancel
           </Button>
           <Button onClick={submit} disabled={createSpace.isPending}>
             {createSpace.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Criar
+            Create
           </Button>
         </DialogFooter>
       </DialogContent>
