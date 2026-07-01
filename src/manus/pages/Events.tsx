@@ -1,4 +1,5 @@
 import MemberLayout from "@/manus/components/MemberLayout";
+import { Link } from "react-router-dom";
 import { Calendar, MapPin, ExternalLink, CheckCircle2, Loader2 } from "lucide-react";
 import { useUpcomingEvents, usePastEvents, useMyRegistrations, useRegisterForTarget } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
