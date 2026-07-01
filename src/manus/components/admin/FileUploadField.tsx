@@ -206,8 +206,9 @@ export default function FileUploadField({
         />
       </div>
       <p className="text-[11px] text-muted-foreground">
-        {progress ?? `Accepted: ${accept} · Max ${maxMB} MB`}
+        {progress ?? `Accepted: ${accept} · Max ${maxMB} MB · For larger files, paste a Dropbox share URL — it will be normalized automatically.`}
       </p>
+
     </div>
   );
 }
