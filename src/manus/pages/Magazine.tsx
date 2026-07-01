@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
 import { ArrowLeft, BookOpen, Download, ExternalLink, Eye, Loader2, PlayCircle, X } from "lucide-react";
@@ -7,6 +7,76 @@ import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
 const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
+
+/**
+ * Native PDF preview via blob URL. Dropbox and some CDNs send
+ * Content-Disposition: attachment, which forces a download inside <iframe>.
+ * Fetching the bytes and turning them into a blob URL lets the browser use
+ * its built-in PDF viewer inline. If the fetch fails (CORS / network), the
+ * caller falls back to a download-only UX.
+ */
+function useInlinePdf(url: string | null | undefined) {
+  const [state, setState] = useState<{ status: "idle" | "loading" | "ready" | "error"; blobUrl: string | null }>({
+    status: "idle",
+    blobUrl: null,
+  });
+
+  useEffect(() => {
+    if (!url) {
+      setState({ status: "idle", blobUrl: null });
+      return;
+    }
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    setState({ status: "loading", blobUrl: null });
+    fetch(url, { mode: "cors", credentials: "omit" })
+      .then((r) => {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.blob();
+      })
+      .then((blob) => {
+        if (cancelled) return;
+        const pdfBlob = blob.type === "application/pdf" ? blob : new Blob([blob], { type: "application/pdf" });
+        objectUrl = URL.createObjectURL(pdfBlob);
+        setState({ status: "ready", blobUrl: objectUrl });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ status: "error", blobUrl: null });
+      });
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [url]);
+
+  return state;
+}
+
+function NativePdfViewer({ url, title, className }: { url: string; title: string; className?: string }) {
+  const { status, blobUrl } = useInlinePdf(url);
+  if (status === "loading" || status === "idle") {
+    return (
+      <div className={`flex items-center justify-center bg-white text-sm text-[var(--aa-text-mid)] ${className ?? ""}`}>
+        <Loader2 className="mr-2 animate-spin" size={16} /> Loading PDF…
+      </div>
+    );
+  }
+  if (status === "error" || !blobUrl) {
+    return (
+      <div className={`flex flex-col items-center justify-center gap-3 bg-white p-6 text-center ${className ?? ""}`}>
+        <p className="text-sm text-[var(--aa-text-mid)]">Inline preview unavailable for this file. Please download to view.</p>
+        <a href={url} target="_blank" rel="noreferrer" download className="btn-gold inline-flex items-center gap-2 px-5 py-3 text-xs">
+          <Download size={13} /> Download PDF
+        </a>
+      </div>
+    );
+  }
+  return (
+    <object data={blobUrl} type="application/pdf" title={title} className={`bg-white ${className ?? ""}`}>
+      <iframe src={blobUrl} title={title} className={`w-full bg-white ${className ?? ""}`} />
+    </object>
+  );
+}
 
 function extractVideoUrl(description?: string | null): string | null {
   if (!description) return null;
