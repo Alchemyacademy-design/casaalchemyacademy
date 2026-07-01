@@ -138,12 +138,47 @@ export default function AdminQuizzes() {
     onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
+  const attachMutation = useMutation({
+    mutationFn: async (row: Row) => {
+      if (!row.quiz_id || !row.course_id) throw new Error("Quiz not seeded yet.");
+      const { data: firstModule } = await db
+        .from("course_modules")
+        .select("id")
+        .eq("course_id", row.course_id)
+        .eq("status", "published")
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!firstModule?.id) throw new Error("No published module in this course.");
+      const { data: firstLesson } = await db
+        .from("lessons")
+        .select("id")
+        .eq("module_id", firstModule.id)
+        .eq("status", "published")
+        .order("sort_order", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (!firstLesson?.id) throw new Error("No published lesson in the first module.");
+      const { error } = await db
+        .from("quizzes")
+        .update({ lesson_id: firstLesson.id })
+        .eq("id", row.quiz_id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Quiz attached to first lesson.");
+      qc.invalidateQueries({ queryKey: ["admin-quizzes-overview"] });
+    },
+    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+  });
+
   const rows = overview.data ?? [];
   const totals = useMemo(() => {
     const seeded = rows.filter((r) => r.quiz_id != null).length;
     const published = rows.filter((r) => r.quiz_status === "published").length;
+    const bound = rows.filter((r) => r.quiz_lesson_id != null).length;
     const questions = rows.reduce((acc, r) => acc + r.question_count, 0);
-    return { seeded, published, questions };
+    return { seeded, published, bound, questions };
   }, [rows]);
 
   return (
