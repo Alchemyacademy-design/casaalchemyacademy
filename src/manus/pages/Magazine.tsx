@@ -3,6 +3,7 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Download, ExternalLink, Loader2, PlayCircle } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
+import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
 const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
@@ -17,6 +18,16 @@ function cleanDescription(description?: string | null): string {
   return description.replace(VIDEO_MARKER_RE, "").trim();
 }
 
+/**
+ * Dropbox share URLs (dropbox.com/…?dl=0) render an HTML preview, not the
+ * file bytes. Rewrite to dl.dropboxusercontent.com + raw=1 so <iframe>,
+ * <video>, and <img> stream the asset directly. Non-Dropbox URLs pass
+ * through untouched.
+ */
+function normalizeDoc(url: string | null | undefined): string {
+  return url ? normalizeVideoUrl(url) || url : "";
+}
+
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long" });
@@ -26,8 +37,11 @@ export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
   const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [current, ...archives] = issues;
-  const currentVideo = extractVideoUrl(current?.description) ?? WINTER_VIDEO_URL;
+  const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
+  const currentPdf = normalizeDoc(current?.external_file_url);
+  const currentCover = normalizeDoc(current?.cover_image_path);
+
 
 
   return (
