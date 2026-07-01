@@ -2,7 +2,7 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, Share2, HelpCircle, MessageSquare, Menu, AlertTriangle } from "lucide-react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { trpc } from "@/manus/lib/trpc";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +29,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 export default function ModuleDetail() {
   const params = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
   const { isAdmin } = useAuth();
   const isValidModuleId = Number.isFinite(moduleId) && moduleId > 0;
@@ -191,7 +192,16 @@ export default function ModuleDetail() {
   const selectLesson = (id: number) => {
     setActiveLessonId(id);
     setMobileSidebar(false);
-    window.history.replaceState(null, "", `${location.pathname}#lesson-${id}`);
+    const nextHash = `#lesson-${id}`;
+    if (location.hash !== nextHash) {
+      // Push a real history entry so browser back/forward navigates between
+      // lessons (and React Router's location updates so the sync effect stays
+      // consistent with the active lesson).
+      navigate(`${location.pathname}${location.search}${nextHash}`);
+    }
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const activeLessonQuiz = activeLesson
