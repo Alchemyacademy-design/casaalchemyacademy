@@ -149,7 +149,9 @@ export default function Magazine() {
                           <h3 className="font-serif text-2xl font-normal text-[var(--aa-olive-dark)]">{issue.title}</h3>
                         </div>
                       </a>
-                    ))}
+                      );
+                    })}
+
                   </div>
                 )}
               </section>
