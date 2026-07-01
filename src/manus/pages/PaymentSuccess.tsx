@@ -100,7 +100,7 @@ export default function PaymentSuccess() {
           </p>
 
           <div className="space-y-2">
-            <Button onClick={() => navigate("/courses")} className="w-full" size="lg" disabled={!accessConfirmed}>
+            <Button onClick={() => navigate("/mycourses")} className="w-full" size="lg" disabled={!accessConfirmed}>
               Access Your Courses
             </Button>
             <Button onClick={() => refresh()} variant="outline" className="w-full">Check again</Button>
