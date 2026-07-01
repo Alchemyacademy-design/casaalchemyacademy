@@ -79,6 +79,7 @@ export default function App() {
             <Route path="/courses/:id" element={<CourseDetail />} />
             <Route path="/community" element={<Community />} />
             <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/deals" element={<Deals />} />
             <Route path="/events" element={<Events />} />
             <Route path="/magazine" element={<Magazine />} />
             <Route path="/profile" element={<Profile />} />
