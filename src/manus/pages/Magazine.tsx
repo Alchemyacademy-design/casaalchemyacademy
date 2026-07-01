@@ -241,7 +241,7 @@ export default function Magazine() {
                 </button>
               </div>
               <iframe
-                src={`${previewIssue.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                src={toInlineReaderUrl(previewIssue.url)}
                 title={`${previewIssue.title} — reader`}
                 className="flex-1 w-full bg-white"
                 onContextMenu={(e) => e.preventDefault()}
