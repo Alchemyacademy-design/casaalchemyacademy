@@ -231,20 +231,20 @@ export default function CommunityPremium({
       await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
       setDraftTitle("");
       setDraftBody("");
-      toast.success("Publicação enviada");
+      toast.success("Post published");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível publicar");
+      toast.error(error instanceof Error ? error.message : "Could not publish");
     }
   }
 
   async function removePost(post: CommunityPost) {
-    if (!window.confirm("Remover esta publicação? Ela será preservada no histórico de moderação.")) return;
+    if (!window.confirm("Remove this post? It will be preserved in the moderation history.")) return;
     try {
       await deletePost.mutateAsync(post.id);
       setOpenPost((current) => current?.id === post.id ? null : current);
-      toast.success("Publicação removida");
+      toast.success("Post removed");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível remover");
+      toast.error(error instanceof Error ? error.message : "Could not remove");
     }
   }
 
@@ -269,9 +269,9 @@ export default function CommunityPremium({
         moderatorId: userId,
       });
       setOpenPost((current) => current?.id === post.id ? updated : current);
-      toast.success("Moderação atualizada");
+      toast.success("Moderation updated");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Não foi possível atualizar a moderação");
+      toast.error(error instanceof Error ? error.message : "Could not update moderation");
     }
   }
 
