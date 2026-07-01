@@ -32,7 +32,8 @@ import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
 import CertificatePreview from "@/manus/components/learning/CertificatePreview";
-import { parseVideoUrl, stripQueryForDisplay } from "@/manus/lib/video-url";
+import LessonPlayer from "@/manus/components/learning/LessonPlayer";
+import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/lib/video-url";
 
 import {
   createLesson,
