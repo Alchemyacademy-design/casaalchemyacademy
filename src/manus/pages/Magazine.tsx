@@ -207,6 +207,37 @@ export default function Magazine() {
             </>
           )}
         </div>
+
+        {previewIssue && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${previewIssue.title} preview`}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            onClick={() => setPreviewIssue(null)}
+          >
+            <div
+              className="relative flex h-[92vh] w-full max-w-5xl flex-col overflow-hidden bg-[#1F0A03] shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-white/10 px-5 py-3 text-[var(--aa-cream)]">
+                <div>
+                  <p className="section-label !text-[var(--aa-gold)]">Reader · view only</p>
+                  <h4 className="font-serif text-xl">{previewIssue.title}</h4>
+                </div>
+                <button type="button" onClick={() => setPreviewIssue(null)} className="inline-flex items-center gap-2 border border-white/20 px-3 py-2 text-xs uppercase tracking-[0.14em] text-white/80 hover:bg-white/10">
+                  Close <X size={14} />
+                </button>
+              </div>
+              <iframe
+                src={`${previewIssue.url}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                title={`${previewIssue.title} — reader`}
+                className="flex-1 w-full bg-white"
+                onContextMenu={(e) => e.preventDefault()}
+              />
+            </div>
+          </div>
+        )}
       </main>
     </MemberLayout>
   );
