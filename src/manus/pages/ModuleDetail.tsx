@@ -22,7 +22,6 @@ import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import ModuleRating from "@/manus/components/learning/ModuleRating";
-import { useAuth } from "@/manus/hooks/useAuth";
 
 
 
@@ -31,7 +30,6 @@ export default function ModuleDetail() {
   const location = useLocation();
   const navigate = useNavigate();
   const moduleId = params.id ? parseInt(params.id, 10) : 0;
-  const { isAdmin } = useAuth();
   const isValidModuleId = Number.isFinite(moduleId) && moduleId > 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
