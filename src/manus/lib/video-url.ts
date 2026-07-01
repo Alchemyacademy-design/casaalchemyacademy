@@ -75,6 +75,11 @@ export function normalizeVideoUrl(raw: string | null | undefined): string {
     // Not a file extension we recognise — leave it alone.
     return url.toString();
   }
+  // Force streaming host: dropbox.com wraps the file in an HTML preview even
+  // with raw=1, but dl.dropboxusercontent.com serves the file bytes directly.
+  if (host === "dropbox.com" || host === "www.dropbox.com") {
+    url.hostname = "dl.dropboxusercontent.com";
+  }
   url.searchParams.delete("dl");
   url.searchParams.set("raw", "1");
   return url.toString();
