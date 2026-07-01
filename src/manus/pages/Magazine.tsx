@@ -158,7 +158,7 @@ export default function Magazine() {
                       </button>
                     </div>
                     <iframe
-                      src={`${currentPdf}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      src={toInlineReaderUrl(currentPdf)}
                       title={`${current.title} — reader`}
                       className="h-[80vh] w-full bg-white"
                       onContextMenu={(e) => e.preventDefault()}
