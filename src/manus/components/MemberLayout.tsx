@@ -96,7 +96,7 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
           {links(discoveryNav, true)}
           <p className="aa-member-nav-label text-foreground/45">Account</p>
           <NavLink to="/profile" end className={navClass} onClick={() => setMobileOpen(false)}><Settings className="h-4 w-4" /><span>Profile</span></NavLink>
-          <button type="button" onClick={handleLogout} className="aa-member-nav-link mt-1 w-full text-left"><LogOut className="h-4 w-4" /><span>Logout</span></button>
+          <button type="button" onClick={handleLogout} className="aa-member-nav-link mt-1 w-full text-left"><LogOut className="h-4 w-4" /><span>Sign out</span></button>
         </nav>
       )}
 
