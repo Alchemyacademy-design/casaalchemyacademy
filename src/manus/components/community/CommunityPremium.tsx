@@ -140,7 +140,7 @@ export default function CommunityPremium({
     if (!result) return;
     appliedDeepLink.current = deepLinkKey;
     if (result.kind === "not-found") {
-      toast.message(`O canal “${initialChannelSlug}” não está disponível. Escolha outro canal para publicar o rascunho.`);
+      toast.message(`Channel “${initialChannelSlug}” is not available. Pick another channel to post your draft.`);
       return;
     }
     setSpaceId(result.spaceId);
