@@ -141,7 +141,11 @@ export default function Suppliers() {
                   {tier}
                 </button>
               ))}
+            </div>
+          </div>
         </div>
+
+
 
         {/* Category Filter */}
         {availableCategories.length > 0 && (
