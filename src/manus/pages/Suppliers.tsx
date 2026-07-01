@@ -1,4 +1,5 @@
 import MemberLayout from "@/manus/components/MemberLayout";
+import { Link } from "react-router-dom";
 import { ExternalLink, Heart } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
