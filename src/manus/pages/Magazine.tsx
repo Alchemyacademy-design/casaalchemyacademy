@@ -101,7 +101,7 @@ export default function Magazine() {
                   <div className="flex flex-col justify-center p-8 md:p-12">
                     <p className="section-label mb-3">Member edition</p>
                     <h3 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)] md:text-5xl">{current.title}</h3>
-                    {current.description && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{current.description}</p>}
+                    {currentDescription && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{currentDescription}</p>}
                     <div className="mt-8 flex flex-wrap gap-3">
                       <a href={current.external_file_url} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
                         Read this issue <ExternalLink size={14} />
