@@ -8,9 +8,13 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const BUCKET = "public-assets";
-// 500 MiB — highest limit the workspace policy accepts. Larger assets
-// should be hosted externally (Dropbox) and pasted as a URL.
-const FILE_SIZE_LIMIT = 500 * 1024 * 1024;
+// Workspace caps bucket size; probe from high to low.
+const CANDIDATE_LIMITS = [
+  200 * 1024 * 1024,
+  100 * 1024 * 1024,
+  50 * 1024 * 1024,
+  25 * 1024 * 1024,
+];
 const ALLOWED_MIME_TYPES = [
   "image/*",
   "application/pdf",
