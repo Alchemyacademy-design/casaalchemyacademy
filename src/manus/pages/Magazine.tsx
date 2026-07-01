@@ -119,15 +119,41 @@ export default function Magazine() {
                     <h3 className="font-serif text-4xl font-normal text-[var(--aa-olive-dark)] md:text-5xl">{current.title}</h3>
                     {currentDescription && <p className="mt-5 max-w-xl text-sm leading-7 text-[var(--aa-text-mid)]">{currentDescription}</p>}
                     <div className="mt-8 flex flex-wrap gap-3">
-                      <a href={currentPdf} target="_blank" rel="noreferrer" className="btn-gold inline-flex items-center gap-2 px-6 py-3">
-                        Read this issue <ExternalLink size={14} />
-                      </a>
-                      <a href={currentPdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
-                        Download <Download size={14} />
-                      </a>
+                      {currentPdf && (
+                        <button
+                          type="button"
+                          onClick={() => setShowReader((v) => !v)}
+                          className="btn-gold inline-flex items-center gap-2 px-6 py-3"
+                        >
+                          {showReader ? "Close reader" : "Read this issue"}
+                          {showReader ? <X size={14} /> : <BookOpen size={14} />}
+                        </button>
+                      )}
+                      {currentPdf && (
+                        <a href={currentPdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 border border-[var(--aa-olive-dark)] px-6 py-3 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--aa-olive-dark)]">
+                          Open in new tab <ExternalLink size={14} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </article>
+
+                {showReader && currentPdf && (
+                  <div className="mt-6 border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
+                    <div className="flex items-center justify-between px-5 py-3 text-[var(--aa-cream)]">
+                      <p className="section-label !text-[var(--aa-gold)]">Reader · view only</p>
+                      <button type="button" onClick={() => setShowReader(false)} className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.14em] text-white/70 hover:text-white">
+                        Close <X size={14} />
+                      </button>
+                    </div>
+                    <iframe
+                      src={`${currentPdf}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+                      title={`${current.title} — reader`}
+                      className="h-[80vh] w-full bg-white"
+                      onContextMenu={(e) => e.preventDefault()}
+                    />
+                  </div>
+                )}
               </section>
 
 
