@@ -371,13 +371,13 @@ export default function CommunityPremium({
             {postsQuery.isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
             {postsQuery.isError && (
               <div className="aa-community-state">
-                <p>Não foi possível carregar as publicações.</p>
-                <Button onClick={() => postsQuery.refetch()}>Tentar novamente</Button>
+                <p>Could not load posts.</p>
+                <Button onClick={() => postsQuery.refetch()}>Try again</Button>
               </div>
             )}
             {!postsQuery.isLoading && !postsQuery.isError && visiblePosts.length === 0 && activeChannel && (
               <div className="aa-community-state">
-                <p>{posts.length ? "Nenhuma publicação corresponde aos filtros." : `Seja a primeira pessoa a iniciar uma conversa em #${activeChannel.name}.`}</p>
+                <p>{posts.length ? "No posts match the filters." : `Be the first to start a conversation in #${activeChannel.name}.`}</p>
               </div>
             )}
 
