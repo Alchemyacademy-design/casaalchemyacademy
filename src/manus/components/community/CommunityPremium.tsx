@@ -290,7 +290,7 @@ export default function CommunityPremium({
 
   return (
     <section className="aa-community-shell">
-      <aside className="aa-community-spaces" aria-label="Espaços da comunidade">
+      <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
           <button
@@ -303,7 +303,7 @@ export default function CommunityPremium({
             {space.name.slice(0, 2).toUpperCase()}
           </button>
         ))}
-        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="Novo espaço"><Plus size={16} /></button>}
+        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="New space"><Plus size={16} /></button>}
       </aside>
 
       <aside className="aa-community-channels">
