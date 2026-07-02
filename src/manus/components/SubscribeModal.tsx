@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { X, Heart } from "lucide-react";
+import { X, Heart, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SubscribeModalProps {
   type: "annual" | "monthly" | "guide";
@@ -47,24 +48,31 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
       const user = sessionData.session?.user;
       if (!user) {
         setError("Please sign in before continuing to payment.");
+        toast.error("You need to be signed in to continue to checkout.");
+        return;
+      }
+      if (!user.email) {
+        setError("Your account has no email. Please update your profile before checkout.");
         return;
       }
 
       const baseUrl = PAYMENT_LINKS[type];
       const url = new URL(baseUrl);
       // Prefill email and pass through metadata so the webhook can match the user.
-      if (user.email) url.searchParams.set("prefilled_email", user.email);
+      url.searchParams.set("prefilled_email", user.email);
       url.searchParams.set("client_reference_id", user.id);
       if (type === "guide" && courseId) {
         url.searchParams.set("utm_content", `course_${courseId}`);
       }
       url.searchParams.set("utm_source", "lovable");
       url.searchParams.set("utm_campaign", selectedCharity);
-      window.location.href = url.toString();
+      toast.success("Redirecting to secure Stripe checkout…");
+      // Small delay so the toast is visible before navigation.
+      setTimeout(() => { window.location.href = url.toString(); }, 400);
     } catch (checkoutError) {
       console.error("Checkout error:", checkoutError);
       setError("We could not start checkout. Please try again.");
-    } finally {
+      toast.error("Could not open checkout. Please try again.");
       setIsLoading(false);
     }
   };
@@ -98,9 +106,13 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
 
         {error && <p className="text-sm mb-4" style={{ color: "#9f3a38", fontFamily: "'DM Sans', sans-serif" }}>{error}</p>}
 
-        <button onClick={handleContinue} disabled={!selectedCharity || isLoading} className="btn-gold w-full" style={{ opacity: selectedCharity && !isLoading ? 1 : 0.4 }}>
-          {isLoading ? "Opening checkout..." : "Continue to Payment"}
+        <button onClick={handleContinue} disabled={!selectedCharity || isLoading} className="btn-gold w-full inline-flex items-center justify-center gap-2" style={{ opacity: selectedCharity && !isLoading ? 1 : 0.4 }}>
+          {isLoading && <Loader2 size={14} className="animate-spin" />}
+          {isLoading ? "Opening secure checkout…" : "Continue to Payment"}
         </button>
+        <p className="text-[10px] mt-3 text-center" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+          You will be redirected to Stripe. Access is released automatically once payment is confirmed.
+        </p>
       </div>
     </div>
   );

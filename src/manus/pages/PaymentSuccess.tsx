@@ -4,10 +4,13 @@ import { trpc } from "@/manus/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle2, Clock } from "lucide-react";
+import { useAuth } from "@/manus/hooks/useAuth";
 
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const { isMember, isAdmin, activeEntitlements, refresh: refreshAuth } = useAuth();
+  const destination = isAdmin || isMember ? "/dashboard" : activeEntitlements.length > 0 ? "/mycourses" : "/plans";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -15,7 +18,7 @@ export default function PaymentSuccess() {
   }, []);
 
   const [attempts, setAttempts] = useState(0);
-  const { data: status, isLoading, refetch: refresh } = trpc.stripe.getPaymentStatus.useQuery(
+  const { data: status, isLoading, refetch: refreshStatus } = trpc.stripe.getPaymentStatus.useQuery(
     { sessionId: sessionId || undefined },
     {
       enabled: !!sessionId,
@@ -30,14 +33,27 @@ export default function PaymentSuccess() {
     if (!isLoading) setAttempts((n) => n + 1);
   }, [isLoading]);
 
+  // When Stripe confirms, refresh auth entitlements so the destination CTA reflects
+  // the newly granted access immediately.
+  useEffect(() => {
+    if (status?.accessConfirmed) { void refreshAuth(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status?.accessConfirmed]);
+
   if (!sessionId) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="p-8 max-w-md">
           <div className="text-center">
-            <h1 className="text-2xl font-bold mb-4">Payment Status Unknown</h1>
-            <p className="text-gray-600 mb-6">We could not find a checkout session in this link.</p>
-            <Button onClick={() => navigate("/")}>Return to Home</Button>
+            <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold mb-2">Thank you for your payment</h1>
+            <p className="text-gray-600 mb-6">
+              Your Stripe checkout completed. Access will be released automatically as soon as the webhook confirms your payment.
+            </p>
+            <div className="space-y-2">
+              <Button onClick={() => navigate(destination)} className="w-full">Continue</Button>
+              <Button onClick={() => navigate("/plans")} variant="outline" className="w-full">View plans</Button>
+            </div>
           </div>
         </Card>
       </div>
@@ -100,10 +116,10 @@ export default function PaymentSuccess() {
           </p>
 
           <div className="space-y-2">
-            <Button onClick={() => navigate("/mycourses")} className="w-full" size="lg" disabled={!accessConfirmed}>
-              Access Your Courses
+            <Button onClick={() => navigate(destination)} className="w-full" size="lg" disabled={!accessConfirmed}>
+              {accessConfirmed ? (destination === "/dashboard" ? "Go to Dashboard" : destination === "/mycourses" ? "Access Your Courses" : "Choose a Plan") : "Waiting for confirmation…"}
             </Button>
-            <Button onClick={() => refresh()} variant="outline" className="w-full">Check again</Button>
+            <Button onClick={() => refreshStatus()} variant="outline" className="w-full">Check again</Button>
             <Button onClick={() => navigate("/")} variant="outline" className="w-full">
               Return to Home
             </Button>
