@@ -20,8 +20,8 @@ export default function PaymentCancel() {
           </p>
 
           <div className="space-y-2">
-            <Button onClick={() => navigate("/mycourses")} className="w-full" size="lg">
-              Browse Courses
+            <Button onClick={() => navigate("/plans")} className="w-full" size="lg">
+              Choose a Plan
             </Button>
             <Button onClick={() => navigate("/")} variant="outline" className="w-full">
               Return to Home
