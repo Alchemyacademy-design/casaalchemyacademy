@@ -145,6 +145,8 @@ export type Database = {
           last_activity_at: string
           locked: boolean
           pinned: boolean
+          source_course_id: number | null
+          source_lesson_id: number | null
           status: Database["public"]["Enums"]["community_content_status"]
           title: string
           updated_at: string
@@ -161,6 +163,8 @@ export type Database = {
           last_activity_at?: string
           locked?: boolean
           pinned?: boolean
+          source_course_id?: number | null
+          source_lesson_id?: number | null
           status?: Database["public"]["Enums"]["community_content_status"]
           title: string
           updated_at?: string
@@ -177,6 +181,8 @@ export type Database = {
           last_activity_at?: string
           locked?: boolean
           pinned?: boolean
+          source_course_id?: number | null
+          source_lesson_id?: number | null
           status?: Database["public"]["Enums"]["community_content_status"]
           title?: string
           updated_at?: string
@@ -187,6 +193,20 @@ export type Database = {
             columns: ["channel_id"]
             isOneToOne: false
             referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_posts_source_course_id_fkey"
+            columns: ["source_course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "community_posts_source_lesson_id_fkey"
+            columns: ["source_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
         ]
@@ -652,6 +672,64 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_comments: {
+        Row: {
+          body: string
+          course_id: number | null
+          created_at: string
+          id: number
+          is_hidden: boolean
+          lesson_id: number
+          parent_id: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body: string
+          course_id?: number | null
+          created_at?: string
+          id?: number
+          is_hidden?: boolean
+          lesson_id: number
+          parent_id?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          course_id?: number | null
+          created_at?: string
+          id?: number
+          is_hidden?: boolean
+          lesson_id?: number
+          parent_id?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_comments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_comments_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed_at: string | null
@@ -686,6 +764,51 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "lesson_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_ratings: {
+        Row: {
+          course_id: number | null
+          created_at: string
+          id: number
+          lesson_id: number
+          stars: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          course_id?: number | null
+          created_at?: string
+          id?: number
+          lesson_id: number
+          stars: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          course_id?: number | null
+          created_at?: string
+          id?: number
+          lesson_id?: number
+          stars?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_ratings_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_ratings_lesson_id_fkey"
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
@@ -1873,6 +1996,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }
       has_role: {
         Args: {
@@ -1961,6 +2085,14 @@ export type Database = {
           p_stripe_event_id: string
         }
         Returns: undefined
+      }
+      lesson_rating_summary: {
+        Args: { p_lesson_id: number }
+        Returns: {
+          avg_rating: number
+          total: number
+          user_rating: number
+        }[]
       }
       register_for_event: {
         Args: {
