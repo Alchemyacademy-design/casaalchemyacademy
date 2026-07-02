@@ -22,6 +22,7 @@ export type QuizRow = {
   id: number;
   course_id: number;
   lesson_id: number | null;
+  module_id: number | null;
   title: string;
   description: string | null;
   passing_score: number; // 0..100
@@ -284,7 +285,7 @@ export async function passedQuizIdsForCourse(courseId: number): Promise<Set<numb
 export async function listPublishedQuizzesForCourse(courseId: number): Promise<QuizRow[]> {
   const { data, error } = await db
     .from("quizzes")
-    .select("id,course_id,lesson_id,title,description,passing_score,max_attempts,status")
+    .select("id,course_id,lesson_id,module_id,title,description,passing_score,max_attempts,status")
     .eq("course_id", courseId)
     .eq("status", "published")
     .order("id");

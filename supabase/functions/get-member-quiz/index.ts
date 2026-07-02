@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
 
   const { data: quiz, error: quizErr } = await admin
     .from("quizzes")
-    .select("id, course_id, lesson_id, title, description, passing_score, max_attempts, status")
+    .select("id, course_id, lesson_id, module_id, title, description, passing_score, max_attempts, status")
     .eq("id", quizId)
     .maybeSingle();
   if (quizErr) {

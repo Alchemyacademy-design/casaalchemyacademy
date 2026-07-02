@@ -2,305 +2,332 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { BookOpen, Eye, FileQuestion, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { BookOpen, Eye, FileQuestion, Plus, Trash2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import QuizCard from "@/manus/components/learning/QuizCard";
-
-// Static mapping of the pilot bank: 1 quiz per course (by slug).
-// Keep this list in sync with supabase/functions/seed-pilot-quizzes/bank.ts.
-const PILOT_MAP: Array<{ slug: string; module: string; title: string }> = [
-  { slug: "the-path-to-a-colourful-life", module: "Module 1", title: "The Basics to Start" },
-  { slug: "the-sacred-bedroom", module: "Module 2", title: "Bedroom" },
-  { slug: "the-alchemic-kitchen", module: "Module 3", title: "Kitchen" },
-  { slug: "the-elemental-bathroom", module: "Module 4", title: "Bathrooms" },
-  { slug: "the-soulful-living-room", module: "Module 5", title: "Living" },
-  { slug: "the-crafted-dining-room", module: "Module 6", title: "Dining" },
-  { slug: "catalyst-workspace", module: "Module 7", title: "Home Office" },
-  { slug: "kids-legacy-draft", module: "Module 8", title: "Kids" },
-  { slug: "knowledgeable-cheat-sheets", module: "Module 9", title: "All Things Design" },
-  { slug: "enchanted-outdoors", module: "Module 10", title: "Outdoors" },
-];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db: any = supabase;
 
-type Row = {
-  slug: string;
-  module: string;
+type Scope = "lesson" | "module" | "course";
+
+type QuizListRow = {
+  id: number;
   title: string;
-  course_id: number | null;
-  course_title: string | null;
-  quiz_id: number | null;
-  quiz_status: string | null;
-  quiz_lesson_id: number | null;
+  status: string;
+  course_id: number;
+  lesson_id: number | null;
+  module_id: number | null;
+  passing_score: number;
   question_count: number;
+  course_title: string | null;
+  scope_label: string;
 };
 
-async function fetchOverview(): Promise<Row[]> {
-  const slugs = PILOT_MAP.map((p) => p.slug);
-  const { data: courses, error: cErr } = await db
-    .from("courses")
-    .select("id, slug, title")
-    .in("slug", slugs);
-  if (cErr) throw cErr;
-  const courseBySlug = new Map<string, { id: number; title: string }>(
-    (courses ?? []).map((c: { id: number; slug: string; title: string }) => [c.slug, c]),
-  );
+type Course = { id: number; title: string };
+type Module = { id: number; title: string; course_id: number };
+type Lesson = { id: number; title: string; module_id: number };
 
-  const courseIds = (courses ?? []).map((c: { id: number }) => c.id);
-  const quizzesBySlug = new Map<
-    string,
-    { id: number; status: string; lesson_id: number | null; question_count: number }
-  >();
-  if (courseIds.length) {
-    const { data: quizzes } = await db
-      .from("quizzes")
-      .select("id, course_id, lesson_id, title, status")
-      .in("course_id", courseIds);
+async function fetchCatalog() {
+  const [{ data: courses }, { data: modules }, { data: lessons }] = await Promise.all([
+    db.from("courses").select("id,title").order("title"),
+    db.from("course_modules").select("id,title,course_id").order("sort_order"),
+    db.from("lessons").select("id,title,module_id").order("sort_order"),
+  ]);
+  return {
+    courses: (courses ?? []) as Course[],
+    modules: (modules ?? []) as Module[],
+    lessons: (lessons ?? []) as Lesson[],
+  };
+}
 
-    const quizIds = (quizzes ?? []).map((q: { id: number }) => q.id);
-    const countByQuiz = new Map<number, number>();
-    if (quizIds.length) {
-      const { data: qs } = await db
-        .from("quiz_questions")
-        .select("id, quiz_id")
-        .in("quiz_id", quizIds);
-      for (const row of qs ?? []) {
-        countByQuiz.set(row.quiz_id, (countByQuiz.get(row.quiz_id) ?? 0) + 1);
-      }
-    }
-
-    for (const p of PILOT_MAP) {
-      const course = courseBySlug.get(p.slug);
-      if (!course) continue;
-      const courseQuizzes = (quizzes ?? []).filter(
-        (q: { course_id: number }) => q.course_id === course.id,
-      );
-      const match =
-        courseQuizzes.find((q: { title: string }) => q.title.includes(p.title)) ??
-        courseQuizzes[0];
-      if (match) {
-        quizzesBySlug.set(p.slug, {
-          id: match.id,
-          status: match.status,
-          lesson_id: match.lesson_id ?? null,
-          question_count: countByQuiz.get(match.id) ?? 0,
-        });
-      }
+async function fetchQuizList(): Promise<QuizListRow[]> {
+  const { data: quizzes, error } = await db
+    .from("quizzes")
+    .select("id,title,status,course_id,lesson_id,module_id,passing_score")
+    .order("id", { ascending: false });
+  if (error) throw error;
+  const rows = (quizzes ?? []) as Array<Omit<QuizListRow, "question_count" | "course_title" | "scope_label">>;
+  const ids = rows.map((r) => r.id);
+  const counts = new Map<number, number>();
+  if (ids.length) {
+    const { data: qs } = await db.from("quiz_questions").select("quiz_id").in("quiz_id", ids);
+    for (const r of (qs ?? []) as Array<{ quiz_id: number }>) {
+      counts.set(r.quiz_id, (counts.get(r.quiz_id) ?? 0) + 1);
     }
   }
+  const courseIds = Array.from(new Set(rows.map((r) => r.course_id)));
+  const titles = new Map<number, string>();
+  if (courseIds.length) {
+    const { data: cs } = await db.from("courses").select("id,title").in("id", courseIds);
+    for (const c of (cs ?? []) as Course[]) titles.set(c.id, c.title);
+  }
+  return rows.map((r) => ({
+    ...r,
+    question_count: counts.get(r.id) ?? 0,
+    course_title: titles.get(r.course_id) ?? null,
+    scope_label: r.lesson_id
+      ? `Lesson #${r.lesson_id}`
+      : r.module_id
+      ? `Module exam #${r.module_id}`
+      : "Course final exam",
+  }));
+}
 
-  return PILOT_MAP.map((p) => {
-    const course = courseBySlug.get(p.slug) ?? null;
-    const quiz = quizzesBySlug.get(p.slug) ?? null;
-    return {
-      slug: p.slug,
-      module: p.module,
-      title: p.title,
-      course_id: course?.id ?? null,
-      course_title: course?.title ?? null,
-      quiz_id: quiz?.id ?? null,
-      quiz_status: quiz?.status ?? null,
-      quiz_lesson_id: quiz?.lesson_id ?? null,
-      question_count: quiz?.question_count ?? 0,
-    };
+function NewQuizForm({ courses, modules, lessons, onCreated }: {
+  courses: Course[];
+  modules: Module[];
+  lessons: Lesson[];
+  onCreated: (quizId: number) => void;
+}) {
+  const qc = useQueryClient();
+  const [courseId, setCourseId] = useState<number | null>(null);
+  const [scope, setScope] = useState<Scope>("lesson");
+  const [moduleId, setModuleId] = useState<number | null>(null);
+  const [lessonId, setLessonId] = useState<number | null>(null);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [passing, setPassing] = useState(70);
+  const [maxAttempts, setMaxAttempts] = useState<string>("");
+
+  const filteredModules = useMemo(
+    () => modules.filter((m) => m.course_id === courseId),
+    [modules, courseId],
+  );
+  const courseLessons = useMemo(() => {
+    const modIds = new Set(filteredModules.map((m) => m.id));
+    return lessons.filter((l) => modIds.has(l.module_id));
+  }, [lessons, filteredModules]);
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!courseId) throw new Error("Choose a course");
+      if (!title.trim()) throw new Error("Give the quiz a title");
+      if (scope === "lesson" && !lessonId) throw new Error("Choose a lesson");
+      if (scope === "module" && !moduleId) throw new Error("Choose a module");
+      const payload = {
+        course_id: courseId,
+        lesson_id: scope === "lesson" ? lessonId : null,
+        module_id: scope === "module" ? moduleId : null,
+        title: title.trim(),
+        description: description.trim() || null,
+        passing_score: Math.min(100, Math.max(0, passing)),
+        max_attempts: maxAttempts ? Math.max(1, Number(maxAttempts)) : null,
+        status: "draft",
+      };
+      const { data, error } = await db.from("quizzes").insert(payload).select("id").single();
+      if (error) throw error;
+      return data.id as number;
+    },
+    onSuccess: (id) => {
+      toast.success("Quiz created — now add questions.");
+      setTitle("");
+      setDescription("");
+      qc.invalidateQueries({ queryKey: ["admin-quiz-list"] });
+      onCreated(id);
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
+
+  return (
+    <Card className="p-5 space-y-4">
+      <h2 className="font-semibold">New quiz</h2>
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div>
+          <Label className="text-xs">Course</Label>
+          <select
+            className="h-9 w-full rounded border bg-background px-2 text-sm"
+            value={courseId ?? ""}
+            onChange={(e) => {
+              const v = e.currentTarget.value;
+              setCourseId(v ? Number(v) : null);
+              setModuleId(null);
+              setLessonId(null);
+            }}
+          >
+            <option value="">— select —</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <Label className="text-xs">Title</Label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Knowledge check title" />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Scope</Label>
+        <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="grid sm:grid-cols-3 gap-2 mt-1">
+          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
+            <RadioGroupItem value="lesson" /> Lesson quiz
+          </label>
+          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
+            <RadioGroupItem value="module" /> Module exam
+          </label>
+          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
+            <RadioGroupItem value="course" /> Course final exam
+          </label>
+        </RadioGroup>
+      </div>
+
+      {scope === "lesson" && (
+        <div>
+          <Label className="text-xs">Lesson</Label>
+          <select
+            className="h-9 w-full rounded border bg-background px-2 text-sm"
+            value={lessonId ?? ""}
+            onChange={(e) => setLessonId(e.currentTarget.value ? Number(e.currentTarget.value) : null)}
+            disabled={!courseId}
+          >
+            <option value="">— select —</option>
+            {courseLessons.map((l) => {
+              const mod = filteredModules.find((m) => m.id === l.module_id);
+              return (
+                <option key={l.id} value={l.id}>
+                  {mod?.title} · {l.title}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+      )}
+      {scope === "module" && (
+        <div>
+          <Label className="text-xs">Module</Label>
+          <select
+            className="h-9 w-full rounded border bg-background px-2 text-sm"
+            value={moduleId ?? ""}
+            onChange={(e) => setModuleId(e.currentTarget.value ? Number(e.currentTarget.value) : null)}
+            disabled={!courseId}
+          >
+            <option value="">— select —</option>
+            {filteredModules.map((m) => (
+              <option key={m.id} value={m.id}>{m.title}</option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div>
+          <Label className="text-xs">Passing score (%)</Label>
+          <Input type="number" min={0} max={100} value={passing} onChange={(e) => setPassing(Number(e.target.value) || 0)} />
+        </div>
+        <div>
+          <Label className="text-xs">Max attempts (blank = unlimited)</Label>
+          <Input type="number" min={1} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
+        </div>
+      </div>
+
+      <div>
+        <Label className="text-xs">Description</Label>
+        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
+      </div>
+
+      <Button size="sm" onClick={() => create.mutate()} disabled={create.isPending}>
+        <Plus className="w-3 h-3 mr-1" /> Create quiz
+      </Button>
+    </Card>
+  );
 }
 
 export default function AdminQuizzes() {
   const qc = useQueryClient();
-  const overview = useQuery({ queryKey: ["admin-quizzes-overview"], queryFn: fetchOverview });
-  const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
+  const catalog = useQuery({ queryKey: ["admin-quiz-catalog"], queryFn: fetchCatalog });
+  const listQuery = useQuery({ queryKey: ["admin-quiz-list"], queryFn: fetchQuizList });
+  const [previewId, setPreviewId] = useState<number | null>(null);
 
-  const seedMutation = useMutation({
-    mutationFn: async (slug?: string) => {
-      const { data, error } = await supabase.functions.invoke("seed-pilot-quizzes", {
-        body: slug ? { course_slug: slug } : {},
-      });
-      if (error) throw error;
-      return data as { ok: boolean; results: Array<{ slug: string; ok: boolean; reason?: string }> };
-    },
-    onSuccess: (res) => {
-      const failed = res.results.filter((r) => !r.ok);
-      if (failed.length) {
-        toast.error(
-          `Seeded with errors: ${failed.map((f) => `${f.slug} (${f.reason ?? "unknown"})`).join(", ")}`,
-        );
-      } else {
-        toast.success(`Seeded ${res.results.length} quiz${res.results.length === 1 ? "" : "zes"}.`);
-      }
-      qc.invalidateQueries({ queryKey: ["admin-quizzes-overview"] });
-    },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
-  });
-
-  const attachMutation = useMutation({
-    mutationFn: async (row: Row) => {
-      if (!row.quiz_id || !row.course_id) throw new Error("Quiz not seeded yet.");
-      const { data: firstModule } = await db
-        .from("course_modules")
-        .select("id")
-        .eq("course_id", row.course_id)
-        .eq("status", "published")
-        .order("sort_order", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (!firstModule?.id) throw new Error("No published module in this course.");
-      const { data: firstLesson } = await db
-        .from("lessons")
-        .select("id")
-        .eq("module_id", firstModule.id)
-        .eq("status", "published")
-        .order("sort_order", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (!firstLesson?.id) throw new Error("No published lesson in the first module.");
-      const { error } = await db
-        .from("quizzes")
-        .update({ lesson_id: firstLesson.id })
-        .eq("id", row.quiz_id);
+  const deleteMutation = useMutation({
+    mutationFn: async (quizId: number) => {
+      const { error } = await db.from("quizzes").delete().eq("id", quizId);
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Quiz attached to first lesson.");
-      qc.invalidateQueries({ queryKey: ["admin-quizzes-overview"] });
+      toast.success("Quiz deleted");
+      qc.invalidateQueries({ queryKey: ["admin-quiz-list"] });
     },
-    onError: (e: unknown) => toast.error(e instanceof Error ? e.message : String(e)),
+    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
   });
 
-  const rows = overview.data ?? [];
-  const totals = useMemo(() => {
-    const seeded = rows.filter((r) => r.quiz_id != null).length;
-    const published = rows.filter((r) => r.quiz_status === "published").length;
-    const bound = rows.filter((r) => r.quiz_lesson_id != null).length;
-    const questions = rows.reduce((acc, r) => acc + r.question_count, 0);
-    return { seeded, published, bound, questions };
-  }, [rows]);
+  const rows = listQuery.data ?? [];
 
   return (
     <AdminShell
       crumbs={[{ label: "Admin", to: "/admin" }, { label: "Quizzes" }]}
       title="Quizzes"
-      description="Pilot knowledge-check bank — 10 modules × 5 questions, mapped one-to-one to the official courses."
-      actions={
-        <Button
-          size="sm"
-          onClick={() => seedMutation.mutate(undefined)}
-          disabled={seedMutation.isPending}
-        >
-          {seedMutation.isPending ? (
-            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-          ) : (
-            <Sparkles className="w-3 h-3 mr-1" />
-          )}
-          Seed / re-seed all 10 modules
-        </Button>
-      }
+      description="Create knowledge checks for lessons, module exams, or a course final exam. Published quizzes render for members automatically."
     >
-      <div className="grid sm:grid-cols-4 gap-3">
-        <Card className="p-4">
-          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Seeded</p>
-          <p className="text-2xl font-serif">{totals.seeded} / {PILOT_MAP.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Published</p>
-          <p className="text-2xl font-serif">{totals.published} / {PILOT_MAP.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Bound to lesson</p>
-          <p className="text-2xl font-serif">{totals.bound} / {PILOT_MAP.length}</p>
-        </Card>
-        <Card className="p-4">
-          <p className="text-[11px] uppercase tracking-wider text-foreground/60">Total questions</p>
-          <p className="text-2xl font-serif">{totals.questions} / 50</p>
-        </Card>
-      </div>
+      <NewQuizForm
+        courses={catalog.data?.courses ?? []}
+        modules={catalog.data?.modules ?? []}
+        lessons={catalog.data?.lessons ?? []}
+        onCreated={(id) => setPreviewId(id)}
+      />
 
       <Card className="p-0 overflow-hidden mt-4">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase tracking-wider text-foreground/60">
             <tr>
-              <th className="text-left p-3">Module</th>
+              <th className="text-left p-3">Quiz</th>
               <th className="text-left p-3">Course</th>
+              <th className="text-left p-3">Scope</th>
               <th className="text-left p-3">Status</th>
               <th className="text-left p-3">Qs</th>
               <th className="text-right p-3">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {overview.isLoading && (
-              <tr><td colSpan={5} className="p-6 text-center text-foreground/60">Loading…</td></tr>
+            {listQuery.isLoading && (
+              <tr><td colSpan={6} className="p-6 text-center text-foreground/60">Loading…</td></tr>
             )}
-            {!overview.isLoading && rows.map((r) => (
-              <tr key={r.slug} className="border-t">
+            {!listQuery.isLoading && rows.length === 0 && (
+              <tr><td colSpan={6} className="p-6 text-center text-foreground/60">No quizzes yet. Create one above.</td></tr>
+            )}
+            {rows.map((r) => (
+              <tr key={r.id} className="border-t">
+                <td className="p-3 font-medium">{r.title}</td>
                 <td className="p-3">
-                  <div className="font-medium">{r.module}</div>
-                  <div className="text-xs text-foreground/60">{r.title}</div>
+                  <Link to={`/admin/courses/${r.course_id}`} className="hover:underline inline-flex items-center gap-1">
+                    <BookOpen className="w-3 h-3" />
+                    {r.course_title ?? `#${r.course_id}`}
+                  </Link>
+                </td>
+                <td className="p-3 text-xs">{r.scope_label}</td>
+                <td className="p-3">
+                  <Badge variant={r.status === "published" ? "default" : "secondary"}>{r.status}</Badge>
                 </td>
                 <td className="p-3">
-                  {r.course_id ? (
-                    <Link to={`/admin/courses/${r.course_id}`} className="hover:underline inline-flex items-center gap-1">
-                      <BookOpen className="w-3 h-3" />
-                      {r.course_title}
-                    </Link>
-                  ) : (
-                    <span className="text-destructive text-xs">course missing ({r.slug})</span>
-                  )}
-                </td>
-                <td className="p-3">
-                  {r.quiz_id ? (
-                    <div className="flex flex-col gap-1">
-                      <Badge variant={r.quiz_status === "published" ? "default" : "secondary"} className="w-fit">
-                        {r.quiz_status}
-                      </Badge>
-                      {r.quiz_lesson_id ? (
-                        <span className="text-[10px] text-emerald-700">lesson #{r.quiz_lesson_id}</span>
-                      ) : (
-                        <span className="text-[10px] text-amber-700">unbound — hidden</span>
-                      )}
-                    </div>
-                  ) : (
-                    <Badge variant="outline">not seeded</Badge>
-                  )}
-                </td>
-                <td className="p-3 text-foreground/70">
-                  <span className="inline-flex items-center gap-1">
-                    <FileQuestion className="w-3 h-3" /> {r.question_count}
-                  </span>
+                  <span className="inline-flex items-center gap-1"><FileQuestion className="w-3 h-3" /> {r.question_count}</span>
                 </td>
                 <td className="p-3 text-right space-x-2">
-                  {r.quiz_id && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setPreviewQuizId((id) => (id === r.quiz_id ? null : r.quiz_id))}
-                    >
-                      <Eye className="w-3 h-3 mr-1" />
-                      {previewQuizId === r.quiz_id ? "Hide" : "Preview"}
-                    </Button>
-                  )}
-                  {r.quiz_id && !r.quiz_lesson_id && (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      disabled={attachMutation.isPending}
-                      onClick={() => attachMutation.mutate(r)}
-                    >
-                      Bind to first lesson
-                    </Button>
-                  )}
+                  <Link to={`/admin/courses/${r.course_id}`}>
+                    <Button size="sm" variant="outline">Edit</Button>
+                  </Link>
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewId((id) => (id === r.id ? null : r.id))}>
+                    <Eye className="w-3 h-3 mr-1" />
+                    {previewId === r.id ? "Hide" : "Preview"}
+                  </Button>
                   <Button
                     size="sm"
-                    variant="outline"
-                    disabled={!r.course_id || seedMutation.isPending}
-                    onClick={() => seedMutation.mutate(r.slug)}
+                    variant="ghost"
+                    className="text-destructive"
+                    onClick={() => {
+                      if (confirm(`Delete "${r.title}"? This removes all its questions and attempts.`)) {
+                        deleteMutation.mutate(r.id);
+                      }
+                    }}
                   >
-                    <RefreshCw className="w-3 h-3 mr-1" />
-                    {r.quiz_id ? "Re-seed" : "Seed"}
+                    <Trash2 className="w-3 h-3" />
                   </Button>
                 </td>
               </tr>
@@ -309,12 +336,12 @@ export default function AdminQuizzes() {
         </table>
       </Card>
 
-      {previewQuizId != null && (
+      {previewId != null && (
         <Card className="p-5 mt-4 space-y-2">
           <p className="text-[11px] uppercase tracking-wider text-foreground/60">
             Preview · no attempt is recorded
           </p>
-          <QuizCard quizId={previewQuizId} previewAsAdmin />
+          <QuizCard quizId={previewId} previewAsAdmin />
         </Card>
       )}
     </AdminShell>

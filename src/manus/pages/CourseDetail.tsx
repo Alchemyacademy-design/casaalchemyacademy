@@ -15,6 +15,7 @@ import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
+import QuizCard from "@/manus/components/learning/QuizCard";
 
 type Lesson = {
   id: number;
@@ -109,6 +110,23 @@ export default function CourseDetail() {
   );
 
   const { data: progress = [] } = trpc.lessons.progress.useQuery();
+
+  const { data: finalExam } = useQuery({
+    queryKey: ["course-final-exam", courseId, "published"],
+    enabled: Number.isFinite(courseId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title")
+        .eq("course_id", courseId)
+        .is("lesson_id", null)
+        .is("module_id", null)
+        .eq("status", "published")
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; title: string } | null;
+    },
+  });
   const completedIds = useMemo(
     () =>
       new Set<number>(
@@ -294,6 +312,13 @@ export default function CourseDetail() {
                     <LessonMaterial key={lesson.id} url={lesson.external_resource_url} label={lesson.title} />
                   ))}
                 </div>
+              </section>
+            ) : null}
+
+            {accessible && finalExam ? (
+              <section className="mb-10">
+                <SectionHeader title="Course final exam" description="Pass this exam to complete the course." />
+                <QuizCard quizId={finalExam.id} previewAsAdmin={false} />
               </section>
             ) : null}
           </div>

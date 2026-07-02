@@ -38,7 +38,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
     queryFn: async () => {
       const { data, error } = await db
         .from("quizzes")
-        .select("id,course_id,lesson_id,title,description,passing_score,max_attempts,status")
+        .select("id,course_id,lesson_id,module_id,title,description,passing_score,max_attempts,status")
         .eq("course_id", courseId)
         .order("id");
       if (error) throw error;
@@ -61,6 +61,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
       if (error) throw error;
       const out: CourseLessonOption[] = [];
       for (const m of (data ?? []) as Array<{
+        id: number;
         title: string;
         sort_order: number;
         lessons: Array<{ id: number; title: string; sort_order: number }> | null;
@@ -70,6 +71,20 @@ export default function AdminQuizEditor({ courseId }: Props) {
         }
       }
       return out;
+    },
+  });
+
+  const modulesQuery = useQuery({
+    queryKey: ["admin-quiz-module-pool", courseId],
+    enabled: Number.isFinite(courseId) && courseId > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("course_modules")
+        .select("id,title,sort_order")
+        .eq("course_id", courseId)
+        .order("sort_order");
+      if (error) throw error;
+      return (data ?? []) as Array<{ id: number; title: string; sort_order: number }>;
     },
   });
 
@@ -95,8 +110,19 @@ export default function AdminQuizEditor({ courseId }: Props) {
   });
 
   const setScope = useMutation({
-    mutationFn: async ({ quizId, lessonId }: { quizId: number; lessonId: number | null }) => {
-      const { error } = await db.from("quizzes").update({ lesson_id: lessonId }).eq("id", quizId);
+    mutationFn: async ({
+      quizId,
+      lessonId,
+      moduleId,
+    }: {
+      quizId: number;
+      lessonId: number | null;
+      moduleId: number | null;
+    }) => {
+      const { error } = await db
+        .from("quizzes")
+        .update({ lesson_id: lessonId, module_id: moduleId })
+        .eq("id", quizId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -140,25 +166,40 @@ export default function AdminQuizEditor({ courseId }: Props) {
                 {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"} ·{" "}
                 {q.lesson_id
                   ? `lesson #${q.lesson_id}`
-                  : "course-level draft scope"}
+                  : q.module_id
+                  ? `module exam #${q.module_id}`
+                  : "course final exam"}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <Label className="text-[11px] text-foreground/60">Scope</Label>
                 <select
-                  value={q.lesson_id ?? ""}
+                  value={q.lesson_id ? `L${q.lesson_id}` : q.module_id ? `M${q.module_id}` : "C"}
                   onChange={(e) => {
                     const v = e.currentTarget.value;
-                    setScope.mutate({ quizId: q.id, lessonId: v ? Number(v) : null });
+                    if (v === "C") {
+                      setScope.mutate({ quizId: q.id, lessonId: null, moduleId: null });
+                    } else if (v.startsWith("L")) {
+                      setScope.mutate({ quizId: q.id, lessonId: Number(v.slice(1)), moduleId: null });
+                    } else if (v.startsWith("M")) {
+                      setScope.mutate({ quizId: q.id, lessonId: null, moduleId: Number(v.slice(1)) });
+                    }
                   }}
-                  className="h-8 rounded border bg-background px-2 text-xs max-w-[280px]"
+                  className="h-8 rounded border bg-background px-2 text-xs max-w-[320px]"
                   aria-label="Quiz scope"
                 >
-                  <option value="">Course-level / not shown in lesson player</option>
-                  {(lessonsQuery.data ?? []).map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.module_title} · {l.title}
-                    </option>
-                  ))}
+                  <option value="C">Course final exam</option>
+                  <optgroup label="Lesson quiz">
+                    {(lessonsQuery.data ?? []).map((l) => (
+                      <option key={`L${l.id}`} value={`L${l.id}`}>
+                        {l.module_title} · {l.title}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Module exam">
+                    {(modulesQuery.data ?? []).map((m) => (
+                      <option key={`M${m.id}`} value={`M${m.id}`}>{m.title}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
             </div>
@@ -180,7 +221,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         ))}
         {(listQuery.data ?? []).length === 0 && !listQuery.isLoading && (
           <div className="text-xs text-foreground/60">
-            <p>No quizzes yet. Use “New quiz” above, choose the lesson Scope, and publish it so it appears inline for students.</p>
+            <p>No quizzes yet. Use “New quiz” above, choose the Scope (lesson / module exam / course final exam), and publish it so it appears for students.</p>
           </div>
         )}
       </div>
@@ -327,10 +368,6 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
             onChange={(e) => {
               const next = e.currentTarget.value as QuizStatus;
               if (next === "published") {
-                if (!quiz.lesson_id) {
-                  toast.error("Set a lesson Scope before publishing — course-level quizzes are not shown in the lesson player.");
-                  return;
-                }
                 if (!canPublish) {
                   toast.error("Cannot publish: each question needs ≥2 options with exactly one correct.");
                   return;
@@ -351,11 +388,14 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
         </div>
       </div>
 
-      {!quiz.lesson_id && (
-        <p className="text-xs text-amber-700">
-          This quiz has no lesson Scope. Members will NOT see it until you pick a lesson in the list above.
-        </p>
-      )}
+      <p className="text-xs text-foreground/60">
+        Scope:{" "}
+        {quiz.lesson_id
+          ? `Lesson quiz (#${quiz.lesson_id}) — shown inline on that lesson.`
+          : quiz.module_id
+          ? `Module exam (#${quiz.module_id}) — shown at end of that module.`
+          : "Course final exam — shown on the course page after all modules."}
+      </p>
       {!canPublish && (
         <p className="text-xs text-amber-700">
           To publish, give the quiz a title and ensure every question has at least 2 options with exactly one marked correct.
