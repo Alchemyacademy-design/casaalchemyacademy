@@ -130,6 +130,22 @@ export default function ModuleDetail() {
     },
   });
 
+  // Module-level exam (module_id = current module, published).
+  const moduleExamQuery = useQuery({
+    queryKey: ["module-exam", moduleId, "published"],
+    enabled: isValidModuleId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("quizzes")
+        .select("id,title")
+        .eq("module_id", moduleId)
+        .eq("status", "published")
+        .maybeSingle();
+      if (error) throw error;
+      return data as { id: number; title: string } | null;
+    },
+  });
+
   // Course-level quizzes are intentionally not rendered inside the lesson
   // player. Admins use this notice to attach each quiz to the correct lesson.
   // Fetch sibling modules (same course) so Next/Previous can cross module
@@ -246,6 +262,8 @@ export default function ModuleDetail() {
   const activeLessonQuiz = activeLesson
     ? (lessonQuizQuery.data ?? []).find((q) => q.lesson_id === activeLesson.id)
     : null;
+  const isLastLesson = activeLesson ? lessons[lessons.length - 1]?.id === activeLesson.id : false;
+  const moduleExam = moduleExamQuery.data;
 
   const lessonQuizIds = new Set((lessonQuizQuery.data ?? []).map((q) => Number(q.lesson_id)).filter(Boolean));
   const sidebarLessons = lessons.map((l) => ({
