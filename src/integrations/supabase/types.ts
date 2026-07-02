@@ -773,6 +773,7 @@ export type Database = {
       }
       lesson_ratings: {
         Row: {
+          comment: string | null
           course_id: number | null
           created_at: string
           id: number
@@ -782,6 +783,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          comment?: string | null
           course_id?: number | null
           created_at?: string
           id?: number
@@ -791,6 +793,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          comment?: string | null
           course_id?: number | null
           created_at?: string
           id?: number
@@ -1095,6 +1098,7 @@ export type Database = {
           action: string
           created_at: string
           id: number
+          lesson_comment_id: number | null
           moderator_id: string | null
           post_id: number | null
           reason: string | null
@@ -1104,6 +1108,7 @@ export type Database = {
           action: string
           created_at?: string
           id?: never
+          lesson_comment_id?: number | null
           moderator_id?: string | null
           post_id?: number | null
           reason?: string | null
@@ -1113,12 +1118,20 @@ export type Database = {
           action?: string
           created_at?: string
           id?: never
+          lesson_comment_id?: number | null
           moderator_id?: string | null
           post_id?: number | null
           reason?: string | null
           reply_id?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "moderation_actions_lesson_comment_id_fkey"
+            columns: ["lesson_comment_id"]
+            isOneToOne: false
+            referencedRelation: "lesson_comments"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "moderation_actions_post_id_fkey"
             columns: ["post_id"]
