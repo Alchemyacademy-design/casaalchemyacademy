@@ -36,6 +36,37 @@ import CertificatePreview from "@/manus/components/learning/CertificatePreview";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
 import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/lib/video-url";
 
+const PLAN_LABELS: Record<string, { label: string; tone: string }> = {
+  annual_member: { label: "Annual Membership", tone: "bg-emerald-500/15 text-emerald-800 border-emerald-500/40" },
+  monthly_member: { label: "Monthly Membership", tone: "bg-sky-500/15 text-sky-800 border-sky-500/40" },
+  individual_course: { label: "Single Course", tone: "bg-amber-500/15 text-amber-800 border-amber-500/40" },
+  free: { label: "Free / Guest", tone: "bg-muted text-foreground/70 border-border" },
+  guest: { label: "Free / Guest", tone: "bg-muted text-foreground/70 border-border" },
+};
+
+function AccessPlanSummary({ keys }: { keys: readonly string[] | null | undefined }) {
+  const list = Array.from(new Set(keys ?? []));
+  if (list.length === 0) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        No plans selected — this course is currently hidden from every member. Select at least one plan.
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {list.map((k) => {
+        const meta = PLAN_LABELS[k] ?? { label: k.replace(/_/g, " "), tone: "bg-muted text-foreground/70 border-border" };
+        return (
+          <span key={k} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.tone}`}>
+            ✓ {meta.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 import {
   createLesson,
   createCourse as createCourseViaEdge,
@@ -648,6 +679,9 @@ function CourseHeader({
           </div>
           <div>
             <Label className="text-xs">Access plan keys</Label>
+            <div className="mt-2 mb-2">
+              <AccessPlanSummary keys={course.access_plan_keys ?? []} />
+            </div>
             <div className="flex flex-wrap gap-3 pt-2">
               {PLAN_KEYS.map((key) => {
                 const checked = (course.access_plan_keys ?? []).includes(key);
@@ -830,6 +864,42 @@ export default function AdminCourseDetail() {
   const newCoverRef = useRef<HTMLInputElement>(null);
   const [newFormErrors, setNewFormErrors] = useState<Record<string, string>>({});
 
+  // Live slug availability check (debounced) — blocks duplicates before submit.
+  useEffect(() => {
+    if (!isNew) return;
+    const candidate = (newForm.slug || slugify(newForm.title)).trim();
+    if (!candidate) {
+      setNewFormErrors((prev) => {
+        if (!prev.slug) return prev;
+        const { slug: _drop, ...rest } = prev;
+        return rest;
+      });
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const taken = await slugTaken(candidate);
+        if (cancelled) return;
+        setNewFormErrors((prev) => {
+          if (taken) {
+            if (prev.slug?.includes(candidate)) return prev;
+            return { ...prev, slug: `Slug "${candidate}" is already used by another course` };
+          }
+          if (!prev.slug) return prev;
+          const { slug: _drop, ...rest } = prev;
+          return rest;
+        });
+      } catch {
+        /* network hiccup — validation will re-run on submit */
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isNew, newForm.slug, newForm.title]);
+
   const validateNewForm = (): ReturnType<typeof validateCourseInput> | null => {
     try {
       const clean = validateCourseInput({
@@ -890,7 +960,11 @@ export default function AdminCourseDetail() {
       toast.success("Course created — add modules & lessons below");
       qc.invalidateQueries({ queryKey: ["admin", "courses"] });
       qc.invalidateQueries({ queryKey: ["admin", "courses-tree"] });
-      navigate(`/admin/courses/${data.id}`, { replace: true });
+      // Always land on the module/lesson editor with the new course loaded.
+      navigate(`/admin/courses/${data.id}#modules`, { replace: true });
+      requestAnimationFrame(() => {
+        document.getElementById("modules")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     },
     onError: (e: unknown) => toast.error(errorMessage(e)),
   });
@@ -1102,8 +1176,19 @@ export default function AdminCourseDetail() {
                 );
               })}
             </div>
+            <div className="pt-1">
+              <AccessPlanSummary keys={newForm.access_plan_keys} />
+            </div>
           </div>
-          <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
+          <Button
+            onClick={() => createCourse.mutate()}
+            disabled={
+              createCourse.isPending ||
+              !newForm.title.trim() ||
+              !!newFormErrors.slug ||
+              newForm.access_plan_keys.length === 0
+            }
+          >
             {createCourse.isPending ? "Creating…" : "Create course & continue"}
           </Button>
         </Card>
@@ -1189,7 +1274,7 @@ export default function AdminCourseDetail() {
 
         <LessonPreviewPanel rows={lessonPreviewRows} />
 
-        <div className="flex items-center justify-between">
+        <div id="modules" className="flex items-center justify-between scroll-mt-24">
           <h2 className="font-semibold">Modules &amp; lessons</h2>
           <Button onClick={handleAddModule}><Plus className="w-4 h-4 mr-1" /> Add module</Button>
         </div>
