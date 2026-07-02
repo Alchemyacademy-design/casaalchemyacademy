@@ -36,6 +36,37 @@ import CertificatePreview from "@/manus/components/learning/CertificatePreview";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
 import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/lib/video-url";
 
+const PLAN_LABELS: Record<string, { label: string; tone: string }> = {
+  annual_member: { label: "Annual Membership", tone: "bg-emerald-500/15 text-emerald-800 border-emerald-500/40" },
+  monthly_member: { label: "Monthly Membership", tone: "bg-sky-500/15 text-sky-800 border-sky-500/40" },
+  individual_course: { label: "Single Course", tone: "bg-amber-500/15 text-amber-800 border-amber-500/40" },
+  free: { label: "Free / Guest", tone: "bg-muted text-foreground/70 border-border" },
+  guest: { label: "Free / Guest", tone: "bg-muted text-foreground/70 border-border" },
+};
+
+function AccessPlanSummary({ keys }: { keys: readonly string[] | null | undefined }) {
+  const list = Array.from(new Set(keys ?? []));
+  if (list.length === 0) {
+    return (
+      <div className="rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+        No plans selected — this course is currently hidden from every member. Select at least one plan.
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {list.map((k) => {
+        const meta = PLAN_LABELS[k] ?? { label: k.replace(/_/g, " "), tone: "bg-muted text-foreground/70 border-border" };
+        return (
+          <span key={k} className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${meta.tone}`}>
+            ✓ {meta.label}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 import {
   createLesson,
   createCourse as createCourseViaEdge,
