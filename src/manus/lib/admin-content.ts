@@ -185,7 +185,7 @@ export async function updateLesson(id: number, patch: Database["public"]["Tables
  * regardless of RLS configuration on these tables. It also auto-assigns
  * sort_order = max + 1.
  */
-async function invokeAdminCreate<T>(body: unknown): Promise<T> {
+async function invokeAdminCreate<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke("admin-content-create", { body });
   if (error) {
     const detail = (data as { message?: string; error?: string } | null) ?? null;
