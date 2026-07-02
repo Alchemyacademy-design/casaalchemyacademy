@@ -1263,7 +1263,7 @@ export default function AdminCourseDetail() {
 
         <LessonPreviewPanel rows={lessonPreviewRows} />
 
-        <div className="flex items-center justify-between">
+        <div id="modules" className="flex items-center justify-between scroll-mt-24">
           <h2 className="font-semibold">Modules &amp; lessons</h2>
           <Button onClick={handleAddModule}><Plus className="w-4 h-4 mr-1" /> Add module</Button>
         </div>
