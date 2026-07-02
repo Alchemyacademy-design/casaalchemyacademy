@@ -388,7 +388,8 @@ async function applyAnnualCheckoutPayment(
 }
 
 async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string) {
-  const userId = metadataUserId(subscription.metadata);
+  const userId = metadataUserId(subscription.metadata)
+    ?? await resolveUserIdForSubscription(supabase, subscription);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const { error } = await supabase.rpc("internal_apply_stripe_subscription_state", {
     p_stripe_event_id: event.id,
@@ -410,7 +411,8 @@ async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: 
   if (subscription.status !== "active") throw new BillingError(`Subscription ${subscription.id} is not active`);
   if (subscription.items.data.length !== 1) throw new BillingError(`Subscription ${subscription.id} must have one item`);
 
-  const userId = metadataUserId(subscription.metadata);
+  const userId = metadataUserId(subscription.metadata)
+    ?? await resolveUserIdForSubscription(supabase, subscription);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const price = subscription.items.data[0].price;
   const invoicePriceId = invoiceLinePriceId(invoice);
