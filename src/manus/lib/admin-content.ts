@@ -53,6 +53,7 @@ const courseInputSchema = z.object({
   subtitle: z.string().trim().max(200, "Subtitle must be at most 200 characters").nullable().optional().or(z.literal("")),
   description: z.string().trim().max(4000, "Description must be at most 4000 characters").nullable().optional().or(z.literal("")),
   cover_image_path: urlSchema,
+  external_landing_url: urlSchema,
 });
 
 export function validateCourseInput(input: {
@@ -61,6 +62,7 @@ export function validateCourseInput(input: {
   subtitle?: string | null;
   description?: string | null;
   cover_image_path?: string | null;
+  external_landing_url?: string | null;
 }) {
   const parsed = courseInputSchema.safeParse({
     title: input.title ?? "",
@@ -68,6 +70,7 @@ export function validateCourseInput(input: {
     subtitle: input.subtitle ?? "",
     description: input.description ?? "",
     cover_image_path: input.cover_image_path ?? "",
+    external_landing_url: input.external_landing_url ?? "",
   });
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
@@ -80,6 +83,7 @@ export function validateCourseInput(input: {
     subtitle: parsed.data.subtitle || null,
     description: parsed.data.description || null,
     cover_image_path: parsed.data.cover_image_path || null,
+    external_landing_url: parsed.data.external_landing_url || null,
   };
 }
 
@@ -270,11 +274,22 @@ export async function createCourse(input: {
   subtitle?: string | null;
   description?: string | null;
   cover_image_path?: string | null;
+  external_landing_url?: string | null;
+  status?: ContentStatus;
 }): Promise<Course> {
   const v = validateCourseInput(input);
-  input = v;
+  const status: ContentStatus = input.status === "published" ? "published" : "draft";
+  input = { ...v, status };
   try {
     const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
+    // Edge function may ignore status; ensure it's applied
+    if (status === "published" && res.course.status !== "published") {
+      const { error } = await supabase
+        .from("courses")
+        .update({ status: "published", published_at: new Date().toISOString() })
+        .eq("id", res.course.id);
+      if (!error) res.course.status = "published";
+    }
     return res.course;
   } catch (edgeErr) {
     // Fallback: admins have RLS insert on courses. Compute slug + sort_order
@@ -308,7 +323,9 @@ export async function createCourse(input: {
         subtitle: input.subtitle?.trim() || null,
         description: input.description?.trim() || null,
         cover_image_path: input.cover_image_path?.trim() || null,
-        status: "draft",
+        external_landing_url: input.external_landing_url?.trim() || null,
+        status,
+        published_at: status === "published" ? new Date().toISOString() : null,
         sort_order: nextSort,
         created_by: userData.user?.id ?? null,
       })

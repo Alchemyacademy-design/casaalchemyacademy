@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
 import VideoPreview from "@/manus/components/admin/VideoPreview";
@@ -819,6 +820,8 @@ export default function AdminCourseDetail() {
     subtitle: "",
     description: "",
     cover_image_path: "" as string | null | "",
+    external_landing_url: "",
+    publish: false,
   });
   const [newCoverUploading, setNewCoverUploading] = useState(false);
   const newCoverRef = useRef<HTMLInputElement>(null);
@@ -832,6 +835,7 @@ export default function AdminCourseDetail() {
         subtitle: newForm.subtitle || null,
         description: newForm.description || null,
         cover_image_path: newForm.cover_image_path || null,
+        external_landing_url: newForm.external_landing_url || null,
       });
       setNewFormErrors({});
       return clean;
@@ -863,7 +867,11 @@ export default function AdminCourseDetail() {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
       const data = await withTimeout(
-        createCourseViaEdge({ ...clean, slug: clean.slug || slugify(clean.title) }),
+        createCourseViaEdge({
+          ...clean,
+          slug: clean.slug || slugify(clean.title),
+          status: newForm.publish ? "published" : "draft",
+        }),
         15000,
         "Create course",
       );
@@ -1038,6 +1046,27 @@ export default function AdminCourseDetail() {
                 }}
               />
             </div>
+          </div>
+          <div>
+            <Label>External link (optional)</Label>
+            <Input
+              value={newForm.external_landing_url}
+              onChange={(e) => setNewForm((f) => ({ ...f, external_landing_url: e.target.value }))}
+              placeholder="https://…"
+              aria-invalid={!!newFormErrors.external_landing_url}
+            />
+            <p className="text-xs text-foreground/50 mt-1">Landing/sales page for this course. Lesson videos are added later inside each module.</p>
+            {newFormErrors.external_landing_url && <p className="text-xs text-destructive mt-1">{newFormErrors.external_landing_url}</p>}
+          </div>
+          <div className="flex items-center justify-between rounded-md border p-3">
+            <div>
+              <Label className="mb-0">Publish immediately</Label>
+              <p className="text-xs text-foreground/50">Off = save as draft. You can toggle it later from the course header.</p>
+            </div>
+            <Switch
+              checked={newForm.publish}
+              onCheckedChange={(v) => setNewForm((f) => ({ ...f, publish: v }))}
+            />
           </div>
           <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
             {createCourse.isPending ? "Creating…" : "Create course & continue"}
