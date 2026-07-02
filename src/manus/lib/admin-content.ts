@@ -205,6 +205,8 @@ export async function createCourse(input: {
   description?: string | null;
   cover_image_path?: string | null;
 }): Promise<Course> {
+  const v = validateCourseInput(input);
+  input = v;
   try {
     const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
     return res.course;
@@ -254,6 +256,9 @@ export async function createCourse(input: {
 }
 
 export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
+  const t = validateTitle(title, "Module title");
+  title = t;
+  if (!Number.isFinite(courseId) || courseId <= 0) throw new Error("Invalid course");
   try {
     const res = await invokeAdminCreate<{ module: Module }>({
       kind: "module",
@@ -272,6 +277,9 @@ export async function createModule(courseId: number, sortOrder: number, title = 
 }
 
 export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
+  const t = validateTitle(title, "Lesson title");
+  title = t;
+  if (!Number.isFinite(moduleId) || moduleId <= 0) throw new Error("Invalid module");
   try {
     const res = await invokeAdminCreate<{ lesson: Lesson }>({
       kind: "lesson",
