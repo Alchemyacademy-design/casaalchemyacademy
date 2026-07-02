@@ -1380,6 +1380,7 @@ export type Database = {
           id: number
           lesson_id: number | null
           max_attempts: number | null
+          module_id: number | null
           passing_score: number
           status: Database["public"]["Enums"]["content_status"]
           title: string
@@ -1392,6 +1393,7 @@ export type Database = {
           id?: never
           lesson_id?: number | null
           max_attempts?: number | null
+          module_id?: number | null
           passing_score?: number
           status?: Database["public"]["Enums"]["content_status"]
           title: string
@@ -1404,6 +1406,7 @@ export type Database = {
           id?: never
           lesson_id?: number | null
           max_attempts?: number | null
+          module_id?: number | null
           passing_score?: number
           status?: Database["public"]["Enums"]["content_status"]
           title?: string
@@ -1422,6 +1425,13 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quizzes_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
         ]
