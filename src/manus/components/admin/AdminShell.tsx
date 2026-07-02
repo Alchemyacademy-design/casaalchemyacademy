@@ -4,6 +4,7 @@ import {
   ChevronRight,
   LayoutDashboard,
   BookOpen,
+  PlusCircle,
   ListChecks,
   Users,
   BarChart3,
@@ -45,6 +46,7 @@ interface Crumb {
 const NAV = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
+  { title: "New course", url: "/admin/courses/new", icon: PlusCircle },
   { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
   { title: "Quizzes", url: "/admin/quizzes", icon: FileQuestion },
   { title: "Events", url: "/admin/events", icon: Calendar },
