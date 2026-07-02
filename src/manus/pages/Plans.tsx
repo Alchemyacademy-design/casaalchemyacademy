@@ -39,7 +39,7 @@ export default function Plans() {
         <div className="text-center mb-10">
           <p className="section-label mb-2">Choose your access</p>
           <h1 className="font-serif text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>Select the option that fits you</h1>
-          <p className="text-sm text-foreground/70 max-w-2xl mx-auto">Stripe billing is coming soon. Plans below reflect what your account will unlock.</p>
+          <p className="text-sm text-foreground/70 max-w-2xl mx-auto">Choose a plan below and complete checkout securely with Stripe. Access is released automatically as soon as your payment is confirmed.</p>
         </div>
 
         {isAdmin && (
