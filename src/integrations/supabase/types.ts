@@ -333,6 +333,72 @@ export type Database = {
         }
         Relationships: []
       }
+      course_audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          course_id: number | null
+          created_at: string
+          entity_id: number | null
+          entity_type: string
+          id: number
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          course_id?: number | null
+          created_at?: string
+          entity_id?: number | null
+          entity_type: string
+          id?: number
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          course_id?: number | null
+          created_at?: string
+          entity_id?: number | null
+          entity_type?: string
+          id?: number
+        }
+        Relationships: []
+      }
+      course_categories: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: number
+          name: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: number
+          name?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       course_entitlements: {
         Row: {
           active: boolean
@@ -407,7 +473,11 @@ export type Database = {
           created_at: string
           description: string | null
           id: number
+          prerequisite_module_id: number | null
           published_at: string | null
+          release_after_days: number | null
+          release_at: string | null
+          release_type: Database["public"]["Enums"]["course_release_type"]
           sort_order: number
           status: Database["public"]["Enums"]["content_status"]
           title: string
@@ -421,7 +491,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: never
+          prerequisite_module_id?: number | null
           published_at?: string | null
+          release_after_days?: number | null
+          release_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           title: string
@@ -435,7 +509,11 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: never
+          prerequisite_module_id?: number | null
           published_at?: string | null
+          release_after_days?: number | null
+          release_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           title?: string
@@ -449,61 +527,175 @@ export type Database = {
             referencedRelation: "courses"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "course_modules_prerequisite_module_id_fkey"
+            columns: ["prerequisite_module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      course_tag_map: {
+        Row: {
+          course_id: number
+          tag_id: number
+        }
+        Insert: {
+          course_id: number
+          tag_id: number
+        }
+        Update: {
+          course_id?: number
+          tag_id?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_tag_map_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "course_tag_map_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "course_tags"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      course_tags: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+          slug?: string
+        }
+        Relationships: []
       }
       courses: {
         Row: {
           access_plan_keys: Database["public"]["Enums"]["membership_plan_key"][]
+          access_type: Database["public"]["Enums"]["course_access_type"]
           archived_at: string | null
+          banner_url: string | null
+          category_id: number | null
           cover_image_path: string | null
           created_at: string
           created_by: string | null
           description: string | null
+          estimated_duration: number | null
           external_landing_url: string | null
+          has_certificate: boolean
           id: number
+          instructor_id: string | null
+          instructor_name: string | null
+          is_featured: boolean
+          language: string
+          level: Database["public"]["Enums"]["course_level"] | null
           published_at: string | null
+          release_type: Database["public"]["Enums"]["course_release_type"]
+          scheduled_publish_at: string | null
+          short_description: string | null
           slug: string
           sort_order: number
           status: Database["public"]["Enums"]["content_status"]
           subtitle: string | null
           title: string
+          trailer_url: string | null
           updated_at: string
+          updated_by: string | null
+          visibility: Database["public"]["Enums"]["course_visibility"]
         }
         Insert: {
           access_plan_keys?: Database["public"]["Enums"]["membership_plan_key"][]
+          access_type?: Database["public"]["Enums"]["course_access_type"]
           archived_at?: string | null
+          banner_url?: string | null
+          category_id?: number | null
           cover_image_path?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          estimated_duration?: number | null
           external_landing_url?: string | null
+          has_certificate?: boolean
           id?: never
+          instructor_id?: string | null
+          instructor_name?: string | null
+          is_featured?: boolean
+          language?: string
+          level?: Database["public"]["Enums"]["course_level"] | null
           published_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
+          scheduled_publish_at?: string | null
+          short_description?: string | null
           slug: string
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           subtitle?: string | null
           title: string
+          trailer_url?: string | null
           updated_at?: string
+          updated_by?: string | null
+          visibility?: Database["public"]["Enums"]["course_visibility"]
         }
         Update: {
           access_plan_keys?: Database["public"]["Enums"]["membership_plan_key"][]
+          access_type?: Database["public"]["Enums"]["course_access_type"]
           archived_at?: string | null
+          banner_url?: string | null
+          category_id?: number | null
           cover_image_path?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
+          estimated_duration?: number | null
           external_landing_url?: string | null
+          has_certificate?: boolean
           id?: never
+          instructor_id?: string | null
+          instructor_name?: string | null
+          is_featured?: boolean
+          language?: string
+          level?: Database["public"]["Enums"]["course_level"] | null
           published_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
+          scheduled_publish_at?: string | null
+          short_description?: string | null
           slug?: string
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           subtitle?: string | null
           title?: string
+          trailer_url?: string | null
           updated_at?: string
+          updated_by?: string | null
+          visibility?: Database["public"]["Enums"]["course_visibility"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "course_categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       events: {
         Row: {
@@ -672,6 +864,106 @@ export type Database = {
         }
         Relationships: []
       }
+      lesson_attachments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          file_name: string
+          file_size: number | null
+          file_type: string | null
+          id: number
+          is_downloadable: boolean
+          is_public: boolean
+          lesson_id: number
+          storage_bucket: string
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: number
+          is_downloadable?: boolean
+          is_public?: boolean
+          lesson_id: number
+          storage_bucket?: string
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          file_size?: number | null
+          file_type?: string | null
+          id?: number
+          is_downloadable?: boolean
+          is_public?: boolean
+          lesson_id?: number
+          storage_bucket?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_attachments_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lesson_blocks: {
+        Row: {
+          block_type: string
+          content: Json
+          created_at: string
+          created_by: string | null
+          id: number
+          is_visible: boolean
+          lesson_id: number
+          position: number
+          settings: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          block_type: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          is_visible?: boolean
+          lesson_id: number
+          position?: number
+          settings?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          block_type?: string
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: number
+          is_visible?: boolean
+          lesson_id?: number
+          position?: number
+          settings?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_blocks_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_comments: {
         Row: {
           body: string
@@ -821,6 +1113,8 @@ export type Database = {
       }
       lessons: {
         Row: {
+          allow_comments: boolean
+          allow_download: boolean
           archived_at: string | null
           content_text: string | null
           created_at: string
@@ -829,15 +1123,24 @@ export type Database = {
           external_resource_url: string | null
           external_video_url: string | null
           id: number
+          is_mandatory: boolean
           is_preview: boolean
+          lesson_type: Database["public"]["Enums"]["lesson_kind"]
           module_id: number
+          prerequisite_lesson_id: number | null
           published_at: string | null
+          release_after_days: number | null
+          release_at: string | null
+          release_type: Database["public"]["Enums"]["course_release_type"]
           sort_order: number
           status: Database["public"]["Enums"]["content_status"]
           title: string
           updated_at: string
+          updated_by: string | null
         }
         Insert: {
+          allow_comments?: boolean
+          allow_download?: boolean
           archived_at?: string | null
           content_text?: string | null
           created_at?: string
@@ -846,15 +1149,24 @@ export type Database = {
           external_resource_url?: string | null
           external_video_url?: string | null
           id?: never
+          is_mandatory?: boolean
           is_preview?: boolean
+          lesson_type?: Database["public"]["Enums"]["lesson_kind"]
           module_id: number
+          prerequisite_lesson_id?: number | null
           published_at?: string | null
+          release_after_days?: number | null
+          release_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           title: string
           updated_at?: string
+          updated_by?: string | null
         }
         Update: {
+          allow_comments?: boolean
+          allow_download?: boolean
           archived_at?: string | null
           content_text?: string | null
           created_at?: string
@@ -863,13 +1175,20 @@ export type Database = {
           external_resource_url?: string | null
           external_video_url?: string | null
           id?: never
+          is_mandatory?: boolean
           is_preview?: boolean
+          lesson_type?: Database["public"]["Enums"]["lesson_kind"]
           module_id?: number
+          prerequisite_lesson_id?: number | null
           published_at?: string | null
+          release_after_days?: number | null
+          release_at?: string | null
+          release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
           title?: string
           updated_at?: string
+          updated_by?: string | null
         }
         Relationships: [
           {
@@ -877,6 +1196,13 @@ export type Database = {
             columns: ["module_id"]
             isOneToOne: false
             referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_prerequisite_lesson_id_fkey"
+            columns: ["prerequisite_lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
             referencedColumns: ["id"]
           },
         ]
@@ -2117,6 +2443,8 @@ export type Database = {
           user_rating: number
         }[]
       }
+      owns_course: { Args: { _course_id: number }; Returns: boolean }
+      owns_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       register_for_event: {
         Args: {
           target_id: number
