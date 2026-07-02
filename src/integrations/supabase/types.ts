@@ -2145,9 +2145,46 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "student"
+      app_role: "admin" | "student" | "content_manager" | "instructor"
       community_content_status: "published" | "hidden" | "archived" | "deleted"
-      content_status: "draft" | "published" | "archived"
+      content_status:
+        | "draft"
+        | "published"
+        | "archived"
+        | "in_review"
+        | "scheduled"
+      course_access_type:
+        | "free"
+        | "paid"
+        | "plan"
+        | "manual"
+        | "private"
+        | "product"
+        | "time_limited"
+        | "lifetime"
+        | "cohort"
+      course_level: "beginner" | "intermediate" | "advanced"
+      course_release_type:
+        | "all_at_once"
+        | "drip_days"
+        | "drip_date"
+        | "after_previous_lesson"
+        | "after_previous_module"
+        | "manual"
+        | "per_cohort"
+      course_visibility: "public" | "unlisted" | "private"
+      lesson_kind:
+        | "video"
+        | "text"
+        | "audio"
+        | "pdf"
+        | "live"
+        | "external_link"
+        | "quiz"
+        | "assessment"
+        | "practice"
+        | "download"
+        | "hybrid"
       membership_plan_key:
         | "annual_member"
         | "monthly_member"
@@ -2309,9 +2346,50 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "student"],
+      app_role: ["admin", "student", "content_manager", "instructor"],
       community_content_status: ["published", "hidden", "archived", "deleted"],
-      content_status: ["draft", "published", "archived"],
+      content_status: [
+        "draft",
+        "published",
+        "archived",
+        "in_review",
+        "scheduled",
+      ],
+      course_access_type: [
+        "free",
+        "paid",
+        "plan",
+        "manual",
+        "private",
+        "product",
+        "time_limited",
+        "lifetime",
+        "cohort",
+      ],
+      course_level: ["beginner", "intermediate", "advanced"],
+      course_release_type: [
+        "all_at_once",
+        "drip_days",
+        "drip_date",
+        "after_previous_lesson",
+        "after_previous_module",
+        "manual",
+        "per_cohort",
+      ],
+      course_visibility: ["public", "unlisted", "private"],
+      lesson_kind: [
+        "video",
+        "text",
+        "audio",
+        "pdf",
+        "live",
+        "external_link",
+        "quiz",
+        "assessment",
+        "practice",
+        "download",
+        "hybrid",
+      ],
       membership_plan_key: [
         "annual_member",
         "monthly_member",
