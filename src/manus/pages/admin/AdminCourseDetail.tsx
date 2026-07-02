@@ -960,7 +960,11 @@ export default function AdminCourseDetail() {
       toast.success("Course created — add modules & lessons below");
       qc.invalidateQueries({ queryKey: ["admin", "courses"] });
       qc.invalidateQueries({ queryKey: ["admin", "courses-tree"] });
-      navigate(`/admin/courses/${data.id}`, { replace: true });
+      // Always land on the module/lesson editor with the new course loaded.
+      navigate(`/admin/courses/${data.id}#modules`, { replace: true });
+      requestAnimationFrame(() => {
+        document.getElementById("modules")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     },
     onError: (e: unknown) => toast.error(errorMessage(e)),
   });
