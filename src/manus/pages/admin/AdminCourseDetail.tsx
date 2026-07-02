@@ -679,6 +679,9 @@ function CourseHeader({
           </div>
           <div>
             <Label className="text-xs">Access plan keys</Label>
+            <div className="mt-2 mb-2">
+              <AccessPlanSummary keys={course.access_plan_keys ?? []} />
+            </div>
             <div className="flex flex-wrap gap-3 pt-2">
               {PLAN_KEYS.map((key) => {
                 const checked = (course.access_plan_keys ?? []).includes(key);
