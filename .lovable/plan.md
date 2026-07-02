@@ -1,58 +1,42 @@
-# Plan — Admin Course Authoring (parity with seeded courses)
 
-## Goal
-Let the admin create a new course from the Admin Center and have it render in the Member Area with the exact same structure, thumbnail, player, sidebar, quiz, ratings and comments as the seeded courses — no manual SQL, no hidden fields.
+## Premortem — Why "New course" hangs today
 
-## Gaps today
-1. **New Course** form only captures a subset of what seeded courses have (missing `summary`, `hero_image_url`, `access_plan_keys`, `sort_order`, publish state parity).
-2. **Modules / Lessons** creation works, but there is no single wizard that guides `Course → Module → Lesson → Quiz` in one flow, so new courses look "empty" in the member area until every piece is added.
-3. **Publish gate**: seeded courses render because `published = true` and `access_plan_keys` includes an active plan. New courses currently default to unpublished / empty plan keys, so members don't see them.
-4. **Thumbnail parity**: seeded courses use square cover art in `public-assets`. The admin form accepts a URL but doesn't validate ratio/host, so tiles break.
-5. **Preview parity**: admin can preview a lesson, but there is no "View as member" link that opens the exact `/courses/:slug` route to confirm rendering.
+Root causes observed in `src/manus/lib/admin-content.ts` + `AdminCourseDetail.tsx`:
 
-## Deliverables
+1. **Every create call tries the edge function first.** `admin-content-create` cold-starts, occasionally 502s, and its 8s timeout is inside an *inner* Promise.race that still awaits `supabase.functions.invoke` — if the network layer never resolves, the race resolves but the invoke keeps its React Query mutation in `isPending` because the fallback path (direct insert) can itself stall on `slugTaken` / `maxRow` queries that are **not** wrapped in a timeout.
+2. **`slugTaken()` is called twice inside the mutation** (once by the debounce effect, once inside `mutationFn`) with no timeout, so a slow Supabase round-trip freezes the button forever.
+3. **Cover upload state is not race-protected**: if the storage upload silently stalls we never release the button.
+4. The `admin_full_access` RLS policies (`docs/migrations/20260622000000_admin_full_access_policies.sql`) already give admins full write on `courses`, `course_modules`, `lessons`. The edge function is redundant for our current admin.
 
-### 1. Course form parity (`AdminCourseDetail` → New Course dialog)
-Fields, all validated with zod:
-- Title (2–120), Slug (auto from title, editable, `^[a-z0-9-]+$`)
-- Subtitle, Summary (short marketing line used on the course card)
-- Description (long)
-- Cover thumbnail: upload to `public-assets/course-covers/` OR paste URL (accept Dropbox, normalized)
-- Hero image (optional, same uploader)
-- Access plans: multi-select from `membership_plans` (`monthly`, `annual`, `single_course`) — default all three so it appears for every paying member
-- Sort order (number, default = max+1)
-- Published toggle (default ON so it renders immediately)
+## Plan
 
-### 2. Guided authoring wizard
-After "Create course" succeeds, the dialog transitions to:
-- **Step 2 — Add first module** (title, summary, sort_order auto)
-- **Step 3 — Add first lesson** (title, Dropbox/YouTube/Vimeo/MP4 URL, duration, thumbnail, published)
-- **Step 4 — Optional quiz** (reuses `AdminQuizEditor` with scope pre-selected to that lesson/module)
-- **Finish** → toast "Course live" + button "Open as member" linking to `/courses/:slug`.
+Keep the UI unchanged; rewrite the data layer to use **Supabase directly** with strict timeouts and a single insert path.
 
-Every step uses the resilient `admin-content-create` edge function with the direct-insert RLS fallback already in place, plus the 8s/15s timeout guards.
+### 1. `src/manus/lib/admin-content.ts`
+- Add `withTimeout<T>(promise, ms, label)` helper.
+- Replace `createCourse`, `createModule`, `createLesson` with **direct RLS inserts** (no edge function, no fallback branching). Each supabase call wrapped in `withTimeout(..., 8000)`.
+- `createCourse` steps, all guarded:
+  1. Validate input.
+  2. Compute unique slug (loop up to 10 candidates, each check `withTimeout(4000)`).
+  3. Fetch `max(sort_order)` `withTimeout(4000)`.
+  4. Insert `withTimeout(8000)`; return row.
+- `createModule` / `createLesson`: compute `sort_order` locally from caller-provided value, single insert `withTimeout(8000)`.
+- Keep `invokeAdminCreate` removed. Delete unused code path.
 
-### 3. Render parity in the member area
-- `Courses` list already reads from `public.courses where published = true` ordered by `sort_order` — no change needed once form defaults are correct.
-- `CourseDetail` / `ModuleDetail` already pick up modules, lessons, quizzes, ratings and comments generically, so a properly-seeded new course renders identically.
-- Add a defensive `useMemo` fallback so a course with zero modules shows an "Author is preparing modules" empty state instead of a blank page (prevents the "looks broken" moment right after Step 1).
+### 2. `src/manus/pages/admin/AdminCourseDetail.tsx`
+- Remove the second `await slugTaken(...)` inside `createCourse.mutationFn` — rely on the debounced check + `createCourse` internal loop.
+- Wrap the mutation in outer `withTimeout(20000, "Create course")` as a final safety net.
+- Add explicit `disabled` on the submit button while `newCoverUploading` is true (already present) and reset all local state on error.
+- Same treatment for `handleAddModule` (module creation prompt path): wrap `createModule` call in `withTimeout(15000)`.
 
-### 4. Admin UX polish
-- "View as member" button on `AdminCourseDetail` header → opens `/courses/:slug` in a new tab (admins already have full student view).
-- Inline validation errors under each field (already partially done, extend to cover/hero uploads).
-- Duplicate-slug check before submit (query `courses` by slug, show inline error).
+### 3. Keep edge function as-is but stop calling it
+- `supabase/functions/admin-content-create/index.ts` stays deployed for backward compat but is no longer invoked from the client. This eliminates the cold-start hang class of bugs entirely.
 
-### 5. Storage
-No schema changes required. Reuse existing `public-assets` bucket (`course-covers/`, `course-heroes/` prefixes). File size limits already raised to 50 MiB.
+### 4. Verification
+- `bunx vitest run` on existing admin-content tests.
+- Manual: create course with unique title → lands on `/admin/courses/:id#modules` in <2s. Add module via prompt → appears in list. Add lesson inside module → appears with sort_order set. Force offline → button shows error toast within 8s, never hangs.
 
-## Technical notes
-- Files touched: `src/manus/lib/admin-content.ts` (extend `createCourse` schema + payload), `src/manus/pages/admin/AdminCourseDetail.tsx` (wizard UI + View-as-member link), `src/manus/pages/admin/AdminCourses.tsx` (New Course entry), `src/manus/components/admin/FileUploadField.tsx` (reuse), `supabase/functions/admin-content-create/index.ts` (accept new optional fields — backwards compatible).
-- No new DB migration: `courses` already has `summary`, `hero_image_url`, `access_plan_keys`, `sort_order`, `published`.
-- No changes to member-area components — parity is achieved by populating the same columns the seeded courses use.
-
-## Out of scope
-- Reordering modules/lessons by drag-and-drop (separate request).
-- Bulk import from CSV.
-- Custom per-course themes.
-
-Approve and I will implement in a single pass.
+### Technical notes
+- No schema change, no new migration — `admin_full_access` policy already covers the writes.
+- `service_role` grant path is preserved for the (unused) edge function.
+- No changes to member area or quiz code.

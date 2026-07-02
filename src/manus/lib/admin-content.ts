@@ -13,6 +13,26 @@ export type Course = Database["public"]["Tables"]["courses"]["Row"];
 export type Module = Database["public"]["Tables"]["course_modules"]["Row"];
 export type Lesson = Database["public"]["Tables"]["lessons"]["Row"];
 
+/** Race a promise against a hard timeout so admin create flows can never hang forever. */
+function withTimeout<T>(p: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`${label} took longer than ${Math.round(ms / 1000)}s. Please try again.`)),
+      ms,
+    );
+    Promise.resolve(p).then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      (e) => {
+        clearTimeout(timer);
+        reject(e);
+      },
+    );
+  });
+}
+
 async function findCourseInCatalog(courseId: number) {
   const catalog = await getCoursesTree();
   return catalog.courses.find((course) => course.id === courseId) ?? null;
@@ -90,7 +110,11 @@ export function validateCourseInput(input: {
 /** Case-insensitive check for an existing course slug. Returns true if the slug is already taken. */
 export async function slugTaken(slug: string): Promise<boolean> {
   if (!slug) return false;
-  const { data } = await supabase.from("courses").select("id").eq("slug", slug).maybeSingle();
+  const { data } = await withTimeout(
+    supabase.from("courses").select("id").eq("slug", slug).maybeSingle(),
+    4000,
+    "Slug availability check",
+  );
   return !!data;
 }
 
@@ -246,35 +270,12 @@ export async function updateLesson(id: number, patch: Database["public"]["Tables
 }
 
 /**
- * Course/module/lesson creation always goes through the
- * `admin-content-create` edge function. The function verifies the caller is
- * an admin server-side, then inserts with service_role so the flow works
- * regardless of RLS configuration on these tables. It also auto-assigns
- * sort_order = max + 1.
+ * Course/module/lesson creation runs directly against Supabase using the
+ * admin's own JWT. The `admin_full_access` RLS policy
+ * (docs/migrations/20260622000000_admin_full_access_policies.sql) already
+ * grants insert/update on these tables, and every call is wrapped in
+ * withTimeout() so the UI never hangs indefinitely.
  */
-async function invokeAdminCreate<T>(body: Record<string, unknown>): Promise<T> {
-  // Precheck: without a session the edge function will 401. Skip and let the
-  // caller's fallback (direct insert with RLS) run instead of hanging.
-  const { data: sessionRes } = await supabase.auth.getSession();
-  if (!sessionRes?.session?.access_token) {
-    throw new Error("No active session — using direct insert fallback");
-  }
-  const invokePromise = supabase.functions.invoke("admin-content-create", { body });
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("admin-content-create timed out after 8s")), 8000),
-  );
-  const { data, error } = (await Promise.race([invokePromise, timeout])) as Awaited<typeof invokePromise>;
-  if (error) {
-    const detail = (data as { message?: string; error?: string } | null) ?? null;
-    throw new Error(detail?.message || detail?.error || error.message);
-  }
-  const payload = data as { error?: string; message?: string } | null;
-  if (payload && "error" in payload && payload.error) {
-    throw new Error(payload.message || payload.error);
-  }
-  return data as T;
-}
-
 export async function createCourse(input: {
   title: string;
   slug?: string;
@@ -291,62 +292,33 @@ export async function createCourse(input: {
     Array.isArray(input.access_plan_keys) && input.access_plan_keys.length > 0
       ? input.access_plan_keys
       : (["annual_member", "monthly_member", "individual_course"] as PlanKey[]);
-  input = { ...v, status, access_plan_keys: accessPlanKeys };
-  try {
-    const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
-    // Edge function may not persist access_plan_keys; make sure they land.
-    if (
-      JSON.stringify((res.course.access_plan_keys ?? []).slice().sort()) !==
-      JSON.stringify(accessPlanKeys.slice().sort())
-    ) {
-      const { error } = await supabase
-        .from("courses")
-        .update({ access_plan_keys: accessPlanKeys })
-        .eq("id", res.course.id);
-      if (!error) res.course.access_plan_keys = accessPlanKeys;
-    }
-    // Edge function may ignore status; ensure it's applied
-    if (status === "published" && res.course.status !== "published") {
-      const { error } = await supabase
-        .from("courses")
-        .update({ status: "published", published_at: new Date().toISOString() })
-        .eq("id", res.course.id);
-      if (!error) res.course.status = "published";
-    }
-    return res.course;
-  } catch (edgeErr) {
-    // Fallback: admins have RLS insert on courses. Compute slug + sort_order
-    // client-side so the New Course flow keeps working even if the edge
-    // function is unreachable or misconfigured.
-    const baseSlug = (input.slug?.trim() || slugify(input.title)) || slugify(input.title);
-    if (!baseSlug) throw edgeErr;
-    const { data: maxRow } = await supabase
-      .from("courses")
-      .select("sort_order")
-      .order("sort_order", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    const nextSort = ((maxRow?.sort_order as number | undefined) ?? 0) + 1;
-    let candidate = baseSlug;
-    for (let i = 2; i < 30; i++) {
-      const { data: existing } = await supabase
-        .from("courses")
-        .select("id")
-        .eq("slug", candidate)
-        .maybeSingle();
-      if (!existing) break;
-      candidate = `${baseSlug}-${i}`;
-    }
-    const { data: userData } = await supabase.auth.getUser();
-    const { data, error } = await supabase
+  const baseSlug = (v.slug?.trim() || slugify(v.title)) || slugify(v.title);
+  if (!baseSlug) throw new Error("Could not derive a slug from the title");
+  // Compute next sort_order — bounded by timeout so a stalled query can't freeze UI.
+  const { data: maxRow } = await withTimeout(
+    supabase.from("courses").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle(),
+    4000,
+    "Reading course order",
+  );
+  const nextSort = ((maxRow?.sort_order as number | undefined) ?? 0) + 1;
+  // Resolve unique slug (max 10 attempts).
+  let candidate = baseSlug;
+  for (let i = 2; i <= 11; i++) {
+    const taken = await slugTaken(candidate);
+    if (!taken) break;
+    candidate = `${baseSlug}-${i}`;
+  }
+  const { data: userData } = await withTimeout(supabase.auth.getUser(), 4000, "Reading session");
+  const { data, error } = await withTimeout(
+    supabase
       .from("courses")
       .insert({
-        title: input.title.trim(),
+        title: v.title.trim(),
         slug: candidate,
-        subtitle: input.subtitle?.trim() || null,
-        description: input.description?.trim() || null,
-        cover_image_path: input.cover_image_path?.trim() || null,
-        external_landing_url: input.external_landing_url?.trim() || null,
+        subtitle: v.subtitle?.trim() || null,
+        description: v.description?.trim() || null,
+        cover_image_path: v.cover_image_path?.trim() || null,
+        external_landing_url: v.external_landing_url?.trim() || null,
         access_plan_keys: accessPlanKeys,
         status,
         published_at: status === "published" ? new Date().toISOString() : null,
@@ -354,54 +326,46 @@ export async function createCourse(input: {
         created_by: userData.user?.id ?? null,
       })
       .select()
-      .single();
-    if (error) {
-      throw new Error(`${(edgeErr as Error).message} · fallback insert failed: ${error.message}`);
-    }
-    return data as Course;
-  }
+      .single(),
+    8000,
+    "Creating course",
+  );
+  if (error) throw new Error(`Create course failed: ${error.message}`);
+  return data as Course;
 }
 
 export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
   const t = validateTitle(title, "Module title");
   title = t;
   if (!Number.isFinite(courseId) || courseId <= 0) throw new Error("Invalid course");
-  try {
-    const res = await invokeAdminCreate<{ module: Module }>({
-      kind: "module",
-      payload: { course_id: courseId, title, sort_order: sortOrder },
-    });
-    return res.module;
-  } catch (edgeErr) {
-    const { data, error } = await supabase
+  const { data, error } = await withTimeout(
+    supabase
       .from("course_modules")
       .insert({ course_id: courseId, title, sort_order: sortOrder, status: "draft" })
       .select()
-      .single();
-    if (error) throw new Error(`${(edgeErr as Error).message} · fallback failed: ${error.message}`);
-    return data as Module;
-  }
+      .single(),
+    8000,
+    "Creating module",
+  );
+  if (error) throw new Error(`Create module failed: ${error.message}`);
+  return data as Module;
 }
 
 export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
   const t = validateTitle(title, "Lesson title");
   title = t;
   if (!Number.isFinite(moduleId) || moduleId <= 0) throw new Error("Invalid module");
-  try {
-    const res = await invokeAdminCreate<{ lesson: Lesson }>({
-      kind: "lesson",
-      payload: { module_id: moduleId, title, sort_order: sortOrder },
-    });
-    return res.lesson;
-  } catch (edgeErr) {
-    const { data, error } = await supabase
+  const { data, error } = await withTimeout(
+    supabase
       .from("lessons")
       .insert({ module_id: moduleId, title, sort_order: sortOrder, status: "draft" })
       .select()
-      .single();
-    if (error) throw new Error(`${(edgeErr as Error).message} · fallback failed: ${error.message}`);
-    return data as Lesson;
-  }
+      .single(),
+    8000,
+    "Creating lesson",
+  );
+  if (error) throw new Error(`Create lesson failed: ${error.message}`);
+  return data as Lesson;
 }
 
 /**
