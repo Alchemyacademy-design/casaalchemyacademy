@@ -67,6 +67,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} took longer than ${ms / 1000}s. Please try again.`)), ms)),
+  ]);
+}
+
 /* ============================================================
  * Inline auto-save text input / textarea
  * ============================================================ */
@@ -855,10 +862,11 @@ export default function AdminCourseDetail() {
     mutationFn: async () => {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
-      const data = await createCourseViaEdge({
-        ...clean,
-        slug: clean.slug || slugify(clean.title),
-      });
+      const data = await withTimeout(
+        createCourseViaEdge({ ...clean, slug: clean.slug || slugify(clean.title) }),
+        15000,
+        "Create course",
+      );
       return data;
     },
     onSuccess: (data) => {
