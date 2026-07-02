@@ -168,6 +168,24 @@ function metadataUserId(metadata: Stripe.Metadata | null | undefined): string | 
   return isUuid(metadata?.supabase_user_id) ? metadata.supabase_user_id : null;
 }
 
+// Payment-Link fallback: if the Subscription doesn't yet carry
+// supabase_user_id in its metadata, resolve it via the most recent
+// checkout session for the same subscription/customer.
+async function resolveUserIdForSubscription(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription,
+): Promise<string | null> {
+  const customerId = objectId(subscription.customer);
+  const { data } = await supabase
+    .from("stripe_checkout_sessions")
+    .select("user_id, created_at, stripe_customer_id")
+    .eq("stripe_customer_id", customerId ?? "")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return isUuid(data?.user_id) ? (data!.user_id as string) : null;
+}
+
 function metadataCourseId(...sources: Array<Stripe.Metadata | null | undefined>): number | null {
   for (const metadata of sources) {
     const raw = metadata?.course_id;
