@@ -415,6 +415,13 @@ export default function ModuleDetail() {
                     </div>
                   ) : null}
 
+                  {isLastLesson && moduleExam ? (
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-accent mb-2">Module exam</p>
+                      <QuizCard quizId={moduleExam.id} previewAsAdmin={false} />
+                    </div>
+                  ) : null}
+
                   {activeLesson.content && (
                     <Card className="p-8 prose prose-invert max-w-none">
                       <div className="whitespace-pre-wrap leading-relaxed">{activeLesson.content}</div>
