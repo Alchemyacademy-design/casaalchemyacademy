@@ -1170,6 +1170,11 @@ export default function AdminCourseDetail() {
               <Button asChild type="button" variant="outline">
                 <a href="#lesson-preview"><Eye className="mr-1 h-3.5 w-3.5" /> Lesson preview</a>
               </Button>
+              <Button asChild type="button" variant="outline">
+                <a href={`/courses/${course.id}`} target="_blank" rel="noreferrer">
+                  <Eye className="mr-1 h-3.5 w-3.5" /> View as member
+                </a>
+              </Button>
               <Button
                 type="button"
                 variant="outline"
