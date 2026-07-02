@@ -10,9 +10,9 @@ import { useMembershipPlans } from "@/manus/hooks/usePublicContent";
 type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
 
 const PLAN_PRICE_LABEL: Record<string, string> = {
-  monthly_member: "R$ 159 / month",
-  annual_member: "R$ 1,590 / year",
-  individual_course: "R$ 99 one-time",
+  monthly_member: "A$99 / month",
+  annual_member: "A$708 / year",
+  individual_course: "A$159 one-time",
 };
 
 function planFeatures(p: { all_courses: boolean; community_access: boolean; events_access: boolean; live_workshops_access: boolean; exclusive_deals_access: boolean; individual_course_access: boolean; }) {
