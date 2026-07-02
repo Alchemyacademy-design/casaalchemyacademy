@@ -980,7 +980,8 @@ export default function AdminCourseDetail() {
           </p>
           <div>
             <Label>Title *</Label>
-            <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} />
+            <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} aria-invalid={!!newFormErrors.title} />
+            {newFormErrors.title && <p className="text-xs text-destructive mt-1">{newFormErrors.title}</p>}
           </div>
           <div>
             <Label>Slug</Label>
@@ -990,17 +991,21 @@ export default function AdminCourseDetail() {
                 onChange={(e) => setNewForm((f) => ({ ...f, slug: e.target.value }))}
                 placeholder={slugify(newForm.title)}
                 className="font-mono text-sm"
+                aria-invalid={!!newFormErrors.slug}
               />
               <Button type="button" variant="outline" onClick={() => setNewForm((f) => ({ ...f, slug: slugify(f.title) }))}>Auto</Button>
             </div>
+            {newFormErrors.slug && <p className="text-xs text-destructive mt-1">{newFormErrors.slug}</p>}
           </div>
           <div>
             <Label>Subtitle</Label>
-            <Input value={newForm.subtitle} onChange={(e) => setNewForm((f) => ({ ...f, subtitle: e.target.value }))} />
+            <Input value={newForm.subtitle} onChange={(e) => setNewForm((f) => ({ ...f, subtitle: e.target.value }))} maxLength={200} aria-invalid={!!newFormErrors.subtitle} />
+            {newFormErrors.subtitle && <p className="text-xs text-destructive mt-1">{newFormErrors.subtitle}</p>}
           </div>
           <div>
             <Label>Description</Label>
-            <Textarea rows={3} value={newForm.description} onChange={(e) => setNewForm((f) => ({ ...f, description: e.target.value }))} />
+            <Textarea rows={3} maxLength={4000} value={newForm.description} onChange={(e) => setNewForm((f) => ({ ...f, description: e.target.value }))} aria-invalid={!!newFormErrors.description} />
+            {newFormErrors.description && <p className="text-xs text-destructive mt-1">{newFormErrors.description}</p>}
           </div>
           <div>
             <Label>Cover thumbnail</Label>
