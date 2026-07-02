@@ -864,6 +864,42 @@ export default function AdminCourseDetail() {
   const newCoverRef = useRef<HTMLInputElement>(null);
   const [newFormErrors, setNewFormErrors] = useState<Record<string, string>>({});
 
+  // Live slug availability check (debounced) — blocks duplicates before submit.
+  useEffect(() => {
+    if (!isNew) return;
+    const candidate = (newForm.slug || slugify(newForm.title)).trim();
+    if (!candidate) {
+      setNewFormErrors((prev) => {
+        if (!prev.slug) return prev;
+        const { slug: _drop, ...rest } = prev;
+        return rest;
+      });
+      return;
+    }
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const taken = await slugTaken(candidate);
+        if (cancelled) return;
+        setNewFormErrors((prev) => {
+          if (taken) {
+            if (prev.slug?.includes(candidate)) return prev;
+            return { ...prev, slug: `Slug "${candidate}" is already used by another course` };
+          }
+          if (!prev.slug) return prev;
+          const { slug: _drop, ...rest } = prev;
+          return rest;
+        });
+      } catch {
+        /* network hiccup — validation will re-run on submit */
+      }
+    }, 350);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isNew, newForm.slug, newForm.title]);
+
   const validateNewForm = (): ReturnType<typeof validateCourseInput> | null => {
     try {
       const clean = validateCourseInput({
