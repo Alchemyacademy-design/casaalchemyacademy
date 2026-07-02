@@ -823,7 +823,8 @@ export default function AdminCourseDetail() {
     description: "",
     cover_image_path: "" as string | null | "",
     external_landing_url: "",
-    publish: false,
+    publish: true,
+    access_plan_keys: ["annual_member", "monthly_member", "individual_course"] as PlanKey[],
   });
   const [newCoverUploading, setNewCoverUploading] = useState(false);
   const newCoverRef = useRef<HTMLInputElement>(null);
