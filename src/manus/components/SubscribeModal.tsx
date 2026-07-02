@@ -25,6 +25,12 @@ const OFFER_KEYS = {
   guide: "individual_course",
 } as const;
 
+const PAYMENT_LINKS: Record<"annual" | "monthly" | "guide", string> = {
+  guide: "https://buy.stripe.com/8x2cN64Bj74z6A56H0aZi03",
+  monthly: "https://buy.stripe.com/9B66oI4BjbkP0bHghAaZi01",
+  annual: "https://buy.stripe.com/4gMbJ27Nv0Gb2jP1mGaZi02",
+};
+
 export default function SubscribeModal({ type, courseId, onClose }: SubscribeModalProps) {
   const [selectedCharity, setSelectedCharity] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
@@ -38,44 +44,23 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-
-      if (!accessToken) {
+      const user = sessionData.session?.user;
+      if (!user) {
         setError("Please sign in before continuing to payment.");
         return;
       }
 
-      if (type === "guide" && !courseId) {
-        setError("Please select a course before continuing.");
-        return;
+      const baseUrl = PAYMENT_LINKS[type];
+      const url = new URL(baseUrl);
+      // Prefill email and pass through metadata so the webhook can match the user.
+      if (user.email) url.searchParams.set("prefilled_email", user.email);
+      url.searchParams.set("client_reference_id", user.id);
+      if (type === "guide" && courseId) {
+        url.searchParams.set("utm_content", `course_${courseId}`);
       }
-
-      const { data, error: functionError } = await supabase.functions.invoke("create-checkout-session", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "x-idempotency-key": crypto.randomUUID(),
-        },
-        body: {
-          offer_key: OFFER_KEYS[type],
-          ...(type === "guide" ? { course_id: courseId } : {}),
-          charity_id: selectedCharity,
-        },
-      });
-
-      if (functionError) {
-        // Edge function returns 503 BILLING_LIVE_DISABLED while live credentials are staged
-        // but not yet activated. Show a friendly message instead of a generic error.
-        const ctx = (functionError as { context?: { body?: unknown } }).context;
-        const bodyText = typeof ctx?.body === "string" ? ctx.body : "";
-        if (bodyText.includes("BILLING_LIVE_DISABLED")) {
-          setError("Payments are not active yet. Please check back soon.");
-          return;
-        }
-        throw functionError;
-      }
-      if (!data?.checkout_url) throw new Error("Checkout URL was not returned.");
-      window.location.href = data.checkout_url;
+      url.searchParams.set("utm_source", "lovable");
+      url.searchParams.set("utm_campaign", selectedCharity);
+      window.location.href = url.toString();
     } catch (checkoutError) {
       console.error("Checkout error:", checkoutError);
       setError("We could not start checkout. Please try again.");
