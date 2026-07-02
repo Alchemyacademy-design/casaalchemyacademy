@@ -42,6 +42,7 @@ import {
   createModule,
   validateTitle,
   validateCourseInput,
+  slugTaken,
   archiveLesson,
   archiveModule,
   getCourse,
@@ -61,6 +62,7 @@ import {
   type ContentStatus,
   type Lesson,
   type Module,
+  type PlanKey,
 } from "@/manus/lib/admin-content";
 import { supabase } from "@/integrations/supabase/client";
 
