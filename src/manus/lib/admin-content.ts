@@ -87,6 +87,13 @@ export function validateCourseInput(input: {
   };
 }
 
+/** Case-insensitive check for an existing course slug. Returns true if the slug is already taken. */
+export async function slugTaken(slug: string): Promise<boolean> {
+  if (!slug) return false;
+  const { data } = await supabase.from("courses").select("id").eq("slug", slug).maybeSingle();
+  return !!data;
+}
+
 export function isPlaceholderVideo(url: string | null | undefined): boolean {
   if (!url) return false;
   return url.includes("/manus-storage/") || url.includes("placeholder-video");
@@ -276,12 +283,28 @@ export async function createCourse(input: {
   cover_image_path?: string | null;
   external_landing_url?: string | null;
   status?: ContentStatus;
+  access_plan_keys?: PlanKey[];
 }): Promise<Course> {
   const v = validateCourseInput(input);
   const status: ContentStatus = input.status === "published" ? "published" : "draft";
-  input = { ...v, status };
+  const accessPlanKeys =
+    Array.isArray(input.access_plan_keys) && input.access_plan_keys.length > 0
+      ? input.access_plan_keys
+      : (["annual_member", "monthly_member", "individual_course"] as PlanKey[]);
+  input = { ...v, status, access_plan_keys: accessPlanKeys };
   try {
     const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
+    // Edge function may not persist access_plan_keys; make sure they land.
+    if (
+      JSON.stringify((res.course.access_plan_keys ?? []).slice().sort()) !==
+      JSON.stringify(accessPlanKeys.slice().sort())
+    ) {
+      const { error } = await supabase
+        .from("courses")
+        .update({ access_plan_keys: accessPlanKeys })
+        .eq("id", res.course.id);
+      if (!error) res.course.access_plan_keys = accessPlanKeys;
+    }
     // Edge function may ignore status; ensure it's applied
     if (status === "published" && res.course.status !== "published") {
       const { error } = await supabase
@@ -324,6 +347,7 @@ export async function createCourse(input: {
         description: input.description?.trim() || null,
         cover_image_path: input.cover_image_path?.trim() || null,
         external_landing_url: input.external_landing_url?.trim() || null,
+        access_plan_keys: accessPlanKeys,
         status,
         published_at: status === "published" ? new Date().toISOString() : null,
         sort_order: nextSort,

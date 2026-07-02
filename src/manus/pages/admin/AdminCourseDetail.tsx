@@ -42,6 +42,7 @@ import {
   createModule,
   validateTitle,
   validateCourseInput,
+  slugTaken,
   archiveLesson,
   archiveModule,
   getCourse,
@@ -61,6 +62,7 @@ import {
   type ContentStatus,
   type Lesson,
   type Module,
+  type PlanKey,
 } from "@/manus/lib/admin-content";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -821,7 +823,8 @@ export default function AdminCourseDetail() {
     description: "",
     cover_image_path: "" as string | null | "",
     external_landing_url: "",
-    publish: false,
+    publish: true,
+    access_plan_keys: ["annual_member", "monthly_member", "individual_course"] as PlanKey[],
   });
   const [newCoverUploading, setNewCoverUploading] = useState(false);
   const newCoverRef = useRef<HTMLInputElement>(null);
@@ -866,11 +869,17 @@ export default function AdminCourseDetail() {
     mutationFn: async () => {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
+      const finalSlug = clean.slug || slugify(clean.title);
+      if (finalSlug && (await slugTaken(finalSlug))) {
+        setNewFormErrors((prev) => ({ ...prev, slug: `Slug "${finalSlug}" is already used by another course` }));
+        throw new Error(`Slug "${finalSlug}" is already used by another course — pick a different one`);
+      }
       const data = await withTimeout(
         createCourseViaEdge({
           ...clean,
-          slug: clean.slug || slugify(clean.title),
+          slug: finalSlug,
           status: newForm.publish ? "published" : "draft",
+          access_plan_keys: newForm.access_plan_keys,
         }),
         15000,
         "Create course",
@@ -1068,6 +1077,32 @@ export default function AdminCourseDetail() {
               onCheckedChange={(v) => setNewForm((f) => ({ ...f, publish: v }))}
             />
           </div>
+          <div className="rounded-md border p-3 space-y-2">
+            <Label className="mb-0">Who can access this course</Label>
+            <p className="text-xs text-foreground/50">Members with any of the selected plans will see this course. Defaults to all three plans so it appears everywhere.</p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              {PLAN_KEYS.map((key) => {
+                const checked = newForm.access_plan_keys.includes(key);
+                return (
+                  <label key={key} className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        setNewForm((f) => ({
+                          ...f,
+                          access_plan_keys: checked
+                            ? f.access_plan_keys.filter((k) => k !== key)
+                            : [...f.access_plan_keys, key],
+                        }))
+                      }
+                    />
+                    <span>{key.replace(/_/g, " ")}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
             {createCourse.isPending ? "Creating…" : "Create course & continue"}
           </Button>
@@ -1134,6 +1169,11 @@ export default function AdminCourseDetail() {
             <div className="flex shrink-0 flex-wrap gap-2">
               <Button asChild type="button" variant="outline">
                 <a href="#lesson-preview"><Eye className="mr-1 h-3.5 w-3.5" /> Lesson preview</a>
+              </Button>
+              <Button asChild type="button" variant="outline">
+                <a href={`/courses/${course.id}`} target="_blank" rel="noreferrer">
+                  <Eye className="mr-1 h-3.5 w-3.5" /> View as member
+                </a>
               </Button>
               <Button
                 type="button"
