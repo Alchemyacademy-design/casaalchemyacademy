@@ -37,6 +37,7 @@ import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/
 
 import {
   createLesson,
+  createCourse as createCourseViaEdge,
   createModule,
   archiveLesson,
   archiveModule,
