@@ -1077,6 +1077,32 @@ export default function AdminCourseDetail() {
               onCheckedChange={(v) => setNewForm((f) => ({ ...f, publish: v }))}
             />
           </div>
+          <div className="rounded-md border p-3 space-y-2">
+            <Label className="mb-0">Who can access this course</Label>
+            <p className="text-xs text-foreground/50">Members with any of the selected plans will see this course. Defaults to all three plans so it appears everywhere.</p>
+            <div className="flex flex-wrap gap-3 pt-1">
+              {PLAN_KEYS.map((key) => {
+                const checked = newForm.access_plan_keys.includes(key);
+                return (
+                  <label key={key} className="inline-flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() =>
+                        setNewForm((f) => ({
+                          ...f,
+                          access_plan_keys: checked
+                            ? f.access_plan_keys.filter((k) => k !== key)
+                            : [...f.access_plan_keys, key],
+                        }))
+                      }
+                    />
+                    <span>{key.replace(/_/g, " ")}</span>
+                  </label>
+                );
+              })}
+            </div>
+          </div>
           <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
             {createCourse.isPending ? "Creating…" : "Create course & continue"}
           </Button>
