@@ -7,7 +7,13 @@ import SubscribeModal from "@/manus/components/SubscribeModal";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMembershipPlans } from "@/manus/hooks/usePublicContent";
 
-type SubscriptionChoice = "monthly" | "annual" | null;
+type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
+
+const PLAN_PRICE_LABEL: Record<string, string> = {
+  monthly_member: "R$ 159 / month",
+  annual_member: "R$ 1,590 / year",
+  individual_course: "R$ 99 one-time",
+};
 
 function planFeatures(p: { all_courses: boolean; community_access: boolean; events_access: boolean; live_workshops_access: boolean; exclusive_deals_access: boolean; individual_course_access: boolean; }) {
   const out: string[] = [];
@@ -64,14 +70,19 @@ export default function Plans() {
           <div className="grid md:grid-cols-3 gap-6">
             {plans.map((plan) => {
               const features = planFeatures(plan);
-              const isMonthly = plan.duration === "monthly" || plan.key === "monthly_member";
-              const isAnnual = plan.duration === "annual" || plan.key === "annual_member";
-              const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : null;
+              const isMonthly = plan.key === "monthly_member";
+              const isAnnual = plan.key === "annual_member";
+              const isGuide = plan.key === "individual_course";
+              const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : isGuide ? "guide" : null;
+              const priceLabel = PLAN_PRICE_LABEL[plan.key];
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
                   <div className="mb-4">
-                    <span className="text-sm text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
+                    {priceLabel && (
+                      <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>{priceLabel}</div>
+                    )}
+                    <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
                   </div>
                   {plan.description && <p className="text-sm text-foreground/70 mb-5">{plan.description}</p>}
                   <ul className="space-y-2 mb-6 flex-1">
@@ -80,7 +91,13 @@ export default function Plans() {
                     ))}
                   </ul>
                   <Button className="w-full" disabled={isAdmin || !choice} onClick={() => choice && setSelectedPlan(choice)}>
-                    {isAdmin ? "Not required for admin" : choice ? `Choose ${choice}` : "Contact us"}
+                    {isAdmin
+                      ? "Not required for admin"
+                      : choice === "guide"
+                        ? "Buy this course"
+                        : choice
+                          ? `Choose ${choice}`
+                          : "Contact us"}
                   </Button>
                 </Card>
               );
