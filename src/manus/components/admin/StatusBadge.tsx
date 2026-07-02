@@ -2,6 +2,8 @@ import type { ContentStatus } from "@/manus/lib/admin-content";
 
 const STYLES: Record<ContentStatus, string> = {
   draft: "bg-amber-100 text-amber-800 border-amber-200",
+  in_review: "bg-sky-100 text-sky-800 border-sky-200",
+  scheduled: "bg-violet-100 text-violet-800 border-violet-200",
   published: "bg-emerald-100 text-emerald-800 border-emerald-200",
   archived: "bg-zinc-200 text-zinc-700 border-zinc-300",
 };
