@@ -314,6 +314,13 @@ export default function CourseDetail() {
                 </div>
               </section>
             ) : null}
+
+            {accessible && finalExam ? (
+              <section className="mb-10">
+                <SectionHeader title="Course final exam" description="Pass this exam to complete the course." />
+                <QuizCard quizId={finalExam.id} previewAsAdmin={false} />
+              </section>
+            ) : null}
           </div>
 
           <aside className="space-y-4">
