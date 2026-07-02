@@ -505,9 +505,20 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       await recordCheckoutSession(supabase, stripe, session, event);
-      if (session.mode === "payment" && session.metadata?.plan_key === "annual_member") {
-        await applyAnnualCheckoutPayment(supabase, stripe, event, session);
-        return;
+      if (session.mode === "payment") {
+        // Route one-time payments (annual) by inspecting the Price mapping —
+        // Payment Links can't inject metadata.plan_key from the URL.
+        const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+        const priceId = items.data[0]?.price?.id ?? null;
+        if (priceId) {
+          try {
+            const mapping = await priceMapping(supabase, priceId, event.livemode);
+            if (mapping.plan_key === "annual_member") {
+              await applyAnnualCheckoutPayment(supabase, stripe, event, session);
+              return;
+            }
+          } catch { /* unknown price — fall through to ignored */ }
+        }
       }
       throw new IgnoredEvent("subscription_checkout_records_only_invoice_paid_activates");
     }
