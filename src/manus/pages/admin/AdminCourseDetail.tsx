@@ -39,6 +39,8 @@ import {
   createLesson,
   createCourse as createCourseViaEdge,
   createModule,
+  validateTitle,
+  validateCourseInput,
   archiveLesson,
   archiveModule,
   getCourse,
@@ -379,9 +381,18 @@ function ModuleSection({
   };
 
   const handleAdd = async () => {
+    const raw = window.prompt("New lesson title (2–120 characters):", "New lesson");
+    if (raw === null) return;
+    let title: string;
+    try {
+      title = validateTitle(raw, "Lesson title");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+      return;
+    }
     const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
     try {
-      const created = await createLesson(module.id, nextOrder);
+      const created = await createLesson(module.id, nextOrder, title);
       await refetch();
       invalidateAll();
       toast.success(`Lesson "${created.title}" created`);
@@ -804,6 +815,28 @@ export default function AdminCourseDetail() {
   });
   const [newCoverUploading, setNewCoverUploading] = useState(false);
   const newCoverRef = useRef<HTMLInputElement>(null);
+  const [newFormErrors, setNewFormErrors] = useState<Record<string, string>>({});
+
+  const validateNewForm = (): ReturnType<typeof validateCourseInput> | null => {
+    try {
+      const clean = validateCourseInput({
+        title: newForm.title,
+        slug: newForm.slug || undefined,
+        subtitle: newForm.subtitle || null,
+        description: newForm.description || null,
+        cover_image_path: newForm.cover_image_path || null,
+      });
+      setNewFormErrors({});
+      return clean;
+    } catch (e: unknown) {
+      const msg = errorMessage(e);
+      // Map "Field message" back to a field key
+      const field = msg.split(" ")[0].toLowerCase();
+      setNewFormErrors({ [field]: msg });
+      toast.error(msg);
+      return null;
+    }
+  };
 
   const uploadNewCover = async (file: File) => {
     setNewCoverUploading(true);
@@ -820,15 +853,11 @@ export default function AdminCourseDetail() {
 
   const createCourse = useMutation({
     mutationFn: async () => {
-      const title = newForm.title.trim();
-      if (!title) throw new Error("Title is required");
-      const slug = newForm.slug.trim() || slugify(title);
+      const clean = validateNewForm();
+      if (!clean) throw new Error("Please fix the highlighted fields");
       const data = await createCourseViaEdge({
-        title,
-        slug,
-        subtitle: newForm.subtitle.trim() || null,
-        description: newForm.description.trim() || null,
-        cover_image_path: newForm.cover_image_path || null,
+        ...clean,
+        slug: clean.slug || slugify(clean.title),
       });
       return data;
     },
@@ -850,9 +879,18 @@ export default function AdminCourseDetail() {
 
   const handleAddModule = async () => {
     if (!courseId) return;
+    const raw = window.prompt("New module title (2–120 characters):", "New module");
+    if (raw === null) return;
+    let title: string;
+    try {
+      title = validateTitle(raw, "Module title");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+      return;
+    }
     const nextOrder = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
     try {
-      const created = await createModule(courseId, nextOrder);
+      const created = await createModule(courseId, nextOrder, title);
       await refetchModules();
       invalidateCourse();
       toast.success(`Module "${created.title}" created`);
@@ -942,7 +980,8 @@ export default function AdminCourseDetail() {
           </p>
           <div>
             <Label>Title *</Label>
-            <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} />
+            <Input value={newForm.title} onChange={(e) => setNewForm((f) => ({ ...f, title: e.target.value }))} aria-invalid={!!newFormErrors.title} />
+            {newFormErrors.title && <p className="text-xs text-destructive mt-1">{newFormErrors.title}</p>}
           </div>
           <div>
             <Label>Slug</Label>
@@ -952,17 +991,21 @@ export default function AdminCourseDetail() {
                 onChange={(e) => setNewForm((f) => ({ ...f, slug: e.target.value }))}
                 placeholder={slugify(newForm.title)}
                 className="font-mono text-sm"
+                aria-invalid={!!newFormErrors.slug}
               />
               <Button type="button" variant="outline" onClick={() => setNewForm((f) => ({ ...f, slug: slugify(f.title) }))}>Auto</Button>
             </div>
+            {newFormErrors.slug && <p className="text-xs text-destructive mt-1">{newFormErrors.slug}</p>}
           </div>
           <div>
             <Label>Subtitle</Label>
-            <Input value={newForm.subtitle} onChange={(e) => setNewForm((f) => ({ ...f, subtitle: e.target.value }))} />
+            <Input value={newForm.subtitle} onChange={(e) => setNewForm((f) => ({ ...f, subtitle: e.target.value }))} maxLength={200} aria-invalid={!!newFormErrors.subtitle} />
+            {newFormErrors.subtitle && <p className="text-xs text-destructive mt-1">{newFormErrors.subtitle}</p>}
           </div>
           <div>
             <Label>Description</Label>
-            <Textarea rows={3} value={newForm.description} onChange={(e) => setNewForm((f) => ({ ...f, description: e.target.value }))} />
+            <Textarea rows={3} maxLength={4000} value={newForm.description} onChange={(e) => setNewForm((f) => ({ ...f, description: e.target.value }))} aria-invalid={!!newFormErrors.description} />
+            {newFormErrors.description && <p className="text-xs text-destructive mt-1">{newFormErrors.description}</p>}
           </div>
           <div>
             <Label>Cover thumbnail</Label>

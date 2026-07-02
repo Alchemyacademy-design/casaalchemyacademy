@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { getCoursesTree } from "@/manus/services/admin-content";
+import { z } from "zod";
 
 export type ContentStatus = Database["public"]["Enums"]["content_status"];
 export type PlanKey = Database["public"]["Enums"]["membership_plan_key"];
@@ -25,6 +26,61 @@ export function slugify(input: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+// ---- Input validation (shared client-side guards) ----
+const titleSchema = z.string().trim().min(2, "must be at least 2 characters").max(120, "must be at most 120 characters");
+const slugSchema = z
+  .string()
+  .trim()
+  .max(80, "must be at most 80 characters")
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "use lowercase letters, numbers and dashes only")
+  .optional()
+  .or(z.literal(""));
+const urlSchema = z.string().trim().url("must be a valid URL").max(2000).nullable().optional().or(z.literal(""));
+
+export function validateTitle(value: string, label = "Title"): string {
+  const parsed = titleSchema.safeParse(value ?? "");
+  if (!parsed.success) {
+    throw new Error(`${label} ${parsed.error.issues[0]?.message ?? "is invalid"}`);
+  }
+  return parsed.data;
+}
+
+const courseInputSchema = z.object({
+  title: titleSchema,
+  slug: slugSchema,
+  subtitle: z.string().trim().max(200, "Subtitle must be at most 200 characters").nullable().optional().or(z.literal("")),
+  description: z.string().trim().max(4000, "Description must be at most 4000 characters").nullable().optional().or(z.literal("")),
+  cover_image_path: urlSchema,
+});
+
+export function validateCourseInput(input: {
+  title: string;
+  slug?: string;
+  subtitle?: string | null;
+  description?: string | null;
+  cover_image_path?: string | null;
+}) {
+  const parsed = courseInputSchema.safeParse({
+    title: input.title ?? "",
+    slug: input.slug ?? "",
+    subtitle: input.subtitle ?? "",
+    description: input.description ?? "",
+    cover_image_path: input.cover_image_path ?? "",
+  });
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0];
+    const path = issue?.path?.[0] ? String(issue.path[0]) : "Field";
+    throw new Error(`${path.charAt(0).toUpperCase() + path.slice(1)} ${issue?.message ?? "is invalid"}`);
+  }
+  return {
+    title: parsed.data.title,
+    slug: parsed.data.slug || undefined,
+    subtitle: parsed.data.subtitle || null,
+    description: parsed.data.description || null,
+    cover_image_path: parsed.data.cover_image_path || null,
+  };
 }
 
 export function isPlaceholderVideo(url: string | null | undefined): boolean {
@@ -205,6 +261,8 @@ export async function createCourse(input: {
   description?: string | null;
   cover_image_path?: string | null;
 }): Promise<Course> {
+  const v = validateCourseInput(input);
+  input = v;
   try {
     const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
     return res.course;
@@ -254,6 +312,9 @@ export async function createCourse(input: {
 }
 
 export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
+  const t = validateTitle(title, "Module title");
+  title = t;
+  if (!Number.isFinite(courseId) || courseId <= 0) throw new Error("Invalid course");
   try {
     const res = await invokeAdminCreate<{ module: Module }>({
       kind: "module",
@@ -272,6 +333,9 @@ export async function createModule(courseId: number, sortOrder: number, title = 
 }
 
 export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
+  const t = validateTitle(title, "Lesson title");
+  title = t;
+  if (!Number.isFinite(moduleId) || moduleId <= 0) throw new Error("Invalid module");
   try {
     const res = await invokeAdminCreate<{ lesson: Lesson }>({
       kind: "lesson",
