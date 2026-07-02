@@ -82,7 +82,26 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
       toast.success("Redirecting to secure Stripe checkout…");
       willRedirect = true;
       // Small delay so the toast is visible before navigation.
-      setTimeout(() => { window.location.href = url.toString(); }, 400);
+      // Break out of the Lovable preview iframe: Stripe Checkout refuses to
+      // render when framed and gets stuck on its loading skeleton. We first
+      // try the top-level window (works in production/standalone tabs), then
+      // fall back to opening in a new tab when framed by a cross-origin
+      // parent that blocks top navigation.
+      const target = url.toString();
+      setTimeout(() => {
+        try {
+          if (window.top && window.top !== window.self) {
+            window.top.location.href = target;
+            return;
+          }
+        } catch {
+          // Cross-origin frame — cannot set top.location. Fall through.
+        }
+        const opened = window.open(target, "_blank", "noopener,noreferrer");
+        if (!opened) {
+          window.location.href = target;
+        }
+      }, 400);
     } catch (checkoutError) {
       console.error("Checkout error:", checkoutError);
       setError("We could not start checkout. Please try again.");
