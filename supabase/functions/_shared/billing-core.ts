@@ -168,6 +168,24 @@ function metadataUserId(metadata: Stripe.Metadata | null | undefined): string | 
   return isUuid(metadata?.supabase_user_id) ? metadata.supabase_user_id : null;
 }
 
+// Payment-Link fallback: if the Subscription doesn't yet carry
+// supabase_user_id in its metadata, resolve it via the most recent
+// checkout session for the same subscription/customer.
+async function resolveUserIdForSubscription(
+  supabase: SupabaseAdmin,
+  subscription: Stripe.Subscription,
+): Promise<string | null> {
+  const customerId = objectId(subscription.customer);
+  const { data } = await supabase
+    .from("stripe_checkout_sessions")
+    .select("user_id, created_at, stripe_customer_id")
+    .eq("stripe_customer_id", customerId ?? "")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return isUuid(data?.user_id) ? (data!.user_id as string) : null;
+}
+
 function metadataCourseId(...sources: Array<Stripe.Metadata | null | undefined>): number | null {
   for (const metadata of sources) {
     const raw = metadata?.course_id;
@@ -277,6 +295,37 @@ async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, se
     },
   }, { onConflict: "stripe_session_id" });
   if (error) throw error;
+
+  // Payment Links can't inject metadata via URL — only `client_reference_id`.
+  // Propagate the Supabase user id (and plan_key/course_id) onto the created
+  // Subscription so downstream invoice.paid / customer.subscription.* handlers
+  // can resolve the user without extra Stripe Dashboard configuration.
+  const subscriptionId = objectId(session.subscription);
+  if (subscriptionId) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      const needsUser = !isUuid(sub.metadata?.supabase_user_id);
+      const priceId = sub.items?.data?.[0]?.price?.id ?? lineItems.data[0]?.price?.id ?? null;
+      let planKey: string | null = sub.metadata?.plan_key ?? null;
+      let courseId: number | null = metadataCourseId(sub.metadata);
+      if (priceId && (!planKey || (planKey === "individual_course" && !courseId))) {
+        try {
+          const mapping = await priceMapping(supabase, priceId, event.livemode);
+          planKey = planKey ?? mapping.plan_key;
+          if (mapping.plan_key === "individual_course" && !courseId) courseId = mapping.course_id;
+        } catch { /* mapping unknown yet — skip enrichment */ }
+      }
+      if (needsUser || (planKey && !sub.metadata?.plan_key) || (courseId && !metadataCourseId(sub.metadata))) {
+        const nextMetadata: Record<string, string> = { ...(sub.metadata ?? {}) };
+        if (needsUser) nextMetadata.supabase_user_id = userId;
+        if (planKey && !nextMetadata.plan_key) nextMetadata.plan_key = planKey;
+        if (courseId && !nextMetadata.course_id) nextMetadata.course_id = String(courseId);
+        await stripe.subscriptions.update(subscriptionId, { metadata: nextMetadata });
+      }
+    } catch (err) {
+      console.error("[recordCheckoutSession] failed to enrich subscription metadata", err);
+    }
+  }
 }
 
 async function applyAnnualCheckoutPayment(
@@ -287,10 +336,12 @@ async function applyAnnualCheckoutPayment(
 ) {
   if (session.mode !== "payment") throw new IgnoredEvent("annual_checkout_not_payment_mode");
   if (session.payment_status !== "paid") throw new IgnoredEvent("annual_checkout_not_paid");
-  if (session.metadata?.plan_key !== "annual_member") throw new IgnoredEvent("payment_checkout_not_annual");
   if (session.livemode !== event.livemode) throw new BillingError("annual_checkout_livemode_mismatch");
 
-  const userId = metadataUserId(session.metadata);
+  // Payment Links carry the user via `client_reference_id`; fall back to it
+  // when metadata.supabase_user_id is absent.
+  const userId = metadataUserId(session.metadata)
+    ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
   if (!userId) throw new BillingError(`Annual Checkout session ${session.id} missing supabase_user_id`);
 
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
@@ -303,6 +354,7 @@ async function applyAnnualCheckoutPayment(
 
   // Canonical validation against stripe_prices (no hardcoded Stripe Price ID).
   const mapping = await priceMapping(supabase, priceId, event.livemode);
+  // Plan-key is inferred from the Price mapping (Payment Links don't set metadata).
   if (mapping.plan_key !== ANNUAL_MEMBER_CANONICAL.plan_key) throw new BillingError(`Annual Checkout session ${session.id} plan mismatch`);
   if (mapping.currency.toLowerCase() !== ANNUAL_MEMBER_CANONICAL.currency) throw new BillingError(`Annual Checkout session ${session.id} currency mismatch`);
   if (mapping.unit_amount !== ANNUAL_MEMBER_CANONICAL.unit_amount) throw new BillingError(`Annual Checkout session ${session.id} unit_amount mismatch`);
@@ -354,7 +406,8 @@ async function applyAnnualCheckoutPayment(
 }
 
 async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string) {
-  const userId = metadataUserId(subscription.metadata);
+  const userId = metadataUserId(subscription.metadata)
+    ?? await resolveUserIdForSubscription(supabase, subscription);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const { error } = await supabase.rpc("internal_apply_stripe_subscription_state", {
     p_stripe_event_id: event.id,
@@ -376,7 +429,8 @@ async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: 
   if (subscription.status !== "active") throw new BillingError(`Subscription ${subscription.id} is not active`);
   if (subscription.items.data.length !== 1) throw new BillingError(`Subscription ${subscription.id} must have one item`);
 
-  const userId = metadataUserId(subscription.metadata);
+  const userId = metadataUserId(subscription.metadata)
+    ?? await resolveUserIdForSubscription(supabase, subscription);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const price = subscription.items.data[0].price;
   const invoicePriceId = invoiceLinePriceId(invoice);
@@ -471,9 +525,20 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       await recordCheckoutSession(supabase, stripe, session, event);
-      if (session.mode === "payment" && session.metadata?.plan_key === "annual_member") {
-        await applyAnnualCheckoutPayment(supabase, stripe, event, session);
-        return;
+      if (session.mode === "payment") {
+        // Route one-time payments (annual) by inspecting the Price mapping —
+        // Payment Links can't inject metadata.plan_key from the URL.
+        const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+        const priceId = items.data[0]?.price?.id ?? null;
+        if (priceId) {
+          try {
+            const mapping = await priceMapping(supabase, priceId, event.livemode);
+            if (mapping.plan_key === "annual_member") {
+              await applyAnnualCheckoutPayment(supabase, stripe, event, session);
+              return;
+            }
+          } catch { /* unknown price — fall through to ignored */ }
+        }
       }
       throw new IgnoredEvent("subscription_checkout_records_only_invoice_paid_activates");
     }
