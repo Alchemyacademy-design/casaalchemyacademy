@@ -82,7 +82,9 @@ export default function Plans() {
                     {priceLabel && (
                       <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>{priceLabel}</div>
                     )}
-                    <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
+                    {!priceLabel && (
+                      <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
+                    )}
                   </div>
                   {plan.description && <p className="text-sm text-foreground/70 mb-5">{plan.description}</p>}
                   <ul className="space-y-2 mb-6 flex-1">
