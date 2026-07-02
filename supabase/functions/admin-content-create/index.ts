@@ -38,6 +38,9 @@ type Body =
         subtitle?: string | null;
         description?: string | null;
         cover_image_path?: string | null;
+        external_landing_url?: string | null;
+        access_plan_keys?: string[] | null;
+        status?: "draft" | "published" | null;
       };
     }
   | { kind: "module"; payload: { course_id: number; title?: string | null; sort_order?: number | null } }
@@ -81,7 +84,16 @@ Deno.serve(async (req) => {
 
   try {
     if (body.kind === "course") {
-      const { title, slug, subtitle, description, cover_image_path } = body.payload;
+      const {
+        title,
+        slug,
+        subtitle,
+        description,
+        cover_image_path,
+        external_landing_url,
+        access_plan_keys,
+        status,
+      } = body.payload;
       if (!title || !title.trim()) return json({ error: "title_required" }, 400);
       const baseSlug = (slug && slug.trim()) || slugify(title);
       if (!baseSlug) return json({ error: "slug_invalid" }, 400);
@@ -118,7 +130,13 @@ Deno.serve(async (req) => {
           subtitle: subtitle?.trim() || null,
           description: description?.trim() || null,
           cover_image_path: cover_image_path?.trim() || null,
-          status: "draft",
+          external_landing_url: external_landing_url?.trim() || null,
+          access_plan_keys:
+            Array.isArray(access_plan_keys) && access_plan_keys.length > 0
+              ? access_plan_keys
+              : ["annual_member", "monthly_member", "individual_course"],
+          status: status === "published" ? "published" : "draft",
+          published_at: status === "published" ? new Date().toISOString() : null,
           sort_order: nextSort,
           created_by: userId,
         })
