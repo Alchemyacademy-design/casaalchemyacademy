@@ -815,6 +815,28 @@ export default function AdminCourseDetail() {
   });
   const [newCoverUploading, setNewCoverUploading] = useState(false);
   const newCoverRef = useRef<HTMLInputElement>(null);
+  const [newFormErrors, setNewFormErrors] = useState<Record<string, string>>({});
+
+  const validateNewForm = (): ReturnType<typeof validateCourseInput> | null => {
+    try {
+      const clean = validateCourseInput({
+        title: newForm.title,
+        slug: newForm.slug || undefined,
+        subtitle: newForm.subtitle || null,
+        description: newForm.description || null,
+        cover_image_path: newForm.cover_image_path || null,
+      });
+      setNewFormErrors({});
+      return clean;
+    } catch (e: unknown) {
+      const msg = errorMessage(e);
+      // Map "Field message" back to a field key
+      const field = msg.split(" ")[0].toLowerCase();
+      setNewFormErrors({ [field]: msg });
+      toast.error(msg);
+      return null;
+    }
+  };
 
   const uploadNewCover = async (file: File) => {
     setNewCoverUploading(true);
@@ -831,15 +853,11 @@ export default function AdminCourseDetail() {
 
   const createCourse = useMutation({
     mutationFn: async () => {
-      const title = newForm.title.trim();
-      if (!title) throw new Error("Title is required");
-      const slug = newForm.slug.trim() || slugify(title);
+      const clean = validateNewForm();
+      if (!clean) throw new Error("Please fix the highlighted fields");
       const data = await createCourseViaEdge({
-        title,
-        slug,
-        subtitle: newForm.subtitle.trim() || null,
-        description: newForm.description.trim() || null,
-        cover_image_path: newForm.cover_image_path || null,
+        ...clean,
+        slug: clean.slug || slugify(clean.title),
       });
       return data;
     },
