@@ -1176,8 +1176,19 @@ export default function AdminCourseDetail() {
                 );
               })}
             </div>
+            <div className="pt-1">
+              <AccessPlanSummary keys={newForm.access_plan_keys} />
+            </div>
           </div>
-          <Button onClick={() => createCourse.mutate()} disabled={createCourse.isPending || !newForm.title.trim()}>
+          <Button
+            onClick={() => createCourse.mutate()}
+            disabled={
+              createCourse.isPending ||
+              !newForm.title.trim() ||
+              !!newFormErrors.slug ||
+              newForm.access_plan_keys.length === 0
+            }
+          >
             {createCourse.isPending ? "Creating…" : "Create course & continue"}
           </Button>
         </Card>
