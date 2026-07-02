@@ -87,6 +87,13 @@ export function validateCourseInput(input: {
   };
 }
 
+/** Case-insensitive check for an existing course slug. Returns true if the slug is already taken. */
+export async function slugTaken(slug: string): Promise<boolean> {
+  if (!slug) return false;
+  const { data } = await supabase.from("courses").select("id").eq("slug", slug).maybeSingle();
+  return !!data;
+}
+
 export function isPlaceholderVideo(url: string | null | undefined): boolean {
   if (!url) return false;
   return url.includes("/manus-storage/") || url.includes("placeholder-video");
