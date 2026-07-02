@@ -869,11 +869,17 @@ export default function AdminCourseDetail() {
     mutationFn: async () => {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
+      const finalSlug = clean.slug || slugify(clean.title);
+      if (finalSlug && (await slugTaken(finalSlug))) {
+        setNewFormErrors((prev) => ({ ...prev, slug: `Slug "${finalSlug}" is already used by another course` }));
+        throw new Error(`Slug "${finalSlug}" is already used by another course — pick a different one`);
+      }
       const data = await withTimeout(
         createCourseViaEdge({
           ...clean,
-          slug: clean.slug || slugify(clean.title),
+          slug: finalSlug,
           status: newForm.publish ? "published" : "draft",
+          access_plan_keys: newForm.access_plan_keys,
         }),
         15000,
         "Create course",
