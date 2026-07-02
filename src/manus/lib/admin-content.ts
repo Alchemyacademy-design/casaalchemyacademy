@@ -178,24 +178,51 @@ export async function updateLesson(id: number, patch: Database["public"]["Tables
   if (error) throw error;
 }
 
-export async function createModule(courseId: number, sortOrder: number, title = "New module") {
-  const { data, error } = await supabase
-    .from("course_modules")
-    .insert({ course_id: courseId, title, sort_order: sortOrder, status: "draft" })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+/**
+ * Course/module/lesson creation always goes through the
+ * `admin-content-create` edge function. The function verifies the caller is
+ * an admin server-side, then inserts with service_role so the flow works
+ * regardless of RLS configuration on these tables. It also auto-assigns
+ * sort_order = max + 1.
+ */
+async function invokeAdminCreate<T>(body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke("admin-content-create", { body });
+  if (error) {
+    const detail = (data as { message?: string; error?: string } | null) ?? null;
+    throw new Error(detail?.message || detail?.error || error.message);
+  }
+  const payload = data as { error?: string; message?: string } | null;
+  if (payload && "error" in payload && payload.error) {
+    throw new Error(payload.message || payload.error);
+  }
+  return data as T;
 }
 
-export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson") {
-  const { data, error } = await supabase
-    .from("lessons")
-    .insert({ module_id: moduleId, title, sort_order: sortOrder, status: "draft" })
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+export async function createCourse(input: {
+  title: string;
+  slug?: string;
+  subtitle?: string | null;
+  description?: string | null;
+  cover_image_path?: string | null;
+}): Promise<Course> {
+  const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
+  return res.course;
+}
+
+export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
+  const res = await invokeAdminCreate<{ module: Module }>({
+    kind: "module",
+    payload: { course_id: courseId, title, sort_order: sortOrder },
+  });
+  return res.module;
+}
+
+export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
+  const res = await invokeAdminCreate<{ lesson: Lesson }>({
+    kind: "lesson",
+    payload: { module_id: moduleId, title, sort_order: sortOrder },
+  });
+  return res.lesson;
 }
 
 /**

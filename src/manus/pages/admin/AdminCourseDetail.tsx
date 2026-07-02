@@ -37,6 +37,7 @@ import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/
 
 import {
   createLesson,
+  createCourse as createCourseViaEdge,
   createModule,
   archiveLesson,
   archiveModule,
@@ -822,19 +823,13 @@ export default function AdminCourseDetail() {
       const title = newForm.title.trim();
       if (!title) throw new Error("Title is required");
       const slug = newForm.slug.trim() || slugify(title);
-      const { data, error } = await supabase
-        .from("courses")
-        .insert({
-          title,
-          slug,
-          subtitle: newForm.subtitle.trim() || null,
-          description: newForm.description.trim() || null,
-          cover_image_path: newForm.cover_image_path || null,
-          status: "draft" as const,
-        })
-        .select()
-        .single();
-      if (error) throw error;
+      const data = await createCourseViaEdge({
+        title,
+        slug,
+        subtitle: newForm.subtitle.trim() || null,
+        description: newForm.description.trim() || null,
+        cover_image_path: newForm.cover_image_path || null,
+      });
       return data;
     },
     onSuccess: (data) => {
