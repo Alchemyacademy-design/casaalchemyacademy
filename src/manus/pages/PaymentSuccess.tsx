@@ -9,7 +9,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const { isMember, isAdmin, activeEntitlements, refresh } = useAuth();
+  const { isMember, isAdmin, activeEntitlements, refresh: refreshAuth } = useAuth();
   const destination = isAdmin || isMember ? "/dashboard" : activeEntitlements.length > 0 ? "/mycourses" : "/plans";
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function PaymentSuccess() {
   }, []);
 
   const [attempts, setAttempts] = useState(0);
-  const { data: status, isLoading, refetch: refresh } = trpc.stripe.getPaymentStatus.useQuery(
+  const { data: status, isLoading, refetch: refreshStatus } = trpc.stripe.getPaymentStatus.useQuery(
     { sessionId: sessionId || undefined },
     {
       enabled: !!sessionId,
@@ -36,7 +36,7 @@ export default function PaymentSuccess() {
   // When Stripe confirms, refresh auth entitlements so the destination CTA reflects
   // the newly granted access immediately.
   useEffect(() => {
-    if (status?.accessConfirmed) { void refresh(); }
+    if (status?.accessConfirmed) { void refreshAuth(); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status?.accessConfirmed]);
 
@@ -119,7 +119,7 @@ export default function PaymentSuccess() {
             <Button onClick={() => navigate(destination)} className="w-full" size="lg" disabled={!accessConfirmed}>
               {accessConfirmed ? (destination === "/dashboard" ? "Go to Dashboard" : destination === "/mycourses" ? "Access Your Courses" : "Choose a Plan") : "Waiting for confirmation…"}
             </Button>
-            <Button onClick={() => refresh()} variant="outline" className="w-full">Check again</Button>
+            <Button onClick={() => refreshStatus()} variant="outline" className="w-full">Check again</Button>
             <Button onClick={() => navigate("/")} variant="outline" className="w-full">
               Return to Home
             </Button>
