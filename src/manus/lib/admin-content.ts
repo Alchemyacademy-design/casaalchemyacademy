@@ -205,24 +205,88 @@ export async function createCourse(input: {
   description?: string | null;
   cover_image_path?: string | null;
 }): Promise<Course> {
-  const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
-  return res.course;
+  try {
+    const res = await invokeAdminCreate<{ course: Course }>({ kind: "course", payload: input });
+    return res.course;
+  } catch (edgeErr) {
+    // Fallback: admins have RLS insert on courses. Compute slug + sort_order
+    // client-side so the New Course flow keeps working even if the edge
+    // function is unreachable or misconfigured.
+    const baseSlug = (input.slug?.trim() || slugify(input.title)) || slugify(input.title);
+    if (!baseSlug) throw edgeErr;
+    const { data: maxRow } = await supabase
+      .from("courses")
+      .select("sort_order")
+      .order("sort_order", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const nextSort = ((maxRow?.sort_order as number | undefined) ?? 0) + 1;
+    let candidate = baseSlug;
+    for (let i = 2; i < 30; i++) {
+      const { data: existing } = await supabase
+        .from("courses")
+        .select("id")
+        .eq("slug", candidate)
+        .maybeSingle();
+      if (!existing) break;
+      candidate = `${baseSlug}-${i}`;
+    }
+    const { data: userData } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from("courses")
+      .insert({
+        title: input.title.trim(),
+        slug: candidate,
+        subtitle: input.subtitle?.trim() || null,
+        description: input.description?.trim() || null,
+        cover_image_path: input.cover_image_path?.trim() || null,
+        status: "draft",
+        sort_order: nextSort,
+        created_by: userData.user?.id ?? null,
+      })
+      .select()
+      .single();
+    if (error) {
+      throw new Error(`${(edgeErr as Error).message} · fallback insert failed: ${error.message}`);
+    }
+    return data as Course;
+  }
 }
 
 export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
-  const res = await invokeAdminCreate<{ module: Module }>({
-    kind: "module",
-    payload: { course_id: courseId, title, sort_order: sortOrder },
-  });
-  return res.module;
+  try {
+    const res = await invokeAdminCreate<{ module: Module }>({
+      kind: "module",
+      payload: { course_id: courseId, title, sort_order: sortOrder },
+    });
+    return res.module;
+  } catch (edgeErr) {
+    const { data, error } = await supabase
+      .from("course_modules")
+      .insert({ course_id: courseId, title, sort_order: sortOrder, status: "draft" })
+      .select()
+      .single();
+    if (error) throw new Error(`${(edgeErr as Error).message} · fallback failed: ${error.message}`);
+    return data as Module;
+  }
 }
 
 export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
-  const res = await invokeAdminCreate<{ lesson: Lesson }>({
-    kind: "lesson",
-    payload: { module_id: moduleId, title, sort_order: sortOrder },
-  });
-  return res.lesson;
+  try {
+    const res = await invokeAdminCreate<{ lesson: Lesson }>({
+      kind: "lesson",
+      payload: { module_id: moduleId, title, sort_order: sortOrder },
+    });
+    return res.lesson;
+  } catch (edgeErr) {
+    const { data, error } = await supabase
+      .from("lessons")
+      .insert({ module_id: moduleId, title, sort_order: sortOrder, status: "draft" })
+      .select()
+      .single();
+    if (error) throw new Error(`${(edgeErr as Error).message} · fallback failed: ${error.message}`);
+    return data as Lesson;
+  }
 }
 
 /**
