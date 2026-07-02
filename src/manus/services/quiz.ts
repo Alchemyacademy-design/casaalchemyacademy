@@ -22,6 +22,7 @@ export type QuizRow = {
   id: number;
   course_id: number;
   lesson_id: number | null;
+  module_id: number | null;
   title: string;
   description: string | null;
   passing_score: number; // 0..100
