@@ -55,6 +55,7 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
     setError(null);
     setIsLoading(true);
 
+    let willRedirect = false;
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
@@ -79,13 +80,15 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
       url.searchParams.set("utm_source", "lovable");
       url.searchParams.set("utm_campaign", selectedCharity);
       toast.success("Redirecting to secure Stripe checkout…");
+      willRedirect = true;
       // Small delay so the toast is visible before navigation.
       setTimeout(() => { window.location.href = url.toString(); }, 400);
     } catch (checkoutError) {
       console.error("Checkout error:", checkoutError);
       setError("We could not start checkout. Please try again.");
       toast.error("Could not open checkout. Please try again.");
-      setIsLoading(false);
+    } finally {
+      if (!willRedirect) setIsLoading(false);
     }
   };
 
