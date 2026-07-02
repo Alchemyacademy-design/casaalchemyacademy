@@ -940,10 +940,6 @@ export default function AdminCourseDetail() {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
       const finalSlug = clean.slug || slugify(clean.title);
-      if (finalSlug && (await slugTaken(finalSlug))) {
-        setNewFormErrors((prev) => ({ ...prev, slug: `Slug "${finalSlug}" is already used by another course` }));
-        throw new Error(`Slug "${finalSlug}" is already used by another course — pick a different one`);
-      }
       const data = await withTimeout(
         createCourseViaEdge({
           ...clean,
@@ -951,7 +947,7 @@ export default function AdminCourseDetail() {
           status: newForm.publish ? "published" : "draft",
           access_plan_keys: newForm.access_plan_keys,
         }),
-        15000,
+        20000,
         "Create course",
       );
       return data;
@@ -989,7 +985,7 @@ export default function AdminCourseDetail() {
     }
     const nextOrder = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
     try {
-      const created = await createModule(courseId, nextOrder, title);
+      const created = await withTimeout(createModule(courseId, nextOrder, title), 15000, "Create module");
       await refetchModules();
       invalidateCourse();
       toast.success(`Module "${created.title}" created`);
