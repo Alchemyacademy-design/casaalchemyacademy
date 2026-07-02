@@ -381,9 +381,18 @@ function ModuleSection({
   };
 
   const handleAdd = async () => {
+    const raw = window.prompt("New lesson title (2–120 characters):", "New lesson");
+    if (raw === null) return;
+    let title: string;
+    try {
+      title = validateTitle(raw, "Lesson title");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+      return;
+    }
     const nextOrder = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
     try {
-      const created = await createLesson(module.id, nextOrder);
+      const created = await createLesson(module.id, nextOrder, title);
       await refetch();
       invalidateAll();
       toast.success(`Lesson "${created.title}" created`);
@@ -852,9 +861,18 @@ export default function AdminCourseDetail() {
 
   const handleAddModule = async () => {
     if (!courseId) return;
+    const raw = window.prompt("New module title (2–120 characters):", "New module");
+    if (raw === null) return;
+    let title: string;
+    try {
+      title = validateTitle(raw, "Module title");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+      return;
+    }
     const nextOrder = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
     try {
-      const created = await createModule(courseId, nextOrder);
+      const created = await createModule(courseId, nextOrder, title);
       await refetchModules();
       invalidateCourse();
       toast.success(`Module "${created.title}" created`);
