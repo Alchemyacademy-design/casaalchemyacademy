@@ -15,9 +15,21 @@ const CHARITIES = [
 ];
 
 const PLAN_LABELS: Record<string, { label: string; price: string; sub: string }> = {
-  annual: { label: "Annual Membership", price: "AUD 708", sub: "one payment for 12 months of access" },
-  monthly: { label: "Monthly Membership", price: "AUD 99/month", sub: "renews monthly until cancelled" },
-  guide: { label: "Selected Course", price: "AUD 159", sub: "renews every 3 months until cancelled" },
+  annual: {
+    label: "Annual Membership",
+    price: "R$ 1,590",
+    sub: "One payment for 12 months of full access — includes all courses, community, events, magazine, exclusive deals and Live Classes with Lorena.",
+  },
+  monthly: {
+    label: "Monthly Membership",
+    price: "R$ 159 / month",
+    sub: "Renews monthly until cancelled. All courses, community, events, magazine, suppliers and exclusive deals.",
+  },
+  guide: {
+    label: "Single Course",
+    price: "R$ 99",
+    sub: "One-time payment for lifetime access to the selected course — includes materials, quiz and certificate.",
+  },
 };
 
 const OFFER_KEYS = {
