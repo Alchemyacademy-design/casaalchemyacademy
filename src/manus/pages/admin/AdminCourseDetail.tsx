@@ -67,6 +67,13 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+function withTimeout<T>(p: Promise<T>, ms: number, label: string): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(`${label} took longer than ${ms / 1000}s. Please try again.`)), ms)),
+  ]);
+}
+
 /* ============================================================
  * Inline auto-save text input / textarea
  * ============================================================ */
