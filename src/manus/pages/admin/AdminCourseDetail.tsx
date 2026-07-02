@@ -862,10 +862,11 @@ export default function AdminCourseDetail() {
     mutationFn: async () => {
       const clean = validateNewForm();
       if (!clean) throw new Error("Please fix the highlighted fields");
-      const data = await createCourseViaEdge({
-        ...clean,
-        slug: clean.slug || slugify(clean.title),
-      });
+      const data = await withTimeout(
+        createCourseViaEdge({ ...clean, slug: clean.slug || slugify(clean.title) }),
+        15000,
+        "Create course",
+      );
       return data;
     },
     onSuccess: (data) => {
