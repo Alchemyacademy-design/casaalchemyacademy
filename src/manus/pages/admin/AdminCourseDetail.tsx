@@ -39,6 +39,8 @@ import {
   createLesson,
   createCourse as createCourseViaEdge,
   createModule,
+  validateTitle,
+  validateCourseInput,
   archiveLesson,
   archiveModule,
   getCourse,
