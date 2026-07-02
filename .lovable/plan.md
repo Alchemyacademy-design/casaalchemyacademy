@@ -1,85 +1,30 @@
-# Plano — Renderização de Quizzes + Auditoria do Admin Center
+## Root cause
 
-## Objetivo
-1. Garantir que quizzes editados/publicados no admin apareçam corretamente nas aulas/módulos da plataforma.
-2. Tornar cada item do menu da Central Administradora 100% funcional (CRUD do admin → renderiza para o aluno).
+`supabase.functions.invoke("admin-content-create", …)` is called with no timeout from `invokeAdminCreate` in `src/manus/lib/admin-content.ts`. When the edge function cold-starts, blocks on CORS, or the JWT hasn't refreshed yet, the Promise never resolves and never rejects — so:
 
----
+- `createCourse.mutate()` in the New course form stays `isPending: true` forever ("Creating…" button spinner never stops).
+- The client-side fallback (`supabase.from("courses").insert(...)`) sits inside the same `catch` branch and is never reached, because the outer call never throws.
+- Same pattern hangs `handleAddModule` and `handleAdd` (lesson).
 
-## Parte A — Correção do Fluxo de Quizzes
+The recently added `window.prompt` in module/lesson creation is not the cause — prompts return synchronously; it's the invoke call that stalls.
 
-### A1. Bug crítico: quizzes "course-level" nunca aparecem
-Hoje, quando um quiz é criado sem `lesson_id` (default), ele fica invisível no player. O `seed-pilot-quizzes` cria exatamente nesse formato — por isso os 10 quizzes semeados não aparecem.
+## Fix
 
-**Correção:**
-- `AdminQuizEditor.tsx`: tornar o seletor de escopo (curso/módulo/aula) obrigatório antes de permitir `status = published`; bloquear publish quando `lesson_id` for null (a menos que se decida por escopo "final do módulo").
-- `ModuleDetail.tsx`: além de quizzes por `lesson_id`, também buscar quizzes com `module_id` = módulo atual e `lesson_id = null` e renderizar como "Quiz do módulo" após a última aula.
-- `get-member-quiz`: manter o gate por `status = 'published'` e validar acesso pelo `course_id` (já ok).
+1. **Wrap `invokeAdminCreate` in a timeout race** (8s). If the edge function doesn't respond, throw a typed `EdgeTimeoutError` so the existing fallback (`supabase.from(...).insert(...)`) fires and the admin still gets the course/module/lesson created via RLS.
+2. **Guard the auth session** before invoke. Call `supabase.auth.getSession()` once; if there's no `access_token`, skip the edge attempt entirely and go straight to the direct-insert fallback (avoids invisible 401 hangs after token refresh).
+3. **Belt & suspenders on the mutation** in `AdminCourseDetail.tsx`: wrap `createCourse.mutationFn` in a 15s outer timeout so even a pathological hang inside the fallback surfaces a toast instead of an infinite spinner. Do the same for `handleAdd` (lesson) and `handleAddModule`.
+4. **Reset spinner on any throw** — mutations already do this, but for `handleAdd`/`handleAddModule` (plain async) add a `finally` toast to unblock the UI.
 
-### A2. Painel `/admin/quizzes` funcional de verdade
-Hoje é só "seed + preview". Vamos transformar em CRUD completo:
-- Listagem paginada de todos os quizzes (join com curso/módulo/aula).
-- Botão "Editar" abre o `AdminQuizEditor` existente inline.
-- Botão "Criar quiz" com seletor de curso + escopo obrigatório.
-- Coluna com status (draft/published/archived) e contador de perguntas.
-- Aviso vermelho quando um quiz publicado estiver órfão (sem lesson_id nem module_id) — link direto para corrigir.
+## Files touched
 
-### A3. Publicação segura
-- Checklist antes de publicar: ≥1 pergunta, todas com ≥2 opções e ≥1 correta, escopo definido, passing_score válido.
-- Ao publicar, invalidar query cache de `lessonQuiz` para o módulo alvo.
+- `src/manus/lib/admin-content.ts` — add `withTimeout` helper, session precheck, apply to `invokeAdminCreate`.
+- `src/manus/pages/admin/AdminCourseDetail.tsx` — outer timeout around create mutation + handlers.
 
-### A4. Verificação end-to-end
-- Testes: `quiz.routing.test.ts` cobrindo (a) quiz de aula, (b) quiz de módulo, (c) quiz órfão não aparece.
-- Playwright: login admin → criar quiz em aula → publicar → abrir a aula na área de membros → responder → conferir tentativa em `quiz_attempts`.
+## Verification
 
----
+- Deploy nothing new (no edge function changes). Reload admin, open New course, submit; if edge cold-starts the spinner stops in ≤8s and fallback insert wins. Same for Add module / Add lesson. Check console for a single `[admin-create] edge timeout, falling back` log.
 
-## Parte B — Auditoria do Menu Admin
+## Out of scope
 
-Legenda: ✅ funcional · 🟡 parcial · 🔴 não funcional
-
-| # | Item | Status | Ação |
-|---|---|---|---|
-| 1 | Overview | ✅ | Nada a fazer |
-| 2 | Courses | ✅ | Nada a fazer (CRUD → Modules/CourseDetail) |
-| 3 | Lessons (bulk) | ✅ | Nada a fazer |
-| 4 | **Quizzes** | 🟡 | Ver Parte A |
-| 5 | Events | ✅ | Nada a fazer |
-| 6 | Live workshops | ✅ | Nada a fazer |
-| 7 | Magazine | ✅ | Nada a fazer |
-| 8 | **Suppliers** | 🟡 | Trocar campo `category_id` (number puro) por **select** populado de `supplier_categories` |
-| 9 | **Supplier categories** | 🟡 | Adicionar filtro por categoria na página `/suppliers` (aluno) |
-| 10 | **Deals** | 🔴 | Criar página membro `/deals` consumindo `useDeals()` (hook já existe); adicionar link na sidebar do membro |
-| 11 | **Plans** | 🟡 | Expor campos `stripe_*_price_id` no editor (edição controlada) + botão "Validar preço no Stripe" via edge function existente |
-| 12 | **Certificates** | 🟡 | Ao inserir/emitir manualmente pelo admin, validar % de conclusão do aluno (ou marcar como override com auditoria) |
-| 13 | Students | ✅ | Nada a fazer |
-| 14 | Diagnostics | ✅ | Nada a fazer |
-| 15 | Analytics | ✅ | Nada a fazer |
-
----
-
-## Ordem de execução sugerida
-
-1. **Parte A (quizzes)** — bloqueio crítico, primeiro.
-2. **Deals** — criar rota `/deals` (impacto visível imediato para o aluno).
-3. **Suppliers + Supplier categories** — dropdown + filtro.
-4. **Plans** — expor `stripe_price_id` no admin.
-5. **Certificates** — validação de conclusão no insert admin.
-6. Rodar Playwright end-to-end + `bun test` + verificar logs das edge functions.
-
-## Detalhes técnicos
-
-- Arquivos principais a alterar:
-  - `src/manus/components/admin/AdminQuizEditor.tsx`
-  - `src/manus/pages/admin/AdminQuizzes.tsx`
-  - `src/manus/pages/ModuleDetail.tsx`
-  - `src/manus/lib/trpc.ts` (nova query `quizzes.byModule`)
-  - `src/manus/pages/admin/AdminSuppliers.tsx` + `AdminTablePage` (suporte a `select` async)
-  - `src/manus/pages/Suppliers.tsx` (filtro categoria)
-  - `src/manus/pages/Deals.tsx` (novo) + rota em `App.tsx` + link em `MemberLayout`
-  - `src/manus/pages/admin/AdminPlans.tsx` (campos Stripe)
-  - `src/manus/pages/admin/AdminCertificates.tsx` (validação)
-- Sem migração de schema nova (todas as tabelas já existem).
-- Sem novas secrets.
-
-Confirma pra eu executar?
+- Replacing `window.prompt` with a shadcn `Dialog` (better UX, not the reported bug).
+- Retry/backoff on the edge function (fallback covers it).

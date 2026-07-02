@@ -242,7 +242,17 @@ export async function updateLesson(id: number, patch: Database["public"]["Tables
  * sort_order = max + 1.
  */
 async function invokeAdminCreate<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke("admin-content-create", { body });
+  // Precheck: without a session the edge function will 401. Skip and let the
+  // caller's fallback (direct insert with RLS) run instead of hanging.
+  const { data: sessionRes } = await supabase.auth.getSession();
+  if (!sessionRes?.session?.access_token) {
+    throw new Error("No active session — using direct insert fallback");
+  }
+  const invokePromise = supabase.functions.invoke("admin-content-create", { body });
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error("admin-content-create timed out after 8s")), 8000),
+  );
+  const { data, error } = (await Promise.race([invokePromise, timeout])) as Awaited<typeof invokePromise>;
   if (error) {
     const detail = (data as { message?: string; error?: string } | null) ?? null;
     throw new Error(detail?.message || detail?.error || error.message);
