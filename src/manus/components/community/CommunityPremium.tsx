@@ -48,6 +48,7 @@ import {
 import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/community-deeplink";
 import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
 import "@/manus/styles/community-premium.css";
+import { useChannelUnread, useMarkChannelReadEffect } from "@/manus/hooks/community/useChannelUnread";
 
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
