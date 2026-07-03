@@ -8,6 +8,13 @@ import AvatarUpload from "@/manus/components/AvatarUpload";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const NOTIFICATION_PREFS = [
+  { key: "reply", label: "Replies to my posts and comments" },
+  { key: "mention", label: "Mentions of my name" },
+  { key: "workshop_reminder", label: "Live workshop reminders" },
+  { key: "billing", label: "Billing and subscription updates" },
+] as const;
+
 export default function Profile() {
   const navigate = useNavigate();
   const { user, isAdmin, logout, refreshAccess } = useAuth();
@@ -31,6 +38,11 @@ export default function Profile() {
   };
 
   const activeMembership = memberships.find(m => m.status === "active" || new Date(m.ends_at) > new Date());
+  const prefs = (profile?.notification_prefs as Record<string, boolean> | null) ?? {};
+  const setPref = async (key: string, next: boolean) => {
+    await update.mutateAsync({ notification_prefs: { ...prefs, [key]: next } });
+  };
+
   const [portalLoading, setPortalLoading] = useState(false);
   const openPortal = async () => {
     setPortalLoading(true);
