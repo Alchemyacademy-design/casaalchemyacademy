@@ -50,8 +50,7 @@ const AdminDiagnostics = lazyWithRetry(() => import("@/manus/pages/admin/AdminDi
 const AdminEvents = lazyWithRetry(() => import("@/manus/pages/admin/AdminEvents"), "AdminEvents");
 const AdminWorkshops = lazyWithRetry(() => import("@/manus/pages/admin/AdminWorkshops"), "AdminWorkshops");
 const AdminMagazine = lazyWithRetry(() => import("@/manus/pages/admin/AdminMagazine"), "AdminMagazine");
-const AdminSuppliers = lazyWithRetry(() => import("@/manus/pages/admin/AdminSuppliers"), "AdminSuppliers");
-const AdminSupplierCategories = lazyWithRetry(() => import("@/manus/pages/admin/AdminSupplierCategories"), "AdminSupplierCategories");
+const SuppliersHub = lazyWithRetry(() => import("@/manus/pages/admin/SuppliersHub"), "SuppliersHub");
 const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
 const AdminPlans = lazyWithRetry(() => import("@/manus/pages/admin/AdminPlans"), "AdminPlans");
 const AdminCertificates = lazyWithRetry(() => import("@/manus/pages/admin/AdminCertificates"), "AdminCertificates");
@@ -107,8 +106,8 @@ export default function App() {
             <Route path="/admin/events" element={<AdminGuard><AdminEvents /></AdminGuard>} />
             <Route path="/admin/workshops" element={<AdminGuard><AdminWorkshops /></AdminGuard>} />
             <Route path="/admin/magazine" element={<AdminGuard><AdminMagazine /></AdminGuard>} />
-            <Route path="/admin/suppliers" element={<AdminGuard><AdminSuppliers /></AdminGuard>} />
-            <Route path="/admin/supplier-categories" element={<AdminGuard><AdminSupplierCategories /></AdminGuard>} />
+            <Route path="/admin/suppliers" element={<AdminGuard><SuppliersHub /></AdminGuard>} />
+            <Route path="/admin/supplier-categories" element={<Navigate to="/admin/suppliers?tab=categories" replace />} />
             <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />
             <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
             <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />

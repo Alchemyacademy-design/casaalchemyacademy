@@ -10,7 +10,7 @@ const STATUS = [
 
 type CategoryRow = { id: number; name: string };
 
-export default function AdminSuppliers() {
+export function AdminSuppliersInner({ embedded = false }: { embedded?: boolean }) {
   const categoriesQuery = useQuery<CategoryRow[]>({
     queryKey: ["admin-supplier-categories-select"],
     queryFn: async () => {
@@ -33,6 +33,7 @@ export default function AdminSuppliers() {
 
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Suppliers"
       description="Manage the trusted-suppliers directory shown in /suppliers."
       table="suppliers"
