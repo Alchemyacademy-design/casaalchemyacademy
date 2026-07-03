@@ -446,7 +446,7 @@ export default function CommunityPremium({
 
                   <button type="button" className="aa-community-post-copy" onClick={() => setOpenPost(post)}>
                     <h3>{post.title}</h3>
-                    <p>{post.body}</p>
+                    <p><MentionText text={post.body} /></p>
                   </button>
 
                   <div className="aa-community-post-actions">
@@ -464,6 +464,14 @@ export default function CommunityPremium({
                       {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
                         <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, postId: post.id })}>{emoji}</button>
                       ))}
+                      {reactions.length > 0 && (
+                        <span
+                          aria-label={`${reactions.reduce((n, r) => n + r.count, 0)} total reactions`}
+                          style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}
+                        >
+                          · {reactions.reduce((n, r) => n + r.count, 0)}
+                        </span>
+                      )}
                     </div>
                     <button type="button" className="aa-community-reply-count" onClick={() => setOpenPost(post)}>
                       <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "reply" : "replies"}
