@@ -564,6 +564,7 @@ function ThreadPanel({
   const deleteReply = useDeleteReply(post.id);
   const toggleReaction = useToggleReaction();
   const [draft, setDraft] = useState("");
+  const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const replyIds = useMemo(() => replies.map((reply) => reply.id), [replies]);
   const replyAuthors = useMemo(() => replies.map((reply) => reply.author_id), [replies]);
   const { data: replyProfiles = [] } = useCommunityAuthorProfiles(replyAuthors);
@@ -590,8 +591,22 @@ function ThreadPanel({
   async function submitReply() {
     if (!draft.trim()) return;
     try {
-      await createReply.mutateAsync(draft.trim());
+      const created = await createReply.mutateAsync(draft.trim());
+      const mentionedIds = resolveMentionUserIds(draft, mentionDir);
+      if (mentionedIds.length) {
+        try {
+          await notifyMentions({
+            userIds: mentionedIds,
+            title: `You were mentioned in a reply`,
+            body: draft,
+            href: `/community`,
+            postId: post.id,
+            replyId: created?.id ?? null,
+          });
+        } catch { /* best-effort */ }
+      }
       setDraft("");
+      setMentionDir(new Map());
       toast.success("Reply posted");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not reply");
@@ -615,7 +630,7 @@ function ThreadPanel({
         <div>
           <p className="section-label">Conversation</p>
           <SheetTitle>{post.title}</SheetTitle>
-          <p>{post.body}</p>
+          <p><MentionText text={post.body} /></p>
         </div>
         {(isAdmin || post.author_id === userId) && <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 size={15} /></Button>}
       </SheetHeader>
@@ -636,7 +651,7 @@ function ThreadPanel({
                   <div><strong>{profileName(profile, own)}</strong><span>{relativeTime(reply.created_at)}</span></div>
                   {(own || isAdmin) && <button type="button" onClick={() => removeReply(reply.id)}><Trash2 size={13} /></button>}
                 </div>
-                <p>{reply.body}</p>
+                <p><MentionText text={reply.body} /></p>
                 <div className="aa-community-reactions">
                   {reactions.map((reaction) => (
                     <button type="button" key={reaction.reaction} className={reaction.mine ? "is-active" : ""} onClick={() => userId && toggleReaction.mutate({ reaction: reaction.reaction, userId, replyId: reply.id })}>
@@ -646,6 +661,11 @@ function ThreadPanel({
                   {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
                     <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, replyId: reply.id })}>{emoji}</button>
                   ))}
+                  {reactions.length > 0 && (
+                    <span aria-label="total reactions" style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>
+                      · {reactions.reduce((n, r) => n + r.count, 0)}
+                    </span>
+                  )}
                 </div>
               </article>
             );
@@ -657,7 +677,21 @@ function ThreadPanel({
         <div className="aa-community-thread-locked"><Lock size={15} /> This conversation was closed by moderation.</div>
       ) : userId ? (
         <footer className="aa-community-thread-composer">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Write a reply…" />
+          <MentionInput
+            value={draft}
+            onChange={(next, patch) => {
+              setDraft(next);
+              if (patch.size) setMentionDir((prev) => {
+                const merged = new Map(prev);
+                patch.forEach((v, k) => merged.set(k, v));
+                return merged;
+              });
+            }}
+            rows={3}
+            maxLength={3000}
+            placeholder="Write a reply… Use @ to mention someone."
+            ariaLabel="Reply body"
+          />
           <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
