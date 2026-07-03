@@ -14,6 +14,7 @@ import {
 } from "@/manus/services/community-deeplink";
 import { publishCrossTabInvalidation } from "@/manus/lib/cross-tab-query-sync";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
+import LessonNotes from "@/manus/components/lesson/LessonNotes";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import LessonSidebar from "@/manus/components/learning/LessonSidebar";
 import CompletionButton from "@/manus/components/learning/CompletionButton";
@@ -410,6 +411,8 @@ export default function ModuleDetail() {
                   </div>
 
                   <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} isAdmin={false} />
+
+                  <LessonNotes lessonId={Number(activeLesson.id)} />
 
                   {activeLessonQuiz ? (
                     <div>
