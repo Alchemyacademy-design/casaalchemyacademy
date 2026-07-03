@@ -334,38 +334,66 @@ export async function createCourse(input: {
   return data as Course;
 }
 
+async function nextModuleSortOrder(courseId: number): Promise<number> {
+  const { data } = await supabase
+    .from("course_modules")
+    .select("sort_order")
+    .eq("course_id", courseId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.sort_order as number | undefined) ?? 0) + 1;
+}
+
+async function nextLessonSortOrder(moduleId: number): Promise<number> {
+  const { data } = await supabase
+    .from("lessons")
+    .select("sort_order")
+    .eq("module_id", moduleId)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return ((data?.sort_order as number | undefined) ?? 0) + 1;
+}
+
 export async function createModule(courseId: number, sortOrder: number, title = "New module"): Promise<Module> {
   const t = validateTitle(title, "Module title");
   title = t;
   if (!Number.isFinite(courseId) || courseId <= 0) throw new Error("Invalid course");
-  const { data, error } = await withTimeout(
-    supabase
-      .from("course_modules")
-      .insert({ course_id: courseId, title, sort_order: sortOrder, status: "draft" })
-      .select()
-      .single(),
-    8000,
-    "Creating module",
-  );
-  if (error) throw new Error(`Create module failed: ${error.message}`);
-  return data as Module;
+  let attempt = await nextModuleSortOrder(courseId);
+  if (attempt < sortOrder) attempt = sortOrder;
+  for (let i = 0; i < 5; i++) {
+    const { data, error } = await withTimeout(
+      supabase.from("course_modules")
+        .insert({ course_id: courseId, title, sort_order: attempt, status: "draft" })
+        .select().single(),
+      8000, "Creating module",
+    );
+    if (!error) return data as Module;
+    if (error.code === "23505" || /duplicate key/i.test(error.message)) { attempt += 1; continue; }
+    throw new Error(`Create module failed: ${error.message}`);
+  }
+  throw new Error("Create module failed: could not allocate sort_order");
 }
 
 export async function createLesson(moduleId: number, sortOrder: number, title = "New lesson"): Promise<Lesson> {
   const t = validateTitle(title, "Lesson title");
   title = t;
   if (!Number.isFinite(moduleId) || moduleId <= 0) throw new Error("Invalid module");
-  const { data, error } = await withTimeout(
-    supabase
-      .from("lessons")
-      .insert({ module_id: moduleId, title, sort_order: sortOrder, status: "draft" })
-      .select()
-      .single(),
-    8000,
-    "Creating lesson",
-  );
-  if (error) throw new Error(`Create lesson failed: ${error.message}`);
-  return data as Lesson;
+  let attempt = await nextLessonSortOrder(moduleId);
+  if (attempt < sortOrder) attempt = sortOrder;
+  for (let i = 0; i < 5; i++) {
+    const { data, error } = await withTimeout(
+      supabase.from("lessons")
+        .insert({ module_id: moduleId, title, sort_order: attempt, status: "draft" })
+        .select().single(),
+      8000, "Creating lesson",
+    );
+    if (!error) return data as Lesson;
+    if (error.code === "23505" || /duplicate key/i.test(error.message)) { attempt += 1; continue; }
+    throw new Error(`Create lesson failed: ${error.message}`);
+  }
+  throw new Error("Create lesson failed: could not allocate sort_order");
 }
 
 /**
