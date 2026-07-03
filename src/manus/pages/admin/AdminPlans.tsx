@@ -1,10 +1,22 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, DollarSign, TrendingUp, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
-import { useStripePriceDefaults, formatStripePriceLabel, useMembershipPlans } from "@/manus/hooks/usePublicContent";
+import { useStripePriceDefaults, formatStripePriceLabel, useMembershipPlans, describeError } from "@/manus/hooks/usePublicContent";
+import type { Database } from "@/integrations/supabase/types";
+
+type PlanRow = Database["public"]["Tables"]["membership_plans"]["Row"];
 
 type SubRow = { status: string; stripe_price_id: string | null; livemode: boolean | null };
 
@@ -104,29 +116,224 @@ function PlanOverviewCards() {
   );
 }
 
+const PERK_FIELDS: { key: keyof PlanRow; label: string }[] = [
+  { key: "all_courses", label: "All courses included" },
+  { key: "individual_course_access", label: "Individual course access" },
+  { key: "community_access", label: "Community access" },
+  { key: "events_access", label: "Members events" },
+  { key: "live_workshops_access", label: "Live workshops" },
+  { key: "exclusive_deals_access", label: "Exclusive deals" },
+];
+
+function PlanEditorCard({ plan }: { plan: PlanRow }) {
+  const qc = useQueryClient();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+  const price = priceMap[plan.key];
+  const priceLabel = formatStripePriceLabel(price);
+
+  const [draft, setDraft] = useState<PlanRow>(plan);
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(plan), [draft, plan]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const save = useMutation({
+    mutationFn: async () => {
+      const patch: Partial<PlanRow> = {
+        name: draft.name,
+        description: draft.description,
+        active: draft.active,
+        all_courses: draft.all_courses,
+        individual_course_access: draft.individual_course_access,
+        community_access: draft.community_access,
+        events_access: draft.events_access,
+        live_workshops_access: draft.live_workshops_access,
+        exclusive_deals_access: draft.exclusive_deals_access,
+      };
+      const { data, error } = await supabase
+        .from("membership_plans")
+        .update(patch)
+        .eq("key", plan.key)
+        .select("*")
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      toast.success("Plan saved");
+      qc.invalidateQueries({ queryKey: ["public", "plans"] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
+    },
+    onError: (e) => {
+      const d = describeError(e, "save plan");
+      toast.error(d.title, { description: d.description });
+    },
+  });
+
+  return (
+    <Card className="p-5 flex flex-col">
+      <div className="flex items-start justify-between gap-2 mb-3">
+        <div className="min-w-0">
+          <div className="text-xs text-foreground/60 font-mono">{plan.key}</div>
+          <Input
+            className="mt-1 text-base font-medium"
+            value={draft.name ?? ""}
+            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+          />
+        </div>
+        <div className="flex flex-col items-end gap-1 shrink-0">
+          {price ? (
+            <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
+          ) : (
+            <Badge variant="destructive">Out of sync</Badge>
+          )}
+          <Badge variant={draft.active ? "default" : "outline"} className="text-[10px]">{draft.active ? "Active" : "Hidden"}</Badge>
+        </div>
+      </div>
+
+      <div className="mb-3 text-lg">
+        {priceLabel ?? <span className="text-sm text-foreground/50">No Stripe price mapped</span>}
+      </div>
+
+      <div className="mb-3">
+        <Label className="text-xs">Description shown on /plans</Label>
+        <Textarea
+          className="mt-1"
+          rows={3}
+          value={draft.description ?? ""}
+          onChange={(e) => setDraft({ ...draft, description: e.target.value })}
+        />
+      </div>
+
+      <div className="space-y-2 mb-4">
+        <div className="flex items-center justify-between">
+          <Label className="text-xs">Visible on /plans</Label>
+          <Switch checked={!!draft.active} onCheckedChange={(v) => setDraft({ ...draft, active: v })} />
+        </div>
+        {PERK_FIELDS.map((f) => (
+          <div key={String(f.key)} className="flex items-center justify-between">
+            <Label className="text-xs">{f.label}</Label>
+            <Switch
+              checked={!!(draft as unknown as Record<string, unknown>)[f.key as string]}
+              onCheckedChange={(v) => setDraft({ ...draft, [f.key]: v } as PlanRow)}
+            />
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center gap-2 mt-auto">
+        <Button size="sm" onClick={() => save.mutate()} disabled={!dirty || save.isPending}>
+          <Save className="w-4 h-4 mr-1" /> {save.isPending ? "Saving…" : "Save"}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)}>
+          <Eye className="w-4 h-4 mr-1" /> Preview as member
+        </Button>
+        {dirty && <span className="text-[11px] text-amber-600">Unsaved changes</span>}
+      </div>
+
+      {price && (
+        <a
+          href={`https://dashboard.stripe.com/${price.livemode ? "" : "test/"}prices/${price.stripe_price_id}`}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 text-[11px] text-foreground/50 hover:text-foreground/80 inline-flex items-center gap-1"
+        >
+          <ExternalLink className="w-3 h-3" /> Manage price in Stripe
+        </a>
+      )}
+
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Member preview — {draft.name}</DialogTitle>
+          </DialogHeader>
+          <MemberPreviewCard plan={draft} priceLabel={priceLabel} />
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function MemberPreviewCard({ plan, priceLabel }: { plan: PlanRow; priceLabel: string | null }) {
+  const features: string[] = [];
+  if (plan.all_courses) features.push("All courses included");
+  else if (plan.individual_course_access) features.push("Selected course access");
+  if (plan.community_access) features.push("Community access");
+  if (plan.events_access) features.push("Members events");
+  if (plan.live_workshops_access) features.push("Live workshops");
+  if (plan.exclusive_deals_access) features.push("Exclusive deals");
+
+  return (
+    <Card className="p-6 flex flex-col border-accent/30">
+      <h2 className="font-serif text-2xl mb-2">{plan.name}</h2>
+      {priceLabel ? (
+        <div className="font-serif text-2xl mb-3" style={{ fontWeight: 300 }}>{priceLabel}</div>
+      ) : (
+        <div className="text-xs text-foreground/60 uppercase tracking-wide mb-3">No Stripe price</div>
+      )}
+      {plan.description && <p className="text-sm text-foreground/70 mb-4">{plan.description}</p>}
+      <ul className="space-y-2 mb-4">
+        {features.length ? features.map((f) => (
+          <li key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />{f}</li>
+        )) : <li className="text-xs text-foreground/50">No perks enabled</li>}
+      </ul>
+      <Button className="w-full" disabled>Choose (preview)</Button>
+    </Card>
+  );
+}
+
+function PlansEditorGrid() {
+  const { data: plans = [], isLoading } = useMembershipPlans();
+  if (isLoading) return <p className="text-sm text-foreground/60">Loading plans…</p>;
+  if (!plans.length) return <p className="text-sm text-foreground/60">No plans yet.</p>;
+  return (
+    <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {plans.map((p) => <PlanEditorCard key={p.key} plan={p} />)}
+    </div>
+  );
+}
+
 export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
+  const [showAdvanced, setShowAdvanced] = useState(false);
   return (
     <div>
       <PlanOverviewCards />
-      <AdminTablePage
-      noShell={embedded}
-      title="Membership plans"
-      description="Plan catalogue used by /plans. Stripe prices are managed in Stripe — only metadata is editable here."
-      table="membership_plans"
-      orderBy={{ column: "key", ascending: true }}
-      searchFields={["name", "key"]}
-      publicInvalidateKeys={[["public", "membership_plans"]]}
-      fields={[
-        { name: "key", label: "Key", type: "text", required: true },
-        { name: "name", label: "Name", type: "text", required: true },
-        { name: "description", label: "Description", type: "textarea", hideInTable: true },
-        { name: "duration", label: "Duration", type: "text" },
-        { name: "all_courses", label: "All courses", type: "boolean" },
-        { name: "community_access", label: "Community", type: "boolean" },
-        { name: "events_access", label: "Events", type: "boolean" },
-        { name: "active", label: "Active", type: "boolean", defaultValue: true },
-      ]}
-      />
+
+      <div className="flex items-baseline justify-between mb-3">
+        <div>
+          <h2 className="text-lg font-medium">Plan editor</h2>
+          <p className="text-xs text-foreground/60">Metadata and perks shown on /plans. Prices come from Stripe.</p>
+        </div>
+      </div>
+      <PlansEditorGrid />
+
+      <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced} className="mt-8">
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" size="sm" className="text-xs">
+            <ChevronDown className={`w-4 h-4 mr-1 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+            Advanced table view
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="mt-3">
+          <AdminTablePage
+            noShell={embedded}
+            title="Membership plans (raw)"
+            description="Low-level table for debugging. Prefer the card editor above."
+            table="membership_plans"
+            orderBy={{ column: "key", ascending: true }}
+            searchFields={["name", "key"]}
+            publicInvalidateKeys={[["public", "plans"]]}
+            fields={[
+              { name: "key", label: "Key", type: "text", required: true },
+              { name: "name", label: "Name", type: "text", required: true },
+              { name: "description", label: "Description", type: "textarea", hideInTable: true },
+              { name: "duration", label: "Duration", type: "text" },
+              { name: "all_courses", label: "All courses", type: "boolean" },
+              { name: "community_access", label: "Community", type: "boolean" },
+              { name: "events_access", label: "Events", type: "boolean" },
+              { name: "active", label: "Active", type: "boolean", defaultValue: true },
+            ]}
+          />
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
