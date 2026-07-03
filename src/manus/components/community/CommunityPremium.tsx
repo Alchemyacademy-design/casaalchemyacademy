@@ -49,6 +49,9 @@ import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/commun
 import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
 import "@/manus/styles/community-premium.css";
 import { useChannelUnread, useMarkChannelReadEffect } from "@/manus/hooks/community/useChannelUnread";
+import MentionInput from "./MentionInput";
+import MentionText from "./MentionText";
+import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
@@ -114,6 +117,8 @@ export default function CommunityPremium({
   const [filter, setFilter] = useState<FilterMode>("all");
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
+  // Handle→userId mapping accumulated as the composer inserts mentions.
+  const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
 
   useEffect(() => {
@@ -228,9 +233,22 @@ export default function CommunityPremium({
   async function publishPost() {
     if (!draftBody.trim()) return;
     try {
-      await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
+      const created = await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
+      const mentionedIds = resolveMentionUserIds(draftBody, mentionDir);
+      if (mentionedIds.length && activeChannel) {
+        try {
+          await notifyMentions({
+            userIds: mentionedIds,
+            title: `You were mentioned in #${activeChannel.name}`,
+            body: draftBody,
+            href: `/community?space=${encodeURIComponent(spaces.find((s) => s.id === spaceId)?.slug ?? "")}&channel=${encodeURIComponent(activeChannel.slug)}`,
+            postId: created?.id ?? null,
+          });
+        } catch { /* mentions are best-effort */ }
+      }
       setDraftTitle("");
       setDraftBody("");
+      setMentionDir(new Map());
       toast.success("Post published");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not publish");
