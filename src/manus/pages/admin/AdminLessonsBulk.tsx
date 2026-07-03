@@ -35,7 +35,7 @@ type Patch = Partial<Pick<Row, "title" | "description" | "external_video_url" | 
 
 const STATUSES: ContentStatus[] = ["draft", "published", "archived"];
 
-export default function AdminLessonsBulk() {
+export function BulkLessonsPanel({ embedded = false }: { embedded?: boolean } = {}) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [dirty, setDirty] = useState<Record<number, Patch>>({});
@@ -188,20 +188,19 @@ export default function AdminLessonsBulk() {
     toast.success("Archived");
   };
 
-  return (
-    <AdminShell
-      title="Bulk lesson editor"
-      description="Edit titles, video URLs, descriptions and status across all lessons. Lesson thumbnails use the parent module cover."
-      crumbs={[{ label: "Bulk lessons" }]}
-      actions={
-        <>
-          <Link to="/admin/courses"><Button variant="outline">Courses</Button></Link>
+  const body = (
+    <>
+      {embedded && (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Bulk lesson editor</h2>
+            <p className="text-sm text-foreground/60">Edit titles, video URLs, descriptions and status across every lesson. Thumbnails come from the parent module cover.</p>
+          </div>
           <Button onClick={saveAll} disabled={!dirtyCount}>
             <Save className="w-4 h-4 mr-1" /> Save changes ({dirtyCount})
           </Button>
-        </>
-      }
-    >
+        </div>
+      )}
       <Card className="p-4 mb-4 flex flex-wrap gap-3 items-end">
         <div className="flex flex-col gap-1">
           <label className="text-xs text-foreground/60">Course</label>
@@ -333,6 +332,20 @@ export default function AdminLessonsBulk() {
           </table>
         </div>
       )}
+    </>
+  );
+  return body;
+}
+
+export default function AdminLessonsBulk() {
+  return (
+    <AdminShell
+      title="Bulk lesson editor"
+      description="Edit titles, video URLs, descriptions and status across all lessons. Lesson thumbnails use the parent module cover."
+      crumbs={[{ label: "Course Management", to: "/admin/course-management" }, { label: "Bulk lessons" }]}
+      actions={<Link to="/admin/course-management"><Button variant="outline">Back to Course Management</Button></Link>}
+    >
+      <BulkLessonsPanel />
     </AdminShell>
   );
 }
