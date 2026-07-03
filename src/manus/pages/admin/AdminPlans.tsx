@@ -249,6 +249,7 @@ function NewPlanDialog({
       qc.invalidateQueries({ queryKey: ["admin"] });
       onOpenChange(false);
       setKey(""); setName(""); setDescription(""); setPerks({});
+      setCheckResult(null); setForceDespiteDuplicate(false);
     },
     onError: (e) => {
       const d = describeError(e, "create plan");
