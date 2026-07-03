@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy } from "lucide-react";
+import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy, ArrowUpDown, Loader2, Wand2 } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 import { useStripePriceDefaults, formatStripePriceLabel, describeError } from "@/manus/hooks/usePublicContent";
 import type { Database } from "@/integrations/supabase/types";
