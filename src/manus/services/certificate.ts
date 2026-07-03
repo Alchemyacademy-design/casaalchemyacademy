@@ -24,6 +24,8 @@ export type CertificateRecord = {
   issued_at: string;
   certificate_url: string | null;
   metadata: Record<string, unknown>;
+  public_slug?: string | null;
+  verification_hash?: string | null;
 };
 
 /** Published, non-archived lesson ids for the given course. */

@@ -56,6 +56,7 @@ const CourseManagement = lazyWithRetry(() => import("@/manus/pages/admin/CourseM
 const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuilder"), "CourseBuilder");
 const AdminLinkScanner = lazyWithRetry(() => import("@/manus/pages/admin/AdminLinkScanner"), "AdminLinkScanner");
 const NotificationsInbox = lazyWithRetry(() => import("@/manus/pages/NotificationsInbox"), "NotificationsInbox");
+const PublicCertificate = lazyWithRetry(() => import("@/manus/pages/PublicCertificate"), "PublicCertificate");
 
 
 export default function App() {
@@ -70,6 +71,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/plans" element={<Plans />} />
+            <Route path="/c/:slug" element={<PublicCertificate />} />
             <Route path="/auth/continue" element={<PostAuthRedirect />} />
             <Route path="/mycourses" element={<Modules />} />
             <Route path="/mycourses/:id" element={<ModuleDetail />} />
