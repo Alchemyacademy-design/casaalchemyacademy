@@ -18,6 +18,7 @@ import AdminShell from "@/manus/components/admin/AdminShell";
 import { supabase } from "@/integrations/supabase/client";
 import { isLegacyAssetPath, isPlaceholderVideo } from "@/manus/lib/admin-content";
 import { fetchAuditSafe, type AuditResult } from "@/manus/lib/admin-audit-safe";
+import AdminHealthStrip, { type HealthItem } from "@/manus/components/admin/AdminHealthStrip";
 
 interface Kpi {
   label: string;
@@ -153,6 +154,44 @@ export default function AdminOverview() {
 
   return (
     <AdminShell title="Overview" description="All metrics below come live from Supabase — no mocked data.">
+      <AdminHealthStrip
+        items={
+          [
+            {
+              key: "video",
+              label: "Lessons missing / broken video",
+              count: data?.missingVideos ?? 0,
+              tone: (data?.missingVideos ?? 0) > 0 ? "warn" : "ok",
+              to: "/admin/tools/link-scanner",
+              cta: "Scan",
+            },
+            {
+              key: "thumbs",
+              label: "Missing thumbnails",
+              count: (data?.missingThumbs ?? 0) + (data?.missingLessonThumbs ?? 0),
+              tone: (data?.missingThumbs ?? 0) + (data?.missingLessonThumbs ?? 0) > 0 ? "warn" : "ok",
+              to: "/admin/course-management",
+              cta: "Fix",
+            },
+            {
+              key: "posts",
+              label: "Pending community posts",
+              count: data?.pendingPosts ?? 0,
+              tone: (data?.pendingPosts ?? 0) > 0 ? "warn" : "ok",
+              to: "/community",
+              cta: "Review",
+            },
+            {
+              key: "drafts",
+              label: "Courses in draft",
+              count: data?.draftCourses ?? 0,
+              tone: (data?.draftCourses ?? 0) > 0 ? "warn" : "ok",
+              to: "/admin/course-management",
+              cta: "Publish",
+            },
+          ] as HealthItem[]
+        }
+      />
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mb-8">
         {kpis.map((k) => <KpiCard key={k.label} k={k} />)}
       </div>

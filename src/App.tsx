@@ -54,6 +54,7 @@ const EventsHub = lazyWithRetry(() => import("@/manus/pages/admin/EventsHub"), "
 const PeopleHub = lazyWithRetry(() => import("@/manus/pages/admin/PeopleHub"), "PeopleHub");
 const CourseManagement = lazyWithRetry(() => import("@/manus/pages/admin/CourseManagement"), "CourseManagement");
 const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuilder"), "CourseBuilder");
+const AdminLinkScanner = lazyWithRetry(() => import("@/manus/pages/admin/AdminLinkScanner"), "AdminLinkScanner");
 
 
 export default function App() {
@@ -111,6 +112,7 @@ export default function App() {
             <Route path="/admin/quizzes" element={<Navigate to="/admin/course-management?tab=quizzes" replace />} />
             <Route path="/admin/course-management" element={<AdminGuard><CourseManagement /></AdminGuard>} />
             <Route path="/admin/course-management/:id" element={<AdminGuard><CourseBuilder /></AdminGuard>} />
+            <Route path="/admin/tools/link-scanner" element={<AdminGuard><AdminLinkScanner /></AdminGuard>} />
             <Route path="/admin/phase-2-preview" element={<Navigate to="/admin/courses" replace />} />
 
             <Route path="/dashboard" element={<Dashboard />} />

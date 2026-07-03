@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRight, Search } from "lucide-react";
@@ -6,7 +6,12 @@ import AdminShell from "@/manus/components/admin/AdminShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useUrlFilters } from "@/manus/hooks/useUrlFilters";
+import { useSelection } from "@/manus/hooks/useSelection";
+import BulkActionBar from "@/manus/components/admin/BulkActionBar";
 
 interface StudentRow {
   id: string;
@@ -22,7 +27,8 @@ interface StudentRow {
 
 export function AdminStudentsInner({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+  const { values, set, reset } = useUrlFilters({ q: "", segment: "all" });
+  const { q: search, segment } = values;
 
   const { data: rows = [], isLoading } = useQuery<StudentRow[]>({
     queryKey: ["admin", "students"],
@@ -68,21 +74,69 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
   });
 
   const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((u) =>
-      [u.email, u.full_name, u.display_name, u.id].some((v) => (v ?? "").toLowerCase().includes(q)),
-    );
-  }, [rows, search]);
+    const needle = (search ?? "").trim().toLowerCase();
+    return rows.filter((u) => {
+      if (needle && ![u.email, u.full_name, u.display_name, u.id].some((v) => (v ?? "").toLowerCase().includes(needle))) return false;
+      switch (segment) {
+        case "admins": return u.roles.includes("admin");
+        case "active": return u.membership_status === "active";
+        case "expired": {
+          if (!u.membership_ends_at) return !u.membership_status;
+          return new Date(u.membership_ends_at).getTime() < Date.now();
+        }
+        case "no-plan": return !u.membership_status;
+        default: return true;
+      }
+    });
+  }, [rows, search, segment]);
+
+  const selection = useSelection<string>(filtered.map((f) => f.id));
+  const selectedRows = filtered.filter((f) => selection.isSelected(f.id));
+
+  async function copyEmails() {
+    const emails = selectedRows.map((r) => r.email).filter(Boolean).join(", ");
+    if (!emails) return toast.error("No emails in selection");
+    try {
+      await navigator.clipboard.writeText(emails);
+      toast.success(`${selectedRows.length} email(s) copied`);
+    } catch {
+      toast.error("Clipboard blocked");
+    }
+  }
+
+  const segments: Array<{ key: string; label: string; badge?: number }> = [
+    { key: "all", label: "All", badge: rows.length },
+    { key: "active", label: "Active plans", badge: rows.filter((r) => r.membership_status === "active").length },
+    { key: "expired", label: "Expired / lapsed", badge: rows.filter((r) => r.membership_ends_at && new Date(r.membership_ends_at).getTime() < Date.now()).length },
+    { key: "no-plan", label: "No plan", badge: rows.filter((r) => !r.membership_status).length },
+    { key: "admins", label: "Admins", badge: rows.filter((r) => r.roles.includes("admin")).length },
+  ];
 
   const body = (
     <>
-      <Card className="p-4 mb-6">
+      <Card className="p-4 mb-4">
+        <div className="flex flex-wrap items-center gap-2 mb-3">
+          {segments.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => set({ segment: s.key })}
+              className={`text-xs rounded-full border px-3 py-1 transition ${
+                segment === s.key ? "bg-foreground text-background" : "bg-background hover:bg-muted"
+              }`}
+            >
+              {s.label} {typeof s.badge === "number" && <span className="opacity-70">· {s.badge}</span>}
+            </button>
+          ))}
+          <div className="flex-1" />
+          {(segment !== "all" || search) && (
+            <Button size="sm" variant="ghost" onClick={reset}>Reset</Button>
+          )}
+        </div>
         <div className="relative">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-foreground/50" />
           <Input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => set({ q: e.target.value })}
             placeholder="Search by name, email or ID"
             className="pl-9"
           />
@@ -94,6 +148,13 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
           <table className="w-full text-sm">
             <thead className="bg-muted/40">
               <tr className="text-left">
+                <th className="px-3 py-3 w-8">
+                  <Checkbox
+                    checked={selection.allSelected && filtered.length > 0}
+                    onCheckedChange={(v) => (v ? selection.selectAll() : selection.clear())}
+                    aria-label="Select all"
+                  />
+                </th>
                 <th className="px-4 py-3 font-medium">Student</th>
                 <th className="px-4 py-3 font-medium">Email</th>
                 <th className="px-4 py-3 font-medium">Role</th>
@@ -104,13 +165,20 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
             </thead>
             <tbody>
               {isLoading && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">Loading…</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-foreground/60">Loading…</td></tr>
               )}
               {!isLoading && filtered.length === 0 && (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-foreground/60">No students found.</td></tr>
+                <tr><td colSpan={7} className="px-4 py-8 text-center text-foreground/60">No students found.</td></tr>
               )}
               {filtered.map((u) => (
                 <tr key={u.id} className="border-t border-border/40 hover:bg-muted/20">
+                  <td className="px-3 py-3">
+                    <Checkbox
+                      checked={selection.isSelected(u.id)}
+                      onCheckedChange={() => selection.toggle(u.id)}
+                      aria-label={`Select ${u.email ?? u.id}`}
+                    />
+                  </td>
                   <td className="px-4 py-3">
                     <div className="font-medium">{u.display_name || u.full_name || "—"}</div>
                     <div className="text-xs text-foreground/50">{u.id}</div>
@@ -147,6 +215,19 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
           </table>
         </div>
       </Card>
+
+      <BulkActionBar count={selection.count} onClear={selection.clear}>
+        <Button size="sm" variant="secondary" onClick={copyEmails}>Copy emails</Button>
+        <Button
+          size="sm"
+          onClick={() => {
+            if (selectedRows.length === 1) navigate(`/admin/users/${selectedRows[0].id}`);
+            else toast.info("Open one student at a time from Manage — bulk grant flow coming soon.");
+          }}
+        >
+          Open in People Hub
+        </Button>
+      </BulkActionBar>
     </>
   );
   if (embedded) return body;
