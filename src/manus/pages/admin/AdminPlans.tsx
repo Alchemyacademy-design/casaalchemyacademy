@@ -1007,3 +1007,160 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
 }
 
 export default function AdminPlans() { return <AdminPlansInner />; }
+
+/* ===== Auto-reconcile dialog ===== */
+function AutoReconcileDialog({
+  open, onOpenChange,
+}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const qc = useQueryClient();
+  const { data: plans = [] } = useAllMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+  const outOfSync = plans.filter((p) => !priceMap[p.key]);
+
+  const [amountMap, setAmountMap] = useState<Record<string, string>>({});
+  const [currency, setCurrency] = useState("aud");
+  const [interval, setIntervalValue] = useState<"month" | "year" | "week">("month");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [running, setRunning] = useState(false);
+  const [log, setLog] = useState<{ key: string; status: "ok" | "err"; message: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    const next: Record<string, boolean> = {};
+    for (const p of outOfSync) next[p.key] = true;
+    setSelected(next);
+    setLog([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, outOfSync.length]);
+
+  async function runReconcile() {
+    setRunning(true);
+    setLog([]);
+    for (const plan of outOfSync) {
+      if (!selected[plan.key]) continue;
+      const amountDollars = Number(amountMap[plan.key]);
+      if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
+        setLog((l) => [...l, { key: plan.key, status: "err", message: "Enter a positive price" }]);
+        continue;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-stripe-plan-sync", {
+          body: {
+            action: "reconcile_plan",
+            plan_key: plan.key,
+            name: plan.name,
+            description: plan.description ?? undefined,
+            unit_amount: Math.round(amountDollars * 100),
+            currency,
+            interval,
+            interval_count: 1,
+          },
+        });
+        if (error) throw error;
+        const res = data as { price_id: string };
+        setLog((l) => [...l, { key: plan.key, status: "ok", message: `Created ${res.price_id}` }]);
+      } catch (e) {
+        setLog((l) => [...l, { key: plan.key, status: "err", message: (e as Error).message }]);
+      }
+    }
+    setRunning(false);
+    setTimeout(() => {
+      qc.invalidateQueries({ queryKey: ["public", "stripe_price_defaults"] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
+    }, 2500);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Auto-reconcile with Stripe</DialogTitle>
+          <DialogDescription>
+            For each selected out-of-sync plan, creates (or reuses) a Product tagged with <code>metadata.plan_key</code>
+            and a fresh recurring Price. The webhook activates it in <code>stripe_prices</code> automatically.
+          </DialogDescription>
+        </DialogHeader>
+
+        {outOfSync.length === 0 ? (
+          <p className="text-sm text-emerald-600 flex items-center gap-1"><Check className="w-4 h-4" /> All plans already have a mapped Stripe price.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Currency</Label>
+                <Input className="mt-1 uppercase" value={currency} onChange={(e) => setCurrency(e.target.value.toLowerCase())} maxLength={3} />
+              </div>
+              <div>
+                <Label className="text-xs">Billing interval</Label>
+                <Select value={interval} onValueChange={(v) => setIntervalValue(v as "month" | "year" | "week")}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="month">Monthly</SelectItem>
+                    <SelectItem value="year">Yearly</SelectItem>
+                    <SelectItem value="week">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="max-h-[40vh] overflow-auto space-y-2 mt-2">
+              {outOfSync.map((plan) => {
+                const entry = log.find((l) => l.key === plan.key);
+                return (
+                  <div key={plan.key} className="border rounded p-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!selected[plan.key]}
+                      onChange={(e) => setSelected({ ...selected, [plan.key]: e.target.checked })}
+                      disabled={running}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{plan.name}</div>
+                      <div className="text-[10px] font-mono text-foreground/50 truncate">{plan.key}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-foreground/60">{currency.toUpperCase()}</span>
+                      <Input
+                        className="w-24 h-8"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="9.99"
+                        value={amountMap[plan.key] ?? ""}
+                        onChange={(e) => setAmountMap({ ...amountMap, [plan.key]: e.target.value })}
+                        disabled={running}
+                      />
+                    </div>
+                    {entry && (
+                      entry.status === "ok" ? (
+                        <Badge variant="default" className="ml-1">Live</Badge>
+                      ) : (
+                        <Badge variant="destructive" className="ml-1" title={entry.message}>Error</Badge>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {log.length > 0 && (
+              <div className="text-xs text-foreground/60 mt-2">
+                {log.filter((l) => l.status === "ok").length}/{log.length} reconciled — webhook will finalise the Live status.
+              </div>
+            )}
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          {outOfSync.length > 0 && (
+            <Button onClick={runReconcile} disabled={running || !Object.values(selected).some(Boolean)}>
+              {running ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+              {running ? "Reconciling…" : "Auto-reconcile"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
