@@ -44,7 +44,7 @@ export function useContinueLearning() {
       const { data, error } = await client
         .from("lesson_progress")
         .select(
-          "lesson_id, watched_seconds, watched_percent, completed_at, last_watched_at, lessons:lesson_id ( id, title, thumbnail_path, module_id, course_modules:module_id ( id, title, course_id, courses:course_id ( id, title, slug, cover_path ) ) )",
+          "lesson_id, watched_seconds, watched_percent, completed_at, last_watched_at, lessons:lesson_id ( id, title, module_id, course_modules:module_id ( id, title, course_id, cover_image_path, courses:course_id ( id, title, slug, cover_image_path ) ) )",
         )
         .eq("user_id", user!.id)
         .is("completed_at", null)
@@ -58,13 +58,13 @@ export function useContinueLearning() {
           | {
               id: number;
               title: string;
-              thumbnail_path: string | null;
               module_id: number;
               course_modules?: {
                 id: number;
                 title: string;
                 course_id: number;
-                courses?: { id: number; title: string; slug: string | null; cover_path: string | null } | null;
+                cover_image_path: string | null;
+                courses?: { id: number; title: string; slug: string | null; cover_image_path: string | null } | null;
               } | null;
             }
           | null;
@@ -79,7 +79,7 @@ export function useContinueLearning() {
           courseId: course.id,
           courseTitle: course.title,
           courseSlug: course.slug,
-          thumbnail: lesson.thumbnail_path ?? course.cover_path ?? null,
+          thumbnail: mod.cover_image_path ?? course.cover_image_path ?? null,
           watchedPercent: Number(row.watched_percent ?? 0),
           watchedSeconds: Number(row.watched_seconds ?? 0),
           lastWatchedAt: (row.last_watched_at as string) ?? "",
