@@ -90,19 +90,16 @@ export default function CourseBuilder() {
 
         {/* CENTER — Editor */}
         <div className="rounded-lg border border-border bg-card p-6 min-h-[400px]">
-          {sel?.kind === "lesson" ? (
-            <LessonEditor
-              lesson={lessons.find((l) => l.id === sel.id)!}
-              onSaved={invalidate}
-            />
-          ) : sel?.kind === "module" ? (
-            <ModuleEditor
-              module={modules.find((m) => m.id === sel.id)!}
-              onSaved={invalidate}
-            />
-          ) : (
-            <CourseOverview course={course} onSaved={() => qc.invalidateQueries({ queryKey: ["cb-course", courseId] })} />
-          )}
+          {(() => {
+            const selLesson = sel?.kind === "lesson" ? lessons.find((l) => l.id === sel.id) : null;
+            const selModule = sel?.kind === "module" ? modules.find((m) => m.id === sel.id) : null;
+            if (sel?.kind === "lesson" && selLesson) return <LessonEditor lesson={selLesson} onSaved={invalidate} />;
+            if (sel?.kind === "module" && selModule) return <ModuleEditor module={selModule} onSaved={invalidate} />;
+            if (sel && !selLesson && !selModule) {
+              return <div className="text-sm text-muted-foreground">Loading selection…</div>;
+            }
+            return <CourseOverview course={course} onSaved={() => qc.invalidateQueries({ queryKey: ["cb-course", courseId] })} />;
+          })()}
         </div>
 
         {/* RIGHT — Settings */}
