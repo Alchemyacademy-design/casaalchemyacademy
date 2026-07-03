@@ -943,6 +943,7 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
   return (
     <div>
       <PlanOverviewCards />
@@ -955,6 +956,9 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setSyncOpen(true)}>
             <RefreshCw className="w-4 h-4 mr-1" /> Verify & sync with Stripe
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setReconcileOpen(true)}>
+            <Wand2 className="w-4 h-4 mr-1" /> Auto-reconcile
           </Button>
           <Button size="sm" onClick={() => setNewOpen(true)}>
             <Plus className="w-4 h-4 mr-1" /> New plan
@@ -997,6 +1001,7 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
 
       <SyncWithStripeDialog open={syncOpen} onOpenChange={setSyncOpen} />
       <NewPlanDialog open={newOpen} onOpenChange={setNewOpen} />
+      <AutoReconcileDialog open={reconcileOpen} onOpenChange={setReconcileOpen} />
     </div>
   );
 }
