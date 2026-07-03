@@ -806,60 +806,131 @@ function PlanDiagnosticsTable() {
   const { data: plans = [] } = useAllMembershipPlans();
   const { data: priceMap = {} } = useStripePriceDefaults();
   const { data: subs = [] } = useSubscriberStats();
+  const revenueMap = usePlanRevenueMap();
+
+  type StatusFilter = "all" | "live" | "test" | "out";
+  type SortKey = "name" | "subs" | "revenue";
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDesc, setSortDesc] = useState(false);
+
+  const rows = useMemo(() => {
+    const enriched = plans.map((plan) => {
+      const price = priceMap[plan.key];
+      const activeSubs = price
+        ? subs.filter((s) => s.stripe_price_id === price.stripe_price_id && ["active", "trialing"].includes(s.status)).length
+        : 0;
+      const revenue30dCents = price ? (revenueMap[price.stripe_price_id] ?? 0) : 0;
+      const bucket: StatusFilter = !price ? "out" : price.livemode ? "live" : "test";
+      return { plan, price, activeSubs, revenue30dCents, bucket };
+    });
+    const filtered = status === "all" ? enriched : enriched.filter((r) => r.bucket === status);
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "name") cmp = a.plan.name.localeCompare(b.plan.name);
+      else if (sortKey === "subs") cmp = a.activeSubs - b.activeSubs;
+      else if (sortKey === "revenue") cmp = a.revenue30dCents - b.revenue30dCents;
+      return sortDesc ? -cmp : cmp;
+    });
+  }, [plans, priceMap, subs, revenueMap, status, sortKey, sortDesc]);
+
+  function toggleSort(k: SortKey) {
+    if (sortKey === k) setSortDesc((v) => !v);
+    else { setSortKey(k); setSortDesc(k !== "name"); }
+  }
+
+  const counts = useMemo(() => {
+    const c = { all: plans.length, live: 0, test: 0, out: 0 };
+    for (const p of plans) {
+      const price = priceMap[p.key];
+      if (!price) c.out++;
+      else if (price.livemode) c.live++;
+      else c.test++;
+    }
+    return c;
+  }, [plans, priceMap]);
+
+  const currencyGuess = (Object.values(priceMap)[0]?.currency ?? "aud").toUpperCase();
+  const fmtCents = (cents: number) =>
+    (cents / 100).toLocaleString(undefined, { style: "currency", currency: currencyGuess, maximumFractionDigits: 0 });
 
   return (
     <Card className="p-0 overflow-hidden mb-4">
-      <div className="px-4 py-3 border-b bg-muted/30">
-        <div className="text-sm font-medium">Diagnostics</div>
-        <div className="text-xs text-foreground/60">Live status per plan, resolved from Supabase + Stripe cache.</div>
+      <div className="px-4 py-3 border-b bg-muted/30 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium">Diagnostics</div>
+          <div className="text-xs text-foreground/60">Live status per plan, resolved from Supabase + Stripe cache.</div>
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {(["all", "live", "test", "out"] as const).map((k) => (
+            <Button
+              key={k}
+              size="sm"
+              variant={status === k ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setStatus(k)}
+            >
+              {k === "all" ? "All" : k === "live" ? "Live" : k === "test" ? "Test" : "Out of sync"}
+              <span className="ml-1 text-[10px] opacity-70">({counts[k]})</span>
+            </Button>
+          ))}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-foreground/60">
             <tr className="border-b">
-              <th className="text-left px-3 py-2">Plan</th>
+              <th className="text-left px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("name")}>
+                  Plan <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
               <th className="text-left px-3 py-2">Key</th>
               <th className="text-left px-3 py-2">Price status</th>
               <th className="text-left px-3 py-2">Price ID</th>
-              <th className="text-right px-3 py-2">Active subs</th>
+              <th className="text-right px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("subs")}>
+                  Active subs <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="text-right px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("revenue")}>
+                  Revenue 30d <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
               <th className="text-right px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
-            {plans.map((plan) => {
-              const price = priceMap[plan.key];
-              const activeSubs = price
-                ? subs.filter((s) => s.stripe_price_id === price.stripe_price_id && ["active", "trialing"].includes(s.status)).length
-                : 0;
-              return (
-                <tr key={plan.key} className="border-b last:border-0">
-                  <td className="px-3 py-2">{plan.name}{!plan.active && <span className="ml-2 text-[10px] text-foreground/50">(hidden)</span>}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{plan.key}</td>
-                  <td className="px-3 py-2">
-                    {price ? (
-                      <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
-                    ) : (
-                      <Badge variant="destructive">Out of sync</Badge>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-foreground/60 max-w-[220px] truncate">{price?.stripe_price_id ?? "—"}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{activeSubs}</td>
-                  <td className="px-3 py-2 text-right">
-                    {price ? (
-                      <Button size="sm" variant="ghost" onClick={() => openStripePrice(price.stripe_price_id, price.livemode)}>
-                        <ExternalLink className="w-3 h-3" />
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => openStripeNewPrice(plan.key)}>
-                        <Plus className="w-3 h-3 mr-1" /> Create
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {!plans.length && (
-              <tr><td colSpan={6} className="px-3 py-4 text-center text-foreground/50 text-sm">No plans</td></tr>
+            {rows.map(({ plan, price, activeSubs, revenue30dCents }) => (
+              <tr key={plan.key} className="border-b last:border-0">
+                <td className="px-3 py-2">{plan.name}{!plan.active && <span className="ml-2 text-[10px] text-foreground/50">(hidden)</span>}</td>
+                <td className="px-3 py-2 font-mono text-xs">{plan.key}</td>
+                <td className="px-3 py-2">
+                  {price ? (
+                    <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
+                  ) : (
+                    <Badge variant="destructive">Out of sync</Badge>
+                  )}
+                </td>
+                <td className="px-3 py-2 font-mono text-[11px] text-foreground/60 max-w-[220px] truncate">{price?.stripe_price_id ?? "—"}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{activeSubs}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtCents(revenue30dCents)}</td>
+                <td className="px-3 py-2 text-right">
+                  {price ? (
+                    <Button size="sm" variant="ghost" onClick={() => openStripePrice(price.stripe_price_id, price.livemode)}>
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => openStripeNewPrice(plan.key)}>
+                      <Plus className="w-3 h-3 mr-1" /> Create
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!rows.length && (
+              <tr><td colSpan={7} className="px-3 py-4 text-center text-foreground/50 text-sm">No plans match this filter</td></tr>
             )}
           </tbody>
         </table>
