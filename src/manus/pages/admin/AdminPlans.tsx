@@ -11,14 +11,21 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink } from "lucide-react";
+import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 import { useStripePriceDefaults, formatStripePriceLabel, useMembershipPlans, describeError } from "@/manus/hooks/usePublicContent";
 import type { Database } from "@/integrations/supabase/types";
 
 type PlanRow = Database["public"]["Tables"]["membership_plans"]["Row"];
 
-type SubRow = { status: string; stripe_price_id: string | null; livemode: boolean | null };
+type SubRow = {
+  status: string;
+  stripe_price_id: string | null;
+  livemode: boolean | null;
+  cancelled_at: string | null;
+  cancel_at_period_end: boolean | null;
+  current_period_end: string | null;
+};
 
 function useSubscriberStats() {
   return useQuery({
@@ -26,7 +33,7 @@ function useSubscriberStats() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("stripe_subscriptions")
-        .select("status, stripe_price_id, livemode");
+        .select("status, stripe_price_id, livemode, cancelled_at, cancel_at_period_end, current_period_end");
       if (error) throw error;
       return (data ?? []) as SubRow[];
     },
