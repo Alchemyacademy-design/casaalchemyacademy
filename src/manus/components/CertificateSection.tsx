@@ -1,7 +1,10 @@
 import { useState } from "react";
-import { Download, Award, AlertCircle } from "lucide-react";
+import { Download, Award, AlertCircle, ExternalLink, Link as LinkIcon, Linkedin } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
+import CertificateArtwork from "@/manus/components/certificates/CertificateArtwork";
+import { downloadCertificatePdf } from "@/manus/components/certificates/downloadCertificatePdf";
+import { toast } from "sonner";
 
 type Props = {
   /** Course this certificate is for. When omitted the section renders nothing. */
@@ -63,56 +66,45 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     }
   };
 
+  const publicSlug = (certificate as { public_slug?: string } | null | undefined)?.public_slug ?? null;
+  const shareUrl = publicSlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${publicSlug}`
+    : null;
+
   const handleDownloadCertificate = async () => {
     if (!certificate || !user) return;
     setIsDownloading(true);
     try {
-      const canvas = document.createElement("canvas");
-      canvas.width = 1200;
-      canvas.height = 800;
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.fillStyle = "#F5F0E8"; // cream
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.strokeStyle = "#C4A05A"; // gold
-      ctx.lineWidth = 8;
-      ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#3D3A2A"; // olive
-      ctx.font = 'bold 60px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText("Certificate of Completion", canvas.width / 2, 150);
-      ctx.font = '24px "DM Sans", system-ui, sans-serif';
-      ctx.fillStyle = "#5C5840";
-      ctx.fillText("Alchemy Academy", canvas.width / 2, 220);
-      ctx.fillStyle = "#3D3A2A";
-      ctx.font = '18px "DM Sans", system-ui, sans-serif';
-      ctx.fillText("This certifies that", canvas.width / 2, 320);
-      ctx.fillStyle = "#C4A05A";
-      ctx.font = 'bold 36px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText(user.name || "Alchemist", canvas.width / 2, 400);
-      ctx.fillStyle = "#3D3A2A";
-      ctx.font = '18px "DM Sans", system-ui, sans-serif';
-      const title = courseTitle?.trim() || "the course";
-      ctx.fillText(`has successfully completed`, canvas.width / 2, 480);
-      ctx.font = '22px "Cormorant Garamond", Georgia, serif';
-      ctx.fillText(`"${title}"`, canvas.width / 2, 520);
-      ctx.font = '14px "DM Sans", system-ui, sans-serif';
-      ctx.fillStyle = "#5C5840";
-      const date = certificate.issuedAt ? new Date(certificate.issuedAt).toLocaleDateString() : "";
-      if (date) ctx.fillText(`Issued: ${date}`, canvas.width / 2, 650);
-      if (certificate.certificate_number) {
-        ctx.fillText(`No. ${certificate.certificate_number}`, canvas.width / 2, 680);
-      }
-      const link = document.createElement("a");
-      link.href = canvas.toDataURL("image/png");
-      link.download = `Alchemy-Academy-Certificate-${user.name || "Alchemist"}.png`;
-      link.click();
+      await downloadCertificatePdf({
+        studentName: user.name || "Alchemist",
+        courseTitle: courseTitle || "the course",
+        issuedAt: certificate.issuedAt ?? certificate.issued_at,
+        certificateNumber: certificate.certificate_number || "AA-0000",
+        verifyUrl: shareUrl ?? undefined,
+      });
     } catch (error) {
       console.error("Failed to download certificate:", error);
+      toast.error("Could not generate PDF");
     } finally {
       setIsDownloading(false);
     }
   };
+
+  const handleCopyLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Share link copied");
+  };
+
+  const linkedInHref = certificate && shareUrl
+    ? `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(
+        courseTitle || "Course",
+      )}&organizationName=${encodeURIComponent("Casa Alchemy Studio")}&issueYear=${new Date(
+        certificate.issuedAt ?? certificate.issued_at ?? Date.now(),
+      ).getFullYear()}&issueMonth=${
+        new Date(certificate.issuedAt ?? certificate.issued_at ?? Date.now()).getMonth() + 1
+      }&certUrl=${encodeURIComponent(shareUrl)}&certId=${encodeURIComponent(certificate.certificate_number || "")}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -153,21 +145,60 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
       {isEligible && (
         <div className="p-6 rounded-lg bg-card border">
           {certificate ? (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
                 <p className="text-sm text-foreground/65 mb-1">Certificate earned</p>
                 <p className="text-lg font-serif text-foreground">
                   Congratulations on completing {courseTitle || "this course"}.
                 </p>
               </div>
-              <button
-                onClick={handleDownloadCertificate}
-                disabled={isDownloading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-              >
-                <Download size={16} />
-                {isDownloading ? "Downloading..." : "Download Certificate"}
-              </button>
+
+              <CertificateArtwork
+                studentName={user?.name || "Alchemist"}
+                courseTitle={courseTitle || "Course"}
+                issuedAt={certificate.issuedAt ?? certificate.issued_at}
+                certificateNumber={certificate.certificate_number || "AA-0000"}
+                verifyUrl={shareUrl ?? undefined}
+              />
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={handleDownloadCertificate}
+                  disabled={isDownloading}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-70 text-sm"
+                >
+                  <Download size={14} />
+                  {isDownloading ? "Generating…" : "Download PDF"}
+                </button>
+                {shareUrl && (
+                  <>
+                    <a
+                      href={shareUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent"
+                    >
+                      <ExternalLink size={14} /> View public certificate
+                    </a>
+                    <button
+                      onClick={handleCopyLink}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent"
+                    >
+                      <LinkIcon size={14} /> Copy link
+                    </button>
+                    {linkedInHref && (
+                      <a
+                        href={linkedInHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent"
+                      >
+                        <Linkedin size={14} /> Add to LinkedIn
+                      </a>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           ) : (
             <button
