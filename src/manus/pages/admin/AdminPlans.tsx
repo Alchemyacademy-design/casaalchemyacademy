@@ -177,11 +177,39 @@ function NewPlanDialog({
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("1 month");
   const [perks, setPerks] = useState<Record<string, boolean>>({});
+  const [checkResult, setCheckResult] = useState<StripeCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [forceDespiteDuplicate, setForceDespiteDuplicate] = useState(false);
+
+  useEffect(() => {
+    setCheckResult(null);
+    setForceDespiteDuplicate(false);
+    if (!key) return;
+    let cancelled = false;
+    setChecking(true);
+    supabase.functions
+      .invoke("admin-stripe-plan-sync", { body: { action: "check_plan_key", plan_key: key } })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          toast.error("Stripe check failed", { description: error.message });
+          return;
+        }
+        setCheckResult(data as StripeCheckResult);
+      })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+  }, [key]);
+
+  const stripeHasDuplicate = !!checkResult && (checkResult.prices?.length ?? 0) > 0;
 
   const create = useMutation({
     mutationFn: async () => {
       if (!key) throw new Error("Pick a plan key");
       if (!name.trim()) throw new Error("Name is required");
+      if (stripeHasDuplicate && !forceDespiteDuplicate) {
+        throw new Error("Stripe already has a Price for this plan_key. Confirm the override to continue.");
+      }
       const { data, error } = await supabase
         .from("membership_plans")
         .insert({
