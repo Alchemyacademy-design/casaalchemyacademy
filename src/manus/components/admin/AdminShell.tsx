@@ -14,6 +14,7 @@ import {
   Tag,
   Wand2,
   Search,
+  LinkIcon,
 } from "lucide-react";
 import {
   Sidebar,
@@ -49,6 +50,7 @@ const NAV = [
   { title: "People Hub", url: "/admin/students", icon: Users },
   { title: "Diagnostics", url: "/admin/diagnostics", icon: Activity },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
+  { title: "Link scanner", url: "/admin/tools/link-scanner", icon: LinkIcon },
 ];
 
 function AdminSidebarInner() {
