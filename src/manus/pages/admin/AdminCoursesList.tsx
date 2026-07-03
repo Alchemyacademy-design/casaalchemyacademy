@@ -50,7 +50,7 @@ export default function AdminCoursesList() {
       actions={
         <>
           <Button variant="outline" asChild>
-            <Link to="/admin/lessons">Bulk lessons</Link>
+            <Link to="/admin/course-management?tab=bulk">Bulk lessons</Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/admin/diagnostics">Diagnostics</Link>
