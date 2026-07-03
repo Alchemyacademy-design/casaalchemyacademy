@@ -55,7 +55,7 @@ export default function AdminCoursesList() {
           <Button variant="outline" asChild>
             <Link to="/admin/diagnostics">Diagnostics</Link>
           </Button>
-          <Button onClick={() => navigate("/admin/courses/new")}>
+            <Button onClick={() => navigate("/admin/course-management?new=1")}>
             <Plus className="w-4 h-4 mr-1" /> New course
           </Button>
         </>
