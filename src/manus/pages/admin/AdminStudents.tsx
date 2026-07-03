@@ -20,7 +20,7 @@ interface StudentRow {
   membership_ends_at: string | null;
 }
 
-export default function AdminStudents() {
+export function AdminStudentsInner({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
 
@@ -75,12 +75,8 @@ export default function AdminStudents() {
     );
   }, [rows, search]);
 
-  return (
-    <AdminShell
-      title="Students"
-      description="Browse profiles, roles and subscriptions. Manage individual access from this list."
-      crumbs={[{ label: "Students" }]}
-    >
+  const body = (
+    <>
       <Card className="p-4 mb-6">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-foreground/50" />
@@ -151,6 +147,18 @@ export default function AdminStudents() {
           </table>
         </div>
       </Card>
+    </>
+  );
+  if (embedded) return body;
+  return (
+    <AdminShell
+      title="Students"
+      description="Browse profiles, roles and subscriptions. Manage individual access from this list."
+      crumbs={[{ label: "Students" }]}
+    >
+      {body}
     </AdminShell>
   );
 }
+
+export default function AdminStudents() { return <AdminStudentsInner />; }

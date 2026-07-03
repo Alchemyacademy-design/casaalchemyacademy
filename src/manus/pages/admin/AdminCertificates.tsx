@@ -1,8 +1,9 @@
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 
-export default function AdminCertificates() {
+export function AdminCertificatesInner({ embedded = false }: { embedded?: boolean }) {
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Certificates"
       description="Issued course-completion certificates."
       table="certificates"
@@ -20,3 +21,5 @@ export default function AdminCertificates() {
     />
   );
 }
+
+export default function AdminCertificates() { return <AdminCertificatesInner />; }

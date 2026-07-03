@@ -1,8 +1,9 @@
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 
-export default function AdminPlans() {
+export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Membership plans"
       description="Plan catalogue used by /plans. Stripe prices are managed in Stripe — only metadata is editable here."
       table="membership_plans"
@@ -22,3 +23,5 @@ export default function AdminPlans() {
     />
   );
 }
+
+export default function AdminPlans() { return <AdminPlansInner />; }

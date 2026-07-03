@@ -6,9 +6,10 @@ const STATUS = [
   { value: "archived", label: "archived" },
 ];
 
-export default function AdminWorkshops() {
+export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }) {
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Live workshops"
       description="Manage live workshops. Published items appear in /live-workshops."
       table="live_workshops"
@@ -32,3 +33,5 @@ export default function AdminWorkshops() {
     />
   );
 }
+
+export default function AdminWorkshops() { return <AdminWorkshopsInner />; }

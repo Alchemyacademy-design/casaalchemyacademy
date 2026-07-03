@@ -241,7 +241,7 @@ function NewQuizForm({ courses, modules, lessons, onCreated }: {
   );
 }
 
-export default function AdminQuizzes() {
+export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const catalog = useQuery({ queryKey: ["admin-quiz-catalog"], queryFn: fetchCatalog });
   const listQuery = useQuery({ queryKey: ["admin-quiz-list"], queryFn: fetchQuizList });
@@ -261,12 +261,8 @@ export default function AdminQuizzes() {
 
   const rows = listQuery.data ?? [];
 
-  return (
-    <AdminShell
-      crumbs={[{ label: "Admin", to: "/admin" }, { label: "Quizzes" }]}
-      title="Quizzes"
-      description="Create knowledge checks for lessons, module exams, or a course final exam. Published quizzes render for members automatically."
-    >
+  const body = (
+    <>
       <NewQuizForm
         courses={catalog.data?.courses ?? []}
         modules={catalog.data?.modules ?? []}
@@ -344,6 +340,18 @@ export default function AdminQuizzes() {
           <QuizCard quizId={previewId} previewAsAdmin />
         </Card>
       )}
+    </>
+  );
+  if (embedded) return body;
+  return (
+    <AdminShell
+      crumbs={[{ label: "Admin", to: "/admin" }, { label: "Quizzes" }]}
+      title="Quizzes"
+      description="Create knowledge checks for lessons, module exams, or a course final exam. Published quizzes render for members automatically."
+    >
+      {body}
     </AdminShell>
   );
 }
+
+export default function AdminQuizzes() { return <AdminQuizzesInner />; }
