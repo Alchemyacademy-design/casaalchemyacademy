@@ -1,45 +1,102 @@
-# Member Area — Phases 2 through 8 execution plan
+# Premortem — Premium Certificate System
 
-Phase 1 (Foundations) is already live: `UserAvatar`, `useContinueLearning`, `useFavorite`, `useNotifications`, `NotificationsBell`, `notifications` + `user_favorites` tables. The next batches build on those primitives.
+## Vision
 
-## Phase 2 — Dashboard v2
-- Rebuild `src/manus/pages/Dashboard.tsx` around a **Resume hero** powered by `useContinueLearning` (thumbnail, module title, progress bar, "Resume lesson" CTA, fallback to "Start your first course").
-- Add a **This week** strip: lessons completed in the last 7d + a 4‑week activity streak (query `lesson_progress.completed_at`).
-- Add an **Upcoming** widget (reuse `useUpcomingWorkshops`/`useUpcomingEvents`) and an **Inbox** widget backed by `useNotifications` (top 3 unread, link to `/profile#notifications`).
-- Keep existing "Continue learning" grid but push it below the hero.
+Move away from the current canvas-drawn PNG (generic, low fidelity) toward a **museum-grade certificate** that matches the platform's editorial identity (Instrument Serif + Manrope, Chocolate / Terracotta / Sandstone / Gold tokens). Every certificate must exist in **two forms with identical visuals**:
 
-## Phase 3 — Lesson Player v2
-- Extend `src/manus/components/learning/LessonPlayer.tsx` (or nearest player component) with: playback‑rate control (0.75/1/1.25/1.5/2), persistent resume (write `last_position_seconds` to `lesson_progress`), autoplay next lesson at 95% watched, and a lightweight `<LessonNotes>` panel writing to a new `lesson_notes` table (owner‑only RLS).
-- Add a **Quiz review** view on the results screen showing wrong answers with the correct choice + explanation (reads existing `quiz_attempts`/`quiz_answers`).
+1. **Online, shareable page** — a permanent public URL (`/c/:code`) the student can post on LinkedIn, send by email, or embed.
+2. **Downloadable PDF** — pixel-perfect A4 landscape file, vector text, embedded fonts, generated on demand.
 
-## Phase 4 — Course Catalog v2 (`/mycourses`)
-- Filter chips (Enrolled / Available / Completed), search, category filter, and enrollment badge on each card. Reuse `useEntitlements` to compute status.
+Both surfaces render from the **same React component** so the design never drifts.
 
-## Phase 5 — Community v2
-- Unread badge per channel (compare `community_posts.created_at` vs a new `community_reads(user_id, channel_id, last_read_at)` table).
-- Emoji reactions row on posts (reuse `community_reactions`), and `@mention` autocomplete that emits a `notifications` row of type `mention`.
+---
 
-## Phase 6 — Discover hub
-- **Magazine**: inline reader route `/magazine/:slug` with Dropbox PDF embed + download fallback.
-- **Events**: shared calendar view (reuse `EventsCalendar`) with RSVP + "Add to calendar" ICS download.
-- **Suppliers / Deals**: unify filters, favorite button (uses `useFavorite`), and click‑through logging into a new `deal_clicks(user_id, deal_id, clicked_at)` table for admin analytics.
+## Premortem — what could go wrong, and how we prevent it
 
-## Phase 7 — Profile v2
-- Avatar upload with crop (square, 512px) via existing `AvatarUpload` + a lightweight cropper.
-- Learning stats card (lessons completed, streak, certificates earned).
-- Security section: change password, sign out other sessions.
-- Notification preferences (per‑type toggles stored on `profiles.notification_prefs jsonb`).
 
-## Phase 8 — Notifications wiring
-- Emit notifications from server triggers / edge functions for: new lesson comment reply, mention, workshop starting in 1h, plan renewal.
-- Add `/notifications` full‑page inbox with mark‑as‑read and filters.
+| Risk                                                         | Prevention                                                                                                                                                                                                                                     |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| PDF looks different from web (fonts fall back, colors shift) | Use `@react-pdf/renderer` with embedded Instrument Serif + Manrope TTFs from `/public/fonts`. Single design token file shared with the web view.                                                                                               |
+| Public link leaks private student data                       | Public page shows only: student display name, course title, issued date, certificate №, verification checkmark. No email, no user id, no progress detail.                                                                                      |
+| Certificates can be forged by editing the URL                | Verification uses `certificate_number` (already unique + random) as the lookup key, plus a signed `verification_hash` column. Public page reads via a `SECURITY DEFINER` RPC that only returns non-sensitive fields.                           |
+| Revoked certificates still resolve publicly                  | RPC filters `revoked_at IS NULL`; revoked links render a "This certificate has been revoked" state.                                                                                                                                            |
+| Slow PDF generation blocks the UI                            | Generate client-side with `@react-pdf/renderer` (fast, no server round-trip). Fallback edge function for email attachments later.                                                                                                              |
+| Design becomes generic AI-looking                            | Commit to one distinctive layout: **asymmetric editorial** — oversized serif student name off-center, gold seal, thin double-rule border, small caps metadata grid, subtle paper texture. No purple gradients, no centered corporate template. |
+| Mobile share preview looks broken on LinkedIn                | Add per-certificate OG image (rendered via edge function on first view, cached in `public-assets` bucket) + JSON-LD `EducationalOccupationalCredential`.                                                                                       |
+| Existing `CertificatePreview` and download button diverge    | Delete the canvas download path. Both preview and real certificate render `<CertificateArtwork />`. PDF wraps the same tokens in `@react-pdf/renderer` primitives.                                                                             |
+
+
+---
+
+## Design direction (single committed style)
+
+- **Layout**: A4 landscape, asymmetric. Left rail: vertical small-caps `CASA ALCHEMY STUDIO · CERTIFICATE №`. Center-left block: eyebrow "Certificate of Completion" → oversized Instrument Serif student name (clamp 64–96pt) → italic course title → 2-column metadata (Issued / Verify at). Right: hand-drawn gold seal SVG + signature line.
+- **Palette**: `--aa-cream` background, `--aa-olive-dark` primary ink, `--aa-terracotta` accent rule, `--aa-gold` seal only. No drop shadows, no gradients.
+- **Texture**: subtle SVG paper grain at 4% opacity — printable, not distracting.
+- **Border**: thin double rule 12mm from edge, corner flourishes in gold.
+- **Typography**: Instrument Serif (display), Manrope (labels/metadata). Embed both as TTF for PDF parity.
+
+---
+
+## Deliverables
+
+### 1. Schema (migration)
+
+- Add `certificates.verification_hash TEXT UNIQUE` (sha256 of `certificate_number || user_id || course_id || issued_at`).
+- Add `certificates.public_slug TEXT UNIQUE` (short URL-safe id, e.g. `aa-x7k2m9`).
+- Add `certificates.pdf_cached_path TEXT` (option`public-assets`).
+- RPC `public.get_public_certificate(slug text)` — SECURITY DEFINER, returns only safe fields, filters revoked.
+
+### 2. Shared design primitive
+
+- `src/manus/components/certificates/CertificateArtwork.tsx` — pure presentational component, takes `{ studentName, courseTitle, issuedAt, certificateNumber, verifyUrl }`. Used by preview, member page, and public page.
+- `src/manus/components/certificates/CertificatePdf.tsx` — `@react-pdf/renderer` mirror using the same tokens + embedded fonts.
+
+### 3. Public page
+
+- Route `/c/:slug` (unauthenticated). Renders `CertificateArtwork` + verification badge + "Download PDF" + "Share on LinkedIn" + JSON-LD.
+- SEO: title `{Student} — {Course} · Casa Alchemy Studio`, description, canonical.
+
+### 4. Member surface
+
+- Replace `CertificateSection.tsx` canvas download with:
+  - "View certificate" (opens `/c/:slug` in new tab)
+  - "Download PDF" (client-side `@react-pdf/renderer` blob)
+  - "Copy share link"
+  - "Share on LinkedIn" (prefilled `addToProfile` URL using JSON-LD data)
+
+### 5. Admin surface
+
+- `AdminCertificates.tsx`: add columns for public slug + revoke action.
+- `AdminCourseDetail` preview button already exists — point it at the new `CertificateArtwork`.
+
+### 6. Backfill
+
+- One-off migration to generate `public_slug` + `verification_hash` for existing rows.
+
+---
+
+## Rollout phases
+
+**Phase 1 — Foundation (schema + shared artwork)**
+Migration, RPC, `CertificateArtwork` component, replace preview usage. No user-facing behavior change yet.
+
+**Phase 2 — Public link**
+`/c/:slug` route, JSON-LD, SEO, LinkedIn share, backfill slugs.
+
+**Phase 3 — PDF parity**
+`@react-pdf/renderer` + embedded fonts, download button, remove canvas path.
+
+**Phase 4 — Polish**
+OG image edge function, admin revoke UI, verification badge micro-interactions.
+
+---
 
 ## Technical notes
-- New tables (single migration per phase): `lesson_notes`, `community_reads`, `deal_clicks`. All owner‑scoped RLS + `service_role` GRANT + `authenticated` GRANT.
-- Add `last_position_seconds int` to `lesson_progress` (nullable, default null).
-- Add `notification_prefs jsonb default '{}'` to `profiles`.
-- Realtime already enabled on `notifications`; add `community_reads` to publication for live unread badges.
-- All new UI in English, uses existing design tokens and `MemberUI` primitives — no hardcoded colors.
 
-## Delivery order
-Phases run sequentially in one session: 2 → 3 → 4 → 5 → 6 → 7 → 8. After each phase I run `tsgo` and fix fallout before moving on. Final message will summarize everything shipped and any follow‑ups.
+- New dep: `@react-pdf/renderer` (~1 dep, tree-shakes well). Fonts already in project or added under `/public/fonts/`.
+- No new secrets required. No Stripe impact.
+- Follows existing RLS: public read via SECURITY DEFINER RPC only, no broad grants on `certificates`.
+- Fully compatible with the designated admin rule and current `has_role` gating.
+
+Approve and I'll execute Phase 1 next.
