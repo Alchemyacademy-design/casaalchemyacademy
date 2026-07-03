@@ -6,9 +6,10 @@ const STATUS = [
   { value: "archived", label: "archived" },
 ];
 
-export default function AdminEvents() {
+export function AdminEventsInner({ embedded = false }: { embedded?: boolean }) {
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Events"
       description="Manage in-person and online events. Published events appear in /events."
       table="events"
@@ -32,3 +33,5 @@ export default function AdminEvents() {
     />
   );
 }
+
+export default function AdminEvents() { return <AdminEventsInner />; }
