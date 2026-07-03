@@ -1,187 +1,225 @@
-# Admin Center — Premortem & Upgrade Plan
+# Member Area — Premortem & Upgrade Plan
 
-Goal: reduce clicks, surface risk earlier, and give the admin more autonomy across the 9 sections. Each section below lists **What breaks today** (premortem risks), **What to add** (features), and **How** (concrete implementation notes).
+Same lens we used for Admin Center: for each member-facing section list **What breaks today** (premortem risks) → **What to add** (upgrades) → **How** (concrete implementation). Grouped by the three sidebar buckets: Learn, Discover, Account.
 
 ---
 
-## 1. Overview (`/admin`)
+## LEARN
+
+### 1. Dashboard (`/dashboard`)
 
 **Risks today**
-- KPIs are read-only — admin sees a problem (missing videos, pending posts) but has to hunt for the fix.
-- No "what changed since yesterday" — every visit feels the same.
-- Recent audit list is passive; no filter by actor/entity.
+- Static "welcome back" — no signal on what to do next.
+- Continue-watching only surfaces the last lesson, not the best next step.
+- No visibility of unread community replies, upcoming events, or new magazine issues.
+- Progress numbers are aggregate; the student can't see momentum ("3 lessons this week").
 
 **Upgrades**
-- **Actionable KPI cards** — each warning KPI (missing videos, missing thumbnails, pending posts, out-of-sync plans) becomes a button that deep-links to a pre-filtered view that fixes exactly those rows.
-- **"Since last visit" delta** — store `last_admin_visit_at` in `profiles` and show +N new signups / +N posts / +N revenue vs. previous session.
-- **Global command palette (⌘K)** — jump to any course, student email, plan, or supplier from anywhere; also runs actions ("publish course X", "grant plan Y to email Z").
-- **Health strip** — one-line row at top: Stripe webhook status, last successful sync, storage usage, edge function error rate (last 24h from `analytics_query`).
-- **Pinned shortcuts** — admin-configurable quick actions saved in `localStorage`.
+- **"Pick up where you left off"** hero card: last incomplete lesson with thumbnail, remaining %, one-click Resume — powered by `lesson_progress` `last_position_seconds`.
+- **This week strip**: lessons watched, minutes learned, quizzes passed, streak days. Store in a lightweight `learning_activity_daily` materialised view.
+- **Next up for you**: 3 recommended lessons — next lesson in each active course, ordered by recency of progress.
+- **Live inbox widget**: unread community replies to my posts, quiz feedback, new events I'm registered for, new magazine issue.
+- **Upcoming this week**: events + live workshops I'm registered for, with join-link countdown.
+- **Certificates earned** carousel with share buttons.
+- **Empty-state coaching**: brand-new users see a 3-step onboarding checklist (pick a course, join community, complete profile) instead of zeros.
 
----
-
-## 2. Course Management (`/admin/course-management`)
+### 2. Courses (`/courses`, `/courses/:slug`, `/modules/:id`)
 
 **Risks today**
-- Builder + Wizard + Bulk + Quizzes + Legacy tabs = discoverability problem. New admins don't know where "add a lesson" lives.
-- No bulk publish / unpublish / archive.
-- No visibility of who has access to a course (entitlements) from the list.
+- List doesn't distinguish enrolled vs. locked vs. completed.
+- No search/filter (category, level, duration, plan).
+- Lesson page has no "up next" nudge, so students drop off between lessons.
+- Quizzes appear but there's no retake history, no wrong-answer review.
+- Video player has no resume, no speed, no captions toggle, no keyboard shortcuts.
+- Comments and ratings live at the bottom — invisible on long lessons.
+
+**Upgrades — Catalog**
+- **Filters**: category, level (beginner/intermediate/advanced), duration, "New", "Included in my plan".
+- **Sort**: recommended, newest, most popular, shortest.
+- **Card badges**: In progress %, Completed ✓, Locked (with plan needed and Upgrade CTA), New (last 30d).
+- **Continue in course** vs. **Start course** CTA based on progress.
+
+**Upgrades — Course detail**
+- **Sticky Resume bar** at top when there's progress.
+- **Module accordion** shows per-module completion, duration, quiz badge.
+- **Certificate progress ring** — % towards issuance criteria.
+- **Instructor bio card** with links to their other courses.
+- **Related courses** rail.
+
+**Upgrades — Lesson player**
+- **Persistent progress**: save `last_position_seconds` every 10s + on pause/unload. Auto-resume on next open.
+- **Player controls**: playback speed (0.75/1/1.25/1.5/2), keyboard shortcuts (space, ←/→ 10s, f fullscreen), remembered per-user.
+- **Auto-mark complete at 90%** watched (already partial — enforce and surface).
+- **Up next card** at 95% with 5-second autoplay countdown → next lesson (cross-module).
+- **Notes panel**: timestamped personal notes (`lesson_notes` new table), exportable.
+- **Transcript** side-panel with click-to-seek (populate from an AI transcription edge function on upload).
+- **Attachments** section for `lesson_attachments` downloads with click tracking.
+- **Rating + comments** floated in a side rail on desktop, tabbed on mobile.
+
+**Upgrades — Quizzes**
+- **Attempt history**: score, date, passed/failed, retake button (respect `max_attempts`).
+- **Wrong-answer review**: after submission, show each missed question with the correct answer and rationale.
+- **Progress-blocking mode** (course setting): must pass module quiz to unlock next module.
+- **Confetti + auto-navigate** on pass.
+
+### 3. Live Workshops (`/live-workshops`)
+
+**Risks today**
+- List mixes past and upcoming.
+- No "Add to calendar", no reminders.
+- Recording after the fact is manual; students don't know when it's up.
 
 **Upgrades**
-- **Unified action bar** on the list: multi-select rows → Publish, Archive, Duplicate, Change plan access, Export CSV.
-- **Course template library** — save a course structure as template ("6-module cohort", "single-lesson mini-course") and spawn new courses from it.
-- **Auto-save + version snapshots** in the builder (`course_audit_logs` already exists — add a "Restore this version" button).
-- **Broken-link scanner** — background check on every lesson `external_video_url` (HEAD request via edge function) → red badge on lessons with 404/expired Dropbox links.
-- **AI helpers (Lovable AI Gateway)**: generate lesson description from title, suggest quiz questions from lesson transcript, auto-write course SEO blurb.
-- **Access preview drawer** — click a course → see the exact list of members currently entitled (via plan or direct entitlement) and revoke inline.
+- **Tabs**: Upcoming / Registered / Past recordings.
+- **RSVP button** with confirmation, ICS + Google Calendar link, "Notify me 1h before" toggle → cron reminder.
+- **Live countdown** on registered cards; **Join now** button flips 15 min before start.
+- **Post-workshop**: recording auto-populates the card when admin uploads Dropbox link; email registrants.
+- **Host bio + agenda** on detail page.
+- **Waitlist** when capacity is set.
 
 ---
 
-## 3. Events Hub (`/admin/events-hub`)
+## DISCOVER
+
+### 4. Community (`/community`)
 
 **Risks today**
-- Events and Live Workshops share almost identical schemas but two separate editors — copy/paste mistakes.
-- No RSVP visibility from the list; admin can't see who's coming.
-- No reminder automation — students often forget events.
+- Feed is chronological only — no relevance ranking.
+- No unread counter per space; students miss replies to their own posts.
+- Poor mobile compose experience.
+- No moderation surface for the reporter (only admin sees actions).
+- Avatars sometimes missing; display name inconsistent.
 
 **Upgrades**
-- **Single "New session" form** with a Type selector (Event vs. Live workshop) that writes to the right table — one UX, two backends.
-- **Calendar view** (month/week toggle) alongside the current list — drag to reschedule (updates `starts_at`).
-- **Attendee panel per event** — inline table of `registrations` with export CSV, mark attended, send bulk email.
-- **Automatic reminders** — edge function cron sends 24h + 1h reminders; toggle per event.
-- **ICS download + Google Calendar link** auto-generated for each event, both public and admin-side.
-- **Recurring events** — RRULE stored in a new column; expand into instances on read.
-- **Post-event follow-up** — auto-move past events to an "Archive" tab and prompt to upload the recording (Dropbox URL).
+- **Spaces sidebar** with unread badges (`community_posts` new since last visit per space).
+- **Feed modes**: Latest, Top this week, Unanswered.
+- **@mentions** with autocomplete → notification.
+- **Reactions** already in table — add quick-react bar (♥, 👏, 🎉, 💡) and hover count.
+- **My activity**: my posts, replies to me, saved posts.
+- **Reply threading** with collapse; keyboard `r` to reply.
+- **Rich compose**: markdown, image drop (uses `public-assets` bucket), link previews, draft autosave.
+- **Report post** flow → writes to `moderation_actions`.
+- **Profile pop-card** on avatar hover: name, plan badge, courses completed, follow.
+- **Search** across posts (Postgres FTS) with filters.
 
----
+### 5. Discover (root section stub)
 
-## 4. Magazine (`/admin/magazine`)
+Treat as the umbrella. Add a **Discover home** at `/discover` that stitches Magazine + Events + Suppliers + Deals into one editorial page with tabs and a "New this week" strip. Reduces navigation depth.
+
+### 6. Magazine (`/magazine`)
 
 **Risks today**
-- PDF + cover + optional video upload is manual; no validation that files actually opened for members.
-- No sense of which issues are being read.
+- Just a list of PDFs to download; no reading experience.
+- No sense of what's new; no way to bookmark an article.
+- Covers sometimes missing.
 
 **Upgrades**
-- **Drag-and-drop issue builder** with live preview of the member-facing card.
-- **Issue scheduler** — set `publish_at` in the future; edge function cron flips status to `published`.
-- **Read/download analytics** — track opens per issue in a new `magazine_opens` table; show per-issue KPI.
-- **Cover auto-generation** — if no cover is uploaded, generate from the PDF's first page via a pdf-to-image edge function.
-- **Bulk import** — paste multiple Dropbox links; admin fills titles later.
-- **Access plan chip** on each issue card (same UX as courses).
+- **Cover grid** with issue number, month, "New" badge for last 30 days.
+- **In-app reader**: streamed PDF viewer (react-pdf) with page thumbnails, zoom, search — with fallback Download button.
+- **Table of contents** entered per issue by admin; deep-link to page.
+- **Bookmark / favorite** issues (`magazine_favorites` table).
+- **Read tracking**: `magazine_opens` — enables Dashboard "New issue" nudge only until read.
+- **Share** issue link (public preview page for logged-in members).
+- **Related videos** if admin attached a video URL.
 
----
-
-## 5. Suppliers Hub (`/admin/suppliers`)
+### 7. Events (`/events`)
 
 **Risks today**
-- Suppliers can drift from categories (orphaned category IDs); admin has no signal.
-- No bulk edits (category rename, tag reassign).
-- Favorites data is invisible to admin.
+- Same list-only pattern as workshops.
+- No visual distinction between virtual and in-person.
+- No location, no map for in-person.
 
 **Upgrades**
-- **Health check tab**: orphan suppliers, missing logo, broken website URL (HEAD-check), duplicates by domain.
-- **Merge duplicates** flow — pick a canonical row, redirect favorites.
-- **Bulk actions**: assign category, publish/unpublish, feature/unfeature.
-- **Featured carousel manager** — drag to reorder featured suppliers with live preview.
-- **"Most favorited" leaderboard** using `supplier_favorites` counts — useful for admin curation and for pitching partnership renewals.
-- **Public form for suppliers to self-submit** → moderation queue tab.
+- **Calendar + list toggle** (reuse admin `EventsCalendar`).
+- **Filters**: Upcoming, This month, Virtual, In-person, By city.
+- **Event card**: cover, date pill, city / online chip, RSVP count, host.
+- **Detail page**: description, agenda, host, venue map (for in-person), attendees preview, discussion thread scoped to the event.
+- **RSVP → ICS + reminder toggles + waitlist** (same primitives as workshops).
+- **Post-event**: photos, recording, thank-you note pushed by admin appear inline.
 
----
-
-## 6. Deals (`/admin/deals`)
+### 8. Supplier List (`/suppliers`)
 
 **Risks today**
-- Expired deals stay visible until manually removed.
-- No usage tracking (was the coupon actually clicked?).
+- Long flat list; hard to find one.
+- No categories UI, no favorites view, no map.
+- Contact info not consistently formatted; broken websites go unnoticed.
 
 **Upgrades**
-- **`expires_at` auto-hide** + "Expiring in 7d" filter and email digest to admin.
-- **Click tracking** via a redirect edge function `/r/deal/:id` → increments counter, then 302s to the partner URL.
-- **Duplicate / rollover** button to renew a deal for the next quarter.
-- **Supplier link** — pick a supplier row instead of typing a name; keeps hub coherent.
-- **Preview card** side panel — see the member-facing card before publishing.
-- **Deal categories** (percent-off, freebie, event) with color chips.
+- **Category chips** and search bar (name, tag, city).
+- **Sort**: Recommended, New, A→Z, Most favorited.
+- **Card**: logo, name, one-line pitch, category chip, favorite ♥ toggle (`supplier_favorites`).
+- **Detail page**: hero, description, contact block (email/phone/site), social links, related suppliers, "Report broken link".
+- **My favorites** tab.
+- **Map view** for suppliers with lat/lng.
+- **Public "Suggest a supplier"** form (moderated).
 
----
-
-## 7. People Hub (`/admin/people-hub`)
-
-**Risks today**
-- Students tab lists everyone but has no segmentation ("free trial ending", "past due", "high engagement").
-- Granting/revoking entitlements is one-at-a-time.
-- Membership plans tab is now rich, but there's no bridge from a student row to their subscription/portal state.
-
-**Upgrades — Students**
-- **Segments**: saved filters (active paid, trialing, past_due, cancelled 30d, no plan + signed up 7d, admins). Each segment shows count and refreshes live.
-- **Bulk actions**: grant plan, grant course entitlement, invite to community space, send email (via edge function using Resend), promote/demote admin, export CSV.
-- **Student detail drawer**: full timeline — signups, payments, course progress, quiz attempts, community posts, admin notes.
-- **Impersonate / view-as** button reusing existing `admin-preview` store so admin can see what a specific student sees.
-- **Notes + tags** — free-text notes and tags on `profiles` (new columns) for CRM-lite workflows.
-
-**Upgrades — Membership plans**
-- **Coupon manager** — Stripe promotion codes CRUD.
-- **Trial config** per plan (days).
-- **Waitlist mode** — flip a plan to waitlist; new checkouts collect email only.
-- **Plan comparison matrix editor** — reorders + toggles what shows on `/plans`.
-
----
-
-## 8. Diagnostics (`/admin/diagnostics`)
+### 9. Exclusive Deals (`/deals`)
 
 **Risks today**
-- Static snapshot; admin doesn't know if a problem is new or historical.
-- No one-click remediation.
+- Codes displayed as plain text — easy to miss, no tracking.
+- Expired deals not filtered.
+- No supplier context.
 
 **Upgrades**
-- **Auto-scan schedule** — nightly edge function runs every check and stores results in `diagnostics_runs`; UI shows trend line (issues over time).
-- **Fix-it buttons** for common issues: reprocess a lesson video URL, re-run Stripe reconciliation on a plan, regenerate missing thumbnails via imagegen, re-index community search.
-- **Categorized checks**: Content, Billing, Auth, Storage, Realtime, Webhooks — each with pass/fail badges.
-- **Export report** as PDF/JSON for compliance.
-- **Alert rules** — if any critical check fails, email + Slack/webhook (secret-based).
+- **Copy-code button** with toast + click tracking (via `/r/deal/:id` redirect edge function).
+- **Filters**: Active, Expiring soon, Category, Supplier.
+- **Countdown pill** on cards nearing `expires_at`.
+- **Supplier badge** linked to supplier detail.
+- **Save deal** ♥ → surface in Dashboard "Your saved deals".
+- **Notify me on new deals from this supplier** subscription toggle.
+- **"How to use this code"** field per deal.
 
 ---
 
-## 9. Analytics (`/admin/analytics`)
+## ACCOUNT
+
+### 10. Profile (`/profile`)
 
 **Risks today**
-- Numbers without narrative; hard to know what to act on.
-- No cohort or funnel view.
+- Avatar upload works but there's no crop/preview and no bio.
+- Plan info is a static string — no upgrade / manage entry from here.
+- No visible learning stats, no certificates, no privacy controls.
+- Password change bounces to forgot-password (email-based), not an in-page flow.
 
 **Upgrades**
-- **North-star dashboard**: MRR trend, Active learners (weekly), Course completion rate, Community DAU, Churn — with WoW deltas.
-- **Signup → paid funnel** (visit → signup → checkout started → paid) with drop-off %.
-- **Cohort retention grid** (weekly signups × weeks retained).
-- **Per-course engagement**: enrolments, completion rate, avg. rating, drop-off lesson (where students stop watching).
-- **Community pulse**: posts/week, top contributors, unanswered questions >48h.
-- **Revenue breakdown by plan** + refund/chargeback count.
-- **Custom date range + CSV export** on every widget.
-- **AI insights panel** (Lovable AI Gateway) — weekly generated summary: "MRR +8% WoW driven by Foundations plan; churn spike from 3 past-due subscriptions — click to reconcile."
+- **Avatar with crop** (react-easy-crop) + WebP conversion; used everywhere via a canonical `<UserAvatar>` component.
+- **Public profile fields**: bio, location, socials — surfaced in community pop-cards. Add `bio`, `location`, `website`, `social_links jsonb` to `profiles`.
+- **Learning summary**: courses in progress, completed, quizzes passed, hours learned, current streak, certificates carousel.
+- **Achievements/badges** (first course, first quiz pass, 30-day streak).
+- **Billing card** (already added Manage subscription): plan name, price, next renewal, invoice history preview (last 3), Upgrade / Change plan CTA.
+- **Notification preferences**: email toggles for replies, mentions, event reminders, magazine, deals.
+- **Security**: in-page change password (Supabase `updateUser({ password })`), active sessions list with revoke, 2FA enrolment stub.
+- **Privacy**: show/hide my activity in community, allow DMs (future), export my data (GDPR — edge function bundles user rows to JSON), delete account (soft-delete + Stripe cancel).
+- **Referrals** (optional): personal invite link, count of joined users.
 
 ---
 
-## Cross-cutting infrastructure (reused by every hub)
+## Cross-cutting infrastructure (reused everywhere)
 
-1. **Bulk-action pattern** — one shared `<BulkActionBar>` component + `useSelection` hook.
-2. **Deep-link filters** — every list reads/writes filters from the URL so admin can bookmark / share pre-filtered views.
-3. **Command palette (⌘K)** — global registry of actions each page can push into.
-4. **Toast + audit** — every mutation writes to `course_audit_logs` (extend to non-course entities via a generic `admin_audit_logs` table) and shows an undo toast for 8s.
-5. **Cron edge functions** — a single scheduler function fanning out to: broken-link scan, reminder emails, diagnostics scan, scheduled publish, expiring-deal digest.
-6. **Realtime badges** — subscribe to `pending_posts`, `past_due_subs`, `failed_webhooks` and pulse the sidebar item when count > 0.
-7. **Permission tiers** — introduce `editor` role (can edit content, cannot manage billing/people) so the founder can delegate safely.
+1. **Canonical `<UserAvatar>`** — resolves `avatar_path` → public URL, falls back to initials, one place fixes all missing-avatar bugs.
+2. **`<ResumeCard>` / `useContinueLearning()`** — single source for last-position playback.
+3. **Notifications system** — `notifications` table + realtime channel. Powers Dashboard inbox, community unread, event reminders, quiz feedback, new magazine issue. Bell icon in `MemberLayout` header.
+4. **Favorites primitive** — generic `user_favorites(user_id, entity_type, entity_id)` table so Deals, Suppliers, Magazine, Community posts share one API.
+5. **Deep-link filters** — every list reads/writes URL params (reuse admin `useUrlFilters`).
+6. **Reminder cron** — extend `send-event-reminders` to workshops, magazine drops, streak nudges.
+7. **Streak + activity engine** — nightly job aggregates `lesson_progress` deltas into `learning_activity_daily` for cheap dashboard reads.
+8. **Analytics hooks** — lightweight `member_events` table for opens, plays, clicks (deal codes, supplier sites) → feeds admin Analytics north-star.
+9. **Empty states with next-action** — every list ships a designed empty state that tells the user what to do.
+10. **Mobile pass** — bottom sheet composer for community, sticky player on mobile, responsive cards audit for every section.
 
 ---
 
-## Suggested rollout order (fast → high leverage)
+## Suggested rollout (fast → high leverage)
 
-1. **Foundations** — command palette, bulk-action bar, URL-filter pattern, extend audit to all entities.
-2. **Overview upgrades** — actionable KPIs + health strip + since-last-visit.
-3. **Course Management** — bulk publish/duplicate, broken-link scanner, access preview drawer.
-4. **People Hub** — segments + bulk grant + student detail drawer.
-5. **Events Hub** — unified new-session, calendar view, attendee panel, reminders cron.
-6. **Diagnostics** — nightly scan + fix-it buttons.
-7. **Analytics** — north-star dashboard + funnel + cohort + AI insights.
-8. **Magazine / Suppliers / Deals** — polish (scheduler, click tracking, health tab).
+1. **Foundations** — `<UserAvatar>`, `useContinueLearning`, `notifications` table + bell, generic `user_favorites`.
+2. **Dashboard v2** — Resume hero, This-week strip, Upcoming widget, Inbox widget.
+3. **Lesson player v2** — resume, speed, up-next autoplay, notes, wrong-answer quiz review.
+4. **Community v2** — unread badges, reactions bar, feed modes, mentions.
+5. **Discover polish** — Magazine reader, Events calendar, Suppliers categories+map, Deals copy-code + tracking.
+6. **Profile v2** — crop avatar, learning summary, in-page password change, notification prefs, billing card polish.
+7. **Live Workshops v2** — RSVP + ICS + reminders + join-now flip.
+8. **Cross-cutting analytics + reminder cron + mobile pass**.
 
-Each phase is independently shippable and delivers visible admin-time savings before the next starts.
+Each phase is independently shippable and produces visible member-time savings before the next starts.
 
 Approve the plan (or tell me which phase to start with) and I'll execute.
