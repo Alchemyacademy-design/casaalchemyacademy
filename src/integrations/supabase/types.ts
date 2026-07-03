@@ -2506,6 +2506,26 @@ export type Database = {
     Functions: {
       can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }
+      community_notify_mentions: {
+        Args: {
+          p_body: string
+          p_href: string
+          p_post_id?: number
+          p_reply_id?: number
+          p_title: string
+          p_user_ids: string[]
+        }
+        Returns: number
+      }
+      community_search_members: {
+        Args: { limit_count?: number; term: string }
+        Returns: {
+          avatar_path: string
+          display_name: string
+          full_name: string
+          id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
