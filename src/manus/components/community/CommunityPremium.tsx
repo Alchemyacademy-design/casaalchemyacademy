@@ -127,6 +127,9 @@ export default function CommunityPremium({
   }, [spaces, spaceId]);
 
   const { data: channels = [], isLoading: channelsLoading } = useChannels(spaceId);
+  const channelIds = useMemo(() => channels.map((c) => c.id), [channels]);
+  const { data: unreadByChannel = {} } = useChannelUnread(channelIds, userId);
+  useMarkChannelReadEffect(channelId, userId);
   const { data: matchedChannel, isLoading: deepLinkLoading } = useChannelBySlug(initialChannelSlug, initialSpaceSlug);
   const deepLinkKey = `${initialSpaceSlug ?? ""}|${initialChannelSlug ?? ""}`;
   const appliedDeepLink = useRef("");
