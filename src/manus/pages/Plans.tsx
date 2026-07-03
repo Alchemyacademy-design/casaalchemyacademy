@@ -5,11 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { useMembershipPlans } from "@/manus/hooks/usePublicContent";
+import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } from "@/manus/hooks/usePublicContent";
 
 type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
 
-const PLAN_PRICE_LABEL: Record<string, string> = {
+const FALLBACK_PRICE_LABEL: Record<string, string> = {
   monthly_member: "A$99 / month",
   annual_member: "A$708 / year",
   individual_course: "A$159 one-time",
@@ -29,6 +29,7 @@ export default function Plans() {
   const navigate = useNavigate();
   const { loading, isAuthenticated, isAdmin, isMember, activeEntitlements, logout } = useAuth();
   const { data: plans = [], isLoading: loadingPlans } = useMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionChoice>(null);
 
   if (loading) {
@@ -74,7 +75,7 @@ export default function Plans() {
               const isAnnual = plan.key === "annual_member";
               const isGuide = plan.key === "individual_course";
               const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : isGuide ? "guide" : null;
-              const priceLabel = PLAN_PRICE_LABEL[plan.key];
+              const priceLabel = formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
