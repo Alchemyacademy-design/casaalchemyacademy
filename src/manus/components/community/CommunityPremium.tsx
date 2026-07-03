@@ -316,16 +316,42 @@ export default function CommunityPremium({
           <nav aria-label="Community channels">
             {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
             {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">No channels published.</p>}
-            {channels.map((channel) => (
-              <button
-                type="button"
-                key={channel.id}
-                className={channel.id === channelId ? "is-active" : ""}
-                onClick={() => setChannelId(channel.id)}
-              >
-                <Hash size={14} /><span>{channel.name}</span>
-              </button>
-            ))}
+            {channels.map((channel) => {
+              const unread = unreadByChannel[channel.id] ?? 0;
+              const isActive = channel.id === channelId;
+              return (
+                <button
+                  type="button"
+                  key={channel.id}
+                  className={isActive ? "is-active" : ""}
+                  onClick={() => setChannelId(channel.id)}
+                >
+                  <Hash size={14} />
+                  <span style={{ flex: 1, fontWeight: unread && !isActive ? 600 : undefined }}>{channel.name}</span>
+                  {unread > 0 && !isActive && (
+                    <span
+                      aria-label={`${unread} unread`}
+                      style={{
+                        marginLeft: 8,
+                        minWidth: 20,
+                        height: 18,
+                        padding: "0 6px",
+                        borderRadius: 9999,
+                        background: "var(--aa-olive-dark, #3a3f2b)",
+                        color: "#fff",
+                        fontSize: 10,
+                        fontWeight: 700,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      {unread > 99 ? "99+" : unread}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </nav>
         </ScrollArea>
         {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
