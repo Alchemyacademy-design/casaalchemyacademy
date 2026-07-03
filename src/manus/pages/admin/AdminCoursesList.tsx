@@ -15,7 +15,7 @@ import {
   AdminContentError,
 } from "@/manus/services/admin-content";
 
-export default function AdminCoursesList() {
+export function AdminCoursesListInner({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
   const { authReady, accessReady, isAdmin, session } = useAuth();
   const [openIds, setOpenIds] = useState<Set<number>>(new Set());
@@ -42,25 +42,18 @@ export default function AdminCoursesList() {
     });
   };
 
-  return (
-    <AdminShell
-      title="Courses"
-      description="Edit any course or lesson. Open a course to update its title, description and video URL."
-      crumbs={[{ label: "Courses" }]}
-      actions={
-        <>
-          <Button variant="outline" asChild>
-            <Link to="/admin/course-management?tab=bulk">Bulk lessons</Link>
-          </Button>
+  const body = (
+    <>
+      {embedded && (
+        <div className="flex justify-end mb-3 gap-2">
           <Button variant="outline" asChild>
             <Link to="/admin/diagnostics">Diagnostics</Link>
           </Button>
-            <Button onClick={() => navigate("/admin/course-management?new=1")}>
+          <Button onClick={() => navigate("/admin/course-management?new=1")}>
             <Plus className="w-4 h-4 mr-1" /> New course
           </Button>
-        </>
-      }
-    >
+        </div>
+      )}
       {catalog && (
         <p className="text-xs text-foreground/60 mb-4">
           {catalog.counts.courses} courses · {catalog.counts.modules} modules · {catalog.counts.lessons} lessons ·{" "}
@@ -184,6 +177,31 @@ export default function AdminCoursesList() {
           );
         })}
       </div>
+    </>
+  );
+  if (embedded) return body;
+  return (
+    <AdminShell
+      title="Courses"
+      description="Edit any course or lesson. Open a course to update its title, description and video URL."
+      crumbs={[{ label: "Courses" }]}
+      actions={
+        <>
+          <Button variant="outline" asChild>
+            <Link to="/admin/course-management?tab=bulk">Bulk lessons</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/admin/diagnostics">Diagnostics</Link>
+          </Button>
+          <Button onClick={() => navigate("/admin/course-management?new=1")}>
+            <Plus className="w-4 h-4 mr-1" /> New course
+          </Button>
+        </>
+      }
+    >
+      {body}
     </AdminShell>
   );
 }
+
+export default function AdminCoursesList() { return <AdminCoursesListInner />; }
