@@ -429,7 +429,10 @@ export function useDeleteReply(postId: number | null) {
 /* ----------------------------- Reactions ----------------------------- */
 
 export function usePostReactions(postIds: number[]) {
-  return useQuery({
+  const qc = useQueryClient();
+  const ids = [...new Set(postIds.filter(Boolean))];
+  const key = ids.slice().sort().join(",");
+  const query = useQuery({
     queryKey: ["community", "reactions", "by-posts", postIds.slice().sort().join(",")],
     enabled: postIds.length > 0,
     queryFn: async () => {
@@ -441,10 +444,32 @@ export function usePostReactions(postIds: number[]) {
       return data ?? [];
     },
   });
+  useEffect(() => {
+    if (ids.length === 0) return;
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const channel = supabase
+      .channel(`community_reactions_posts:${suffix}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "community_reactions" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { post_id: number | null } | null;
+          if (row?.post_id != null && ids.includes(row.post_id)) {
+            qc.invalidateQueries({ queryKey: ["community", "reactions", "by-posts"] });
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [key, qc]);
+  return query;
 }
 
 export function useReplyReactions(replyIds: number[]) {
-  return useQuery({
+  const qc = useQueryClient();
+  const ids = [...new Set(replyIds.filter(Boolean))];
+  const key = ids.slice().sort().join(",");
+  const query = useQuery({
     queryKey: ["community", "reactions", "by-replies", replyIds.slice().sort().join(",")],
     enabled: replyIds.length > 0,
     queryFn: async () => {
@@ -456,6 +481,25 @@ export function useReplyReactions(replyIds: number[]) {
       return data ?? [];
     },
   });
+  useEffect(() => {
+    if (ids.length === 0) return;
+    const suffix = Math.random().toString(36).slice(2, 8);
+    const channel = supabase
+      .channel(`community_reactions_replies:${suffix}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "community_reactions" },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { reply_id: number | null } | null;
+          if (row?.reply_id != null && ids.includes(row.reply_id)) {
+            qc.invalidateQueries({ queryKey: ["community", "reactions", "by-replies"] });
+          }
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [key, qc]);
+  return query;
 }
 
 export function useToggleReaction() {
