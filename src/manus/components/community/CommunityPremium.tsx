@@ -21,7 +21,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
@@ -49,6 +48,9 @@ import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/commun
 import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
 import "@/manus/styles/community-premium.css";
 import { useChannelUnread, useMarkChannelReadEffect } from "@/manus/hooks/community/useChannelUnread";
+import MentionInput from "./MentionInput";
+import MentionText from "./MentionText";
+import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
@@ -114,6 +116,8 @@ export default function CommunityPremium({
   const [filter, setFilter] = useState<FilterMode>("all");
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
+  // Handle→userId mapping accumulated as the composer inserts mentions.
+  const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
 
   useEffect(() => {
@@ -228,9 +232,22 @@ export default function CommunityPremium({
   async function publishPost() {
     if (!draftBody.trim()) return;
     try {
-      await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
+      const created = await createPost.mutateAsync({ title: draftTitle, body: draftBody.trim() });
+      const mentionedIds = resolveMentionUserIds(draftBody, mentionDir);
+      if (mentionedIds.length && activeChannel) {
+        try {
+          await notifyMentions({
+            userIds: mentionedIds,
+            title: `You were mentioned in #${activeChannel.name}`,
+            body: draftBody,
+            href: `/community?space=${encodeURIComponent(spaces.find((s) => s.id === spaceId)?.slug ?? "")}&channel=${encodeURIComponent(activeChannel.slug)}`,
+            postId: created?.id ?? null,
+          });
+        } catch { /* mentions are best-effort */ }
+      }
       setDraftTitle("");
       setDraftBody("");
+      setMentionDir(new Map());
       toast.success("Post published");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not publish");
@@ -428,7 +445,7 @@ export default function CommunityPremium({
 
                   <button type="button" className="aa-community-post-copy" onClick={() => setOpenPost(post)}>
                     <h3>{post.title}</h3>
-                    <p>{post.body}</p>
+                    <p><MentionText text={post.body} /></p>
                   </button>
 
                   <div className="aa-community-post-actions">
@@ -446,6 +463,14 @@ export default function CommunityPremium({
                       {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
                         <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, postId: post.id })}>{emoji}</button>
                       ))}
+                      {reactions.length > 0 && (
+                        <span
+                          aria-label={`${reactions.reduce((n, r) => n + r.count, 0)} total reactions`}
+                          style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}
+                        >
+                          · {reactions.reduce((n, r) => n + r.count, 0)}
+                        </span>
+                      )}
                     </div>
                     <button type="button" className="aa-community-reply-count" onClick={() => setOpenPost(post)}>
                       <MessageCircle size={14} /> {replyCounts[post.id] ?? 0} {(replyCounts[post.id] ?? 0) === 1 ? "reply" : "replies"}
@@ -476,12 +501,20 @@ export default function CommunityPremium({
           <footer className="aa-community-composer">
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
-              <Textarea
+              <MentionInput
                 value={draftBody}
-                onChange={(event) => setDraftBody(event.target.value)}
-                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}…`}
+                onChange={(next, patch) => {
+                  setDraftBody(next);
+                  if (patch.size) setMentionDir((prev) => {
+                    const merged = new Map(prev);
+                    patch.forEach((v, k) => merged.set(k, v));
+                    return merged;
+                  });
+                }}
+                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}… Use @ to mention someone.`}
                 rows={3}
                 maxLength={5000}
+                ariaLabel="Post body"
               />
               <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publish</Button></div>
             </div>
@@ -530,6 +563,7 @@ function ThreadPanel({
   const deleteReply = useDeleteReply(post.id);
   const toggleReaction = useToggleReaction();
   const [draft, setDraft] = useState("");
+  const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const replyIds = useMemo(() => replies.map((reply) => reply.id), [replies]);
   const replyAuthors = useMemo(() => replies.map((reply) => reply.author_id), [replies]);
   const { data: replyProfiles = [] } = useCommunityAuthorProfiles(replyAuthors);
@@ -556,8 +590,22 @@ function ThreadPanel({
   async function submitReply() {
     if (!draft.trim()) return;
     try {
-      await createReply.mutateAsync(draft.trim());
+      const created = await createReply.mutateAsync(draft.trim());
+      const mentionedIds = resolveMentionUserIds(draft, mentionDir);
+      if (mentionedIds.length) {
+        try {
+          await notifyMentions({
+            userIds: mentionedIds,
+            title: `You were mentioned in a reply`,
+            body: draft,
+            href: `/community`,
+            postId: post.id,
+            replyId: created?.id ?? null,
+          });
+        } catch { /* best-effort */ }
+      }
       setDraft("");
+      setMentionDir(new Map());
       toast.success("Reply posted");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not reply");
@@ -581,7 +629,7 @@ function ThreadPanel({
         <div>
           <p className="section-label">Conversation</p>
           <SheetTitle>{post.title}</SheetTitle>
-          <p>{post.body}</p>
+          <p><MentionText text={post.body} /></p>
         </div>
         {(isAdmin || post.author_id === userId) && <Button variant="ghost" size="icon" onClick={onDelete}><Trash2 size={15} /></Button>}
       </SheetHeader>
@@ -602,7 +650,7 @@ function ThreadPanel({
                   <div><strong>{profileName(profile, own)}</strong><span>{relativeTime(reply.created_at)}</span></div>
                   {(own || isAdmin) && <button type="button" onClick={() => removeReply(reply.id)}><Trash2 size={13} /></button>}
                 </div>
-                <p>{reply.body}</p>
+                <p><MentionText text={reply.body} /></p>
                 <div className="aa-community-reactions">
                   {reactions.map((reaction) => (
                     <button type="button" key={reaction.reaction} className={reaction.mine ? "is-active" : ""} onClick={() => userId && toggleReaction.mutate({ reaction: reaction.reaction, userId, replyId: reply.id })}>
@@ -612,6 +660,11 @@ function ThreadPanel({
                   {userId && REACTIONS.filter((emoji) => !reactions.some((reaction) => reaction.reaction === emoji)).map((emoji) => (
                     <button type="button" className="is-add" key={emoji} onClick={() => toggleReaction.mutate({ reaction: emoji, userId, replyId: reply.id })}>{emoji}</button>
                   ))}
+                  {reactions.length > 0 && (
+                    <span aria-label="total reactions" style={{ marginLeft: 6, fontSize: 11, opacity: 0.7 }}>
+                      · {reactions.reduce((n, r) => n + r.count, 0)}
+                    </span>
+                  )}
                 </div>
               </article>
             );
@@ -623,7 +676,21 @@ function ThreadPanel({
         <div className="aa-community-thread-locked"><Lock size={15} /> This conversation was closed by moderation.</div>
       ) : userId ? (
         <footer className="aa-community-thread-composer">
-          <Textarea value={draft} onChange={(event) => setDraft(event.target.value)} rows={3} maxLength={3000} placeholder="Write a reply…" />
+          <MentionInput
+            value={draft}
+            onChange={(next, patch) => {
+              setDraft(next);
+              if (patch.size) setMentionDir((prev) => {
+                const merged = new Map(prev);
+                patch.forEach((v, k) => merged.set(k, v));
+                return merged;
+              });
+            }}
+            rows={3}
+            maxLength={3000}
+            placeholder="Write a reply… Use @ to mention someone."
+            ariaLabel="Reply body"
+          />
           <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
