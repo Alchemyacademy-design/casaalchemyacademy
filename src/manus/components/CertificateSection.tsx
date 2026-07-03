@@ -78,7 +78,7 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
       await downloadCertificatePdf({
         studentName: user.name || "Alchemist",
         courseTitle: courseTitle || "the course",
-        issuedAt: certificate.issuedAt ?? certificate.issued_at,
+        issuedAt: certificate.issuedAt,
         certificateNumber: certificate.certificate_number || "AA-0000",
         verifyUrl: shareUrl ?? undefined,
       });
@@ -100,9 +100,9 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     ? `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${encodeURIComponent(
         courseTitle || "Course",
       )}&organizationName=${encodeURIComponent("Casa Alchemy Studio")}&issueYear=${new Date(
-        certificate.issuedAt ?? certificate.issued_at ?? Date.now(),
+        certificate.issuedAt ?? Date.now(),
       ).getFullYear()}&issueMonth=${
-        new Date(certificate.issuedAt ?? certificate.issued_at ?? Date.now()).getMonth() + 1
+        new Date(certificate.issuedAt ?? Date.now()).getMonth() + 1
       }&certUrl=${encodeURIComponent(shareUrl)}&certId=${encodeURIComponent(certificate.certificate_number || "")}`
     : null;
 
@@ -156,7 +156,7 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
               <CertificateArtwork
                 studentName={user?.name || "Alchemist"}
                 courseTitle={courseTitle || "Course"}
-                issuedAt={certificate.issuedAt ?? certificate.issued_at}
+                issuedAt={certificate.issuedAt}
                 certificateNumber={certificate.certificate_number || "AA-0000"}
                 verifyUrl={shareUrl ?? undefined}
               />
