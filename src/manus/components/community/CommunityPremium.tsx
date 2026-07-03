@@ -23,6 +23,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
   type CommunityPost,
   useChannelBySlug,
