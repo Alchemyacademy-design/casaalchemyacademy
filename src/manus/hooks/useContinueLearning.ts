@@ -28,22 +28,33 @@ export function useContinueLearning() {
     enabled: !!user?.id,
     staleTime: 60_000,
     queryFn: async (): Promise<{ resume: ContinueLearningItem | null; upNext: ContinueLearningItem[] }> => {
-      const { data, error } = await supabase
+      const client = supabase as unknown as {
+        from: (t: string) => {
+          select: (s: string) => {
+            eq: (c: string, v: unknown) => {
+              is: (c: string, v: unknown) => {
+                order: (c: string, o: { ascending: boolean }) => {
+                  limit: (n: number) => Promise<{ data: unknown; error: unknown }>;
+                };
+              };
+            };
+          };
+        };
+      };
+      const { data, error } = await client
         .from("lesson_progress")
         .select(
-          "lesson_id, watched_seconds, watched_percent, completed_at, last_watched_at, " +
-            "lessons:lesson_id ( id, title, thumbnail_path, module_id, " +
-            "  course_modules:module_id ( id, title, course_id, " +
-            "    courses:course_id ( id, title, slug, cover_path ) ) )",
+          "lesson_id, watched_seconds, watched_percent, completed_at, last_watched_at, lessons:lesson_id ( id, title, thumbnail_path, module_id, course_modules:module_id ( id, title, course_id, courses:course_id ( id, title, slug, cover_path ) ) )",
         )
         .eq("user_id", user!.id)
         .is("completed_at", null)
         .order("last_watched_at", { ascending: false })
         .limit(8);
-      if (error) throw error;
+      if (error) throw error as Error;
+      const rows = Array.isArray(data) ? (data as Array<Record<string, unknown>>) : [];
       const items: ContinueLearningItem[] = [];
-      for (const row of data ?? []) {
-        const lesson = (row as Record<string, unknown>).lessons as
+      for (const row of rows) {
+        const lesson = row.lessons as
           | {
               id: number;
               title: string;
@@ -71,7 +82,7 @@ export function useContinueLearning() {
           thumbnail: lesson.thumbnail_path ?? course.cover_path ?? null,
           watchedPercent: Number(row.watched_percent ?? 0),
           watchedSeconds: Number(row.watched_seconds ?? 0),
-          lastWatchedAt: row.last_watched_at ?? "",
+          lastWatchedAt: (row.last_watched_at as string) ?? "",
           href: `/modules/${mod.id}?lesson=${lesson.id}`,
         });
       }
