@@ -4,6 +4,7 @@ import { BookOpen, Calendar, Gift, LayoutDashboard, LogOut, Menu, Settings, Shie
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getLoginUrl } from "@/manus/const";
+import AdminPreviewBar from "@/manus/components/admin/AdminPreviewBar";
 import "@/manus/styles/official-render.css";
 
 interface MemberLayoutProps {
@@ -74,6 +75,7 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
 
   return (
     <div className="aa-member-shell">
+      <AdminPreviewBar />
       <header className="aa-mobile-header lg:hidden">
         <Link to="/dashboard" onClick={() => setMobileOpen(false)}><img src="/img/logo.png" alt="Alchemy Academy" /></Link>
         <button
