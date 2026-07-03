@@ -13,6 +13,7 @@ import {
   Building2,
   Tag,
   Wand2,
+  Search,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/manus/hooks/useAuth";
+import AdminCommandPalette, { useAdminCommandPalette } from "./AdminCommandPalette";
 
 interface Crumb {
   label: string;
@@ -132,6 +134,7 @@ export default function AdminShell({
 }) {
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const palette = useAdminCommandPalette();
   const handleLogout = async () => {
     await logout();
     navigate("/");
@@ -158,6 +161,18 @@ export default function AdminShell({
               ))}
             </nav>
             <div className="ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="mr-2 gap-2 text-foreground/70"
+                onClick={() => palette.setOpen(true)}
+              >
+                <Search className="w-4 h-4" />
+                <span className="hidden sm:inline">Search</span>
+                <kbd className="hidden md:inline-flex ml-1 items-center rounded border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+                  ⌘K
+                </kbd>
+              </Button>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-1" /> Sign out
               </Button>
@@ -175,6 +190,7 @@ export default function AdminShell({
             {children}
           </main>
         </div>
+        <AdminCommandPalette open={palette.open} onOpenChange={palette.setOpen} />
       </div>
     </SidebarProvider>
   );
