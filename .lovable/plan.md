@@ -1,84 +1,92 @@
-# Plan — Course Management (Phase 3)
 
-Build on top of Phase 2 schema (already migrated: `courses` with `status/visibility/access_type/release_type/scheduled_publish_at`, `course_categories`, `course_modules.position`, `lessons.position`, `course_audit_logs`, private `course-assets` bucket). No new migrations required for this phase — the columns needed already exist. If a real gap appears mid-build, I'll add one incremental migration and stop for approval.
+# Pre-mortem — Membership plans (Admin) + integração Stripe
 
-## 1. Route & navigation
-- New route `/admin/course-management` (label: **Course Management**) in `AdminShell` sidebar, above existing `Courses`.
-- Keeps legacy `/admin/courses` list working (no destructive changes).
+## Estado atual (o que já existe)
 
-## 2. Data layer (`src/manus/lib/course-management.ts`)
-- `listCourses({ search, status, instructorId, categoryId, from, to, sort, page, pageSize })` → single Supabase query on `courses` with joins to `profiles` (instructor), `course_categories`, and aggregates:
-  - lesson count via `lessons` join through `course_modules`
-  - enrollment count via `course_entitlements` (active)
-  - avg progress via `lesson_progress` (bounded, best-effort)
-- `listInstructors()` / `listCategories()` — small cached lookups.
-- `createCourseDraft(input)` — insert with `status='draft'`.
-- `updateCourseStage(id, patch)` — used by wizard steps.
-- `publishCourse(id, { immediate | scheduledAt })` — sets `status='published'|'scheduled'`, `published_at`, `scheduled_publish_at`.
-- `reorderModules(courseId, ids[])` and `reorderLessons(moduleId, ids[])` — batched `update ... position` via `upsert`.
-- `duplicateModule(id)`, `duplicateLesson(id)`, `moveLesson(id, toModuleId)`, `softDeleteModule(id)`, `softDeleteLesson(id)`, `toggleHidden(entity,id)`.
-- All writes use existing admin RLS; each is wrapped in `withTimeout` (8s) to prevent infinite spinners.
+- `/admin/people` → aba **Membership plans** usa `AdminTablePage` sobre `public.membership_plans` — CRUD raso de metadados: `key, name, description, duration, all_courses, community_access, events_access, active`.
+- `/plans` (público/membro) renderiza os planos ativos com **preço/label hardcoded** (`PLAN_PRICE_LABEL`) — a fonte da verdade não é o Stripe.
+- `public.stripe_prices` já existe, ligado a `plan_key` + `is_checkout_default`. Checkout via `create-checkout-session` já resolve preço por essa tabela.
+- Stripe live gated por `STRIPE_LIVE_ENABLED` + `STRIPE_RUNTIME_MODE` (secrets já provisionados).
+- **Gap crítico:** admin edita metadados mas não vê nem controla preço, moeda, intervalo, trial, cupom, quantidade de assinantes, MRR, churn, etc. Preço no `/plans` diverge de `stripe_prices` porque está hardcoded.
 
-## 3. Course Management page (`src/manus/pages/admin/CourseManagement.tsx`)
-- Header: title + **Create new course** button (opens wizard modal).
-- Toolbar row:
-  - Search input (debounced 300ms, name/slug ilike).
-  - Filters: Status (draft / in_review / scheduled / published / hidden / archived), Instructor (select), Category (select), Date range (from/to).
-  - Sort dropdown: Name ↑↓, Updated ↑↓, Status.
-  - View toggle: Cards ⇄ Table.
-- Results: paginated (20/page), skeleton loading, empty state.
-- Each course card/row shows: cover, title, status badge, instructor, category, lesson count, enrollment count, avg progress %, last updated.
-- Row action menu: Edit · View as member · Duplicate · Publish/Unpublish · Archive · Delete (confirm modal) · Manage students · Performance (stubs link to existing pages when present).
+## Objetivo
 
-## 4. Create-course wizard (`src/manus/components/admin/course-wizard/`)
-Modal with progress stepper (1→4). State kept in a single `useReducer`. Draft saved after step 1 so navigation is safe.
-- **Step 1 — Main info**: title, subtitle, auto slug (editable, live duplicate check debounced), short + long description, category, instructor, level, language, estimated duration, cover upload → `course-assets/covers/`, banner upload, trailer URL, tags multi-select, target audience, objectives (list), prerequisites (list), certificate toggle, featured toggle.
-- **Step 2 — Access**: access_type radio (free / paid / plan_included / manual / user_exclusive / product_linked / period / lifetime / cohort). Selecting `plan_included` shows `access_plan_keys` checkboxes (annual / monthly / single_course). Period shows date range. Payment integration is *not* recreated — links to existing `stripe_prices` when `paid` is chosen (out of this phase's scope: creation of new Stripe prices).
-- **Step 3 — Release**: release_type (all_now / drip_days / drip_date / after_prev_lesson / after_prev_module / manual / per_cohort). Numeric/date inputs revealed conditionally.
-- **Step 4 — Review**: summary of everything with edit-back links; footer buttons: **Save as draft** · **Send for review** (status=in_review) · **Schedule** (opens datepicker → status=scheduled + scheduled_publish_at) · **Publish now** · **Preview as member** (opens `/courses/:id` in new tab).
+Transformar **Membership plans** numa central real de planos: espelho fiel do Stripe (via API), com métricas de assinantes, ações operacionais (pausar, cancelar, reembolsar, aplicar cupom), e Sync bidirecional preço↔plano.
 
-Zod validation per step; step advances blocked on errors; inline error text (no browser alerts).
+---
 
-## 5. Visual builder (`src/manus/pages/admin/CourseBuilder.tsx` at `/admin/course-management/:id`)
-Three-column layout (responsive: collapses to tabs on mobile).
-- **Left — Structure**
-  - Tree of modules → lessons.
-  - `@dnd-kit/core` + `@dnd-kit/sortable` (already in tree if not, add via `bun add`) for drag-drop reordering.
-  - On drop: optimistic reorder, batched `reorderModules`/`reorderLessons` write, rollback + toast on failure.
-  - Per-node actions: rename inline, duplicate, hide/show, move-to-module, delete (confirm modal with content warning if progress exists).
-  - Buttons: **Add module**, **Add lesson**, **Add quiz** (reuses `AdminQuizEditor`), **Add bonus content**.
-- **Center — Lesson editor**
-  - Reuses existing `LessonEditor`/blocks work already scaffolded; this phase wires it to the selected node and adds autosave indicator (Saving… / Saved · timestamp / Retry). Block editor evolution stays in a later phase — placeholder for missing block types.
-- **Right — Settings panel**
-  - Bound to selected lesson: name, slug, description, type, duration, status, mandatory, preview, release fields, prerequisite, allow comments/download, auto-complete-on-video-end, cover upload.
-  - Bound to selected module: title, description, status, release fields, prerequisite module.
-  - Debounced autosave (500ms) with the same indicator.
+## Recursos propostos (por prioridade)
 
-## 6. UX guarantees
-- All spinners have hard 15s timeout with error toast.
-- No browser `confirm()` — use existing shadcn `AlertDialog`.
-- Every mutation invalidates the correct react-query keys so the list + builder stay in sync.
-- Empty/skeleton/error states for every list.
+### F1 — Fonte da verdade unificada (base do resto)
+1. Nova aba **Plans (Stripe)** dentro do People Hub.
+2. Edge function `stripe-plans-sync` (GET): lista `products` + `prices` LIVE do Stripe, cruza com `membership_plans` + `stripe_prices` locais e retorna estado consolidado por `plan_key`:
+   - preço atual (amount, currency, interval), price_id, product_id, active, livemode
+   - contagem de assinantes ativos / trialing / past_due (via `stripe_subscriptions`)
+   - MRR e receita 30d (via `stripe_payments`)
+3. Substituir `PLAN_PRICE_LABEL` no `/plans` público pelo preço real vindo de `stripe_prices` (default checkout).
 
-## 7. Out of scope (later phases, per Fase 5)
-- Full block editor palette (image gallery, quiz-in-block, code embed, live class widgets).
-- Course templates gallery, content assistant, version history UI, analytics dashboards, cohort management, drip actual enforcement on the student side beyond flags currently respected.
-- Instructor-scoped roles UI (schema already supports; admin management page comes with the roles admin work).
+### F2 — Editor de planos rico (admin)
+Substituir `AdminTablePage` por página dedicada `AdminMembershipPlans`:
+- Cards por plano: nome, descrição, preço formatado, badge live/test, badge active/inactive.
+- Modal de edição: metadados + toggles de acesso + **campo "Stripe price"** (dropdown com `stripe_prices` compatíveis).
+- Botão "Trocar preço padrão" → chama RPC `internal_activate_validated_stripe_price` (já existe).
+- Preview do card membro (como aparece em `/plans`) em tempo real.
 
-## 8. Files to add / touch
-```text
-src/manus/components/admin/AdminShell.tsx           (+ nav item)
-src/App.tsx                                         (+ 2 routes)
-src/manus/lib/course-management.ts                  (new)
-src/manus/pages/admin/CourseManagement.tsx          (new)
-src/manus/pages/admin/CourseBuilder.tsx             (new)
-src/manus/components/admin/course-wizard/
-  Wizard.tsx, Step1Main.tsx, Step2Access.tsx,
-  Step3Release.tsx, Step4Review.tsx, schema.ts      (new)
-src/manus/components/admin/course-builder/
-  StructureTree.tsx, LessonSettings.tsx,
-  ModuleSettings.tsx, AutosaveBadge.tsx             (new)
-```
-No existing feature is removed or renamed; `AdminCourseDetail` stays as the legacy editor and the new builder becomes the recommended entry.
+### F3 — Recursos Stripe potencializados
+Baseado em https://stripe.com/docs (Billing, Coupons, Trials, Portal):
+1. **Trials**: campo `trial_days` no plano → passado ao checkout como `subscription_data.trial_period_days`.
+2. **Coupons / Promotion codes**: aba "Discounts" que lista/cria `coupons` e `promotion_codes` via API; toggle `allow_promotion_codes` no checkout.
+3. **Customer Portal**: botão "Manage billing" na área de membro que abre `billing_portal.sessions.create` — usuário atualiza cartão, cancela, troca de plano sozinho.
+4. **Plan switching / upgrade / downgrade**: ação admin "Move subscriber to plan X" com proration automática (`subscriptions.update` + `proration_behavior`).
+5. **Pause / resume**: `subscriptions.update({ pause_collection })`.
+6. **Refunds**: botão de reembolso na linha de assinante → `refunds.create` + auditoria.
+7. **Tax**: opção "Enable Stripe Tax" por preço (`automatic_tax: enabled`).
+8. **Metered / usage-based** (futuro): estrutura pronta para `usage_records`, útil se surgir plano por consumo.
+9. **Webhook enrichment**: já processamos 11 eventos; adicionar `customer.subscription.trial_will_end` e `invoice.upcoming` para email de aviso.
 
-Say **go** to build, or tell me which pieces to trim / expand.
+### F4 — Observabilidade & operação
+- Painel "Plan health": subscribers ativos, churn 30d, MRR, ARPU, conversão trial→pago, cupons resgatados.
+- Tabela de assinantes por plano com filtro (status, plano, criado em) — link para `stripe_subscriptions`.
+- Log de auditoria por ação (`course_audit_logs` já existe; espelhar em `plan_audit_logs`).
+
+### F5 — Segurança & governança
+- Toda escrita no Stripe passa por edge function server-side (secret key nunca no cliente).
+- Confirmação dupla para ações destrutivas (cancelar, reembolsar).
+- RLS: só `admin` pode invocar as edge functions administrativas (`has_role`).
+- Rate-limit por admin (5 ações/min) para evitar loops acidentais.
+
+---
+
+## Escopo de implementação (fases executáveis)
+
+**Fase 1 — Verdade única (menor risco, entrega imediata)**
+- Edge function `stripe-plans-sync` (read-only).
+- Página `AdminMembershipPlans` com cards + métricas + preço real.
+- `/plans` público consumindo `stripe_prices` (remove hardcoded label).
+
+**Fase 2 — Operações no plano**
+- Trocar preço padrão via UI.
+- Trial days + `allow_promotion_codes` no checkout.
+- Customer Portal para membros.
+
+**Fase 3 — Assinantes & discounts**
+- Aba "Subscribers" por plano (pause/resume/cancel/refund).
+- Aba "Discounts" (coupons + promo codes).
+- Webhook: `trial_will_end`, `invoice.upcoming`.
+
+**Fase 4 — Analytics & auditoria**
+- Painel MRR/churn/ARPU.
+- `plan_audit_logs`.
+
+---
+
+## Riscos & mitigações
+- **Divergência de preço Stripe↔DB** → sync forçado + banner "Out of sync" com botão reconcile.
+- **Ação admin destrutiva acidental** → confirmação dupla + rate-limit + audit log.
+- **Custos Stripe API** → cache 60s no `stripe-plans-sync`.
+- **Live vs test** → toda tela mostra badge de modo; ações bloqueadas quando `STRIPE_LIVE_ENABLED=false` em live.
+
+---
+
+## Pergunta antes de executar
+Começar pela **Fase 1** (verdade única + página nova + `/plans` real) e seguir para Fase 2 na sequência? Ou você quer priorizar Customer Portal / cupons antes das métricas?
