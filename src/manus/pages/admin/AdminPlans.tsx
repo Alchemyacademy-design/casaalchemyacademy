@@ -9,14 +9,34 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle } from "lucide-react";
+import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 import { useStripePriceDefaults, formatStripePriceLabel, useMembershipPlans, describeError } from "@/manus/hooks/usePublicContent";
 import type { Database } from "@/integrations/supabase/types";
 
 type PlanRow = Database["public"]["Tables"]["membership_plans"]["Row"];
+type PlanKey = Database["public"]["Enums"]["membership_plan_key"];
+
+// Keep in sync with the `membership_plan_key` enum in Postgres.
+// Add new values via `ALTER TYPE ... ADD VALUE` migration before using them.
+const KNOWN_PLAN_KEYS: PlanKey[] = ["annual_member", "monthly_member", "individual_course"];
+
+function useAllMembershipPlans() {
+  return useQuery({
+    queryKey: ["admin", "all_membership_plans"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("membership_plans")
+        .select("*")
+        .order("key", { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as PlanRow[];
+    },
+  });
+}
 
 type SubRow = {
   status: string;
@@ -40,6 +60,322 @@ function useSubscriberStats() {
   });
 }
 
+function stripeDashboardHost(livemode: boolean | undefined | null) {
+  return `https://dashboard.stripe.com/${livemode ? "" : "test/"}`;
+}
+
+function openStripePrice(priceId: string, livemode: boolean | undefined | null) {
+  window.open(`${stripeDashboardHost(livemode)}prices/${priceId}`, "_blank", "noopener");
+}
+
+function openStripeNewPrice(planKey: string) {
+  // Opens the Prices list filtered so admin can create a new price with metadata.plan_key set.
+  window.open(
+    `https://dashboard.stripe.com/prices/create?metadata[plan_key]=${encodeURIComponent(planKey)}`,
+    "_blank",
+    "noopener",
+  );
+}
+
+/* ===== Sync with Stripe dialog ===== */
+function SyncWithStripeDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const { data: plans = [] } = useAllMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+
+  const rows = plans.map((plan) => {
+    const price = priceMap[plan.key];
+    return { plan, price, synced: !!price };
+  });
+  const outOfSync = rows.filter((r) => !r.synced);
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Verify & sync with Stripe</DialogTitle>
+          <DialogDescription>
+            Compares each plan against active default prices in <code>stripe_prices</code>.
+            Plans without a matching Live/Test price are marked out of sync.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-2 max-h-[50vh] overflow-auto">
+          {rows.map(({ plan, price, synced }) => (
+            <div key={plan.key} className="flex items-center justify-between gap-2 border rounded p-2">
+              <div className="min-w-0">
+                <div className="text-sm font-medium truncate">{plan.name}</div>
+                <div className="text-[10px] font-mono text-foreground/50 truncate">{plan.key}</div>
+              </div>
+              {synced ? (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant={price!.livemode ? "default" : "secondary"}>{price!.livemode ? "Live" : "Test"}</Badge>
+                  <Button size="sm" variant="outline" onClick={() => openStripePrice(price!.stripe_price_id, price!.livemode)}>
+                    <ExternalLink className="w-3 h-3 mr-1" /> Open
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 shrink-0">
+                  <Badge variant="destructive">Out of sync</Badge>
+                  <Button size="sm" onClick={() => openStripeNewPrice(plan.key)}>
+                    <Plus className="w-3 h-3 mr-1" /> Create price
+                  </Button>
+                </div>
+              )}
+            </div>
+          ))}
+          {!rows.length && <p className="text-sm text-foreground/60">No plans configured.</p>}
+        </div>
+
+        <DialogFooter className="flex items-center justify-between">
+          <p className="text-xs text-foreground/60">
+            {outOfSync.length
+              ? `${outOfSync.length} plan${outOfSync.length === 1 ? "" : "s"} out of sync`
+              : "All plans mapped"}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                qc.invalidateQueries({ queryKey: ["public", "stripe_price_defaults"] });
+                qc.invalidateQueries({ queryKey: ["admin"] });
+                toast.success("Refreshed from Supabase");
+              }}
+            >
+              <RefreshCw className="w-3 h-3 mr-1" /> Refresh
+            </Button>
+            <Button size="sm" onClick={() => onOpenChange(false)}>Done</Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ===== New plan dialog ===== */
+function NewPlanDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const { data: existingPlans = [] } = useAllMembershipPlans();
+  const usedKeys = new Set(existingPlans.map((p) => p.key));
+  const availableKeys = KNOWN_PLAN_KEYS.filter((k) => !usedKeys.has(k));
+
+  const [key, setKey] = useState<PlanKey | "">("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [duration, setDuration] = useState("1 month");
+  const [perks, setPerks] = useState<Record<string, boolean>>({});
+
+  const create = useMutation({
+    mutationFn: async () => {
+      if (!key) throw new Error("Pick a plan key");
+      if (!name.trim()) throw new Error("Name is required");
+      const { data, error } = await supabase
+        .from("membership_plans")
+        .insert({
+          key: key as PlanKey,
+          name: name.trim(),
+          description: description.trim() || null,
+          duration,
+          active: true,
+          ...PERK_FIELDS.reduce<Record<string, boolean>>((acc, f) => {
+            acc[String(f.key)] = !!perks[String(f.key)];
+            return acc;
+          }, {}),
+        })
+        .select("*")
+        .single();
+      if (error) throw error;
+      return data as PlanRow;
+    },
+    onSuccess: (row) => {
+      toast.success(`Plan “${row.name}” created`, {
+        description: "Next: create a Stripe Price with metadata.plan_key = " + row.key,
+        action: {
+          label: "Open Stripe",
+          onClick: () => openStripeNewPrice(row.key),
+        },
+      });
+      qc.invalidateQueries({ queryKey: ["public", "plans"] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      onOpenChange(false);
+      setKey(""); setName(""); setDescription(""); setPerks({});
+    },
+    onError: (e) => {
+      const d = describeError(e, "create plan");
+      toast.error(d.title, { description: d.description });
+    },
+  });
+
+  const enumSql = `-- Run this migration first to add a new enum value, then reopen New plan.
+ALTER TYPE public.membership_plan_key ADD VALUE 'your_new_key';`;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>New membership plan</DialogTitle>
+          <DialogDescription>
+            Creates the row in <code>membership_plans</code>. Pricing is set separately in Stripe.
+          </DialogDescription>
+        </DialogHeader>
+
+        {availableKeys.length === 0 ? (
+          <div className="space-y-3">
+            <div className="text-sm text-amber-600 flex items-start gap-2">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>All existing enum keys already have a plan row. To add a brand new plan, first extend the <code>membership_plan_key</code> enum via migration.</span>
+            </div>
+            <div className="relative">
+              <pre className="bg-muted text-xs p-3 rounded overflow-auto">{enumSql}</pre>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="absolute top-1 right-1"
+                onClick={() => { navigator.clipboard.writeText(enumSql); toast.success("Copied"); }}
+              >
+                <Copy className="w-3 h-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <Label className="text-xs">Plan key (enum)</Label>
+              <Select value={key} onValueChange={(v) => setKey(v as PlanKey)}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Pick an unused enum key" /></SelectTrigger>
+                <SelectContent>
+                  {availableKeys.map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label className="text-xs">Name</Label>
+              <Input className="mt-1" value={name} onChange={(e) => setName(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Description</Label>
+              <Textarea className="mt-1" rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
+            <div>
+              <Label className="text-xs">Duration (Postgres interval)</Label>
+              <Input className="mt-1" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="1 month" />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs">Perks</Label>
+              {PERK_FIELDS.map((f) => (
+                <div key={String(f.key)} className="flex items-center justify-between">
+                  <span className="text-xs">{f.label}</span>
+                  <Switch checked={!!perks[String(f.key)]} onCheckedChange={(v) => setPerks({ ...perks, [String(f.key)]: v })} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          {availableKeys.length > 0 && (
+            <Button onClick={() => create.mutate()} disabled={create.isPending || !key || !name.trim()}>
+              <Plus className="w-4 h-4 mr-1" /> {create.isPending ? "Creating…" : "Create plan"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ===== Delete plan (protected) ===== */
+function DeletePlanDialog({
+  plan,
+  activeSubs,
+  open,
+  onOpenChange,
+}: {
+  plan: PlanRow;
+  activeSubs: number;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+}) {
+  const qc = useQueryClient();
+  const [typed, setTyped] = useState("");
+  const canDelete = typed.trim() === plan.key;
+
+  const del = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("membership_plans").delete().eq("key", plan.key);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success(`Plan ${plan.key} deleted`);
+      qc.invalidateQueries({ queryKey: ["public", "plans"] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
+      onOpenChange(false);
+      setTyped("");
+    },
+    onError: (e) => {
+      const d = describeError(e, "delete plan");
+      toast.error(d.title, { description: d.description });
+    },
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { onOpenChange(v); if (!v) setTyped(""); }}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <ShieldAlert className="w-4 h-4" /> Delete membership plan
+          </DialogTitle>
+          <DialogDescription>
+            This removes only the local metadata row. Stripe prices and existing subscriptions are unaffected — but the app will stop resolving this plan for new checkouts and members.
+          </DialogDescription>
+        </DialogHeader>
+
+        {activeSubs > 0 && (
+          <div className="rounded border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              <strong>{activeSubs}</strong> active or trialing subscriber{activeSubs === 1 ? "" : "s"} currently rely on this plan.
+              Cancel or migrate them in Stripe before deleting, or the app will show missing-plan errors on their next renewal.
+            </span>
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <Label className="text-xs">
+            Type the plan key <code className="text-foreground">{plan.key}</code> to confirm
+          </Label>
+          <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={plan.key} />
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          <Button
+            variant="destructive"
+            disabled={!canDelete || del.isPending}
+            onClick={() => del.mutate()}
+          >
+            <Trash2 className="w-4 h-4 mr-1" /> {del.isPending ? "Deleting…" : "Delete plan"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function useRecentRevenue() {
   return useQuery({
     queryKey: ["admin", "plan_recent_revenue"],
@@ -57,7 +393,7 @@ function useRecentRevenue() {
 }
 
 function PlanOverviewCards() {
-  const { data: plans = [] } = useMembershipPlans();
+  const { data: plans = [] } = useAllMembershipPlans();
   const { data: priceMap = {} } = useStripePriceDefaults();
   const { data: subs = [] } = useSubscriberStats();
   const { data: payments = [] } = useRecentRevenue();
@@ -166,7 +502,7 @@ const PERK_FIELDS: { key: keyof PlanRow; label: string }[] = [
   { key: "exclusive_deals_access", label: "Exclusive deals" },
 ];
 
-function PlanEditorCard({ plan }: { plan: PlanRow }) {
+function PlanEditorCard({ plan, activeSubs }: { plan: PlanRow; activeSubs: number }) {
   const qc = useQueryClient();
   const { data: priceMap = {} } = useStripePriceDefaults();
   const price = priceMap[plan.key];
@@ -175,6 +511,7 @@ function PlanEditorCard({ plan }: { plan: PlanRow }) {
   const [draft, setDraft] = useState<PlanRow>(plan);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(plan), [draft, plan]);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const save = useMutation({
     mutationFn: async () => {
@@ -267,6 +604,9 @@ function PlanEditorCard({ plan }: { plan: PlanRow }) {
         <Button size="sm" variant="outline" onClick={() => setPreviewOpen(true)}>
           <Eye className="w-4 h-4 mr-1" /> Preview as member
         </Button>
+        <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive ml-auto" onClick={() => setDeleteOpen(true)}>
+          <Trash2 className="w-4 h-4" />
+        </Button>
         {dirty && <span className="text-[11px] text-amber-600">Unsaved changes</span>}
       </div>
 
@@ -289,6 +629,8 @@ function PlanEditorCard({ plan }: { plan: PlanRow }) {
           <MemberPreviewCard plan={draft} priceLabel={priceLabel} />
         </DialogContent>
       </Dialog>
+
+      <DeletePlanDialog plan={plan} activeSubs={activeSubs} open={deleteOpen} onOpenChange={setDeleteOpen} />
     </Card>
   );
 }
@@ -322,18 +664,94 @@ function MemberPreviewCard({ plan, priceLabel }: { plan: PlanRow; priceLabel: st
 }
 
 function PlansEditorGrid() {
-  const { data: plans = [], isLoading } = useMembershipPlans();
+  const { data: plans = [], isLoading } = useAllMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+  const { data: subs = [] } = useSubscriberStats();
   if (isLoading) return <p className="text-sm text-foreground/60">Loading plans…</p>;
   if (!plans.length) return <p className="text-sm text-foreground/60">No plans yet.</p>;
+  const activeByPlanKey = (planKey: string) => {
+    const priceId = priceMap[planKey]?.stripe_price_id;
+    if (!priceId) return 0;
+    return subs.filter((s) => s.stripe_price_id === priceId && ["active", "trialing"].includes(s.status)).length;
+  };
   return (
     <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
-      {plans.map((p) => <PlanEditorCard key={p.key} plan={p} />)}
+      {plans.map((p) => <PlanEditorCard key={p.key} plan={p} activeSubs={activeByPlanKey(p.key)} />)}
     </div>
+  );
+}
+
+/* ===== Diagnostics table used inside Advanced view ===== */
+function PlanDiagnosticsTable() {
+  const { data: plans = [] } = useAllMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+  const { data: subs = [] } = useSubscriberStats();
+
+  return (
+    <Card className="p-0 overflow-hidden mb-4">
+      <div className="px-4 py-3 border-b bg-muted/30">
+        <div className="text-sm font-medium">Diagnostics</div>
+        <div className="text-xs text-foreground/60">Live status per plan, resolved from Supabase + Stripe cache.</div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead className="text-xs text-foreground/60">
+            <tr className="border-b">
+              <th className="text-left px-3 py-2">Plan</th>
+              <th className="text-left px-3 py-2">Key</th>
+              <th className="text-left px-3 py-2">Price status</th>
+              <th className="text-left px-3 py-2">Price ID</th>
+              <th className="text-right px-3 py-2">Active subs</th>
+              <th className="text-right px-3 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {plans.map((plan) => {
+              const price = priceMap[plan.key];
+              const activeSubs = price
+                ? subs.filter((s) => s.stripe_price_id === price.stripe_price_id && ["active", "trialing"].includes(s.status)).length
+                : 0;
+              return (
+                <tr key={plan.key} className="border-b last:border-0">
+                  <td className="px-3 py-2">{plan.name}{!plan.active && <span className="ml-2 text-[10px] text-foreground/50">(hidden)</span>}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{plan.key}</td>
+                  <td className="px-3 py-2">
+                    {price ? (
+                      <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
+                    ) : (
+                      <Badge variant="destructive">Out of sync</Badge>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 font-mono text-[11px] text-foreground/60 max-w-[220px] truncate">{price?.stripe_price_id ?? "—"}</td>
+                  <td className="px-3 py-2 text-right tabular-nums">{activeSubs}</td>
+                  <td className="px-3 py-2 text-right">
+                    {price ? (
+                      <Button size="sm" variant="ghost" onClick={() => openStripePrice(price.stripe_price_id, price.livemode)}>
+                        <ExternalLink className="w-3 h-3" />
+                      </Button>
+                    ) : (
+                      <Button size="sm" variant="outline" onClick={() => openStripeNewPrice(plan.key)}>
+                        <Plus className="w-3 h-3 mr-1" /> Create
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+            {!plans.length && (
+              <tr><td colSpan={6} className="px-3 py-4 text-center text-foreground/50 text-sm">No plans</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
 export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [newOpen, setNewOpen] = useState(false);
   return (
     <div>
       <PlanOverviewCards />
@@ -342,6 +760,14 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
         <div>
           <h2 className="text-lg font-medium">Plan editor</h2>
           <p className="text-xs text-foreground/60">Metadata and perks shown on /plans. Prices come from Stripe.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setSyncOpen(true)}>
+            <RefreshCw className="w-4 h-4 mr-1" /> Verify & sync with Stripe
+          </Button>
+          <Button size="sm" onClick={() => setNewOpen(true)}>
+            <Plus className="w-4 h-4 mr-1" /> New plan
+          </Button>
         </div>
       </div>
       <PlansEditorGrid />
@@ -354,6 +780,7 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
           </Button>
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-3">
+          <PlanDiagnosticsTable />
           <AdminTablePage
             noShell={embedded}
             title="Membership plans (raw)"
@@ -376,6 +803,9 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
           />
         </CollapsibleContent>
       </Collapsible>
+
+      <SyncWithStripeDialog open={syncOpen} onOpenChange={setSyncOpen} />
+      <NewPlanDialog open={newOpen} onOpenChange={setNewOpen} />
     </div>
   );
 }
