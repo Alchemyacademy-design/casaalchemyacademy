@@ -161,6 +161,57 @@ export function useMembershipPlans() {
   });
 }
 
+/* ===== Stripe default prices per plan_key (source of truth for pricing UI) ===== */
+export type StripePriceDefault = {
+  plan_key: string;
+  stripe_price_id: string;
+  currency: string;
+  unit_amount: number;
+  recurring_interval: string | null;
+  recurring_interval_count: number | null;
+  livemode: boolean;
+};
+export function useStripePriceDefaults() {
+  return useQuery({
+    queryKey: ["public", "stripe_price_defaults"],
+    queryFn: async (): Promise<Record<string, StripePriceDefault>> => {
+      const { data, error } = await supabase
+        .from("stripe_prices")
+        .select("plan_key, stripe_price_id, currency, unit_amount, recurring_interval, recurring_interval_count, livemode, active, is_checkout_default, course_id")
+        .eq("active", true)
+        .eq("is_checkout_default", true)
+        .is("course_id", null);
+      if (error) throw error;
+      const map: Record<string, StripePriceDefault> = {};
+      for (const row of data ?? []) {
+        map[String(row.plan_key)] = {
+          plan_key: String(row.plan_key),
+          stripe_price_id: row.stripe_price_id as string,
+          currency: row.currency as string,
+          unit_amount: row.unit_amount as number,
+          recurring_interval: (row.recurring_interval as string | null) ?? null,
+          recurring_interval_count: (row.recurring_interval_count as number | null) ?? null,
+          livemode: !!row.livemode,
+        };
+      }
+      return map;
+    },
+  });
+}
+
+export function formatStripePriceLabel(p?: StripePriceDefault | null): string | null {
+  if (!p) return null;
+  const amount = (p.unit_amount / 100).toLocaleString(undefined, {
+    style: "currency", currency: p.currency.toUpperCase(),
+    minimumFractionDigits: p.unit_amount % 100 === 0 ? 0 : 2,
+  });
+  if (!p.recurring_interval) return `${amount} one-time`;
+  const n = p.recurring_interval_count ?? 1;
+  const unit = p.recurring_interval;
+  if (n === 1) return `${amount} / ${unit}`;
+  return `${amount} every ${n} ${unit}s`;
+}
+
 /* ===== Published courses (public catalog) ===== */
 export function usePublishedCourses(limit?: number) {
   return useQuery({
