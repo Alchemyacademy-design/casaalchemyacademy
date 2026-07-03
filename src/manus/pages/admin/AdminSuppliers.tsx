@@ -10,9 +10,7 @@ const STATUS = [
 
 type CategoryRow = { id: number; name: string };
 
-type Props = { embedded?: boolean };
-export default function AdminSuppliers(props: Props = {}) {
-  const { embedded = false } = props;
+export function AdminSuppliersInner({ embedded = false }: { embedded?: boolean }) {
   const categoriesQuery = useQuery<CategoryRow[]>({
     queryKey: ["admin-supplier-categories-select"],
     queryFn: async () => {

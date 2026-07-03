@@ -1,8 +1,6 @@
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 
-type Props = { embedded?: boolean };
-export default function AdminSupplierCategories(props: Props = {}) {
-  const { embedded = false } = props;
+export function AdminSupplierCategoriesInner({ embedded = false }: { embedded?: boolean }) {
   return (
     <AdminTablePage
       noShell={embedded}
