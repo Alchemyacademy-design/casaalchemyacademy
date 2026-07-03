@@ -12,6 +12,12 @@ export type LessonPlayerProps = {
   className?: string;
   /** Show discreet diagnostic info (provider, normalised URL, type). */
   isAdmin?: boolean;
+  /** Persisted resume position in seconds (for html5 video). */
+  initialPositionSeconds?: number | null;
+  /** Called periodically with the current playback position (html5 video only). */
+  onPositionChange?: (seconds: number) => void;
+  /** Fired when playback reaches ~95% (html5 video only). */
+  onNearComplete?: () => void;
 };
 
 /** Re-export so existing tests in LessonPlayer.test.tsx keep working. */
@@ -50,18 +56,70 @@ function AdminDiagnostics({ parsed }: { parsed: ParsedVideo }) {
   );
 }
 
-export default function LessonPlayer({ videoUrl, title, className, isAdmin }: LessonPlayerProps) {
+const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const;
+const RATE_STORAGE_KEY = "aa:lesson-playback-rate";
+
+export default function LessonPlayer({
+  videoUrl,
+  title,
+  className,
+  isAdmin,
+  initialPositionSeconds,
+  onPositionChange,
+  onNearComplete,
+}: LessonPlayerProps) {
   const parsed = parseVideoUrl(videoUrl);
   const accessibleTitle = title?.trim() || "Lesson video";
   const [errored, setErrored] = useState(false);
   const [loading, setLoading] = useState(parsed.provider !== "none" && parsed.provider !== "external");
   const [attempt, setAttempt] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const nearCompleteFiredRef = useRef(false);
+  const lastReportRef = useRef(0);
+  const [rate, setRate] = useState<number>(() => {
+    if (typeof window === "undefined") return 1;
+    const stored = Number(window.localStorage.getItem(RATE_STORAGE_KEY));
+    return PLAYBACK_RATES.includes(stored as (typeof PLAYBACK_RATES)[number]) ? stored : 1;
+  });
 
   useEffect(() => {
     setErrored(false);
     setLoading(parsed.provider !== "none" && parsed.provider !== "external");
+    nearCompleteFiredRef.current = false;
+    lastReportRef.current = 0;
   }, [videoUrl, attempt, parsed.provider]);
+
+  useEffect(() => {
+    const v = videoRef.current;
+    if (v) v.playbackRate = rate;
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(RATE_STORAGE_KEY, String(rate));
+    }
+  }, [rate, attempt]);
+
+  const handleLoadedMetadata = () => {
+    setLoading(false);
+    const v = videoRef.current;
+    if (!v) return;
+    v.playbackRate = rate;
+    if (initialPositionSeconds && initialPositionSeconds > 5 && v.duration > initialPositionSeconds + 5) {
+      try { v.currentTime = initialPositionSeconds; } catch { /* ignore */ }
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    const v = videoRef.current;
+    if (!v || !v.duration) return;
+    const now = v.currentTime;
+    if (onPositionChange && Math.abs(now - lastReportRef.current) > 10) {
+      lastReportRef.current = now;
+      onPositionChange(Math.floor(now));
+    }
+    if (onNearComplete && !nearCompleteFiredRef.current && v.duration > 0 && now / v.duration >= 0.95) {
+      nearCompleteFiredRef.current = true;
+      onNearComplete();
+    }
+  };
 
   const retry = () => {
     setErrored(false);
@@ -148,13 +206,28 @@ export default function LessonPlayer({ videoUrl, title, className, isAdmin }: Le
             playsInline
             aria-label={accessibleTitle}
             className="absolute inset-0 h-full w-full"
-            onLoadedMetadata={() => setLoading(false)}
+            onLoadedMetadata={handleLoadedMetadata}
             onCanPlay={() => setLoading(false)}
+            onTimeUpdate={handleTimeUpdate}
             onError={() => { setErrored(true); setLoading(false); }}
           >
             <source src={parsed.src} type={parsed.mime} />
             Your browser does not support embedded video.
           </video>
+        </div>
+        <div className="mt-2 flex items-center justify-end gap-1 text-[11px] uppercase tracking-[0.12em] text-foreground/60">
+          <span className="mr-1">Speed</span>
+          {PLAYBACK_RATES.map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRate(r)}
+              className={`rounded px-2 py-0.5 transition ${rate === r ? "bg-accent/15 text-accent" : "hover:bg-muted"}`}
+              aria-pressed={rate === r}
+            >
+              {r}x
+            </button>
+          ))}
         </div>
         {isAdmin && <AdminDiagnostics parsed={parsed} />}
       </div>
