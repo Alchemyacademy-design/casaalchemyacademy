@@ -65,8 +65,8 @@ export async function notifyMentions(input: {
     p_title: input.title,
     p_body: input.body.slice(0, 240),
     p_href: input.href,
-    p_post_id: input.postId ?? null,
-    p_reply_id: input.replyId ?? null,
+    p_post_id: input.postId ?? undefined,
+    p_reply_id: input.replyId ?? undefined,
   });
   if (error) throw error;
 }
