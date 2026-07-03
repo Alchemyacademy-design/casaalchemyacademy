@@ -11,6 +11,9 @@ import {
   StatCard,
   StatusPill,
 } from "@/manus/components/member/MemberUI";
+import ResumeHero from "@/manus/components/member/ResumeHero";
+import ActivityStrip from "@/manus/components/member/ActivityStrip";
+import InboxWidget from "@/manus/components/member/InboxWidget";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
@@ -92,6 +95,17 @@ export default function Dashboard() {
             </Link>
           }
         />
+
+        <section className="mb-8" aria-label="Resume your learning">
+          <ResumeHero />
+        </section>
+
+        <section className="mb-10 grid grid-cols-1 gap-4 lg:grid-cols-3" aria-label="Activity and inbox">
+          <div className="lg:col-span-2">
+            <ActivityStrip />
+          </div>
+          <InboxWidget />
+        </section>
 
         <section className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Learning summary">
           <StatCard
