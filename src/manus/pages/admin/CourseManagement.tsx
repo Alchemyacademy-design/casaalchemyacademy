@@ -13,6 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCourseWizard from "@/manus/components/admin/course-wizard/CreateCourseWizard";
+import { BulkLessonsPanel } from "@/manus/pages/admin/AdminLessonsBulk";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   listCoursesRich, listCategories, listInstructors, archiveCourse,
   duplicateCourse, deleteCourse, setCourseStatus, CONTENT_STATUSES, type CourseRow,
@@ -46,6 +48,13 @@ export default function CourseManagement() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<CourseRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CourseRow | null>(null);
+  const [tab, setTab] = useState<"courses" | "bulk">(() => (params.get("tab") === "bulk" ? "bulk" : "courses"));
+  useEffect(() => {
+    const next = new URLSearchParams(params);
+    if (tab === "bulk") next.set("tab", "bulk"); else next.delete("tab");
+    setParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]);
 
   // Auto-open wizard when arriving from a "New course" shortcut (?new=1).
   useEffect(() => {
@@ -105,6 +114,15 @@ export default function CourseManagement() {
         </Button>
       }
     >
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "courses" | "bulk")} className="mb-6">
+        <TabsList>
+          <TabsTrigger value="courses">Courses</TabsTrigger>
+          <TabsTrigger value="bulk">Bulk lesson editor</TabsTrigger>
+        </TabsList>
+        <TabsContent value="bulk" className="mt-4">
+          <BulkLessonsPanel embedded />
+        </TabsContent>
+        <TabsContent value="courses" className="mt-4">
       <div className="rounded-lg border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
         <div className="relative md:col-span-2">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-foreground/50" />
@@ -230,6 +248,8 @@ export default function CourseManagement() {
           </div>
         </div>
       )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
