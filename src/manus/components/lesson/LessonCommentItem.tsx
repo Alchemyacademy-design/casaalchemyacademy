@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { MoreHorizontal, EyeOff, Eye, Trash2, Reply } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -10,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { supabase } from "@/integrations/supabase/client";
+import UserAvatar from "@/manus/components/UserAvatar";
 import type { LessonCommentRow } from "@/manus/lib/lesson-social";
 import {
   useCreateLessonComment,
@@ -31,13 +30,6 @@ function displayNameOf(c: LessonCommentRow): string {
   return c.author?.display_name || c.author?.full_name || "Member";
 }
 
-function avatarUrlOf(c: LessonCommentRow): string | null {
-  const path = c.author?.avatar_path;
-  if (!path) return null;
-  const { data } = supabase.storage.from("public-assets").getPublicUrl(path);
-  return data?.publicUrl ?? null;
-}
-
 export default function LessonCommentItem({
   comment,
   replies,
@@ -54,9 +46,7 @@ export default function LessonCommentItem({
 
   const isOwner = user?.id === comment.user_id;
   const canModerate = isOwner || isAdmin;
-  const url = avatarUrlOf(comment);
   const name = displayNameOf(comment);
-  const initials = name.slice(0, 1).toUpperCase();
   const when = (() => {
     try {
       return formatDistanceToNow(new Date(comment.created_at), { addSuffix: true });
@@ -68,10 +58,7 @@ export default function LessonCommentItem({
   return (
     <div className={comment.is_hidden ? "opacity-60" : ""}>
       <div className="flex gap-3">
-        <Avatar className="w-8 h-8 shrink-0">
-          {url ? <AvatarImage src={url} alt={name} /> : null}
-          <AvatarFallback>{initials}</AvatarFallback>
-        </Avatar>
+        <UserAvatar name={name} avatarPath={comment.author?.avatar_path ?? null} size="sm" />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-medium">{name}</span>
