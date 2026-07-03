@@ -320,13 +320,66 @@ ALTER TYPE public.membership_plan_key ADD VALUE 'your_new_key';`;
                 </div>
               ))}
             </div>
+
+            {key && (
+              <div className="rounded border p-3 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-medium">
+                  {checking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Stripe pre-check for <code>{key}</code>
+                </div>
+                {checking && <p className="text-foreground/60">Querying Stripe…</p>}
+                {!checking && checkResult && (
+                  <>
+                    {checkResult.prices.length === 0 && checkResult.products.length === 0 && (
+                      <p className="text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3" /> No existing Product/Price found. Safe to create.</p>
+                    )}
+                    {checkResult.prices.length > 0 && (
+                      <>
+                        <p className="text-amber-600 flex items-start gap-1"><AlertCircle className="w-3 h-3 mt-0.5" /> Stripe already has {checkResult.prices.length} active Price{checkResult.prices.length === 1 ? "" : "s"} tagged with this plan_key:</p>
+                        <ul className="space-y-1">
+                          {checkResult.prices.map((p) => (
+                            <li key={p.id} className="flex items-center justify-between gap-2">
+                              <span className="font-mono truncate">
+                                {p.id} · {(p.unit_amount ?? 0) / 100} {p.currency.toUpperCase()}
+                                {p.recurring ? ` / ${p.recurring.interval}` : ""}
+                              </span>
+                              <a
+                                className="text-foreground/60 hover:text-foreground inline-flex items-center gap-1"
+                                href={`${stripeDashboardHost(p.livemode)}prices/${p.id}`}
+                                target="_blank" rel="noreferrer"
+                              >
+                                <ExternalLink className="w-3 h-3" /> Open
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                        <label className="flex items-center gap-2 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={forceDespiteDuplicate}
+                            onChange={(e) => setForceDespiteDuplicate(e.target.checked)}
+                          />
+                          <span>I understand — create the plan row anyway</span>
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           {availableKeys.length > 0 && (
-            <Button onClick={() => create.mutate()} disabled={create.isPending || !key || !name.trim()}>
+            <Button
+              onClick={() => create.mutate()}
+              disabled={
+                create.isPending || !key || !name.trim() || checking ||
+                (stripeHasDuplicate && !forceDespiteDuplicate)
+              }
+            >
               <Plus className="w-4 h-4 mr-1" /> {create.isPending ? "Creating…" : "Create plan"}
             </Button>
           )}
