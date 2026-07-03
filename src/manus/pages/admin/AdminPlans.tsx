@@ -383,13 +383,42 @@ function useRecentRevenue() {
       const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
       const { data, error } = await supabase
         .from("stripe_payments")
-        .select("amount, currency, status, paid_at")
+        .select("amount, currency, status, paid_at, stripe_subscription_id")
         .gte("paid_at", since)
         .eq("status", "succeeded" as never);
-      if (error) return [] as { amount: number; currency: string }[];
-      return (data ?? []) as { amount: number; currency: string }[];
+      if (error) return [] as { amount: number; currency: string; stripe_subscription_id: string | null }[];
+      return (data ?? []) as { amount: number; currency: string; stripe_subscription_id: string | null }[];
     },
   });
+}
+
+function useSubscriptionsWithId() {
+  return useQuery({
+    queryKey: ["admin", "subs_with_id"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stripe_subscriptions")
+        .select("stripe_subscription_id, stripe_price_id");
+      if (error) throw error;
+      return (data ?? []) as { stripe_subscription_id: string; stripe_price_id: string | null }[];
+    },
+  });
+}
+
+function usePlanRevenueMap() {
+  const { data: payments = [] } = useRecentRevenue();
+  const { data: subs = [] } = useSubscriptionsWithId();
+  return useMemo(() => {
+    const priceBySub = new Map<string, string>();
+    for (const s of subs) if (s.stripe_price_id) priceBySub.set(s.stripe_subscription_id, s.stripe_price_id);
+    const map: Record<string, number> = {};
+    for (const p of payments) {
+      const priceId = p.stripe_subscription_id ? priceBySub.get(p.stripe_subscription_id) : null;
+      if (!priceId) continue;
+      map[priceId] = (map[priceId] ?? 0) + (p.amount ?? 0);
+    }
+    return map;
+  }, [payments, subs]);
 }
 
 function PlanOverviewCards() {
