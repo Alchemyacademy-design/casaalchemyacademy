@@ -144,6 +144,12 @@ export interface AdminTablePageProps<T extends PublicTableName = PublicTableName
    * without assuming every archivable table has the same shape.
    */
   archivePatch?: Record<string, unknown>;
+  /**
+   * When true, skip the outer AdminShell wrapper (title/description/crumbs/actions)
+   * and render only the inner table + editor. Useful when embedding this page
+   * inside a tabbed hub that already renders its own AdminShell.
+   */
+  noShell?: boolean;
 }
 
 function emptyForFields(fields: FieldDef[]): Record<string, unknown> {
@@ -320,6 +326,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     searchFields = [],
     deletionMode = "disabled",
     archivePatch,
+    noShell = false,
   } = props;
 
   const qc = useQueryClient();
@@ -527,17 +534,19 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     else hardDeleteMutation.mutate(row[primaryKey]);
   };
 
-  return (
-    <AdminShell
-      title={title}
-      description={description}
-      crumbs={[{ label: title }]}
-      actions={
-        <Button onClick={() => setEditing(emptyForFields(fields))}>
-          <Plus className="w-4 h-4 mr-1" /> New
-        </Button>
-      }
-    >
+  const inner = (
+    <>
+      {noShell && (
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {description && <p className="text-sm text-foreground/60">{description}</p>}
+          </div>
+          <Button onClick={() => setEditing(emptyForFields(fields))}>
+            <Plus className="w-4 h-4 mr-1" /> New
+          </Button>
+        </div>
+      )}
       {searchFields.length > 0 && (
         <Card className="p-3 mb-4">
           <div className="relative">
@@ -746,6 +755,22 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    </>
+  );
+
+  if (noShell) return inner;
+  return (
+    <AdminShell
+      title={title}
+      description={description}
+      crumbs={[{ label: title }]}
+      actions={
+        <Button onClick={() => setEditing(emptyForFields(fields))}>
+          <Plus className="w-4 h-4 mr-1" /> New
+        </Button>
+      }
+    >
+      {inner}
     </AdminShell>
   );
 }
