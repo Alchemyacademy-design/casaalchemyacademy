@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
-import { useStripePriceDefaults, formatStripePriceLabel, useMembershipPlans, describeError } from "@/manus/hooks/usePublicContent";
+import { useStripePriceDefaults, formatStripePriceLabel, describeError } from "@/manus/hooks/usePublicContent";
 import type { Database } from "@/integrations/supabase/types";
 
 type PlanRow = Database["public"]["Tables"]["membership_plans"]["Row"];
