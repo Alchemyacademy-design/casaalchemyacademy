@@ -55,6 +55,7 @@ const PeopleHub = lazyWithRetry(() => import("@/manus/pages/admin/PeopleHub"), "
 const CourseManagement = lazyWithRetry(() => import("@/manus/pages/admin/CourseManagement"), "CourseManagement");
 const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuilder"), "CourseBuilder");
 const AdminLinkScanner = lazyWithRetry(() => import("@/manus/pages/admin/AdminLinkScanner"), "AdminLinkScanner");
+const NotificationsInbox = lazyWithRetry(() => import("@/manus/pages/NotificationsInbox"), "NotificationsInbox");
 
 
 export default function App() {
@@ -82,6 +83,7 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/magazine" element={<Magazine />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/notifications" element={<NotificationsInbox />} />
             <Route path="/live-workshops" element={<LiveWorkshops />} />
             <Route path="/activate" element={<Activate />} />
             <Route path="/login" element={<Login />} />

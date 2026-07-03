@@ -253,6 +253,32 @@ export type Database = {
           },
         ]
       }
+      community_reads: {
+        Row: {
+          channel_id: number
+          last_read_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: number
+          last_read_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: number
+          last_read_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "community_reads_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       community_replies: {
         Row: {
           archived_at: string | null
@@ -697,6 +723,38 @@ export type Database = {
           },
         ]
       }
+      deal_clicks: {
+        Row: {
+          clicked_at: string
+          deal_id: number
+          id: string
+          referrer: string | null
+          user_id: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          deal_id: number
+          id?: string
+          referrer?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          deal_id?: number
+          id?: string
+          referrer?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_clicks_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "exclusive_deals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           access_plan_keys: Database["public"]["Enums"]["membership_plan_key"][]
@@ -1022,10 +1080,49 @@ export type Database = {
           },
         ]
       }
+      lesson_notes: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          lesson_id: number
+          position_seconds: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          body?: string
+          created_at?: string
+          id?: string
+          lesson_id: number
+          position_seconds?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          lesson_id?: number
+          position_seconds?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lesson_notes_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lesson_progress: {
         Row: {
           completed_at: string | null
           created_at: string
+          last_position_seconds: number | null
           last_watched_at: string
           lesson_id: number
           updated_at: string
@@ -1036,6 +1133,7 @@ export type Database = {
         Insert: {
           completed_at?: string | null
           created_at?: string
+          last_position_seconds?: number | null
           last_watched_at?: string
           lesson_id: number
           updated_at?: string
@@ -1046,6 +1144,7 @@ export type Database = {
         Update: {
           completed_at?: string | null
           created_at?: string
+          last_position_seconds?: number | null
           last_watched_at?: string
           lesson_id?: number
           updated_at?: string
@@ -1544,6 +1643,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          notification_prefs: Json
           timezone: string
           updated_at: string
         }
@@ -1554,6 +1654,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          notification_prefs?: Json
           timezone?: string
           updated_at?: string
         }
@@ -1564,6 +1665,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          notification_prefs?: Json
           timezone?: string
           updated_at?: string
         }
