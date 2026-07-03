@@ -19,6 +19,7 @@ import {
   CreditCard,
   Award,
   FileQuestion,
+  Wand2,
 } from "lucide-react";
 import {
   Sidebar,
@@ -45,6 +46,7 @@ interface Crumb {
 
 const NAV = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
+  { title: "Course Management", url: "/admin/course-management", icon: Wand2 },
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
   { title: "New course", url: "/admin/courses/new", icon: PlusCircle },
   { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
