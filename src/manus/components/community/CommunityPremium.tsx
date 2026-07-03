@@ -502,12 +502,20 @@ export default function CommunityPremium({
           <footer className="aa-community-composer">
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
-              <Textarea
+              <MentionInput
                 value={draftBody}
-                onChange={(event) => setDraftBody(event.target.value)}
-                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}…`}
+                onChange={(next, patch) => {
+                  setDraftBody(next);
+                  if (patch.size) setMentionDir((prev) => {
+                    const merged = new Map(prev);
+                    patch.forEach((v, k) => merged.set(k, v));
+                    return merged;
+                  });
+                }}
+                placeholder={`Share an idea, a question or your progress in #${activeChannel.name}… Use @ to mention someone.`}
                 rows={3}
                 maxLength={5000}
+                ariaLabel="Post body"
               />
               <div><span>{draftBody.length}/5000</span><Button onClick={publishPost} disabled={!draftBody.trim() || createPost.isPending}>{createPost.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Publish</Button></div>
             </div>
