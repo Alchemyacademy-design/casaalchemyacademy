@@ -47,16 +47,11 @@ interface Crumb {
 const NAV = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Course Management", url: "/admin/course-management", icon: Wand2 },
-  { title: "Courses", url: "/admin/courses", icon: BookOpen },
-  { title: "Quizzes", url: "/admin/quizzes", icon: FileQuestion },
-  { title: "Events", url: "/admin/events", icon: Calendar },
-  { title: "Live workshops", url: "/admin/workshops", icon: Video },
+  { title: "Events Hub", url: "/admin/events", icon: Calendar },
   { title: "Magazine", url: "/admin/magazine", icon: Newspaper },
   { title: "Suppliers Hub", url: "/admin/suppliers", icon: Building2 },
   { title: "Deals", url: "/admin/deals", icon: Tag },
-  { title: "Plans", url: "/admin/plans", icon: CreditCard },
-  { title: "Certificates", url: "/admin/certificates", icon: Award },
-  { title: "Students", url: "/admin/students", icon: Users },
+  { title: "People Hub", url: "/admin/students", icon: Users },
   { title: "Diagnostics", url: "/admin/diagnostics", icon: Activity },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
 ];

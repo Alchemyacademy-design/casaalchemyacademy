@@ -47,14 +47,11 @@ const AdminCourseDetail = lazyWithRetry(() => import("@/manus/pages/admin/AdminC
 const AdminLessonsBulk = lazyWithRetry(() => import("@/manus/pages/admin/AdminLessonsBulk"), "AdminLessonsBulk");
 const AdminStudents = lazyWithRetry(() => import("@/manus/pages/admin/AdminStudents"), "AdminStudents");
 const AdminDiagnostics = lazyWithRetry(() => import("@/manus/pages/admin/AdminDiagnostics"), "AdminDiagnostics");
-const AdminEvents = lazyWithRetry(() => import("@/manus/pages/admin/AdminEvents"), "AdminEvents");
-const AdminWorkshops = lazyWithRetry(() => import("@/manus/pages/admin/AdminWorkshops"), "AdminWorkshops");
 const AdminMagazine = lazyWithRetry(() => import("@/manus/pages/admin/AdminMagazine"), "AdminMagazine");
 const SuppliersHub = lazyWithRetry(() => import("@/manus/pages/admin/SuppliersHub"), "SuppliersHub");
 const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
-const AdminPlans = lazyWithRetry(() => import("@/manus/pages/admin/AdminPlans"), "AdminPlans");
-const AdminCertificates = lazyWithRetry(() => import("@/manus/pages/admin/AdminCertificates"), "AdminCertificates");
-const AdminQuizzes = lazyWithRetry(() => import("@/manus/pages/admin/AdminQuizzes"), "AdminQuizzes");
+const EventsHub = lazyWithRetry(() => import("@/manus/pages/admin/EventsHub"), "EventsHub");
+const PeopleHub = lazyWithRetry(() => import("@/manus/pages/admin/PeopleHub"), "PeopleHub");
 const CourseManagement = lazyWithRetry(() => import("@/manus/pages/admin/CourseManagement"), "CourseManagement");
 const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuilder"), "CourseBuilder");
 
@@ -101,17 +98,17 @@ export default function App() {
             <Route path="/admin/content-import" element={<Navigate to="/admin/courses" replace />} />
             <Route path="/admin/import" element={<Navigate to="/admin/courses" replace />} />
             <Route path="/admin/lessons" element={<Navigate to="/admin/course-management?tab=bulk" replace />} />
-            <Route path="/admin/students" element={<AdminGuard><AdminStudents /></AdminGuard>} />
+            <Route path="/admin/students" element={<AdminGuard><PeopleHub /></AdminGuard>} />
+            <Route path="/admin/plans" element={<Navigate to="/admin/students?tab=plans" replace />} />
             <Route path="/admin/diagnostics" element={<AdminGuard><AdminDiagnostics /></AdminGuard>} />
-            <Route path="/admin/events" element={<AdminGuard><AdminEvents /></AdminGuard>} />
-            <Route path="/admin/workshops" element={<AdminGuard><AdminWorkshops /></AdminGuard>} />
+            <Route path="/admin/events" element={<AdminGuard><EventsHub /></AdminGuard>} />
+            <Route path="/admin/workshops" element={<Navigate to="/admin/events?tab=workshops" replace />} />
             <Route path="/admin/magazine" element={<AdminGuard><AdminMagazine /></AdminGuard>} />
             <Route path="/admin/suppliers" element={<AdminGuard><SuppliersHub /></AdminGuard>} />
             <Route path="/admin/supplier-categories" element={<Navigate to="/admin/suppliers?tab=categories" replace />} />
             <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />
-            <Route path="/admin/plans" element={<AdminGuard><AdminPlans /></AdminGuard>} />
-            <Route path="/admin/certificates" element={<AdminGuard><AdminCertificates /></AdminGuard>} />
-            <Route path="/admin/quizzes" element={<AdminGuard><AdminQuizzes /></AdminGuard>} />
+            <Route path="/admin/certificates" element={<Navigate to="/admin/course-management?tab=certificates" replace />} />
+            <Route path="/admin/quizzes" element={<Navigate to="/admin/course-management?tab=quizzes" replace />} />
             <Route path="/admin/course-management" element={<AdminGuard><CourseManagement /></AdminGuard>} />
             <Route path="/admin/course-management/:id" element={<AdminGuard><CourseBuilder /></AdminGuard>} />
             <Route path="/admin/phase-2-preview" element={<Navigate to="/admin/courses" replace />} />
