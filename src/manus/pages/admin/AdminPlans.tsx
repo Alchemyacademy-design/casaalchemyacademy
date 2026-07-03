@@ -359,6 +359,7 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
             title="Membership plans (raw)"
             description="Low-level table for debugging. Prefer the card editor above."
             table="membership_plans"
+            primaryKey="key"
             orderBy={{ column: "key", ascending: true }}
             searchFields={["name", "key"]}
             publicInvalidateKeys={[["public", "plans"]]}
