@@ -2,9 +2,11 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
 import { ExternalLink, Sparkles, Clock } from "lucide-react";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
+import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 
 export default function Deals() {
   const { data: deals = [], isLoading } = useActiveDeals();
+  const trackClick = useTrackDealClick();
   const now = Date.now();
 
   const active = deals.filter((d) => {
@@ -90,6 +92,7 @@ export default function Deals() {
                     href={deal.external_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackClick.mutate(deal.id)}
                     className="flex items-center gap-2 text-xs"
                     style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                   >
