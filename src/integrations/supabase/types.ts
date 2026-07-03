@@ -23,8 +23,11 @@ export type Database = {
           id: number
           issued_at: string
           metadata: Json
+          pdf_cached_path: string | null
+          public_slug: string | null
           revoked_at: string | null
           user_id: string
+          verification_hash: string | null
         }
         Insert: {
           certificate_number: string
@@ -34,8 +37,11 @@ export type Database = {
           id?: never
           issued_at?: string
           metadata?: Json
+          pdf_cached_path?: string | null
+          public_slug?: string | null
           revoked_at?: string | null
           user_id: string
+          verification_hash?: string | null
         }
         Update: {
           certificate_number?: string
@@ -45,8 +51,11 @@ export type Database = {
           id?: never
           issued_at?: string
           metadata?: Json
+          pdf_cached_path?: string | null
+          public_slug?: string | null
           revoked_at?: string | null
           user_id?: string
+          verification_hash?: string | null
         }
         Relationships: [
           {
@@ -2524,6 +2533,17 @@ export type Database = {
           display_name: string
           full_name: string
           id: string
+        }[]
+      }
+      get_public_certificate: {
+        Args: { slug: string }
+        Returns: {
+          certificate_number: string
+          course_title: string
+          issued_at: string
+          public_slug: string
+          student_name: string
+          verification_hash: string
         }[]
       }
       has_role: {
