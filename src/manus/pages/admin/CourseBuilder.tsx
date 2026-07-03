@@ -23,6 +23,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { getCourse, updateCourse, createModule, createLesson, updateModule, updateLesson, archiveModule, archiveLesson } from "@/manus/lib/admin-content";
 import { listModulesFull, listLessonsFull, reorderModules, reorderLessons, duplicateModule, duplicateLesson, toggleModuleVisibility, toggleLessonVisibility, publishCourse } from "@/manus/lib/course-management";
 import type { Course, Module, Lesson } from "@/manus/lib/admin-content";
+import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
+import { PREVIEW_PLAN_LABELS, setPreviewPlan, type PreviewPlan } from "@/manus/lib/admin-preview";
 
 type Selection = { kind: "module" | "lesson"; id: number } | null;
 
@@ -67,7 +69,7 @@ export default function CourseBuilder() {
       crumbs={[{ label: "Course Management", to: "/admin/course-management" }, { label: course.title }]}
       actions={
         <>
-          <Button variant="outline" asChild><Link to={`/courses/${course.id}`} target="_blank">View as member</Link></Button>
+          <ViewAsMemberButton courseId={course.id} />
           <Button onClick={() => publishM.mutate()} disabled={publishM.isPending}><Rocket className="w-4 h-4 mr-2" /> Publish</Button>
         </>
       }
@@ -110,6 +112,17 @@ export default function CourseBuilder() {
             Select a module or lesson on the left to configure release rules, prerequisites, comments and downloads.
           </p>
         </div>
+      </div>
+
+      {/* Quiz builder — full CRUD for lesson / module / course-scoped quizzes */}
+      <div className="mt-6 rounded-lg border border-border bg-card p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-medium">Quizzes</h2>
+          <p className="text-xs text-foreground/60">
+            Build quizzes attached to a lesson, a module (module-final exam) or the whole course. Members see them inline in the lesson player.
+          </p>
+        </div>
+        <AdminQuizEditor courseId={courseId} />
       </div>
 
       <AlertDialog open={!!confirm} onOpenChange={(o) => !o && setConfirm(null)}>
@@ -401,4 +414,25 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
   const map = { idle: "Ready", saving: "Saving…", saved: "Saved", error: "Save failed" };
   const cls = { idle: "text-foreground/50", saving: "text-amber-600", saved: "text-emerald-600", error: "text-destructive" }[status];
   return <span className={`text-xs ${cls} inline-flex items-center gap-1`}><Save className="w-3 h-3" /> {map[status]}</span>;
+}
+
+function ViewAsMemberButton({ courseId }: { courseId: number }) {
+  const PLANS: PreviewPlan[] = ["none", "free", "monthly_member", "annual_member", "individual_course"];
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline"><Eye className="w-4 h-4 mr-2" /> View as member</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {PLANS.map((p) => (
+          <DropdownMenuItem
+            key={p}
+            onClick={() => { setPreviewPlan(p); window.open(`/courses/${courseId}`, "_blank", "noopener"); }}
+          >
+            {PREVIEW_PLAN_LABELS[p]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

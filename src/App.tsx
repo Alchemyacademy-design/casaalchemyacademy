@@ -97,7 +97,7 @@ export default function App() {
             <Route path="/admin/users/:id" element={<AdminGuard><AdminUserDetail /></AdminGuard>} />
             <Route path="/admin/analytics" element={<AdminGuard><AdminAnalytics /></AdminGuard>} />
             <Route path="/admin/courses" element={<AdminGuard><AdminCoursesList /></AdminGuard>} />
-            <Route path="/admin/courses/new" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
+            <Route path="/admin/courses/new" element={<Navigate to="/admin/course-management?new=1" replace />} />
             <Route path="/admin/courses/:id" element={<AdminGuard><AdminCourseDetail /></AdminGuard>} />
             <Route path="/admin/content-import" element={<Navigate to="/admin/courses" replace />} />
             <Route path="/admin/import" element={<Navigate to="/admin/courses" replace />} />

@@ -146,6 +146,15 @@ export async function archiveCourse(id: number): Promise<void> {
   if (error) throw error;
 }
 
+export async function deleteCourse(id: number): Promise<void> {
+  // Hard delete. Related modules/lessons/quizzes cascade via FK constraints.
+  const { error } = await withTimeout(
+    supabase.from("courses").delete().eq("id", id),
+    8000, "Delete course",
+  );
+  if (error) throw error;
+}
+
 export async function duplicateCourse(id: number): Promise<Course> {
   const { data: src, error: srcErr } = await supabase.from("courses").select("*").eq("id", id).maybeSingle();
   if (srcErr || !src) throw srcErr ?? new Error("Course not found");
