@@ -71,6 +71,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/plans" element={<Plans />} />
+            <Route path="/c/:slug" element={<PublicCertificate />} />
             <Route path="/auth/continue" element={<PostAuthRedirect />} />
             <Route path="/mycourses" element={<Modules />} />
             <Route path="/mycourses/:id" element={<ModuleDetail />} />
