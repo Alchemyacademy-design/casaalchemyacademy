@@ -24,6 +24,15 @@ type PlanKey = Database["public"]["Enums"]["membership_plan_key"];
 // Add new values via `ALTER TYPE ... ADD VALUE` migration before using them.
 const KNOWN_PLAN_KEYS: PlanKey[] = ["annual_member", "monthly_member", "individual_course"];
 
+type StripeCheckResult = {
+  products: { id: string; name: string; livemode: boolean; active: boolean }[];
+  prices: {
+    id: string; product: string; unit_amount: number | null; currency: string;
+    recurring: { interval: string; interval_count: number } | null;
+    livemode: boolean; active: boolean;
+  }[];
+};
+
 function useAllMembershipPlans() {
   return useQuery({
     queryKey: ["admin", "all_membership_plans"],
