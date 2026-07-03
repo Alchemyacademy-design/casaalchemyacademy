@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy } from "lucide-react";
+import { Users, DollarSign, TrendingUp, AlertCircle, Check, Eye, Save, ChevronDown, ExternalLink, Zap, XCircle, RefreshCw, Plus, Trash2, ShieldAlert, Copy, ArrowUpDown, Loader2, Wand2 } from "lucide-react";
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 import { useStripePriceDefaults, formatStripePriceLabel, describeError } from "@/manus/hooks/usePublicContent";
 import type { Database } from "@/integrations/supabase/types";
@@ -23,6 +23,15 @@ type PlanKey = Database["public"]["Enums"]["membership_plan_key"];
 // Keep in sync with the `membership_plan_key` enum in Postgres.
 // Add new values via `ALTER TYPE ... ADD VALUE` migration before using them.
 const KNOWN_PLAN_KEYS: PlanKey[] = ["annual_member", "monthly_member", "individual_course"];
+
+type StripeCheckResult = {
+  products: { id: string; name: string; livemode: boolean; active: boolean }[];
+  prices: {
+    id: string; product: string; unit_amount: number | null; currency: string;
+    recurring: { interval: string; interval_count: number } | null;
+    livemode: boolean; active: boolean;
+  }[];
+};
 
 function useAllMembershipPlans() {
   return useQuery({
@@ -177,11 +186,39 @@ function NewPlanDialog({
   const [description, setDescription] = useState("");
   const [duration, setDuration] = useState("1 month");
   const [perks, setPerks] = useState<Record<string, boolean>>({});
+  const [checkResult, setCheckResult] = useState<StripeCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [forceDespiteDuplicate, setForceDespiteDuplicate] = useState(false);
+
+  useEffect(() => {
+    setCheckResult(null);
+    setForceDespiteDuplicate(false);
+    if (!key) return;
+    let cancelled = false;
+    setChecking(true);
+    supabase.functions
+      .invoke("admin-stripe-plan-sync", { body: { action: "check_plan_key", plan_key: key } })
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          toast.error("Stripe check failed", { description: error.message });
+          return;
+        }
+        setCheckResult(data as StripeCheckResult);
+      })
+      .finally(() => { if (!cancelled) setChecking(false); });
+    return () => { cancelled = true; };
+  }, [key]);
+
+  const stripeHasDuplicate = !!checkResult && (checkResult.prices?.length ?? 0) > 0;
 
   const create = useMutation({
     mutationFn: async () => {
       if (!key) throw new Error("Pick a plan key");
       if (!name.trim()) throw new Error("Name is required");
+      if (stripeHasDuplicate && !forceDespiteDuplicate) {
+        throw new Error("Stripe already has a Price for this plan_key. Confirm the override to continue.");
+      }
       const { data, error } = await supabase
         .from("membership_plans")
         .insert({
@@ -212,6 +249,7 @@ function NewPlanDialog({
       qc.invalidateQueries({ queryKey: ["admin"] });
       onOpenChange(false);
       setKey(""); setName(""); setDescription(""); setPerks({});
+      setCheckResult(null); setForceDespiteDuplicate(false);
     },
     onError: (e) => {
       const d = describeError(e, "create plan");
@@ -282,13 +320,66 @@ ALTER TYPE public.membership_plan_key ADD VALUE 'your_new_key';`;
                 </div>
               ))}
             </div>
+
+            {key && (
+              <div className="rounded border p-3 text-xs space-y-2">
+                <div className="flex items-center gap-2 font-medium">
+                  {checking ? <Loader2 className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                  Stripe pre-check for <code>{key}</code>
+                </div>
+                {checking && <p className="text-foreground/60">Querying Stripe…</p>}
+                {!checking && checkResult && (
+                  <>
+                    {checkResult.prices.length === 0 && checkResult.products.length === 0 && (
+                      <p className="text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3" /> No existing Product/Price found. Safe to create.</p>
+                    )}
+                    {checkResult.prices.length > 0 && (
+                      <>
+                        <p className="text-amber-600 flex items-start gap-1"><AlertCircle className="w-3 h-3 mt-0.5" /> Stripe already has {checkResult.prices.length} active Price{checkResult.prices.length === 1 ? "" : "s"} tagged with this plan_key:</p>
+                        <ul className="space-y-1">
+                          {checkResult.prices.map((p) => (
+                            <li key={p.id} className="flex items-center justify-between gap-2">
+                              <span className="font-mono truncate">
+                                {p.id} · {(p.unit_amount ?? 0) / 100} {p.currency.toUpperCase()}
+                                {p.recurring ? ` / ${p.recurring.interval}` : ""}
+                              </span>
+                              <a
+                                className="text-foreground/60 hover:text-foreground inline-flex items-center gap-1"
+                                href={`${stripeDashboardHost(p.livemode)}prices/${p.id}`}
+                                target="_blank" rel="noreferrer"
+                              >
+                                <ExternalLink className="w-3 h-3" /> Open
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                        <label className="flex items-center gap-2 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={forceDespiteDuplicate}
+                            onChange={(e) => setForceDespiteDuplicate(e.target.checked)}
+                          />
+                          <span>I understand — create the plan row anyway</span>
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
           </div>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
           {availableKeys.length > 0 && (
-            <Button onClick={() => create.mutate()} disabled={create.isPending || !key || !name.trim()}>
+            <Button
+              onClick={() => create.mutate()}
+              disabled={
+                create.isPending || !key || !name.trim() || checking ||
+                (stripeHasDuplicate && !forceDespiteDuplicate)
+              }
+            >
               <Plus className="w-4 h-4 mr-1" /> {create.isPending ? "Creating…" : "Create plan"}
             </Button>
           )}
@@ -383,13 +474,42 @@ function useRecentRevenue() {
       const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
       const { data, error } = await supabase
         .from("stripe_payments")
-        .select("amount, currency, status, paid_at")
+        .select("amount, currency, status, paid_at, stripe_subscription_id")
         .gte("paid_at", since)
         .eq("status", "succeeded" as never);
-      if (error) return [] as { amount: number; currency: string }[];
-      return (data ?? []) as { amount: number; currency: string }[];
+      if (error) return [] as { amount: number; currency: string; stripe_subscription_id: string | null }[];
+      return (data ?? []) as { amount: number; currency: string; stripe_subscription_id: string | null }[];
     },
   });
+}
+
+function useSubscriptionsWithId() {
+  return useQuery({
+    queryKey: ["admin", "subs_with_id"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("stripe_subscriptions")
+        .select("stripe_subscription_id, stripe_price_id");
+      if (error) throw error;
+      return (data ?? []) as { stripe_subscription_id: string; stripe_price_id: string | null }[];
+    },
+  });
+}
+
+function usePlanRevenueMap() {
+  const { data: payments = [] } = useRecentRevenue();
+  const { data: subs = [] } = useSubscriptionsWithId();
+  return useMemo(() => {
+    const priceBySub = new Map<string, string>();
+    for (const s of subs) if (s.stripe_price_id) priceBySub.set(s.stripe_subscription_id, s.stripe_price_id);
+    const map: Record<string, number> = {};
+    for (const p of payments) {
+      const priceId = p.stripe_subscription_id ? priceBySub.get(p.stripe_subscription_id) : null;
+      if (!priceId) continue;
+      map[priceId] = (map[priceId] ?? 0) + (p.amount ?? 0);
+    }
+    return map;
+  }, [payments, subs]);
 }
 
 function PlanOverviewCards() {
@@ -686,60 +806,131 @@ function PlanDiagnosticsTable() {
   const { data: plans = [] } = useAllMembershipPlans();
   const { data: priceMap = {} } = useStripePriceDefaults();
   const { data: subs = [] } = useSubscriberStats();
+  const revenueMap = usePlanRevenueMap();
+
+  type StatusFilter = "all" | "live" | "test" | "out";
+  type SortKey = "name" | "subs" | "revenue";
+  const [status, setStatus] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDesc, setSortDesc] = useState(false);
+
+  const rows = useMemo(() => {
+    const enriched = plans.map((plan) => {
+      const price = priceMap[plan.key];
+      const activeSubs = price
+        ? subs.filter((s) => s.stripe_price_id === price.stripe_price_id && ["active", "trialing"].includes(s.status)).length
+        : 0;
+      const revenue30dCents = price ? (revenueMap[price.stripe_price_id] ?? 0) : 0;
+      const bucket: StatusFilter = !price ? "out" : price.livemode ? "live" : "test";
+      return { plan, price, activeSubs, revenue30dCents, bucket };
+    });
+    const filtered = status === "all" ? enriched : enriched.filter((r) => r.bucket === status);
+    return [...filtered].sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === "name") cmp = a.plan.name.localeCompare(b.plan.name);
+      else if (sortKey === "subs") cmp = a.activeSubs - b.activeSubs;
+      else if (sortKey === "revenue") cmp = a.revenue30dCents - b.revenue30dCents;
+      return sortDesc ? -cmp : cmp;
+    });
+  }, [plans, priceMap, subs, revenueMap, status, sortKey, sortDesc]);
+
+  function toggleSort(k: SortKey) {
+    if (sortKey === k) setSortDesc((v) => !v);
+    else { setSortKey(k); setSortDesc(k !== "name"); }
+  }
+
+  const counts = useMemo(() => {
+    const c = { all: plans.length, live: 0, test: 0, out: 0 };
+    for (const p of plans) {
+      const price = priceMap[p.key];
+      if (!price) c.out++;
+      else if (price.livemode) c.live++;
+      else c.test++;
+    }
+    return c;
+  }, [plans, priceMap]);
+
+  const currencyGuess = (Object.values(priceMap)[0]?.currency ?? "aud").toUpperCase();
+  const fmtCents = (cents: number) =>
+    (cents / 100).toLocaleString(undefined, { style: "currency", currency: currencyGuess, maximumFractionDigits: 0 });
 
   return (
     <Card className="p-0 overflow-hidden mb-4">
-      <div className="px-4 py-3 border-b bg-muted/30">
-        <div className="text-sm font-medium">Diagnostics</div>
-        <div className="text-xs text-foreground/60">Live status per plan, resolved from Supabase + Stripe cache.</div>
+      <div className="px-4 py-3 border-b bg-muted/30 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-sm font-medium">Diagnostics</div>
+          <div className="text-xs text-foreground/60">Live status per plan, resolved from Supabase + Stripe cache.</div>
+        </div>
+        <div className="flex items-center gap-1 flex-wrap">
+          {(["all", "live", "test", "out"] as const).map((k) => (
+            <Button
+              key={k}
+              size="sm"
+              variant={status === k ? "default" : "outline"}
+              className="h-7 text-xs"
+              onClick={() => setStatus(k)}
+            >
+              {k === "all" ? "All" : k === "live" ? "Live" : k === "test" ? "Test" : "Out of sync"}
+              <span className="ml-1 text-[10px] opacity-70">({counts[k]})</span>
+            </Button>
+          ))}
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="text-xs text-foreground/60">
             <tr className="border-b">
-              <th className="text-left px-3 py-2">Plan</th>
+              <th className="text-left px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("name")}>
+                  Plan <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
               <th className="text-left px-3 py-2">Key</th>
               <th className="text-left px-3 py-2">Price status</th>
               <th className="text-left px-3 py-2">Price ID</th>
-              <th className="text-right px-3 py-2">Active subs</th>
+              <th className="text-right px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("subs")}>
+                  Active subs <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
+              <th className="text-right px-3 py-2">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => toggleSort("revenue")}>
+                  Revenue 30d <ArrowUpDown className="w-3 h-3" />
+                </button>
+              </th>
               <th className="text-right px-3 py-2"></th>
             </tr>
           </thead>
           <tbody>
-            {plans.map((plan) => {
-              const price = priceMap[plan.key];
-              const activeSubs = price
-                ? subs.filter((s) => s.stripe_price_id === price.stripe_price_id && ["active", "trialing"].includes(s.status)).length
-                : 0;
-              return (
-                <tr key={plan.key} className="border-b last:border-0">
-                  <td className="px-3 py-2">{plan.name}{!plan.active && <span className="ml-2 text-[10px] text-foreground/50">(hidden)</span>}</td>
-                  <td className="px-3 py-2 font-mono text-xs">{plan.key}</td>
-                  <td className="px-3 py-2">
-                    {price ? (
-                      <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
-                    ) : (
-                      <Badge variant="destructive">Out of sync</Badge>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 font-mono text-[11px] text-foreground/60 max-w-[220px] truncate">{price?.stripe_price_id ?? "—"}</td>
-                  <td className="px-3 py-2 text-right tabular-nums">{activeSubs}</td>
-                  <td className="px-3 py-2 text-right">
-                    {price ? (
-                      <Button size="sm" variant="ghost" onClick={() => openStripePrice(price.stripe_price_id, price.livemode)}>
-                        <ExternalLink className="w-3 h-3" />
-                      </Button>
-                    ) : (
-                      <Button size="sm" variant="outline" onClick={() => openStripeNewPrice(plan.key)}>
-                        <Plus className="w-3 h-3 mr-1" /> Create
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {!plans.length && (
-              <tr><td colSpan={6} className="px-3 py-4 text-center text-foreground/50 text-sm">No plans</td></tr>
+            {rows.map(({ plan, price, activeSubs, revenue30dCents }) => (
+              <tr key={plan.key} className="border-b last:border-0">
+                <td className="px-3 py-2">{plan.name}{!plan.active && <span className="ml-2 text-[10px] text-foreground/50">(hidden)</span>}</td>
+                <td className="px-3 py-2 font-mono text-xs">{plan.key}</td>
+                <td className="px-3 py-2">
+                  {price ? (
+                    <Badge variant={price.livemode ? "default" : "secondary"}>{price.livemode ? "Live" : "Test"}</Badge>
+                  ) : (
+                    <Badge variant="destructive">Out of sync</Badge>
+                  )}
+                </td>
+                <td className="px-3 py-2 font-mono text-[11px] text-foreground/60 max-w-[220px] truncate">{price?.stripe_price_id ?? "—"}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{activeSubs}</td>
+                <td className="px-3 py-2 text-right tabular-nums">{fmtCents(revenue30dCents)}</td>
+                <td className="px-3 py-2 text-right">
+                  {price ? (
+                    <Button size="sm" variant="ghost" onClick={() => openStripePrice(price.stripe_price_id, price.livemode)}>
+                      <ExternalLink className="w-3 h-3" />
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => openStripeNewPrice(plan.key)}>
+                      <Plus className="w-3 h-3 mr-1" /> Create
+                    </Button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {!rows.length && (
+              <tr><td colSpan={7} className="px-3 py-4 text-center text-foreground/50 text-sm">No plans match this filter</td></tr>
             )}
           </tbody>
         </table>
@@ -752,6 +943,7 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [newOpen, setNewOpen] = useState(false);
+  const [reconcileOpen, setReconcileOpen] = useState(false);
   return (
     <div>
       <PlanOverviewCards />
@@ -764,6 +956,9 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={() => setSyncOpen(true)}>
             <RefreshCw className="w-4 h-4 mr-1" /> Verify & sync with Stripe
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => setReconcileOpen(true)}>
+            <Wand2 className="w-4 h-4 mr-1" /> Auto-reconcile
           </Button>
           <Button size="sm" onClick={() => setNewOpen(true)}>
             <Plus className="w-4 h-4 mr-1" /> New plan
@@ -806,8 +1001,166 @@ export function AdminPlansInner({ embedded = false }: { embedded?: boolean }) {
 
       <SyncWithStripeDialog open={syncOpen} onOpenChange={setSyncOpen} />
       <NewPlanDialog open={newOpen} onOpenChange={setNewOpen} />
+      <AutoReconcileDialog open={reconcileOpen} onOpenChange={setReconcileOpen} />
     </div>
   );
 }
 
 export default function AdminPlans() { return <AdminPlansInner />; }
+
+/* ===== Auto-reconcile dialog ===== */
+function AutoReconcileDialog({
+  open, onOpenChange,
+}: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const qc = useQueryClient();
+  const { data: plans = [] } = useAllMembershipPlans();
+  const { data: priceMap = {} } = useStripePriceDefaults();
+  const outOfSync = plans.filter((p) => !priceMap[p.key]);
+
+  const [amountMap, setAmountMap] = useState<Record<string, string>>({});
+  const [currency, setCurrency] = useState("aud");
+  const [interval, setIntervalValue] = useState<"month" | "year" | "week">("month");
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
+  const [running, setRunning] = useState(false);
+  const [log, setLog] = useState<{ key: string; status: "ok" | "err"; message: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    const next: Record<string, boolean> = {};
+    for (const p of outOfSync) next[p.key] = true;
+    setSelected(next);
+    setLog([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, outOfSync.length]);
+
+  async function runReconcile() {
+    setRunning(true);
+    setLog([]);
+    for (const plan of outOfSync) {
+      if (!selected[plan.key]) continue;
+      const amountDollars = Number(amountMap[plan.key]);
+      if (!Number.isFinite(amountDollars) || amountDollars <= 0) {
+        setLog((l) => [...l, { key: plan.key, status: "err", message: "Enter a positive price" }]);
+        continue;
+      }
+      try {
+        const { data, error } = await supabase.functions.invoke("admin-stripe-plan-sync", {
+          body: {
+            action: "reconcile_plan",
+            plan_key: plan.key,
+            name: plan.name,
+            description: plan.description ?? undefined,
+            unit_amount: Math.round(amountDollars * 100),
+            currency,
+            interval,
+            interval_count: 1,
+          },
+        });
+        if (error) throw error;
+        const res = data as { price_id: string };
+        setLog((l) => [...l, { key: plan.key, status: "ok", message: `Created ${res.price_id}` }]);
+      } catch (e) {
+        setLog((l) => [...l, { key: plan.key, status: "err", message: (e as Error).message }]);
+      }
+    }
+    setRunning(false);
+    setTimeout(() => {
+      qc.invalidateQueries({ queryKey: ["public", "stripe_price_defaults"] });
+      qc.invalidateQueries({ queryKey: ["admin"] });
+    }, 2500);
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-xl">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2"><Wand2 className="w-4 h-4" /> Auto-reconcile with Stripe</DialogTitle>
+          <DialogDescription>
+            For each selected out-of-sync plan, creates (or reuses) a Product tagged with <code>metadata.plan_key</code>
+            and a fresh recurring Price. The webhook activates it in <code>stripe_prices</code> automatically.
+          </DialogDescription>
+        </DialogHeader>
+
+        {outOfSync.length === 0 ? (
+          <p className="text-sm text-emerald-600 flex items-center gap-1"><Check className="w-4 h-4" /> All plans already have a mapped Stripe price.</p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs">Currency</Label>
+                <Input className="mt-1 uppercase" value={currency} onChange={(e) => setCurrency(e.target.value.toLowerCase())} maxLength={3} />
+              </div>
+              <div>
+                <Label className="text-xs">Billing interval</Label>
+                <Select value={interval} onValueChange={(v) => setIntervalValue(v as "month" | "year" | "week")}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="month">Monthly</SelectItem>
+                    <SelectItem value="year">Yearly</SelectItem>
+                    <SelectItem value="week">Weekly</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="max-h-[40vh] overflow-auto space-y-2 mt-2">
+              {outOfSync.map((plan) => {
+                const entry = log.find((l) => l.key === plan.key);
+                return (
+                  <div key={plan.key} className="border rounded p-2 flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={!!selected[plan.key]}
+                      onChange={(e) => setSelected({ ...selected, [plan.key]: e.target.checked })}
+                      disabled={running}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium truncate">{plan.name}</div>
+                      <div className="text-[10px] font-mono text-foreground/50 truncate">{plan.key}</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-foreground/60">{currency.toUpperCase()}</span>
+                      <Input
+                        className="w-24 h-8"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="9.99"
+                        value={amountMap[plan.key] ?? ""}
+                        onChange={(e) => setAmountMap({ ...amountMap, [plan.key]: e.target.value })}
+                        disabled={running}
+                      />
+                    </div>
+                    {entry && (
+                      entry.status === "ok" ? (
+                        <Badge variant="default" className="ml-1">Live</Badge>
+                      ) : (
+                        <Badge variant="destructive" className="ml-1" title={entry.message}>Error</Badge>
+                      )
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {log.length > 0 && (
+              <div className="text-xs text-foreground/60 mt-2">
+                {log.filter((l) => l.status === "ok").length}/{log.length} reconciled — webhook will finalise the Live status.
+              </div>
+            )}
+          </>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Close</Button>
+          {outOfSync.length > 0 && (
+            <Button onClick={runReconcile} disabled={running || !Object.values(selected).some(Boolean)}>
+              {running ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Wand2 className="w-4 h-4 mr-1" />}
+              {running ? "Reconciling…" : "Auto-reconcile"}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
