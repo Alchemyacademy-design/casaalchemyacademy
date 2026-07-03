@@ -166,7 +166,7 @@ export default function AdminOverview() {
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>Bulk lesson editor</h3>
           <p className="text-sm text-foreground/70 mb-4">Paste video URLs and titles for many lessons at once.</p>
-          <Button asChild variant="outline"><Link to="/admin/lessons">Open bulk editor <ArrowRight className="w-4 h-4 ml-1" /></Link></Button>
+          <Button asChild variant="outline"><Link to="/admin/course-management?tab=bulk">Open bulk editor <ArrowRight className="w-4 h-4 ml-1" /></Link></Button>
         </Card>
         <Card className="p-5">
           <h3 className="font-serif text-xl mb-1" style={{ color: "var(--aa-olive-dark)" }}>Manage students</h3>

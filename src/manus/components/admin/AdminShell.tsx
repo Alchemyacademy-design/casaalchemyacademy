@@ -48,7 +48,6 @@ const NAV = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Course Management", url: "/admin/course-management", icon: Wand2 },
   { title: "Courses", url: "/admin/courses", icon: BookOpen },
-  { title: "Lessons (bulk)", url: "/admin/lessons", icon: ListChecks },
   { title: "Quizzes", url: "/admin/quizzes", icon: FileQuestion },
   { title: "Events", url: "/admin/events", icon: Calendar },
   { title: "Live workshops", url: "/admin/workshops", icon: Video },
