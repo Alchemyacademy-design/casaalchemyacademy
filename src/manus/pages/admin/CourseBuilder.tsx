@@ -90,19 +90,16 @@ export default function CourseBuilder() {
 
         {/* CENTER — Editor */}
         <div className="rounded-lg border border-border bg-card p-6 min-h-[400px]">
-          {sel?.kind === "lesson" ? (
-            <LessonEditor
-              lesson={lessons.find((l) => l.id === sel.id)!}
-              onSaved={invalidate}
-            />
-          ) : sel?.kind === "module" ? (
-            <ModuleEditor
-              module={modules.find((m) => m.id === sel.id)!}
-              onSaved={invalidate}
-            />
-          ) : (
-            <CourseOverview course={course} onSaved={() => qc.invalidateQueries({ queryKey: ["cb-course", courseId] })} />
-          )}
+          {(() => {
+            const selLesson = sel?.kind === "lesson" ? lessons.find((l) => l.id === sel.id) : null;
+            const selModule = sel?.kind === "module" ? modules.find((m) => m.id === sel.id) : null;
+            if (sel?.kind === "lesson" && selLesson) return <LessonEditor lesson={selLesson} onSaved={invalidate} />;
+            if (sel?.kind === "module" && selModule) return <ModuleEditor module={selModule} onSaved={invalidate} />;
+            if (sel && !selLesson && !selModule) {
+              return <div className="text-sm text-muted-foreground">Loading selection…</div>;
+            }
+            return <CourseOverview course={course} onSaved={() => qc.invalidateQueries({ queryKey: ["cb-course", courseId] })} />;
+          })()}
         </div>
 
         {/* RIGHT — Settings */}
@@ -167,7 +164,7 @@ function StructureColumn({
 
   const addModule = async () => {
     const next = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
-    try { const m = await createModule(courseId, next); onSelect({ kind: "module", id: m.id }); refetchModules(); }
+    try { const m = await createModule(courseId, next); await refetchModules(); onSelect({ kind: "module", id: m.id }); }
     catch (e) { toast.error("Add module failed", { description: (e as Error).message }); }
   };
 
@@ -226,7 +223,7 @@ function ModuleNode({
 
   const addLesson = async () => {
     const next = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
-    try { const l = await createLesson(module.id, next); onSelect({ kind: "lesson", id: l.id }); refetchLessons(); }
+    try { const l = await createLesson(module.id, next); await refetchLessons(); onSelect({ kind: "lesson", id: l.id }); }
     catch (e) { toast.error("Add lesson failed", { description: (e as Error).message }); }
   };
 
