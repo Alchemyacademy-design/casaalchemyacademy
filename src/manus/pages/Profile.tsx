@@ -131,6 +131,33 @@ export default function Profile() {
             </button>
           </div>
 
+          <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
+            <h2 className="font-serif text-2xl mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Notification preferences</h2>
+            <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)" }}>Choose which alerts land in your inbox.</p>
+            <ul className="space-y-3">
+              {NOTIFICATION_PREFS.map((pref) => {
+                const enabled = prefs[pref.key] !== false;
+                return (
+                  <li key={pref.key} className="flex items-center justify-between gap-4">
+                    <span className="text-sm" style={{ color: "var(--aa-text-dark)" }}>{pref.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => setPref(pref.key, !enabled)}
+                      aria-pressed={enabled}
+                      className="relative inline-flex h-6 w-11 items-center rounded-full transition"
+                      style={{ backgroundColor: enabled ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)" }}
+                    >
+                      <span
+                        className="inline-block h-5 w-5 transform rounded-full bg-white transition"
+                        style={{ transform: enabled ? "translateX(22px)" : "translateX(2px)" }}
+                      />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
           {!isAdmin && activeMembership && (
             <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
               <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Billing</h2>
