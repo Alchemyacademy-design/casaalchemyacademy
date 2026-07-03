@@ -3,22 +3,15 @@ import { Link, NavLink, useNavigate } from "react-router-dom";
 import {
   ChevronRight,
   LayoutDashboard,
-  BookOpen,
-  PlusCircle,
-  ListChecks,
   Users,
   BarChart3,
   Activity,
   Settings,
   LogOut,
   Calendar,
-  Video,
   Newspaper,
   Building2,
   Tag,
-  CreditCard,
-  Award,
-  FileQuestion,
   Wand2,
 } from "lucide-react";
 import {
