@@ -164,7 +164,7 @@ function StructureColumn({
 
   const addModule = async () => {
     const next = (modules[modules.length - 1]?.sort_order ?? 0) + 1;
-    try { const m = await createModule(courseId, next); onSelect({ kind: "module", id: m.id }); refetchModules(); }
+    try { const m = await createModule(courseId, next); await refetchModules(); onSelect({ kind: "module", id: m.id }); }
     catch (e) { toast.error("Add module failed", { description: (e as Error).message }); }
   };
 
@@ -223,7 +223,7 @@ function ModuleNode({
 
   const addLesson = async () => {
     const next = (lessons[lessons.length - 1]?.sort_order ?? 0) + 1;
-    try { const l = await createLesson(module.id, next); onSelect({ kind: "lesson", id: l.id }); refetchLessons(); }
+    try { const l = await createLesson(module.id, next); await refetchLessons(); onSelect({ kind: "lesson", id: l.id }); }
     catch (e) { toast.error("Add lesson failed", { description: (e as Error).message }); }
   };
 
