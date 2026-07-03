@@ -76,15 +76,10 @@ function profileName(profile: CommunityAuthorProfile | undefined, own: boolean) 
 
 function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: boolean }) {
   const name = profileName(profile, own);
-  const initials = name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "AA";
-
-  return profile?.avatar_path ? (
-    <img src={profile.avatar_path} alt="" loading="lazy" className="aa-community-avatar" />
+  const url = resolveAvatarUrl(profile?.avatar_path);
+  const initials = initialsFrom(name);
+  return url ? (
+    <img src={url} alt="" loading="lazy" className="aa-community-avatar" />
   ) : (
     <span className="aa-community-avatar aa-community-avatar-fallback" aria-hidden="true">{initials}</span>
   );
