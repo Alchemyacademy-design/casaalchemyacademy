@@ -1,23 +1,24 @@
-import { useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Search, MoreVertical, Eye, Copy, Archive, Rocket, PauseCircle, Grid3x3, Table as TableIcon, Pencil } from "lucide-react";
+import { Plus, Search, MoreVertical, Eye, Copy, Archive, Rocket, PauseCircle, Grid3x3, Table as TableIcon, Pencil, Trash2 } from "lucide-react";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import StatusBadge from "@/manus/components/admin/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CreateCourseWizard from "@/manus/components/admin/course-wizard/CreateCourseWizard";
 import {
   listCoursesRich, listCategories, listInstructors, archiveCourse,
-  duplicateCourse, setCourseStatus, CONTENT_STATUSES, type CourseRow,
+  duplicateCourse, deleteCourse, setCourseStatus, CONTENT_STATUSES, type CourseRow,
 } from "@/manus/lib/course-management";
 import type { ContentStatus } from "@/manus/lib/admin-content";
+import { PREVIEW_PLAN_LABELS, setPreviewPlan, type PreviewPlan } from "@/manus/lib/admin-preview";
 
 function useDebounced<T>(value: T, ms: number): T {
   const [v, setV] = useState(value);
@@ -31,6 +32,7 @@ function useDebounced<T>(value: T, ms: number): T {
 export default function CourseManagement() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search, 300);
   const [status, setStatus] = useState<ContentStatus | "all">("all");
@@ -43,6 +45,15 @@ export default function CourseManagement() {
   const [page, setPage] = useState(1);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<CourseRow | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<CourseRow | null>(null);
+
+  // Auto-open wizard when arriving from a "New course" shortcut (?new=1).
+  useEffect(() => {
+    if (params.get("new") === "1") {
+      setWizardOpen(true);
+      const next = new URLSearchParams(params); next.delete("new"); setParams(next, { replace: true });
+    }
+  }, [params, setParams]);
 
   const { data: categories = [] } = useQuery({ queryKey: ["cm-categories"], queryFn: listCategories });
   const { data: instructors = [] } = useQuery({ queryKey: ["cm-instructors"], queryFn: listInstructors });
@@ -72,6 +83,11 @@ export default function CourseManagement() {
     mutationFn: (id: number) => archiveCourse(id),
     onSuccess: () => { toast.success("Course archived"); invalidate(); setConfirmArchive(null); },
     onError: (e: Error) => toast.error("Archive failed", { description: e.message }),
+  });
+  const delM = useMutation({
+    mutationFn: (id: number) => deleteCourse(id),
+    onSuccess: () => { toast.success("Course deleted"); invalidate(); setConfirmDelete(null); },
+    onError: (e: Error) => toast.error("Delete failed", { description: e.message }),
   });
 
   const total = data?.total ?? 0;
@@ -155,6 +171,7 @@ export default function CourseManagement() {
               key={c.id} course={c}
               onDuplicate={() => dup.mutate(c.id)}
               onArchive={() => setConfirmArchive(c)}
+              onDelete={() => setConfirmDelete(c)}
               onPublish={() => setStatusM.mutate({ id: c.id, s: "published" })}
               onUnpublish={() => setStatusM.mutate({ id: c.id, s: "draft" })}
             />
@@ -192,6 +209,7 @@ export default function CourseManagement() {
                       course={c}
                       onDuplicate={() => dup.mutate(c.id)}
                       onArchive={() => setConfirmArchive(c)}
+                      onDelete={() => setConfirmDelete(c)}
                       onPublish={() => setStatusM.mutate({ id: c.id, s: "published" })}
                       onUnpublish={() => setStatusM.mutate({ id: c.id, s: "draft" })}
                     />
@@ -237,13 +255,28 @@ export default function CourseManagement() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog open={!!confirmDelete} onOpenChange={(o) => !o && setConfirmDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete “{confirmDelete?.title}” permanently?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the course, its modules, lessons and quizzes for good. Student progress records are also lost. This action cannot be undone — prefer <strong>Archive</strong> if you might restore it later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => confirmDelete && delM.mutate(confirmDelete.id)}>Delete permanently</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminShell>
   );
 }
 
-function CourseCard({ course, onDuplicate, onArchive, onPublish, onUnpublish }: {
+function CourseCard({ course, onDuplicate, onArchive, onDelete, onPublish, onUnpublish }: {
   course: CourseRow;
-  onDuplicate: () => void; onArchive: () => void; onPublish: () => void; onUnpublish: () => void;
+  onDuplicate: () => void; onArchive: () => void; onDelete: () => void; onPublish: () => void; onUnpublish: () => void;
 }) {
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden flex flex-col">
@@ -255,7 +288,7 @@ function CourseCard({ course, onDuplicate, onArchive, onPublish, onUnpublish }: 
         )}
         <div className="absolute top-2 left-2"><StatusBadge status={course.status} /></div>
         <div className="absolute top-1 right-1">
-          <RowMenu course={course} onDuplicate={onDuplicate} onArchive={onArchive} onPublish={onPublish} onUnpublish={onUnpublish} />
+          <RowMenu course={course} onDuplicate={onDuplicate} onArchive={onArchive} onDelete={onDelete} onPublish={onPublish} onUnpublish={onUnpublish} />
         </div>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-1">
@@ -271,10 +304,15 @@ function CourseCard({ course, onDuplicate, onArchive, onPublish, onUnpublish }: 
   );
 }
 
-function RowMenu({ course, onDuplicate, onArchive, onPublish, onUnpublish }: {
+function RowMenu({ course, onDuplicate, onArchive, onDelete, onPublish, onUnpublish }: {
   course: CourseRow;
-  onDuplicate: () => void; onArchive: () => void; onPublish: () => void; onUnpublish: () => void;
+  onDuplicate: () => void; onArchive: () => void; onDelete: () => void; onPublish: () => void; onUnpublish: () => void;
 }) {
+  const PLANS: PreviewPlan[] = ["none", "free", "monthly_member", "annual_member", "individual_course"];
+  const previewAs = (p: PreviewPlan) => {
+    setPreviewPlan(p);
+    window.open(`/courses/${course.id}`, "_blank", "noopener");
+  };
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -282,13 +320,22 @@ function RowMenu({ course, onDuplicate, onArchive, onPublish, onUnpublish }: {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
         <DropdownMenuItem asChild><Link to={`/admin/course-management/${course.id}`}><Pencil className="w-4 h-4 mr-2" /> Edit</Link></DropdownMenuItem>
-        <DropdownMenuItem asChild><Link to={`/courses/${course.id}`} target="_blank"><Eye className="w-4 h-4 mr-2" /> View as member</Link></DropdownMenuItem>
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger><Eye className="w-4 h-4 mr-2" /> View as member…</DropdownMenuSubTrigger>
+          <DropdownMenuSubContent>
+            <DropdownMenuLabel>Simulate plan</DropdownMenuLabel>
+            {PLANS.map((p) => (
+              <DropdownMenuItem key={p} onClick={() => previewAs(p)}>{PREVIEW_PLAN_LABELS[p]}</DropdownMenuItem>
+            ))}
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
         <DropdownMenuItem onClick={onDuplicate}><Copy className="w-4 h-4 mr-2" /> Duplicate</DropdownMenuItem>
         <DropdownMenuSeparator />
         {course.status === "published"
           ? <DropdownMenuItem onClick={onUnpublish}><PauseCircle className="w-4 h-4 mr-2" /> Unpublish</DropdownMenuItem>
           : <DropdownMenuItem onClick={onPublish}><Rocket className="w-4 h-4 mr-2" /> Publish</DropdownMenuItem>}
         <DropdownMenuItem onClick={onArchive} className="text-destructive"><Archive className="w-4 h-4 mr-2" /> Archive</DropdownMenuItem>
+        <DropdownMenuItem onClick={onDelete} className="text-destructive"><Trash2 className="w-4 h-4 mr-2" /> Delete permanently</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
