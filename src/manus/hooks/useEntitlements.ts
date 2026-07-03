@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { usePreviewPlan } from "@/manus/lib/admin-preview";
 
 /**
  * Single source of truth for what the current user can access.
@@ -24,6 +25,7 @@ export type Entitlements = {
 export function useEntitlements(): Entitlements {
   const { user, isAuthenticated, isAdmin } = useAuth();
   const uid = user?.id ?? null;
+  const previewPlan = usePreviewPlan();
 
   const memberships = useQuery({
     queryKey: ["entitlements", "memberships", uid],
@@ -58,6 +60,20 @@ export function useEntitlements(): Entitlements {
   });
 
   return useMemo<Entitlements>(() => {
+    // Admin "view as member" override — only applies to admins.
+    if (isAdmin && previewPlan) {
+      if (previewPlan === "none") {
+        return { isAuthenticated: false, isAdmin: false, isMember: false,
+          hasCommunity: false, hasEvents: false, hasWorkshops: false,
+          hasMagazine: false, hasDeals: false, planKey: null, courseIds: [], loading: false };
+      }
+      const asMember = previewPlan !== "free";
+      return { isAuthenticated: true, isAdmin: false, isMember: asMember,
+        hasCommunity: asMember, hasEvents: asMember, hasWorkshops: asMember,
+        hasMagazine: asMember, hasDeals: asMember,
+        planKey: previewPlan === "free" ? null : previewPlan,
+        courseIds: [], loading: false };
+    }
     const activeMembership = (memberships.data ?? [])[0] as { plan_key?: string | null } | undefined;
     const isMember = isAdmin || !!activeMembership;
     return {
@@ -73,5 +89,5 @@ export function useEntitlements(): Entitlements {
       courseIds: (entitlementsQ.data ?? []).map((r) => Number(r.course_id)).filter(Boolean),
       loading: !!uid && (memberships.isLoading || entitlementsQ.isLoading),
     };
-  }, [isAuthenticated, isAdmin, uid, memberships.data, memberships.isLoading, entitlementsQ.data, entitlementsQ.isLoading]);
+  }, [isAuthenticated, isAdmin, uid, previewPlan, memberships.data, memberships.isLoading, entitlementsQ.data, entitlementsQ.isLoading]);
 }
