@@ -45,8 +45,9 @@ export function useNotifications() {
 
   useEffect(() => {
     if (!user?.id) return;
+    const uniq = Math.random().toString(36).slice(2, 8);
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${user.id}:${uniq}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },

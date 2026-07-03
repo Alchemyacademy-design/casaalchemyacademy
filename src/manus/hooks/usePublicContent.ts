@@ -50,8 +50,9 @@ export function useUpcomingEvents() {
     },
   });
   useEffect(() => {
+    const uniq = Math.random().toString(36).slice(2, 8);
     const ch = supabase
-      .channel("public-events")
+      .channel(`public-events:${uniq}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "events" }, () => {
         qc.invalidateQueries({ queryKey: ["public", "events"] });
       })
@@ -99,8 +100,9 @@ export function useUpcomingWorkshops() {
     },
   });
   useEffect(() => {
+    const uniq = Math.random().toString(36).slice(2, 8);
     const ch = supabase
-      .channel("public-workshops")
+      .channel(`public-workshops:${uniq}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "live_workshops" }, () => {
         qc.invalidateQueries({ queryKey: ["public", "workshops"] });
       })
