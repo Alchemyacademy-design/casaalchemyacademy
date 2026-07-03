@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getLoginUrl } from "@/manus/const";
 import AdminPreviewBar from "@/manus/components/admin/AdminPreviewBar";
+import NotificationsBell from "@/manus/components/NotificationsBell";
+import UserAvatar from "@/manus/components/UserAvatar";
+import { useMyProfile } from "@/manus/hooks/usePublicContent";
 import "@/manus/styles/official-render.css";
 
 interface MemberLayoutProps {
@@ -31,6 +34,9 @@ const discoveryNav: NavItem[] = [
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { data: myProfile } = useMyProfile(user?.id);
+  const displayName = myProfile?.display_name || myProfile?.full_name || user?.name || user?.email || "Alchemist";
+  const avatarPath = myProfile?.avatar_path ?? null;
 
   const handleLogout = async () => {
     await logout();
@@ -78,7 +84,9 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
       <AdminPreviewBar />
       <header className="aa-mobile-header lg:hidden">
         <Link to="/dashboard" onClick={() => setMobileOpen(false)}><img src="/img/logo.png" alt="Alchemy Academy" /></Link>
-        <button
+        <div className="flex items-center gap-2">
+          {isAuthenticated ? <NotificationsBell /> : null}
+          <button
           type="button"
           onClick={() => setMobileOpen((value) => !value)}
           className="rounded-lg border border-border bg-card p-2.5 text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -87,7 +95,8 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
           aria-controls="member-mobile-menu"
         >
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+          </button>
+        </div>
       </header>
 
       {mobileOpen && (
@@ -118,8 +127,9 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
           <div className="aa-member-profile">
             <div className="aa-member-profile-card">
               <div className="mb-3 flex items-center gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent/20 font-serif text-lg text-sidebar-foreground">{(user?.name || user?.email || "A").charAt(0).toUpperCase()}</div>
-                <div className="min-w-0"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">{isAdmin ? "Administrator" : "Member"}</p><p className="truncate text-sm font-semibold text-sidebar-foreground">{user?.name || "Alchemist"}</p><p className="truncate text-[11px] text-sidebar-foreground/50">{user?.email}</p></div>
+                <UserAvatar name={displayName} avatarPath={avatarPath} size="sm" />
+                <div className="min-w-0 flex-1"><p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-sidebar-foreground/45">{isAdmin ? "Administrator" : "Member"}</p><p className="truncate text-sm font-semibold text-sidebar-foreground">{displayName}</p><p className="truncate text-[11px] text-sidebar-foreground/50">{user?.email}</p></div>
+                {isAuthenticated ? <NotificationsBell /> : null}
               </div>
               <button type="button" onClick={handleLogout} className="flex w-full items-center justify-center gap-2 rounded-md border border-sidebar-border px-3 py-2 text-xs text-sidebar-foreground/72 transition hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"><LogOut className="h-3.5 w-3.5" />Sign out</button>
             </div>
