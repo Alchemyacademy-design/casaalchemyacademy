@@ -1,10 +1,12 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Loader2, LogOut } from "lucide-react";
+import { ArrowLeft, Loader2, LogOut, CreditCard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMyProfile, useUpdateMyProfile, useMyMemberships } from "@/manus/hooks/usePublicContent";
 import AvatarUpload from "@/manus/components/AvatarUpload";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -29,6 +31,21 @@ export default function Profile() {
   };
 
   const activeMembership = memberships.find(m => m.status === "active" || new Date(m.ends_at) > new Date());
+  const [portalLoading, setPortalLoading] = useState(false);
+  const openPortal = async () => {
+    setPortalLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-customer-portal-session", { body: {} });
+      if (error) throw error;
+      const url = (data as { portal_url?: string })?.portal_url;
+      if (!url) throw new Error("No portal URL");
+      window.location.href = url;
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      toast.error("Couldn't open billing portal", { description: msg.includes("NO_STRIPE_CUSTOMER") ? "You don't have an active Stripe subscription yet." : msg });
+      setPortalLoading(false);
+    }
+  };
 
   return (
     <MemberLayout>
@@ -101,6 +118,19 @@ export default function Profile() {
               Change Password
             </button>
           </div>
+
+          {!isAdmin && activeMembership && (
+            <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
+              <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Billing</h2>
+              <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)" }}>Update your card, download invoices, or cancel your subscription in the Stripe billing portal.</p>
+              <button onClick={openPortal} disabled={portalLoading}
+                className="flex items-center gap-2 px-4 py-3 text-sm disabled:opacity-60"
+                style={{ backgroundColor: "var(--aa-olive-dark)", color: "white", fontWeight: 500 }}>
+                {portalLoading ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
+                {portalLoading ? "Opening…" : "Manage subscription"}
+              </button>
+            </div>
+          )}
 
           <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
             <h2 className="font-serif text-2xl mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Session</h2>
