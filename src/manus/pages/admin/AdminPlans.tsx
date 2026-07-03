@@ -70,22 +70,56 @@ function PlanOverviewCards() {
 
   const totalActive = subs.filter((s) => ["active", "trialing"].includes(s.status)).length;
   const totalPastDue = subs.filter((s) => s.status === "past_due").length;
+  const totalTrialing = subs.filter((s) => s.status === "trialing").length;
+  const since30 = Date.now() - 30 * 24 * 3600 * 1000;
+  const churned30d = subs.filter((s) =>
+    (s.status === "canceled" || s.status === "cancelled") &&
+    s.cancelled_at && new Date(s.cancelled_at).getTime() >= since30,
+  ).length;
+
+  const priceById = new Map<string, { unit_amount: number | null; recurring_interval: string | null; recurring_interval_count: number | null }>();
+  for (const p of Object.values(priceMap)) {
+    if (p?.stripe_price_id) priceById.set(p.stripe_price_id, p as never);
+  }
+  let mrrCents = 0;
+  for (const s of subs) {
+    if (!["active", "trialing"].includes(s.status)) continue;
+    const p = s.stripe_price_id ? priceById.get(s.stripe_price_id) : null;
+    if (!p || !p.unit_amount) continue;
+    const count = p.recurring_interval_count ?? 1;
+    if (p.recurring_interval === "month") mrrCents += p.unit_amount / count;
+    else if (p.recurring_interval === "year") mrrCents += p.unit_amount / (12 * count);
+    else if (p.recurring_interval === "week") mrrCents += (p.unit_amount * 52) / (12 * count);
+  }
+  const mrrLabel = (mrrCents / 100).toLocaleString(undefined, {
+    style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0,
+  });
 
   return (
     <>
-      <div className="grid md:grid-cols-3 gap-3 mb-6">
+      <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 text-xs text-foreground/60"><TrendingUp className="w-4 h-4" /> MRR</div>
+          <div className="text-2xl font-semibold mt-1">{mrrLabel}</div>
+          <div className="text-[10px] text-foreground/50 mt-1">Normalised monthly</div>
+        </Card>
         <Card className="p-4">
           <div className="flex items-center gap-2 text-xs text-foreground/60"><Users className="w-4 h-4" /> Active subscribers</div>
           <div className="text-2xl font-semibold mt-1">{totalActive}</div>
           {totalPastDue > 0 && <div className="text-xs text-amber-600 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> {totalPastDue} past due</div>}
         </Card>
         <Card className="p-4">
+          <div className="flex items-center gap-2 text-xs text-foreground/60"><Zap className="w-4 h-4" /> Trialing</div>
+          <div className="text-2xl font-semibold mt-1">{totalTrialing}</div>
+        </Card>
+        <Card className="p-4">
           <div className="flex items-center gap-2 text-xs text-foreground/60"><DollarSign className="w-4 h-4" /> Revenue (30d)</div>
           <div className="text-2xl font-semibold mt-1">{revenueLabel}</div>
         </Card>
         <Card className="p-4">
-          <div className="flex items-center gap-2 text-xs text-foreground/60"><TrendingUp className="w-4 h-4" /> Plans active</div>
-          <div className="text-2xl font-semibold mt-1">{plans.length}</div>
+          <div className="flex items-center gap-2 text-xs text-foreground/60"><XCircle className="w-4 h-4" /> Churned (30d)</div>
+          <div className="text-2xl font-semibold mt-1">{churned30d}</div>
+          <div className="text-[10px] text-foreground/50 mt-1">{plans.length} plans configured</div>
         </Card>
       </div>
 
