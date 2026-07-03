@@ -1,8 +1,9 @@
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
 
-export default function AdminSupplierCategories() {
+export default function AdminSupplierCategories({ embedded = false }: { embedded?: boolean } = {}) {
   return (
     <AdminTablePage
+      noShell={embedded}
       title="Supplier categories"
       description="Categories used to group suppliers."
       table="supplier_categories"
