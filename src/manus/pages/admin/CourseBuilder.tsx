@@ -415,3 +415,24 @@ function SaveStatus({ status }: { status: "idle" | "saving" | "saved" | "error" 
   const cls = { idle: "text-foreground/50", saving: "text-amber-600", saved: "text-emerald-600", error: "text-destructive" }[status];
   return <span className={`text-xs ${cls} inline-flex items-center gap-1`}><Save className="w-3 h-3" /> {map[status]}</span>;
 }
+
+function ViewAsMemberButton({ courseId }: { courseId: number }) {
+  const PLANS: PreviewPlan[] = ["none", "free", "monthly_member", "annual_member", "individual_course"];
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline"><Eye className="w-4 h-4 mr-2" /> View as member</Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        {PLANS.map((p) => (
+          <DropdownMenuItem
+            key={p}
+            onClick={() => { setPreviewPlan(p); window.open(`/courses/${courseId}`, "_blank", "noopener"); }}
+          >
+            {PREVIEW_PLAN_LABELS[p]}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
