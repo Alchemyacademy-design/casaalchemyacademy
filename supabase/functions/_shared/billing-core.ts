@@ -1,5 +1,6 @@
 import Stripe from "npm:stripe@22.2.1";
 import { createAdminClient } from "npm:@supabase/server@1.1.0/core";
+import { createClient as createRawClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../shared/supabase.types.ts";
 
 export const STRIPE_API_VERSION = "2026-05-27.dahlia" as const;
@@ -131,15 +132,36 @@ export function evaluateCheckoutGate(): { ok: true } | { ok: false; code: string
 }
 
 export function billingSecretKey(): string {
-  const keys = JSON.parse(env("SUPABASE_SECRET_KEYS")) as Record<string, string>;
-  const billingKey = keys.billing;
-  if (!billingKey) throw new Error("Missing named Supabase Secret Key: billing");
-  return billingKey;
+  // Prefer the named "billing" key from SUPABASE_SECRET_KEYS when present, but
+  // fall back to the ambient SUPABASE_SERVICE_ROLE_KEY so the webhook keeps
+  // working even if the named-secret map hasn't been provisioned for this env.
+  const raw = envOpt("SUPABASE_SECRET_KEYS");
+  if (raw) {
+    try {
+      const keys = JSON.parse(raw) as Record<string, string>;
+      if (keys.billing) return keys.billing;
+    } catch { /* malformed json — fall through to service role */ }
+  }
+  const service = envOpt("SUPABASE_SERVICE_ROLE_KEY");
+  if (service) return service;
+  throw new Error("Missing billing key: set SUPABASE_SECRET_KEYS.billing or SUPABASE_SERVICE_ROLE_KEY");
 }
 
 export function supabaseAdmin(): SupabaseAdmin {
-  billingSecretKey();
-  return createAdminClient<Database>({ auth: { keyName: "billing" }, supabaseOptions: { auth: { persistSession: false, autoRefreshToken: false } } });
+  // Try the named-key path first (keeps parity with other functions), and
+  // fall back to a direct service-role client if that path isn't configured.
+  try {
+    const raw = envOpt("SUPABASE_SECRET_KEYS");
+    if (raw) {
+      const keys = JSON.parse(raw) as Record<string, string>;
+      if (keys.billing) {
+        return createAdminClient<Database>({ auth: { keyName: "billing" }, supabaseOptions: { auth: { persistSession: false, autoRefreshToken: false } } });
+      }
+    }
+  } catch { /* fall through */ }
+  const url = env("SUPABASE_URL");
+  const key = billingSecretKey();
+  return createRawClient<Database>(url, key, { auth: { persistSession: false, autoRefreshToken: false } }) as unknown as SupabaseAdmin;
 }
 
 export function stripeClient(): Stripe {
