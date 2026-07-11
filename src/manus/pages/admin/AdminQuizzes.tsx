@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import { QuizEditor } from "@/manus/components/admin/AdminQuizEditor";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db: any = supabase;
@@ -246,6 +247,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
   const catalog = useQuery({ queryKey: ["admin-quiz-catalog"], queryFn: fetchCatalog });
   const listQuery = useQuery({ queryKey: ["admin-quiz-list"], queryFn: fetchQuizList });
   const [previewId, setPreviewId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<{ quizId: number; courseId: number } | null>(null);
 
   const deleteMutation = useMutation({
     mutationFn: async (quizId: number) => {
@@ -267,7 +269,21 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
         courses={catalog.data?.courses ?? []}
         modules={catalog.data?.modules ?? []}
         lessons={catalog.data?.lessons ?? []}
-        onCreated={(id) => setPreviewId(id)}
+        onCreated={(id) => {
+          const row = (listQuery.data ?? []).find((r) => r.id === id);
+          // The just-created quiz may not be in listQuery yet; refetch will bring it.
+          // We still need courseId — the form captured it, but we don't have it here.
+          // Fall back: open editor once list refreshes by remembering id.
+          if (row) setEditing({ quizId: row.id, courseId: row.course_id });
+          else {
+            // Optimistic: fetch this quiz's course_id directly.
+            db.from("quizzes").select("course_id").eq("id", id).single().then(
+              ({ data }: { data: { course_id: number } | null }) => {
+                if (data) setEditing({ quizId: id, courseId: data.course_id });
+              },
+            );
+          }
+        }}
       />
 
       <Card className="p-0 overflow-hidden mt-4">
@@ -306,9 +322,17 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
                   <span className="inline-flex items-center gap-1"><FileQuestion className="w-3 h-3" /> {r.question_count}</span>
                 </td>
                 <td className="p-3 text-right space-x-2">
-                  <Link to={`/admin/courses/${r.course_id}`}>
-                    <Button size="sm" variant="outline">Edit</Button>
-                  </Link>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      setEditing((cur) =>
+                        cur?.quizId === r.id ? null : { quizId: r.id, courseId: r.course_id },
+                      )
+                    }
+                  >
+                    {editing?.quizId === r.id ? "Editing" : "Edit"}
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => setPreviewId((id) => (id === r.id ? null : r.id))}>
                     <Eye className="w-3 h-3 mr-1" />
                     {previewId === r.id ? "Hide" : "Preview"}
@@ -339,6 +363,16 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
           </p>
           <QuizCard quizId={previewId} previewAsAdmin />
         </Card>
+      )}
+
+      {editing && (
+        <div className="mt-4">
+          <QuizEditor
+            quizId={editing.quizId}
+            courseId={editing.courseId}
+            onClose={() => setEditing(null)}
+          />
+        </div>
       )}
     </>
   );
