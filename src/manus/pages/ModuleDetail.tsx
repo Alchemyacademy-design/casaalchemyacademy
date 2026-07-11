@@ -26,6 +26,7 @@ import ModuleRating from "@/manus/components/learning/ModuleRating";
 import LessonRating from "@/manus/components/lesson/LessonRating";
 import LessonComments from "@/manus/components/lesson/LessonComments";
 import StartDiscussionButton from "@/manus/components/lesson/StartDiscussionButton";
+import ModuleCompletionDialog from "@/manus/components/learning/ModuleCompletionDialog";
 
 
 
@@ -37,6 +38,7 @@ export default function ModuleDetail() {
   const isValidModuleId = Number.isFinite(moduleId) && moduleId > 0;
   const [activeLessonId, setActiveLessonId] = useState<number | null>(null);
   const [mobileSidebar, setMobileSidebar] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const qc = useQueryClient();
 
   const moduleQuery = trpc.modules.get.useQuery({ id: moduleId }, { enabled: isValidModuleId });
@@ -205,6 +207,38 @@ export default function ModuleDetail() {
     [progress],
   );
 
+  // Detect the exact transition from "not all module lessons complete" to
+  // "all complete" so the completion dialog fires ONCE, at that moment, and
+  // never on later revisits.
+  const allModuleLessonsComplete = useMemo(() => {
+    if (!lessons.length) return false;
+    return lessons.every((l) => completedIds.has(l.id));
+  }, [lessons, completedIds]);
+  const prevAllCompleteRef = useRef<boolean | null>(null);
+  const shownForModuleRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!lessons.length) return;
+    // Wait for progress to load before establishing the baseline.
+    if (progressQuery.isLoading) return;
+    if (prevAllCompleteRef.current === null) {
+      prevAllCompleteRef.current = allModuleLessonsComplete;
+      return;
+    }
+    if (
+      !prevAllCompleteRef.current &&
+      allModuleLessonsComplete &&
+      shownForModuleRef.current !== moduleId
+    ) {
+      shownForModuleRef.current = moduleId;
+      setShowCompletionDialog(true);
+    }
+    prevAllCompleteRef.current = allModuleLessonsComplete;
+  }, [allModuleLessonsComplete, lessons.length, moduleId, progressQuery.isLoading]);
+  // Reset the transition tracker when the module changes.
+  useEffect(() => {
+    prevAllCompleteRef.current = null;
+  }, [moduleId]);
+
   const handleToggleLesson = async (lessonId: number, currentStatus: boolean) => {
     await markLessonMutation.mutateAsync({
       lessonId,
@@ -268,6 +302,18 @@ export default function ModuleDetail() {
     : null;
   const isLastLesson = activeLesson ? lessons[lessons.length - 1]?.id === activeLesson.id : false;
   const moduleExam = moduleExamQuery.data;
+
+  const scrollToModuleExam = () => {
+    // Ensure the last lesson is active so the module-exam QuizCard is mounted.
+    const lastLessonId = lessons[lessons.length - 1]?.id;
+    if (lastLessonId && activeLessonId !== lastLessonId) {
+      selectLesson(lastLessonId);
+    }
+    setTimeout(() => {
+      const el = document.getElementById("module-exam");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 150);
+  };
 
   const lessonQuizIds = new Set((lessonQuizQuery.data ?? []).map((q) => Number(q.lesson_id)).filter(Boolean));
   const sidebarLessons = lessons.map((l) => ({
@@ -422,7 +468,7 @@ export default function ModuleDetail() {
                   ) : null}
 
                   {isLastLesson && moduleExam ? (
-                    <div>
+                    <div id="module-exam">
                       <p className="text-xs uppercase tracking-wider text-accent mb-2">Module exam</p>
                       <QuizCard quizId={moduleExam.id} previewAsAdmin={false} />
                     </div>
