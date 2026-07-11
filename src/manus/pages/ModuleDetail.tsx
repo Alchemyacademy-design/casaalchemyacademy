@@ -601,5 +601,18 @@ export default function ModuleDetail() {
         </div>
       </div>
     </MemberLayout>
+
+      {/* Rendered outside MemberLayout via portal (Radix Dialog uses a portal internally). */}
+      <ModuleCompletionDialog
+        open={showCompletionDialog}
+        onOpenChange={setShowCompletionDialog}
+        moduleId={moduleId}
+        moduleTitle={module?.title ?? "this module"}
+        courseId={currentCourseId}
+        nextModuleId={nextModule?.id ?? null}
+        moduleExam={moduleExam ?? null}
+        onGoToModuleQuiz={scrollToModuleExam}
+      />
+    </>
   );
 }
