@@ -18,7 +18,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AdminQuizzesInner } from "@/manus/pages/admin/AdminQuizzes";
 import { AdminCertificatesInner } from "@/manus/pages/admin/AdminCertificates";
 import { AdminCoursesListInner } from "@/manus/pages/admin/AdminCoursesList";
-import QuizContentAssistant from "@/manus/components/admin/QuizContentAssistant";
 import {
   listCoursesRich, listCategories, listInstructors, archiveCourse,
   duplicateCourse, deleteCourse, setCourseStatus, CONTENT_STATUSES, type CourseRow,
@@ -135,8 +134,7 @@ export default function CourseManagement() {
         <TabsContent value="legacy" className="mt-4">
           <AdminCoursesListInner embedded />
         </TabsContent>
-        <TabsContent value="quizzes" className="mt-4 space-y-6">
-          <QuizContentAssistant />
+        <TabsContent value="quizzes" className="mt-4">
           <AdminQuizzesInner embedded />
         </TabsContent>
         <TabsContent value="certificates" className="mt-4">

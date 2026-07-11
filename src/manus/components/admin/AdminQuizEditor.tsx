@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, Plus, Trash2 } from "lucide-react";
+import { Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   isQuestionPublishable,
   isQuizPublishable,
@@ -334,6 +335,13 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
         <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
       </div>
 
+      <QuizAssistantPanel
+        quiz={quiz}
+        courseId={courseId}
+        existingQuestionCount={questions.length}
+        onApplied={invalidate}
+      />
+
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Title</Label>
@@ -479,6 +487,191 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
             </div>
           </Card>
         ))}
+      </div>
+    </Card>
+  );
+}
+
+type AssistantScope = "lesson" | "module" | "final";
+type AssistantFormat = "mcq" | "mixed";
+type AssistantDraft = {
+  title: string;
+  description: string;
+  passing_score: number;
+  max_attempts: number;
+  questions: Array<{
+    question_text: string;
+    explanation: string;
+    options: Array<{ option_text: string; is_correct: boolean }>;
+  }>;
+};
+
+const ASSIST_DEFAULT_COUNT: Record<AssistantScope, number> = { lesson: 6, module: 9, final: 13 };
+
+function QuizAssistantPanel({
+  quiz,
+  courseId,
+  existingQuestionCount,
+  onApplied,
+}: {
+  quiz: QuizRow;
+  courseId: number;
+  existingQuestionCount: number;
+  onApplied: () => void;
+}) {
+  const scope: AssistantScope = quiz.lesson_id ? "lesson" : quiz.module_id ? "module" : "final";
+  const [extraContext, setExtraContext] = useState("");
+  const [format, setFormat] = useState<AssistantFormat>("mcq");
+  const [count, setCount] = useState<number>(ASSIST_DEFAULT_COUNT[scope]);
+  const [busy, setBusy] = useState(false);
+
+  const scopeLabel =
+    scope === "lesson" ? `Lesson quiz (lesson #${quiz.lesson_id})`
+    : scope === "module" ? `Module exam (module #${quiz.module_id})`
+    : "Course final exam (whole course)";
+
+  const errorMap: Record<string, string> = {
+    forbidden: "Admin role required.",
+    course_not_found: "Course not found.",
+    no_lessons_found: "No lessons available for this scope.",
+    insufficient_content: "Not enough lesson content yet — add content or paste a transcript below.",
+    rate_limited: "AI rate limit reached. Please retry in a moment.",
+    credits_exhausted: "Workspace AI credits exhausted. Add credits to continue.",
+    ai_not_configured: "AI gateway not configured on this project.",
+    ai_generation_failed: "AI generation failed. Please retry.",
+    content_load_failed: "Failed to load course content.",
+  };
+
+  const generate = async () => {
+    if (existingQuestionCount > 0) {
+      const ok = confirm(
+        `This quiz already has ${existingQuestionCount} question(s). Replace them with the AI-generated ones? This cannot be undone.`,
+      );
+      if (!ok) return;
+    }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke<{
+        draft: AssistantDraft; error?: string; detail?: string;
+      }>("admin-quiz-assistant", {
+        body: {
+          course_id: courseId,
+          module_id: scope === "final" ? null : quiz.module_id ?? null,
+          lesson_id: scope === "lesson" ? quiz.lesson_id ?? null : null,
+          quiz_type: scope,
+          question_format: format,
+          extra_context: extraContext,
+          question_count: count,
+        },
+      });
+      if (error) throw new Error(error.message);
+      if (!data || data.error || !data.draft) {
+        throw new Error(errorMap[data?.error ?? ""] ?? data?.error ?? "AI generation failed");
+      }
+      const draft = data.draft;
+
+      // 1. Patch quiz metadata
+      const { error: pErr } = await db.from("quizzes").update({
+        title: draft.title || quiz.title,
+        description: draft.description || null,
+        passing_score: draft.passing_score || quiz.passing_score,
+        max_attempts: draft.max_attempts || quiz.max_attempts,
+      }).eq("id", quiz.id);
+      if (pErr) throw pErr;
+
+      // 2. Delete existing questions (options cascade)
+      if (existingQuestionCount > 0) {
+        const { error: dErr } = await db.from("quiz_questions").delete().eq("quiz_id", quiz.id);
+        if (dErr) throw dErr;
+      }
+
+      // 3. Insert new questions + options sequentially
+      for (let i = 0; i < draft.questions.length; i++) {
+        const q = draft.questions[i];
+        const { data: qRow, error: qErr } = await db.from("quiz_questions").insert({
+          quiz_id: quiz.id,
+          question_text: q.question_text,
+          explanation: q.explanation || null,
+          points: 1,
+          sort_order: i + 1,
+        }).select("id").single();
+        if (qErr) throw qErr;
+        const optionRows = q.options.map((o, idx) => ({
+          question_id: qRow.id as number,
+          option_text: o.option_text,
+          is_correct: o.is_correct,
+          sort_order: idx + 1,
+        }));
+        const { error: oErr } = await db.from("quiz_options").insert(optionRows);
+        if (oErr) throw oErr;
+      }
+
+      toast.success(`Generated ${draft.questions.length} question(s). Review and edit before publishing.`);
+      onApplied();
+    } catch (e) {
+      toast.error("Generation failed", { description: errMsg(e) });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card className="p-4 space-y-3 border-dashed bg-muted/30">
+      <div className="flex items-center gap-2">
+        <Sparkles className="w-4 h-4 text-primary" />
+        <h4 className="font-semibold text-sm">Generate with AI</h4>
+        <span className="text-[11px] text-foreground/60">· {scopeLabel}</span>
+      </div>
+      <p className="text-xs text-foreground/60">
+        Uses the real content of this quiz's scope. Paste a transcript or extra context below to add to it —
+        the AI treats it as an additional source of truth, not a replacement.
+      </p>
+
+      <div>
+        <Label className="text-xs">Additional context / lesson transcript (optional)</Label>
+        <Textarea
+          rows={8}
+          className="min-h-[180px] font-mono text-xs"
+          value={extraContext}
+          onChange={(e) => setExtraContext(e.target.value)}
+          placeholder="Paste the lesson transcript or any additional context/focus/difficulty guidance…"
+        />
+        <p className="text-[11px] text-foreground/50 mt-1">
+          {extraContext.length.toLocaleString()} characters
+        </p>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-3">
+        <div>
+          <Label className="text-xs">Questions to generate</Label>
+          <Input
+            type="number" min={3} max={20}
+            value={count}
+            onChange={(e) => setCount(Math.max(3, Math.min(20, Number(e.target.value) || ASSIST_DEFAULT_COUNT[scope])))}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <Label className="text-xs">Question format</Label>
+          <Select value={format} onValueChange={(v) => setFormat(v as AssistantFormat)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="mcq">Multiple choice only (4 options)</SelectItem>
+              <SelectItem value="mixed">Mixed — multiple choice + true/false</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Button size="sm" onClick={generate} disabled={busy} className="gap-2">
+          {busy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+          Generate with AI
+        </Button>
+        {existingQuestionCount > 0 && (
+          <span className="text-[11px] text-amber-700">
+            Will replace {existingQuestionCount} existing question(s) after confirmation.
+          </span>
+        )}
       </div>
     </Card>
   );
