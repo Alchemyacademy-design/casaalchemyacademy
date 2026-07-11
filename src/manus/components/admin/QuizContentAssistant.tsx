@@ -1,7 +1,7 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, Loader2, Save, RefreshCw, Trash2, Plus } from "lucide-react";
+import { Sparkles, Loader2, Save, RefreshCw, Trash2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,6 +23,14 @@ type Draft = {
   max_attempts: number;
   questions: DraftQuestion[];
 };
+type QuizType = "lesson" | "module" | "final";
+type QuestionFormat = "mcq" | "mixed";
+
+const TYPE_DEFAULTS: Record<QuizType, { passing: number; attempts: number; count: number }> = {
+  lesson: { passing: 70, attempts: 3, count: 6 },
+  module: { passing: 75, attempts: 3, count: 9 },
+  final:  { passing: 80, attempts: 2, count: 13 },
+};
 
 function emptyOption(): DraftOption { return { option_text: "", is_correct: false }; }
 function emptyQuestion(): DraftQuestion {
@@ -30,15 +38,28 @@ function emptyQuestion(): DraftQuestion {
 }
 
 export default function QuizContentAssistant() {
+  const [collapsed, setCollapsed] = useState(false);
+  const [quizType, setQuizType] = useState<QuizType>("lesson");
+  const [questionFormat, setQuestionFormat] = useState<QuestionFormat>("mcq");
   const [courseId, setCourseId] = useState<string>("");
-  const [moduleId, setModuleId] = useState<string>("all");
-  const [lessonId, setLessonId] = useState<string>("all");
+  const [moduleId, setModuleId] = useState<string>("");
+  const [lessonId, setLessonId] = useState<string>("");
   const [instructions, setInstructions] = useState("");
-  const [questionCount, setQuestionCount] = useState(8);
+  const [extraContext, setExtraContext] = useState("");
+  const [questionCount, setQuestionCount] = useState(TYPE_DEFAULTS.lesson.count);
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [scopeMeta, setScopeMeta] = useState<{ scope: string; source_counts: { lessons: number; blocks: number } } | null>(null);
+
+  // Update sensible defaults whenever quiz type changes (only if user hasn't
+  // customised beyond the previous defaults — keep this simple: always reset
+  // count when type changes).
+  useEffect(() => {
+    setQuestionCount(TYPE_DEFAULTS[quizType].count);
+    if (quizType === "final") { setModuleId(""); setLessonId(""); }
+    if (quizType === "module") { setLessonId(""); }
+  }, [quizType]);
 
   const coursesQ = useQuery({
     queryKey: ["assistant-courses"],
@@ -51,14 +72,8 @@ export default function QuizContentAssistant() {
   });
   const lessonsQ = useQuery({
     queryKey: ["assistant-lessons", courseId, moduleId],
-    queryFn: async () => {
-      if (moduleId === "all") {
-        const mods = modulesQ.data ?? [];
-        return listLessonsFull(mods.map((m) => m.id));
-      }
-      return listLessonsFull([Number(moduleId)]);
-    },
-    enabled: !!courseId && (modulesQ.data?.length ?? 0) > 0,
+    queryFn: () => listLessonsFull([Number(moduleId)]),
+    enabled: !!courseId && !!moduleId && quizType === "lesson",
   });
 
   const courseTitle = useMemo(() => {
@@ -66,8 +81,12 @@ export default function QuizContentAssistant() {
     return c?.title ?? "";
   }, [courseId, coursesQ.data]);
 
+  const defaults = TYPE_DEFAULTS[quizType];
+
   async function generate() {
     if (!courseId) { toast.error("Select a course first"); return; }
+    if (quizType === "module" && !moduleId) { toast.error("Select a module"); return; }
+    if (quizType === "lesson" && (!moduleId || !lessonId)) { toast.error("Select a module and a lesson"); return; }
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke<{
@@ -75,9 +94,12 @@ export default function QuizContentAssistant() {
       }>("admin-quiz-assistant", {
         body: {
           course_id: Number(courseId),
-          module_id: moduleId !== "all" ? Number(moduleId) : null,
-          lesson_id: lessonId !== "all" ? Number(lessonId) : null,
+          module_id: quizType === "final" ? null : (moduleId ? Number(moduleId) : null),
+          lesson_id: quizType === "lesson" ? (lessonId ? Number(lessonId) : null) : null,
+          quiz_type: quizType,
+          question_format: questionFormat,
           instructions,
+          extra_context: extraContext,
           question_count: questionCount,
         },
       });
@@ -95,7 +117,13 @@ export default function QuizContentAssistant() {
         };
         throw new Error(map[data?.error ?? ""] ?? data?.error ?? "AI generation failed");
       }
-      setDraft(data.draft);
+      // Apply type-driven defaults if the AI returned wildly off values.
+      const d = data.draft;
+      setDraft({
+        ...d,
+        passing_score: d.passing_score || defaults.passing,
+        max_attempts: d.max_attempts || defaults.attempts,
+      });
       setScopeMeta({ scope: data.scope, source_counts: data.source_counts });
       toast.success("Draft generated — review before saving");
     } catch (e) {
@@ -116,10 +144,22 @@ export default function QuizContentAssistant() {
 
     setSaving(true);
     try {
+      // Enforce quiz_type mapping for module_id / lesson_id (not the raw dropdown state).
+      let saveModuleId: number | null = null;
+      let saveLessonId: number | null = null;
+      if (quizType === "lesson") {
+        saveLessonId = lessonId ? Number(lessonId) : null;
+        // Derive module_id from the selected lesson for integrity.
+        const l = (lessonsQ.data ?? []).find((x) => String(x.id) === lessonId);
+        saveModuleId = l?.module_id ?? (moduleId ? Number(moduleId) : null);
+      } else if (quizType === "module") {
+        saveModuleId = moduleId ? Number(moduleId) : null;
+      }
+
       const { data: quiz, error: qErr } = await supabase.from("quizzes").insert({
         course_id: Number(courseId),
-        module_id: moduleId !== "all" ? Number(moduleId) : null,
-        lesson_id: lessonId !== "all" ? Number(lessonId) : null,
+        module_id: saveModuleId,
+        lesson_id: saveLessonId,
         title: draft.title,
         description: draft.description || null,
         passing_score: draft.passing_score,
@@ -191,21 +231,50 @@ export default function QuizContentAssistant() {
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5" /> Content Assistant · Quiz draft generator
           </CardTitle>
+          <Button variant="ghost" size="sm" onClick={() => setCollapsed((c) => !c)} className="gap-1">
+            {collapsed ? <><ChevronDown className="w-4 h-4" /> Expand</> : <><ChevronUp className="w-4 h-4" /> Collapse</>}
+          </Button>
         </CardHeader>
+        {!collapsed && (
         <CardContent className="space-y-4">
           <p className="text-sm text-foreground/70">
-            Select a course (optionally a module/lesson) and generate a quiz draft grounded in the real lesson content.
-            The AI never invents theory outside the material. Nothing is saved until you click <strong>Save as Draft</strong>.
+            Generate a quiz draft grounded in real course content. Choose the quiz type (lesson, module, or final exam) —
+            defaults for passing score, attempts and length adjust to the type. Nothing is saved until you click{" "}
+            <strong>Save as Draft</strong>.
           </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div>
+              <Label>Quiz type</Label>
+              <Select value={quizType} onValueChange={(v) => setQuizType(v as QuizType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="lesson">Lesson Quiz — a single lesson</SelectItem>
+                  <SelectItem value="module">Module Quiz — all lessons in a module</SelectItem>
+                  <SelectItem value="final">Final Exam — whole course (cumulative)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Question format</Label>
+              <Select value={questionFormat} onValueChange={(v) => setQuestionFormat(v as QuestionFormat)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="mcq">Multiple choice only (4 options)</SelectItem>
+                  <SelectItem value="mixed">Mixed — multiple choice + true/false</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
               <Label>Course</Label>
-              <Select value={courseId} onValueChange={(v) => { setCourseId(v); setModuleId("all"); setLessonId("all"); }}>
+              <Select value={courseId} onValueChange={(v) => { setCourseId(v); setModuleId(""); setLessonId(""); }}>
                 <SelectTrigger><SelectValue placeholder="Select a course" /></SelectTrigger>
                 <SelectContent>
                   {(coursesQ.data?.rows ?? []).map((c) => (
@@ -214,30 +283,39 @@ export default function QuizContentAssistant() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Module (optional)</Label>
-              <Select value={moduleId} onValueChange={(v) => { setModuleId(v); setLessonId("all"); }} disabled={!courseId}>
-                <SelectTrigger><SelectValue placeholder="All modules" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All modules</SelectItem>
-                  {(modulesQ.data ?? []).map((m) => (
-                    <SelectItem key={m.id} value={String(m.id)}>{m.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Lesson (optional)</Label>
-              <Select value={lessonId} onValueChange={setLessonId} disabled={!courseId || moduleId === "all"}>
-                <SelectTrigger><SelectValue placeholder="All lessons in module" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All lessons in module</SelectItem>
-                  {(lessonsQ.data ?? []).map((l) => (
-                    <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {quizType !== "final" && (
+              <div>
+                <Label>Module{quizType === "lesson" ? "" : ""}</Label>
+                <Select value={moduleId} onValueChange={(v) => { setModuleId(v); setLessonId(""); }} disabled={!courseId}>
+                  <SelectTrigger><SelectValue placeholder="Select module" /></SelectTrigger>
+                  <SelectContent>
+                    {(modulesQ.data ?? []).map((m) => (
+                      <SelectItem key={m.id} value={String(m.id)}>{m.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {quizType === "lesson" && (
+              <div>
+                <Label>Lesson</Label>
+                <Select value={lessonId} onValueChange={setLessonId} disabled={!courseId || !moduleId}>
+                  <SelectTrigger><SelectValue placeholder="Select lesson" /></SelectTrigger>
+                  <SelectContent>
+                    {(lessonsQ.data ?? []).map((l) => (
+                      <SelectItem key={l.id} value={String(l.id)}>{l.title}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {quizType === "final" && (
+              <div className="md:col-span-2 flex items-end">
+                <p className="text-xs text-foreground/60">
+                  Final Exam pulls content from <strong>all modules and all lessons</strong> of the selected course.
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -252,12 +330,31 @@ export default function QuizContentAssistant() {
             <div>
               <Label>Questions</Label>
               <Input
-                type="number" min={3} max={15}
+                type="number" min={3} max={20}
                 value={questionCount}
-                onChange={(e) => setQuestionCount(Math.max(3, Math.min(15, Number(e.target.value) || 8)))}
+                onChange={(e) => setQuestionCount(Math.max(3, Math.min(20, Number(e.target.value) || defaults.count)))}
               />
             </div>
           </div>
+
+          <div>
+            <Label>Additional context / lesson transcript (optional)</Label>
+            <Textarea
+              rows={10}
+              placeholder="Paste a lesson transcript, or any additional context, focus areas, or difficulty guidance. This is added to the real database content as an extra source of truth for the AI — it does not replace lesson content."
+              value={extraContext}
+              onChange={(e) => setExtraContext(e.target.value)}
+              className="min-h-[220px] font-mono text-xs"
+            />
+            <p className="text-xs text-foreground/50 mt-1">
+              {extraContext.length.toLocaleString()} characters · concatenated to the lesson/module content in the AI prompt.
+            </p>
+          </div>
+
+          <p className="text-xs text-foreground/60">
+            Suggested defaults for <strong>{quizType === "final" ? "Final Exam" : quizType === "module" ? "Module Quiz" : "Lesson Quiz"}</strong>:
+            {" "}passing {defaults.passing}%, {defaults.attempts} attempts, ~{defaults.count} questions.
+          </p>
 
           <div className="flex gap-2">
             <Button onClick={generate} disabled={!courseId || generating} className="gap-2">
@@ -274,9 +371,11 @@ export default function QuizContentAssistant() {
               Grounded in <strong>{scopeMeta.source_counts.lessons}</strong> lesson(s)
               {scopeMeta.source_counts.blocks > 0 ? ` and ${scopeMeta.source_counts.blocks} content block(s)` : ""}
               {" "}from <em>{courseTitle}</em>.
+              {extraContext.trim().length > 0 ? ` Plus ${extraContext.length.toLocaleString()} characters of admin-supplied context.` : ""}
             </p>
           )}
         </CardContent>
+        )}
       </Card>
 
       {draft && (

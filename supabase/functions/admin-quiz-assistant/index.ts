@@ -62,9 +62,9 @@ function stripHtml(s: string): string {
 
 // deno-lint-ignore no-explicit-any
 async function loadContent(admin: any, params: {
-  courseId: number; moduleId?: number | null; lessonId?: number | null;
+  courseId: number; moduleId?: number | null; lessonId?: number | null; extraContext?: string;
 }): Promise<{ scope: string; text: string; courseTitle: string; sourceCounts: { lessons: number; blocks: number } }> {
-  const { courseId, moduleId, lessonId } = params;
+  const { courseId, moduleId, lessonId, extraContext } = params;
 
   const { data: course } = await admin
     .from("courses")
@@ -127,9 +127,17 @@ async function loadContent(admin: any, params: {
   }
 
   let text = parts.filter(Boolean).join("\n").trim();
-  // Hard cap on prompt content to keep costs bounded and reject empty content
-  const MAX_CHARS = 24000;
-  if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS) + "\n…[truncated]";
+  // Hard cap on DB content
+  const MAX_DB = 28000;
+  if (text.length > MAX_DB) text = text.slice(0, MAX_DB) + "\n…[truncated]";
+
+  const extra = (extraContext ?? "").trim();
+  if (extra.length > 0) {
+    const MAX_EXTRA = 20000;
+    const trimmedExtra = extra.length > MAX_EXTRA ? extra.slice(0, MAX_EXTRA) + "\n…[truncated]" : extra;
+    text += `\n\n## MATERIAL ADICIONAL FORNECIDO PELO ADMINISTRADOR (transcrição/contexto — trate como fonte de verdade adicional, somando ao conteúdo acima):\n${trimmedExtra}`;
+  }
+
   if (text.replace(/\s+/g, "").length < 40) throw new Error("insufficient_content");
 
   const scope = lessonId ? "lesson" : moduleId ? "module" : "course";
@@ -188,18 +196,43 @@ function coerceDraft(raw: unknown): Draft {
   };
 }
 
-async function callAi(sourceText: string, instructions: string, courseTitle: string, questionCount: number): Promise<Draft> {
+async function callAi(
+  sourceText: string,
+  instructions: string,
+  courseTitle: string,
+  questionCount: number,
+  quizType: "lesson" | "module" | "final",
+  questionFormat: "mcq" | "mixed",
+): Promise<Draft> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
   if (!LOVABLE_API_KEY) throw new Error("missing_lovable_api_key");
 
-  const userPrompt = `Você receberá o conteúdo real de uma aula/módulo do curso "${courseTitle}" e deve gerar um RASCUNHO de quiz baseado ESTRITAMENTE nesse conteúdo.
+  const typeLabel =
+    quizType === "final" ? "EXAME FINAL cumulativo do curso inteiro"
+    : quizType === "module" ? "quiz de módulo"
+    : "quiz de aula";
+
+  const typeGuidance =
+    quizType === "final"
+      ? `Este é um EXAME FINAL cumulativo — deve cobrir os principais conceitos de TODOS os módulos do curso de forma equilibrada (proibido concentrar tudo no último módulo). Rigor maior nas perguntas, exigindo síntese entre módulos quando possível. Inclua "— Final Exam" no título sugerido.`
+      : quizType === "module"
+      ? `Este é um quiz de módulo — cubra os principais pontos do módulo de forma equilibrada entre as aulas.`
+      : `Este é um quiz de aula específica — foque no conteúdo dessa aula.`;
+
+  const formatRule = questionFormat === "mixed"
+    ? `Formato MISTO: use múltipla escolha (4 opções) para a maioria e, quando fizer sentido, algumas perguntas verdadeiro/falso com EXATAMENTE 2 opções ("Verdadeiro"/"Falso" ou "True"/"False", no idioma do conteúdo). Toda pergunta tem exatamente 1 opção correta.`
+    : `Formato: múltipla escolha somente. Cada pergunta tem EXATAMENTE 4 opções e EXATAMENTE 1 opção correta.`;
+
+  const userPrompt = `Você receberá o conteúdo real do curso "${courseTitle}" e deve gerar um RASCUNHO de ${typeLabel} baseado ESTRITAMENTE nesse conteúdo.
+
+${typeGuidance}
 
 Regras obrigatórias:
-- Gere ${questionCount} perguntas objetivas de múltipla escolha.
-- Cada pergunta tem EXATAMENTE 4 opções e EXATAMENTE 1 opção correta.
+- Gere ${questionCount} perguntas objetivas.
+- ${formatRule}
 - Cada pergunta tem uma explicação curta (1–3 frases) que ensina o porquê da resposta correta.
 - As perguntas devem testar compreensão do material fornecido — proibido inventar fatos, teorias ou nomes que não estejam no texto.
-- Sugira passing_score (0–100) e max_attempts (1–5) coerentes com a dificuldade.
+- Sugira passing_score (0–100) e max_attempts (1–5) coerentes com a dificuldade e o tipo de quiz.
 
 ${instructions ? `Instruções adicionais do administrador: ${instructions}\n\n` : ""}Responda EXCLUSIVAMENTE em JSON válido no seguinte schema (sem markdown, sem comentário, sem texto fora do JSON):
 
@@ -213,16 +246,13 @@ ${instructions ? `Instruções adicionais do administrador: ${instructions}\n\n`
       "question_text": string,
       "explanation": string,
       "options": [
-        { "option_text": string, "is_correct": boolean },
-        { "option_text": string, "is_correct": boolean },
-        { "option_text": string, "is_correct": boolean },
         { "option_text": string, "is_correct": boolean }
       ]
     }
   ]
 }
 
-CONTEÚDO DA AULA/MÓDULO (fonte da verdade — não invente nada fora disto):
+CONTEÚDO DO CURSO (fonte da verdade — não invente nada fora disto):
 """
 ${sourceText}
 """`;
@@ -289,6 +319,7 @@ Deno.serve(async (req) => {
   let payload: {
     course_id?: number; module_id?: number | null; lesson_id?: number | null;
     instructions?: string; question_count?: number;
+    extra_context?: string; quiz_type?: string; question_format?: string;
   } = {};
   try {
     payload = await req.json();
@@ -298,15 +329,28 @@ Deno.serve(async (req) => {
 
   const courseId = Number(payload.course_id);
   if (!Number.isFinite(courseId) || courseId <= 0) return json({ error: "invalid_course_id" }, 400);
-  const moduleId = payload.module_id ? Number(payload.module_id) : null;
-  const lessonId = payload.lesson_id ? Number(payload.lesson_id) : null;
+  const quizType: "lesson" | "module" | "final" =
+    payload.quiz_type === "lesson" || payload.quiz_type === "module" || payload.quiz_type === "final"
+      ? payload.quiz_type : "lesson";
+  const questionFormat: "mcq" | "mixed" =
+    payload.question_format === "mixed" ? "mixed" : "mcq";
+
+  // Enforce scoping according to quiz_type (ignore accidental extra ids).
+  const moduleId = quizType === "lesson" || quizType === "module"
+    ? (payload.module_id ? Number(payload.module_id) : null)
+    : null;
+  const lessonId = quizType === "lesson"
+    ? (payload.lesson_id ? Number(payload.lesson_id) : null)
+    : null;
+
   const instructions = String(payload.instructions ?? "").slice(0, 800);
+  const extraContext = String(payload.extra_context ?? "");
   const qc = Number(payload.question_count);
-  const questionCount = Number.isFinite(qc) && qc >= 3 && qc <= 15 ? Math.round(qc) : 8;
+  const questionCount = Number.isFinite(qc) && qc >= 3 && qc <= 20 ? Math.round(qc) : 8;
 
   let content;
   try {
-    content = await loadContent(admin, { courseId, moduleId, lessonId });
+    content = await loadContent(admin, { courseId, moduleId, lessonId, extraContext });
   } catch (e) {
     const msg = (e as Error).message;
     if (msg === "course_not_found") return json({ error: "course_not_found" }, 404);
@@ -317,11 +361,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const draft = await callAi(content.text, instructions, content.courseTitle, questionCount);
+    const draft = await callAi(content.text, instructions, content.courseTitle, questionCount, quizType, questionFormat);
     return json({
       draft,
       scope: content.scope,
       source_counts: content.sourceCounts,
+      quiz_type: quizType,
     });
   } catch (e) {
     const msg = (e as Error).message;
