@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Download, Award, AlertCircle, ExternalLink, Link as LinkIcon, Linkedin } from "lucide-react";
+import { Download, Award, AlertCircle, ExternalLink, Link as LinkIcon, Linkedin, Globe, Lock, Loader2 } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import CertificateArtwork from "@/manus/components/certificates/CertificateArtwork";
 import { downloadCertificatePdf } from "@/manus/components/certificates/downloadCertificatePdf";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 type Props = {
   /** Course this certificate is for. When omitted the section renders nothing. */
@@ -16,6 +17,8 @@ type Props = {
 export function CertificateSection({ courseId, courseTitle }: Props) {
   const { user } = useAuth();
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isTogglingVisibility, setIsTogglingVisibility] = useState(false);
+  const [localSlug, setLocalSlug] = useState<string | null | undefined>(undefined);
 
   const enabled = Number.isFinite(courseId) && (courseId ?? 0) > 0;
 
@@ -66,10 +69,36 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     }
   };
 
-  const publicSlug = (certificate as { public_slug?: string } | null | undefined)?.public_slug ?? null;
+  const rawSlug = (certificate as { public_slug?: string | null } | null | undefined)?.public_slug ?? null;
+  const publicSlug = localSlug === undefined ? rawSlug : localSlug;
   const shareUrl = publicSlug
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${publicSlug}`
     : null;
+  const isPublic = Boolean(publicSlug);
+
+  const handleToggleVisibility = async () => {
+    if (!certificate) return;
+    setIsTogglingVisibility(true);
+    try {
+      const nextPublic = !isPublic;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any).rpc("set_certificate_visibility", {
+        p_certificate_id: (certificate as { id: number | string }).id,
+        p_make_public: nextPublic,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const newSlug = (row?.public_slug as string | null | undefined) ?? null;
+      setLocalSlug(newSlug);
+      toast.success(nextPublic ? "Certificate is now public" : "Certificate is now private");
+      certificateQuery.refetch();
+    } catch (err) {
+      console.error("Failed to toggle certificate visibility:", err);
+      toast.error("Could not update visibility");
+    } finally {
+      setIsTogglingVisibility(false);
+    }
+  };
 
   const handleDownloadCertificate = async () => {
     if (!certificate || !user) return;
@@ -161,6 +190,46 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
                 verifyUrl={shareUrl ?? undefined}
               />
 
+              <div className="rounded-md border p-4 space-y-3 bg-muted/30">
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-2 text-sm">
+                    {isPublic ? (
+                      <Globe size={14} className="text-emerald-700" />
+                    ) : (
+                      <Lock size={14} className="text-foreground/60" />
+                    )}
+                    <span className="font-medium text-foreground">
+                      {isPublic ? "Public certificate" : "Private certificate"}
+                    </span>
+                    <span className="text-xs text-foreground/60">
+                      {isPublic
+                        ? "Anyone with the link can view your credential page."
+                        : "Only you can view this certificate."}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleToggleVisibility}
+                    disabled={isTogglingVisibility}
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded border text-xs font-medium hover:bg-accent disabled:opacity-60"
+                  >
+                    {isTogglingVisibility && <Loader2 size={12} className="animate-spin" />}
+                    {isPublic ? "Make private" : "Make public"}
+                  </button>
+                </div>
+                {isPublic && shareUrl && (
+                  <div className="flex items-center gap-2 rounded bg-background border px-2 py-1.5 text-xs">
+                    <LinkIcon size={12} className="text-foreground/50 shrink-0" />
+                    <span className="font-mono truncate text-foreground/80 flex-1">{shareUrl}</span>
+                    <button
+                      onClick={handleCopyLink}
+                      className="px-2 py-0.5 rounded hover:bg-accent shrink-0"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={handleDownloadCertificate}
@@ -180,12 +249,6 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
                     >
                       <ExternalLink size={14} /> View public certificate
                     </a>
-                    <button
-                      onClick={handleCopyLink}
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent"
-                    >
-                      <LinkIcon size={14} /> Copy link
-                    </button>
                     {linkedInHref && (
                       <a
                         href={linkedInHref}
