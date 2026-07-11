@@ -716,45 +716,7 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
           </div>
         )}
 
-        {issued && (
-          <>
-            <div className="rounded-md border p-4 bg-emerald-50/60 space-y-3">
-              <div className="text-sm font-medium text-emerald-900 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> Certificate issued · № {issued.certificateNumber}
-              </div>
-              {issued.publicSlug ? (
-                <div className="flex flex-wrap items-center gap-2">
-                  <code className="px-2 py-1 rounded bg-background border text-xs break-all">
-                    {verifyUrl}
-                  </code>
-                  <Button size="sm" variant="outline" onClick={copyPublicLink}>
-                    <Copy className="w-3 h-3 mr-1" /> Copy
-                  </Button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <Button size="sm" onClick={handleGeneratePublicLink} disabled={generatingLink}>
-                    {generatingLink && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
-                    <LinkIcon className="w-3 h-3 mr-1" /> Generate public link
-                  </Button>
-                  <span className="text-xs text-muted-foreground">
-                    Certificate is currently private.
-                  </span>
-                </div>
-              )}
-            </div>
-            <div className="rounded-md overflow-hidden border">
-              <CertificatePortfolioLayout
-                studentName={issued.studentName}
-                courseTitle={issued.courseTitle}
-                issuedAt={issued.issuedAt}
-                certificateNumber={issued.certificateNumber}
-                verifyUrl={verifyUrl}
-                showTopBar={false}
-              />
-            </div>
-          </>
-        )}
+        {issued && <IssuedResultBlock issued={issued} setIssued={setIssued} />}
       </CardContent>
     </Card>
   );
