@@ -93,7 +93,15 @@ function mergeUser(user: User, access: AccessData | null): AuthUser {
 
 async function loadAccessViaEdge(): Promise<AccessData | null> {
   const { data, error } = await supabase.functions.invoke("auth-me", { method: "POST" });
-  if (error) throw error;
+  if (error) {
+    // A 401 here means the JWT is stale/expired — the caller will fall back
+    // to direct queries. Don't throw: it's an expected signed-out state, not
+    // a runtime error, and throwing surfaces a blank-screen telemetry event.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const status = (error as any)?.context?.status ?? (error as any)?.status;
+    if (status === 401) return null;
+    throw error;
+  }
   if (!data) return null;
   const payload = data as Record<string, unknown>;
   return {
@@ -156,8 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           next = await loadAccessViaEdge();
         } catch (edgeErr) {
           if (import.meta.env.DEV) console.warn("[auth-me] failed, using fallback", edgeErr);
-          next = await loadAccessViaFallback(userId);
         }
+        if (!next) next = await loadAccessViaFallback(userId);
         if (!next) next = await loadAccessViaFallback(userId);
         setAccess(next);
         setAccessReady(true);
