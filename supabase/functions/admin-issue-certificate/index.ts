@@ -61,27 +61,26 @@ async function computeEligibility(admin: any, userId: string, courseId: number) 
   }
   const completion = totalLessons ? Math.min(100, Math.round((completed / totalLessons) * 100)) : 0;
 
-  // Published, non-archived, required quizzes for the course
+  // Published quizzes for the course (all treated as required — matches
+  // the client-side eligibilityForCourse logic).
   const { data: quizzes } = await admin
     .from("quizzes")
-    .select("id,course_id,status,archived_at,is_required")
+    .select("id,course_id,status")
     .eq("course_id", courseId)
-    .eq("status", "published")
-    .is("archived_at", null);
-  const requiredQuizIds = ((quizzes ?? []) as Array<{ id: number; is_required?: boolean | null }>)
-    .filter((q) => q.is_required !== false)
-    .map((q) => q.id);
+    .eq("status", "published");
+  const requiredQuizIds = ((quizzes ?? []) as Array<{ id: number }>).map((q) => q.id);
 
   let passedRequired = 0;
   if (requiredQuizIds.length) {
     const { data: attempts } = await admin
       .from("quiz_attempts")
-      .select("quiz_id,passed")
+      .select("quiz_id,is_passed,passed")
       .eq("user_id", userId)
-      .in("quiz_id", requiredQuizIds)
-      .eq("passed", true);
+      .in("quiz_id", requiredQuizIds);
     const passedSet = new Set(
-      ((attempts ?? []) as Array<{ quiz_id: number }>).map((a) => a.quiz_id),
+      ((attempts ?? []) as Array<{ quiz_id: number; is_passed?: boolean; passed?: boolean }>)
+        .filter((a) => a.is_passed === true || a.passed === true)
+        .map((a) => a.quiz_id),
     );
     passedRequired = passedSet.size;
   }
