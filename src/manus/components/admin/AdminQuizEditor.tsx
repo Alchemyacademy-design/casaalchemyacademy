@@ -335,6 +335,13 @@ function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: n
         <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
       </div>
 
+      <QuizAssistantPanel
+        quiz={quiz}
+        courseId={courseId}
+        existingQuestionCount={questions.length}
+        onApplied={invalidate}
+      />
+
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Title</Label>
