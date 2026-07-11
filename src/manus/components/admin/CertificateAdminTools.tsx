@@ -294,6 +294,8 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
     issuedAt: string;
     certificateNumber: string;
   }>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [issued, setIssued] = useState<IssuedState | null>(null);
 
   const selectedCourse = useMemo(
     () => courses.find((c) => String(c.id) === courseId),
@@ -321,6 +323,33 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
       issuedAt: dt.toISOString(),
       certificateNumber: "AA-PREVIEW-0000",
     });
+    setIssued(null);
+  };
+
+  const canPublish =
+    nameMode === "registered" &&
+    Boolean(studentId) &&
+    (certKind === "program" || Boolean(courseId));
+
+  const handlePublish = async () => {
+    if (!canPublish) return;
+    setPublishing(true);
+    try {
+      const result = await runIssueFlow({
+        certKind,
+        courseId: certKind === "course" ? Number(courseId) : undefined,
+        studentId,
+      });
+      if (!result) return; // admin cancelled override
+      setIssued(result);
+      setPreview(null);
+      toast.success("Certificate published");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not publish certificate", { description: (err as Error).message });
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -414,7 +443,27 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
               Clear preview
             </Button>
           )}
+          {preview && (
+            <Button
+              size="sm"
+              onClick={handlePublish}
+              disabled={!canPublish || publishing}
+              title={
+                canPublish
+                  ? "Publish this certificate to the selected student"
+                  : "Select a registered student to publish a real certificate"
+              }
+            >
+              {publishing && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+              <UserCheck className="w-3 h-3 mr-1" /> Publish this certificate
+            </Button>
+          )}
         </div>
+        {preview && !canPublish && nameMode === "custom" && (
+          <p className="text-[11px] text-muted-foreground">
+            Select a registered student to publish a real certificate — custom-name previews cannot be saved.
+          </p>
+        )}
 
         {preview && (
           <div className="rounded-md overflow-hidden border">
@@ -427,6 +476,12 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
               showTopBar={false}
               showLinkedIn={false}
             />
+          </div>
+        )}
+
+        {issued && (
+          <div className="space-y-3">
+            <IssuedResultBlock issued={issued} setIssued={setIssued} />
           </div>
         )}
       </CardContent>
