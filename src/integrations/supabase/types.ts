@@ -2670,6 +2670,13 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_certificate_visibility: {
+        Args: { p_certificate_id: number; p_make_public: boolean }
+        Returns: {
+          id: number
+          public_slug: string
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "student" | "content_manager" | "instructor"
