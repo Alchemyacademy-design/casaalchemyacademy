@@ -519,16 +519,8 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
   const [studentId, setStudentId] = useState<string>("");
   const [loadingEligibility, setLoadingEligibility] = useState(false);
   const [issuing, setIssuing] = useState(false);
-  const [generatingLink, setGeneratingLink] = useState(false);
   const [eligibility, setEligibility] = useState<EligibilityResp | null>(null);
-  const [issued, setIssued] = useState<null | {
-    certificateId: number;
-    studentName: string;
-    courseTitle: string;
-    issuedAt: string;
-    certificateNumber: string;
-    publicSlug: string | null;
-  }>(null);
+  const [issued, setIssued] = useState<IssuedState | null>(null);
 
   // reset eligibility when selection changes
   useEffect(() => {
@@ -536,20 +528,7 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
     setIssued(null);
   }, [courseId, studentId, certKind]);
 
-  const invokeFn = async (body: Record<string, unknown>) => {
-    const { data, error } = await supabase.functions.invoke("admin-issue-certificate", { body });
-    if (error) {
-      // supabase-js wraps HTTP errors; try to fish the body message
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const ctx = (error as any)?.context;
-      let payload: unknown = null;
-      if (ctx?.body) {
-        try { payload = await new Response(ctx.body).json(); } catch { /* noop */ }
-      }
-      throw Object.assign(new Error(error.message), { payload });
-    }
-    return data as Record<string, unknown>;
-  };
+  const invokeFn = invokeIssueFn;
 
   const handleCheck = async () => {
     if (!studentId) return;
@@ -618,36 +597,6 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
   };
 
   const canCheck = Boolean(studentId && (certKind === "program" || courseId));
-  const verifyUrl = issued?.publicSlug
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${issued.publicSlug}`
-    : null;
-
-  const handleGeneratePublicLink = async () => {
-    if (!issued) return;
-    setGeneratingLink(true);
-    try {
-      const { data, error } = await db.rpc("set_certificate_visibility", {
-        p_certificate_id: issued.certificateId,
-        p_make_public: true,
-      });
-      if (error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      const slug: string | null = row?.public_slug ?? null;
-      setIssued({ ...issued, publicSlug: slug });
-      toast.success("Public link generated");
-    } catch (err) {
-      console.error(err);
-      toast.error("Could not generate public link", { description: (err as Error).message });
-    } finally {
-      setGeneratingLink(false);
-    }
-  };
-
-  const copyPublicLink = async () => {
-    if (!verifyUrl) return;
-    await navigator.clipboard.writeText(verifyUrl);
-    toast.success("Link copied");
-  };
 
   return (
     <Card>
