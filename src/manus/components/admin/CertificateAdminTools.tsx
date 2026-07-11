@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, UserCheck, Loader2, AlertTriangle, CheckCircle2, LinkIcon, Copy, BarChart3, Globe, Lock, ShieldOff } from "lucide-react";
+import { Sparkles, UserCheck, Loader2, AlertTriangle, CheckCircle2, LinkIcon, Copy, BarChart3, Globe, ShieldOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,180 @@ type StudentOption = { id: string; label: string; email: string | null };
 type CertKind = "course" | "program";
 
 const PROGRAM_TITLE = "Alchemy Academy — Method Completion";
+
+/* -------------------------- Shared issue helpers -------------------------- */
+
+type IssuedState = {
+  certificateId: number;
+  studentName: string;
+  courseTitle: string;
+  issuedAt: string;
+  certificateNumber: string;
+  publicSlug: string | null;
+};
+
+async function invokeIssueFn(body: Record<string, unknown>) {
+  const { data, error } = await supabase.functions.invoke("admin-issue-certificate", { body });
+  if (error) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const ctx = (error as any)?.context;
+    let payload: unknown = null;
+    if (ctx?.body) {
+      try { payload = await new Response(ctx.body).json(); } catch { /* noop */ }
+    }
+    throw Object.assign(new Error(error.message), { payload });
+  }
+  return data as Record<string, unknown>;
+}
+
+/**
+ * Runs the eligibility → confirm(override) → issue flow. Returns the issued
+ * state on success, or `null` when the admin cancels the override confirm.
+ * Throws with a friendly error message on already_issued / other failures.
+ */
+async function runIssueFlow(args: {
+  certKind: CertKind;
+  courseId?: number;
+  studentId: string;
+}): Promise<IssuedState | null> {
+  const { certKind, courseId, studentId } = args;
+  const elig = (await invokeIssueFn({
+    action: "eligibility",
+    certificate_type: certKind,
+    course_id: certKind === "course" ? courseId : undefined,
+    student_user_id: studentId,
+  })) as unknown as EligibilityResp;
+
+  if (elig.existing_active) {
+    throw new Error(
+      `This student already has an active certificate (№ ${elig.existing_active.certificate_number}). Revoke it first to reissue.`,
+    );
+  }
+
+  const override = !elig.report.eligible;
+  if (override) {
+    const r = elig.report;
+    const ok = window.confirm(
+      `This student has not met the standard completion criteria (${r.completion}% complete, ${r.passedQuizCount}/${r.totalPublishedQuizzes} quizzes passed). Issue anyway as a manual override?`,
+    );
+    if (!ok) return null;
+  }
+
+  const data = await invokeIssueFn({
+    action: "issue",
+    certificate_type: certKind,
+    course_id: certKind === "course" ? courseId : undefined,
+    student_user_id: studentId,
+    allow_override: override,
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cert = (data as any).certificate;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const s = (data as any).student;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const c = (data as any).course;
+  return {
+    certificateId: cert.id,
+    studentName: s?.name ?? "Student",
+    courseTitle: c?.title ?? "Course",
+    issuedAt: cert.issued_at,
+    certificateNumber: cert.certificate_number,
+    publicSlug: cert.public_slug ?? null,
+  };
+}
+
+function IssuedResultBlock({
+  issued,
+  setIssued,
+}: {
+  issued: IssuedState;
+  setIssued: (v: IssuedState) => void;
+}) {
+  const [generatingLink, setGeneratingLink] = useState(false);
+  const [revokingLink, setRevokingLink] = useState(false);
+  const verifyUrl = issued.publicSlug
+    ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${issued.publicSlug}`
+    : null;
+
+  const setVisibility = async (makePublic: boolean) => {
+    const setBusy = makePublic ? setGeneratingLink : setRevokingLink;
+    setBusy(true);
+    try {
+      const { data, error } = await db.rpc("set_certificate_visibility", {
+        p_certificate_id: issued.certificateId,
+        p_make_public: makePublic,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const slug: string | null = row?.public_slug ?? null;
+      setIssued({ ...issued, publicSlug: slug });
+      toast.success(makePublic ? "Public link generated" : "Public link revoked");
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        makePublic ? "Could not generate public link" : "Could not revoke public link",
+        { description: (err as Error).message },
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copyPublicLink = async () => {
+    if (!verifyUrl) return;
+    await navigator.clipboard.writeText(verifyUrl);
+    toast.success("Link copied");
+  };
+
+  return (
+    <>
+      <div className="rounded-md border p-4 bg-emerald-50/60 space-y-3">
+        <div className="text-sm font-medium text-emerald-900 flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" /> Certificate issued · № {issued.certificateNumber}
+        </div>
+        {issued.publicSlug ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="px-2 py-1 rounded bg-background border text-xs break-all">
+              {verifyUrl}
+            </code>
+            <Button size="sm" variant="outline" onClick={copyPublicLink}>
+              <Copy className="w-3 h-3 mr-1" /> Copy
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setVisibility(false)}
+              disabled={revokingLink}
+            >
+              {revokingLink && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+              <ShieldOff className="w-3 h-3 mr-1" /> Revoke public link
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <Button size="sm" onClick={() => setVisibility(true)} disabled={generatingLink}>
+              {generatingLink && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+              <LinkIcon className="w-3 h-3 mr-1" /> Generate public link
+            </Button>
+            <span className="text-xs text-muted-foreground">
+              Certificate is currently private.
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="rounded-md overflow-hidden border">
+        <CertificatePortfolioLayout
+          studentName={issued.studentName}
+          courseTitle={issued.courseTitle}
+          issuedAt={issued.issuedAt}
+          certificateNumber={issued.certificateNumber}
+          verifyUrl={verifyUrl}
+          showTopBar={false}
+        />
+      </div>
+    </>
+  );
+}
 
 function useAdminCourses() {
   return useQuery<CourseOption[]>({
