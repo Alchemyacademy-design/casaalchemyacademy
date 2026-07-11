@@ -364,6 +364,7 @@ export default function ModuleDetail() {
   }
 
   return (
+    <>
     <MemberLayout>
       <div className="min-h-screen bg-background">
         <div className="border-b border-border/50 bg-card/50 sticky top-0 z-40">
