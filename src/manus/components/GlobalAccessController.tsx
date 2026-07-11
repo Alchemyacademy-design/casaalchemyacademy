@@ -34,7 +34,10 @@ export default function GlobalAccessController() {
   const { loading, isAuthenticated, isAdmin, isMember, hasCourseAccess } = useAuth();
 
   useEffect(() => {
-    if (loading || publicPaths.has(location)) return;
+    // The public certificate verification page is always public — anyone
+    // with the link (recruiters, LinkedIn, etc.) must be able to open it
+    // without an account.
+    if (loading || publicPaths.has(location) || location.startsWith("/c/")) return;
 
     if (!isAuthenticated) {
       navigate("/login");

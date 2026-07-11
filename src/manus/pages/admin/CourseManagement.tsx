@@ -17,6 +17,7 @@ import { BulkLessonsPanel } from "@/manus/pages/admin/AdminLessonsBulk";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AdminQuizzesInner } from "@/manus/pages/admin/AdminQuizzes";
 import { AdminCertificatesInner } from "@/manus/pages/admin/AdminCertificates";
+import CertificateAdminTools from "@/manus/components/admin/CertificateAdminTools";
 import { AdminCoursesListInner } from "@/manus/pages/admin/AdminCoursesList";
 import {
   listCoursesRich, listCategories, listInstructors, archiveCourse,
@@ -138,6 +139,7 @@ export default function CourseManagement() {
           <AdminQuizzesInner embedded />
         </TabsContent>
         <TabsContent value="certificates" className="mt-4">
+          <CertificateAdminTools />
           <AdminCertificatesInner embedded />
         </TabsContent>
         <TabsContent value="courses" className="mt-4">
