@@ -629,10 +629,13 @@ function useLinkAnalytics() {
         db.from("certificate_views").select("certificate_id,viewed_at").in("certificate_id", certIds),
       ]);
 
-      const courseMap = new Map((courses ?? []).map((c: { id: number; title: string }) => [c.id, c.title]));
-      const profileMap = new Map((profiles ?? []).map((p: { id: string; display_name: string | null; full_name: string | null; email: string | null }) =>
-        [p.id, p.display_name ?? p.full_name ?? p.email ?? "Student"],
-      ));
+      const courseMap = new Map<number, string>(
+        ((courses ?? []) as Array<{ id: number; title: string }>).map((c) => [c.id, c.title]),
+      );
+      const profileMap = new Map<string, string>(
+        ((profiles ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; email: string | null }>)
+          .map((p) => [p.id, p.display_name ?? p.full_name ?? p.email ?? "Student"]),
+      );
 
       const viewsByCert = new Map<number, { count: number; last: string | null }>();
       for (const v of (views ?? []) as Array<{ certificate_id: number; viewed_at: string }>) {
