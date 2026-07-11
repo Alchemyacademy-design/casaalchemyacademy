@@ -74,13 +74,12 @@ async function computeEligibility(admin: any, userId: string, courseId: number) 
   if (requiredQuizIds.length) {
     const { data: attempts } = await admin
       .from("quiz_attempts")
-      .select("quiz_id,is_passed,passed")
+      .select("quiz_id,passed")
       .eq("user_id", userId)
-      .in("quiz_id", requiredQuizIds);
+      .in("quiz_id", requiredQuizIds)
+      .eq("passed", true);
     const passedSet = new Set(
-      ((attempts ?? []) as Array<{ quiz_id: number; is_passed?: boolean; passed?: boolean }>)
-        .filter((a) => a.is_passed === true || a.passed === true)
-        .map((a) => a.quiz_id),
+      ((attempts ?? []) as Array<{ quiz_id: number }>).map((a) => a.quiz_id),
     );
     passedRequired = passedSet.size;
   }
