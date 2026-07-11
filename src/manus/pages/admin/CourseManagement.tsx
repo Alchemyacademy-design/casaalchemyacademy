@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { AdminQuizzesInner } from "@/manus/pages/admin/AdminQuizzes";
 import { AdminCertificatesInner } from "@/manus/pages/admin/AdminCertificates";
 import { AdminCoursesListInner } from "@/manus/pages/admin/AdminCoursesList";
+import QuizContentAssistant from "@/manus/components/admin/QuizContentAssistant";
 import {
   listCoursesRich, listCategories, listInstructors, archiveCourse,
   duplicateCourse, deleteCourse, setCourseStatus, CONTENT_STATUSES, type CourseRow,
@@ -51,9 +52,9 @@ export default function CourseManagement() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [confirmArchive, setConfirmArchive] = useState<CourseRow | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<CourseRow | null>(null);
-  type Tab = "courses" | "bulk" | "legacy" | "quizzes" | "certificates";
+  type Tab = "courses" | "bulk" | "legacy" | "quizzes" | "certificates" | "assistant";
   const validTab = (v: string | null): Tab =>
-    v === "bulk" || v === "legacy" || v === "quizzes" || v === "certificates" ? v : "courses";
+    v === "bulk" || v === "legacy" || v === "quizzes" || v === "certificates" || v === "assistant" ? v : "courses";
   const [tab, setTab] = useState<Tab>(() => validTab(params.get("tab")));
   useEffect(() => {
     const next = new URLSearchParams(params);
@@ -127,6 +128,7 @@ export default function CourseManagement() {
           <TabsTrigger value="legacy">Legacy tree</TabsTrigger>
           <TabsTrigger value="quizzes">Quiz bank</TabsTrigger>
           <TabsTrigger value="certificates">Certificates</TabsTrigger>
+          <TabsTrigger value="assistant">Content Assistant</TabsTrigger>
         </TabsList>
         <TabsContent value="bulk" className="mt-4">
           <BulkLessonsPanel embedded />
@@ -139,6 +141,9 @@ export default function CourseManagement() {
         </TabsContent>
         <TabsContent value="certificates" className="mt-4">
           <AdminCertificatesInner embedded />
+        </TabsContent>
+        <TabsContent value="assistant" className="mt-4">
+          <QuizContentAssistant />
         </TabsContent>
         <TabsContent value="courses" className="mt-4">
       <div className="rounded-lg border border-border bg-card p-4 mb-6 grid grid-cols-1 md:grid-cols-6 gap-3">
