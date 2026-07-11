@@ -2546,6 +2546,19 @@ export type Database = {
           verification_hash: string
         }[]
       }
+      get_public_certificate_status: {
+        Args: { slug: string }
+        Returns: {
+          certificate_number: string
+          course_title: string
+          issued_at: string
+          public_slug: string
+          revoked_at: string
+          status: string
+          student_name: string
+          verification_hash: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
