@@ -18,18 +18,30 @@ type PublicCert = {
 export default function PublicCertificate() {
   const { slug = "" } = useParams<{ slug: string }>();
   const [state, setState] = useState<
-    { status: "loading" } | { status: "ok"; cert: PublicCert } | { status: "notfound" }
+    | { status: "loading" }
+    | { status: "ok"; cert: PublicCert }
+    | { status: "revoked"; certificate_number: string; revoked_at: string }
+    | { status: "notfound" }
   >({ status: "loading" });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc("get_public_certificate", { slug });
+      const { data, error } = await (supabase as any).rpc("get_public_certificate_status", { slug });
       if (cancelled) return;
       const row = Array.isArray(data) ? data[0] : data;
-      if (error || !row) setState({ status: "notfound" });
-      else setState({ status: "ok", cert: row as PublicCert });
+      if (error || !row) {
+        setState({ status: "notfound" });
+      } else if (row.status === "revoked") {
+        setState({
+          status: "revoked",
+          certificate_number: row.certificate_number,
+          revoked_at: row.revoked_at,
+        });
+      } else {
+        setState({ status: "ok", cert: row as PublicCert });
+      }
     })();
     return () => {
       cancelled = true;
@@ -95,7 +107,50 @@ export default function PublicCertificate() {
             Certificate not found
           </h1>
           <p className="text-sm" style={{ color: "var(--aa-text-mid, #6B6552)" }}>
-            This link is invalid or the certificate has been revoked.
+            This link is invalid, private, or has never existed.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (state.status === "revoked") {
+    return (
+      <main
+        className="min-h-screen flex items-center justify-center px-6"
+        style={{ background: "var(--aa-cream, #F5F0E8)" }}
+      >
+        <div className="text-center max-w-md">
+          <ShieldCheck
+            className="w-8 h-8 mx-auto mb-3"
+            style={{ color: "var(--aa-terracotta, #C46A3F)" }}
+          />
+          <div
+            className="text-[10px] font-semibold mb-2"
+            style={{
+              letterSpacing: "0.28em",
+              textTransform: "uppercase",
+              color: "var(--aa-terracotta, #C46A3F)",
+            }}
+          >
+            Certificate Revoked
+          </div>
+          <h1
+            className="mb-3"
+            style={{
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              fontSize: "clamp(1.6rem, 3vw, 2.25rem)",
+              color: "var(--aa-olive-dark, #2E2A1E)",
+            }}
+          >
+            This credential is no longer valid.
+          </h1>
+          <p className="text-sm mb-1" style={{ color: "var(--aa-text-mid, #6B6552)" }}>
+            Casa Alchemy Academy revoked certificate № {state.certificate_number} on{" "}
+            {new Date(state.revoked_at).toLocaleDateString()}.
+          </p>
+          <p className="text-xs" style={{ color: "var(--aa-text-light, #9C9782)" }}>
+            If you believe this is an error, please contact the studio.
           </p>
         </div>
       </main>
