@@ -241,7 +241,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
   );
 }
 
-function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: number; onClose: () => void }) {
+export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: number; onClose: () => void }) {
   const qc = useQueryClient();
   const quizQuery = useQuery({
     queryKey: ["admin-quiz", quizId],
