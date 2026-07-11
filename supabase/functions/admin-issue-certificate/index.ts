@@ -101,6 +101,49 @@ function certificateNumber(): string {
   return `AA-${year}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
+// deno-lint-ignore no-explicit-any
+async function computeProgramEligibility(admin: any, userId: string) {
+  // All published, non-archived courses in the Academy
+  const { data: courses, error } = await admin
+    .from("courses")
+    .select("id,title,status,archived_at")
+    .eq("status", "published")
+    .is("archived_at", null);
+  if (error) throw error;
+  const list = (courses ?? []) as Array<{ id: number; title: string }>;
+
+  const perCourse: Array<{
+    id: number; title: string;
+    completion: number; totalLessons: number;
+    totalPublishedQuizzes: number; passedQuizCount: number; eligible: boolean;
+  }> = [];
+  for (const c of list) {
+    const r = await computeEligibility(admin, userId, c.id);
+    perCourse.push({ id: c.id, title: c.title, ...r });
+  }
+  const totalCourses = perCourse.length;
+  const completedCourses = perCourse.filter((p) => p.eligible).length;
+  const eligible = totalCourses > 0 && completedCourses === totalCourses;
+  // Aggregate completion (avg) purely for display
+  const completion =
+    totalCourses > 0
+      ? Math.round(perCourse.reduce((s, p) => s + p.completion, 0) / totalCourses)
+      : 0;
+  const totalPublishedQuizzes = perCourse.reduce((s, p) => s + p.totalPublishedQuizzes, 0);
+  const passedQuizCount = perCourse.reduce((s, p) => s + p.passedQuizCount, 0);
+  const totalLessons = perCourse.reduce((s, p) => s + p.totalLessons, 0);
+  return {
+    eligible,
+    completion,
+    totalLessons,
+    totalPublishedQuizzes,
+    passedQuizCount,
+    totalCourses,
+    completedCourses,
+    perCourse,
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
@@ -128,6 +171,7 @@ Deno.serve(async (req) => {
     course_id?: number;
     student_user_id?: string;
     allow_override?: boolean;
+    certificate_type?: string;
   } = {};
   try {
     payload = await req.json();
@@ -136,34 +180,55 @@ Deno.serve(async (req) => {
   }
 
   const action = payload.action === "issue" ? "issue" : "eligibility";
-  const courseId = Number(payload.course_id);
+  const certType = payload.certificate_type === "program" ? "program" : "course";
+  const courseId = certType === "course" ? Number(payload.course_id) : 0;
   const studentId = String(payload.student_user_id ?? "");
-  if (!Number.isFinite(courseId) || courseId <= 0) return json({ error: "invalid_course_id" }, 400);
+  if (certType === "course" && (!Number.isFinite(courseId) || courseId <= 0)) {
+    return json({ error: "invalid_course_id" }, 400);
+  }
   if (!studentId) return json({ error: "invalid_student_id" }, 400);
 
-  // Load course + student basics
-  const [{ data: course }, { data: student }] = await Promise.all([
-    admin.from("courses").select("id,title").eq("id", courseId).maybeSingle(),
-    admin.from("profiles").select("id,full_name,display_name,email").eq("id", studentId).maybeSingle(),
-  ]);
-  if (!course) return json({ error: "course_not_found" }, 404);
+  const { data: student } = await admin
+    .from("profiles")
+    .select("id,full_name,display_name,email")
+    .eq("id", studentId)
+    .maybeSingle();
   if (!student) return json({ error: "student_not_found" }, 404);
 
-  const { data: existing } = await admin
+  let course: { id: number; title: string } | null = null;
+  if (certType === "course") {
+    const { data: c } = await admin
+      .from("courses").select("id,title").eq("id", courseId).maybeSingle();
+    if (!c) return json({ error: "course_not_found" }, 404);
+    course = c;
+  }
+
+  // Look up existing active certificate of the SAME type
+  let existingQuery = admin
     .from("certificates")
-    .select("id,certificate_number,issued_at,public_slug,revoked_at,metadata")
+    .select("id,certificate_number,issued_at,public_slug,revoked_at,metadata,course_id,certificate_type")
     .eq("user_id", studentId)
-    .eq("course_id", courseId)
+    .eq("certificate_type", certType)
     .is("revoked_at", null)
     .order("issued_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  if (certType === "course") existingQuery = existingQuery.eq("course_id", courseId);
+  else existingQuery = existingQuery.is("course_id", null);
+  const { data: existing } = await existingQuery.maybeSingle();
 
-  const report = await computeEligibility(admin, studentId, courseId);
+  // deno-lint-ignore no-explicit-any
+  const report: any =
+    certType === "program"
+      ? await computeProgramEligibility(admin, studentId)
+      : await computeEligibility(admin, studentId, courseId);
 
   if (action === "eligibility") {
+    const courseLabel = certType === "program"
+      ? { id: 0, title: "Alchemy Academy — Method Completion" }
+      : { id: course!.id, title: course!.title };
     return json({
-      course: { id: course.id, title: course.title },
+      course: courseLabel,
+      certificate_type: certType,
       student: {
         id: student.id,
         name: student.display_name ?? student.full_name ?? student.email ?? "Student",
@@ -186,26 +251,36 @@ Deno.serve(async (req) => {
 
   const cert_number = certificateNumber();
   const issued_at = new Date().toISOString();
+  const insertRow: Record<string, unknown> = {
+    user_id: studentId,
+    certificate_number: cert_number,
+    issued_at,
+    certificate_type: certType,
+    metadata: {
+      course_title: certType === "program"
+        ? "Alchemy Academy — Method Completion"
+        : course!.title,
+      completion_percentage: report.completion,
+      quiz_requirements: {
+        published: report.totalPublishedQuizzes,
+        passed: report.passedQuizCount,
+      },
+      issued_by: "admin_manual",
+      admin_user_id: adminUserId,
+      overridden_eligibility: override,
+      certificate_type: certType,
+      program_summary: certType === "program"
+        ? { totalCourses: report.totalCourses, completedCourses: report.completedCourses }
+        : undefined,
+      issued_rule_version: certType === "program"
+        ? "program.admin_manual.v1"
+        : "phase2.admin_manual.v1",
+    },
+  };
+  if (certType === "course") insertRow.course_id = courseId;
   const { data, error } = await admin
     .from("certificates")
-    .insert({
-      user_id: studentId,
-      course_id: courseId,
-      certificate_number: cert_number,
-      issued_at,
-      metadata: {
-        course_title: course.title,
-        completion_percentage: report.completion,
-        quiz_requirements: {
-          published: report.totalPublishedQuizzes,
-          passed: report.passedQuizCount,
-        },
-        issued_by: "admin_manual",
-        admin_user_id: adminUserId,
-        overridden_eligibility: override,
-        issued_rule_version: "phase2.admin_manual.v1",
-      },
-    })
+    .insert(insertRow)
     .select("*")
     .single();
 
@@ -220,7 +295,10 @@ Deno.serve(async (req) => {
       id: student.id,
       name: student.display_name ?? student.full_name ?? student.email ?? "Student",
     },
-    course: { id: course.id, title: course.title },
+    course: certType === "program"
+      ? { id: 0, title: "Alchemy Academy — Method Completion" }
+      : { id: course!.id, title: course!.title },
+    certificate_type: certType,
     override,
   });
 });

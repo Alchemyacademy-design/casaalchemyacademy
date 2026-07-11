@@ -39,6 +39,15 @@ export default function PublicCertificate() {
         });
       } else {
         setState({ status: "ok", cert: row as PublicCert });
+        // Fire-and-forget view tracking; never blocks render, never surfaces errors.
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any).rpc("record_certificate_view", {
+            slug,
+            p_user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+            p_referrer: typeof document !== "undefined" ? document.referrer || null : null,
+          });
+        } catch { /* noop */ }
       }
     })();
     return () => {

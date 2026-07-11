@@ -14,11 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      certificate_views: {
+        Row: {
+          certificate_id: number
+          id: number
+          referrer: string | null
+          user_agent: string | null
+          viewed_at: string
+        }
+        Insert: {
+          certificate_id: number
+          id?: number
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          certificate_id?: number
+          id?: number
+          referrer?: string | null
+          user_agent?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_views_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           certificate_number: string
+          certificate_type: string
           certificate_url: string | null
-          course_id: number
+          course_id: number | null
           created_at: string
           id: number
           issued_at: string
@@ -31,8 +64,9 @@ export type Database = {
         }
         Insert: {
           certificate_number: string
+          certificate_type?: string
           certificate_url?: string | null
-          course_id: number
+          course_id?: number | null
           created_at?: string
           id?: never
           issued_at?: string
@@ -45,8 +79,9 @@ export type Database = {
         }
         Update: {
           certificate_number?: string
+          certificate_type?: string
           certificate_url?: string | null
-          course_id?: number
+          course_id?: number | null
           created_at?: string
           id?: never
           issued_at?: string
@@ -2657,6 +2692,10 @@ export type Database = {
       }
       owns_course: { Args: { _course_id: number }; Returns: boolean }
       owns_lesson: { Args: { _lesson_id: number }; Returns: boolean }
+      record_certificate_view: {
+        Args: { p_referrer?: string; p_user_agent?: string; slug: string }
+        Returns: boolean
+      }
       register_for_event: {
         Args: {
           target_id: number

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Sparkles, UserCheck, Loader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Sparkles, UserCheck, Loader2, AlertTriangle, CheckCircle2, LinkIcon, Copy, BarChart3, Globe, Lock, ShieldOff } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,9 @@ const db: any = supabase;
 
 type CourseOption = { id: number; title: string };
 type StudentOption = { id: string; label: string; email: string | null };
+type CertKind = "course" | "program";
+
+const PROGRAM_TITLE = "Alchemy Academy — Method Completion";
 
 function useAdminCourses() {
   return useQuery<CourseOption[]>({
@@ -57,9 +60,58 @@ function useStudentSearch(term: string) {
   });
 }
 
+function StudentPicker({
+  term, setTerm, studentId, setStudentId,
+}: {
+  term: string;
+  setTerm: (v: string) => void;
+  studentId: string;
+  setStudentId: (v: string) => void;
+}) {
+  const students = useStudentSearch(term);
+  return (
+    <div>
+      <Input
+        value={term}
+        onChange={(e) => { setTerm(e.target.value); setStudentId(""); }}
+        placeholder="Type name or email (min 2 chars)…"
+      />
+      {students.data && students.data.length > 0 && !studentId && (
+        <div className="mt-1 max-h-40 overflow-auto rounded border bg-popover text-sm shadow-sm">
+          {students.data.map((s) => (
+            <button
+              key={s.id}
+              type="button"
+              className="block w-full text-left px-2 py-1.5 hover:bg-accent"
+              onClick={() => { setStudentId(s.id); setTerm(s.label); }}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {studentId && (
+        <p className="text-[11px] text-muted-foreground mt-1">
+          Selected · {term}{" "}
+          <button
+            className="underline"
+            onClick={() => { setStudentId(""); setTerm(""); }}
+          >
+            change
+          </button>
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------ Feature 1 ------------------------------ */
 function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
   const [studentName, setStudentName] = useState("Alex Alchemist");
+  const [nameMode, setNameMode] = useState<"custom" | "registered">("custom");
+  const [studentTerm, setStudentTerm] = useState("");
+  const [studentId, setStudentId] = useState("");
+  const [certKind, setCertKind] = useState<CertKind>("course");
   const [courseId, setCourseId] = useState<string>("");
   const [issueDate, setIssueDate] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [preview, setPreview] = useState<null | {
@@ -74,9 +126,20 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
     [courses, courseId],
   );
 
+  // When user picks a registered student, pull the display name from label
+  useEffect(() => {
+    if (nameMode !== "registered" || !studentTerm) return;
+    // studentTerm has "Display · email" — take the first segment for the name
+    const seg = studentTerm.split(" · ")[0]?.trim();
+    if (seg) setStudentName(seg);
+  }, [nameMode, studentTerm]);
+
   const handlePreview = () => {
     const name = studentName.trim() || "Alex Alchemist";
-    const title = selectedCourse?.title ?? "The path to a COLOURFUL life";
+    const title =
+      certKind === "program"
+        ? PROGRAM_TITLE
+        : (selectedCourse?.title ?? "The path to a COLOURFUL life");
     const dt = issueDate ? new Date(issueDate + "T12:00:00Z") : new Date();
     setPreview({
       studentName: name,
@@ -98,28 +161,64 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1">
-            <Label htmlFor="prev-name">Student name</Label>
-            <Input
-              id="prev-name"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
-              placeholder="Alex Alchemist"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="prev-course">Course</Label>
-            <Select value={courseId} onValueChange={setCourseId}>
-              <SelectTrigger id="prev-course">
-                <SelectValue placeholder="Select a course…" />
-              </SelectTrigger>
+            <Label>Certificate type</Label>
+            <Select value={certKind} onValueChange={(v) => setCertKind(v as CertKind)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {courses.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
-                ))}
+                <SelectItem value="course">Course completion</SelectItem>
+                <SelectItem value="program">Total Method Completion (Academy)</SelectItem>
               </SelectContent>
             </Select>
+          </div>
+          {certKind === "course" && (
+            <div className="space-y-1">
+              <Label htmlFor="prev-course">Course</Label>
+              <Select value={courseId} onValueChange={setCourseId}>
+                <SelectTrigger id="prev-course">
+                  <SelectValue placeholder="Select a course…" />
+                </SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Student</Label>
+            <Select value={nameMode} onValueChange={(v) => {
+              setNameMode(v as "custom" | "registered");
+              if (v === "custom") { setStudentId(""); setStudentTerm(""); }
+            }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="custom">— Custom name —</SelectItem>
+                <SelectItem value="registered">Registered student</SelectItem>
+              </SelectContent>
+            </Select>
+            {nameMode === "custom" ? (
+              <Input
+                className="mt-2"
+                value={studentName}
+                onChange={(e) => setStudentName(e.target.value)}
+                placeholder="Alex Alchemist"
+              />
+            ) : (
+              <div className="mt-2">
+                <StudentPicker
+                  term={studentTerm}
+                  setTerm={setStudentTerm}
+                  studentId={studentId}
+                  setStudentId={setStudentId}
+                />
+              </div>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="prev-date">Issue date</Label>
@@ -131,6 +230,7 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
             />
           </div>
         </div>
+
         <div className="flex gap-2">
           <Button onClick={handlePreview} size="sm">
             <Sparkles className="w-3 h-3 mr-1" /> Preview certificate
@@ -164,6 +264,7 @@ function PreviewCertificatePanel({ courses }: { courses: CourseOption[] }) {
 
 type EligibilityResp = {
   course: { id: number; title: string };
+  certificate_type: CertKind;
   student: { id: string; name: string; email: string | null };
   existing_active: null | {
     id: number;
@@ -177,18 +278,22 @@ type EligibilityResp = {
     totalLessons: number;
     totalPublishedQuizzes: number;
     passedQuizCount: number;
+    totalCourses?: number;
+    completedCourses?: number;
   };
 };
 
 function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
+  const [certKind, setCertKind] = useState<CertKind>("course");
   const [courseId, setCourseId] = useState<string>("");
   const [studentTerm, setStudentTerm] = useState("");
   const [studentId, setStudentId] = useState<string>("");
-  const students = useStudentSearch(studentTerm);
   const [loadingEligibility, setLoadingEligibility] = useState(false);
   const [issuing, setIssuing] = useState(false);
+  const [generatingLink, setGeneratingLink] = useState(false);
   const [eligibility, setEligibility] = useState<EligibilityResp | null>(null);
   const [issued, setIssued] = useState<null | {
+    certificateId: number;
     studentName: string;
     courseTitle: string;
     issuedAt: string;
@@ -200,7 +305,7 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
   useEffect(() => {
     setEligibility(null);
     setIssued(null);
-  }, [courseId, studentId]);
+  }, [courseId, studentId, certKind]);
 
   const invokeFn = async (body: Record<string, unknown>) => {
     const { data, error } = await supabase.functions.invoke("admin-issue-certificate", { body });
@@ -218,14 +323,16 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
   };
 
   const handleCheck = async () => {
-    if (!courseId || !studentId) return;
+    if (!studentId) return;
+    if (certKind === "course" && !courseId) return;
     setLoadingEligibility(true);
     setEligibility(null);
     setIssued(null);
     try {
       const data = (await invokeFn({
         action: "eligibility",
-        course_id: Number(courseId),
+        certificate_type: certKind,
+        course_id: certKind === "course" ? Number(courseId) : undefined,
         student_user_id: studentId,
       })) as unknown as EligibilityResp;
       setEligibility(data);
@@ -251,7 +358,8 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
     try {
       const data = await invokeFn({
         action: "issue",
-        course_id: Number(courseId),
+        certificate_type: certKind,
+        course_id: certKind === "course" ? Number(courseId) : undefined,
         student_user_id: studentId,
         allow_override: override,
       });
@@ -262,6 +370,7 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const c = (data as any).course;
       setIssued({
+        certificateId: cert.id,
         studentName: s?.name ?? "Student",
         courseTitle: c?.title ?? "Course",
         issuedAt: cert.issued_at,
@@ -279,10 +388,37 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
     }
   };
 
-  const canCheck = Boolean(courseId && studentId);
+  const canCheck = Boolean(studentId && (certKind === "program" || courseId));
   const verifyUrl = issued?.publicSlug
     ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${issued.publicSlug}`
     : null;
+
+  const handleGeneratePublicLink = async () => {
+    if (!issued) return;
+    setGeneratingLink(true);
+    try {
+      const { data, error } = await db.rpc("set_certificate_visibility", {
+        p_certificate_id: issued.certificateId,
+        p_make_public: true,
+      });
+      if (error) throw error;
+      const row = Array.isArray(data) ? data[0] : data;
+      const slug: string | null = row?.public_slug ?? null;
+      setIssued({ ...issued, publicSlug: slug });
+      toast.success("Public link generated");
+    } catch (err) {
+      console.error(err);
+      toast.error("Could not generate public link", { description: (err as Error).message });
+    } finally {
+      setGeneratingLink(false);
+    }
+  };
+
+  const copyPublicLink = async () => {
+    if (!verifyUrl) return;
+    await navigator.clipboard.writeText(verifyUrl);
+    toast.success("Link copied");
+  };
 
   return (
     <Card>
@@ -296,50 +432,38 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-1">
-            <Label>Course</Label>
-            <Select value={courseId} onValueChange={setCourseId}>
-              <SelectTrigger><SelectValue placeholder="Select a course…" /></SelectTrigger>
+            <Label>Certificate type</Label>
+            <Select value={certKind} onValueChange={(v) => setCertKind(v as CertKind)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
-                {courses.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
-                ))}
+                <SelectItem value="course">Course completion</SelectItem>
+                <SelectItem value="program">Total Method Completion (Academy)</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1">
+          {certKind === "course" && (
+            <div className="space-y-1">
+              <Label>Course</Label>
+              <Select value={courseId} onValueChange={setCourseId}>
+                <SelectTrigger><SelectValue placeholder="Select a course…" /></SelectTrigger>
+                <SelectContent>
+                  {courses.map((c) => (
+                    <SelectItem key={c.id} value={String(c.id)}>{c.title}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          <div className="space-y-1 md:col-span-1">
             <Label>Student</Label>
-            <Input
-              value={studentTerm}
-              onChange={(e) => { setStudentTerm(e.target.value); setStudentId(""); }}
-              placeholder="Type name or email (min 2 chars)…"
+            <StudentPicker
+              term={studentTerm}
+              setTerm={setStudentTerm}
+              studentId={studentId}
+              setStudentId={setStudentId}
             />
-            {students.data && students.data.length > 0 && !studentId && (
-              <div className="mt-1 max-h-40 overflow-auto rounded border bg-popover text-sm shadow-sm">
-                {students.data.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    className="block w-full text-left px-2 py-1.5 hover:bg-accent"
-                    onClick={() => { setStudentId(s.id); setStudentTerm(s.label); }}
-                  >
-                    {s.label}
-                  </button>
-                ))}
-              </div>
-            )}
-            {studentId && (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Selected · {studentTerm}{" "}
-                <button
-                  className="underline"
-                  onClick={() => { setStudentId(""); setStudentTerm(""); }}
-                >
-                  change
-                </button>
-              </p>
-            )}
           </div>
         </div>
 
@@ -361,10 +485,19 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
                 <div className="text-muted-foreground">Completion</div>
                 <div className="font-semibold">{eligibility.report.completion}%</div>
               </div>
-              <div>
-                <div className="text-muted-foreground">Lessons published</div>
-                <div className="font-semibold">{eligibility.report.totalLessons}</div>
-              </div>
+              {certKind === "program" ? (
+                <div>
+                  <div className="text-muted-foreground">Courses completed</div>
+                  <div className="font-semibold">
+                    {eligibility.report.completedCourses ?? 0} / {eligibility.report.totalCourses ?? 0}
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="text-muted-foreground">Lessons published</div>
+                  <div className="font-semibold">{eligibility.report.totalLessons}</div>
+                </div>
+              )}
               <div>
                 <div className="text-muted-foreground">Required quizzes</div>
                 <div className="font-semibold">
@@ -406,15 +539,236 @@ function IssueCertificatePanel({ courses }: { courses: CourseOption[] }) {
         )}
 
         {issued && (
-          <div className="rounded-md overflow-hidden border">
-            <CertificatePortfolioLayout
-              studentName={issued.studentName}
-              courseTitle={issued.courseTitle}
-              issuedAt={issued.issuedAt}
-              certificateNumber={issued.certificateNumber}
-              verifyUrl={verifyUrl}
-              showTopBar={false}
-            />
+          <>
+            <div className="rounded-md border p-4 bg-emerald-50/60 space-y-3">
+              <div className="text-sm font-medium text-emerald-900 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" /> Certificate issued · № {issued.certificateNumber}
+              </div>
+              {issued.publicSlug ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <code className="px-2 py-1 rounded bg-background border text-xs break-all">
+                    {verifyUrl}
+                  </code>
+                  <Button size="sm" variant="outline" onClick={copyPublicLink}>
+                    <Copy className="w-3 h-3 mr-1" /> Copy
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" onClick={handleGeneratePublicLink} disabled={generatingLink}>
+                    {generatingLink && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                    <LinkIcon className="w-3 h-3 mr-1" /> Generate public link
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    Certificate is currently private.
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="rounded-md overflow-hidden border">
+              <CertificatePortfolioLayout
+                studentName={issued.studentName}
+                courseTitle={issued.courseTitle}
+                issuedAt={issued.issuedAt}
+                certificateNumber={issued.certificateNumber}
+                verifyUrl={verifyUrl}
+                showTopBar={false}
+              />
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/* ------------------------------ Analytics ------------------------------ */
+
+type AnalyticsRow = {
+  id: number;
+  certificate_number: string;
+  public_slug: string;
+  issued_at: string;
+  revoked_at: string | null;
+  student_name: string;
+  course_title: string;
+  view_count: number;
+  last_viewed_at: string | null;
+};
+
+function useLinkAnalytics() {
+  return useQuery<AnalyticsRow[]>({
+    queryKey: ["admin", "certificates", "link-analytics"],
+    queryFn: async () => {
+      const { data: certs, error } = await db
+        .from("certificates")
+        .select("id,certificate_number,public_slug,issued_at,revoked_at,course_id,certificate_type,metadata,user_id")
+        .not("public_slug", "is", null)
+        .order("issued_at", { ascending: false })
+        .limit(500);
+      if (error) throw error;
+      const list = (certs ?? []) as Array<{
+        id: number; certificate_number: string; public_slug: string;
+        issued_at: string; revoked_at: string | null;
+        course_id: number | null; certificate_type: string;
+        metadata: Record<string, unknown>; user_id: string;
+      }>;
+      if (!list.length) return [];
+
+      const courseIds = Array.from(new Set(list.map((c) => c.course_id).filter((v): v is number => v != null)));
+      const userIds = Array.from(new Set(list.map((c) => c.user_id)));
+      const certIds = list.map((c) => c.id);
+
+      const [{ data: courses }, { data: profiles }, { data: views }] = await Promise.all([
+        courseIds.length
+          ? db.from("courses").select("id,title").in("id", courseIds)
+          : Promise.resolve({ data: [] as Array<{ id: number; title: string }> }),
+        userIds.length
+          ? db.from("profiles").select("id,display_name,full_name,email").in("id", userIds)
+          : Promise.resolve({ data: [] as Array<{ id: string; display_name: string | null; full_name: string | null; email: string | null }> }),
+        db.from("certificate_views").select("certificate_id,viewed_at").in("certificate_id", certIds),
+      ]);
+
+      const courseMap = new Map<number, string>(
+        ((courses ?? []) as Array<{ id: number; title: string }>).map((c) => [c.id, c.title]),
+      );
+      const profileMap = new Map<string, string>(
+        ((profiles ?? []) as Array<{ id: string; display_name: string | null; full_name: string | null; email: string | null }>)
+          .map((p) => [p.id, p.display_name ?? p.full_name ?? p.email ?? "Student"]),
+      );
+
+      const viewsByCert = new Map<number, { count: number; last: string | null }>();
+      for (const v of (views ?? []) as Array<{ certificate_id: number; viewed_at: string }>) {
+        const entry = viewsByCert.get(v.certificate_id) ?? { count: 0, last: null };
+        entry.count += 1;
+        if (!entry.last || new Date(v.viewed_at) > new Date(entry.last)) entry.last = v.viewed_at;
+        viewsByCert.set(v.certificate_id, entry);
+      }
+
+      const rows: AnalyticsRow[] = list.map((c) => {
+        const stats = viewsByCert.get(c.id) ?? { count: 0, last: null };
+        const courseTitle = c.certificate_type === "program"
+          ? PROGRAM_TITLE
+          : (c.course_id != null && courseMap.get(c.course_id)) || String(c.metadata?.["course_title"] ?? "Course");
+        return {
+          id: c.id,
+          certificate_number: c.certificate_number,
+          public_slug: c.public_slug,
+          issued_at: c.issued_at,
+          revoked_at: c.revoked_at,
+          student_name: profileMap.get(c.user_id) ?? "Student",
+          course_title: courseTitle,
+          view_count: stats.count,
+          last_viewed_at: stats.last,
+        };
+      });
+      // Sort by views desc, then last_viewed desc
+      rows.sort((a, b) => {
+        if (b.view_count !== a.view_count) return b.view_count - a.view_count;
+        const la = a.last_viewed_at ? new Date(a.last_viewed_at).getTime() : 0;
+        const lb = b.last_viewed_at ? new Date(b.last_viewed_at).getTime() : 0;
+        return lb - la;
+      });
+      return rows;
+    },
+  });
+}
+
+function PublicLinkAnalyticsPanel() {
+  const { data, isLoading, error, refetch, isFetching } = useLinkAnalytics();
+
+  const copy = async (url: string) => {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-base">
+          <BarChart3 className="w-4 h-4 text-primary" /> Public link analytics
+        </CardTitle>
+        <p className="text-xs text-muted-foreground">
+          Every certificate that has a public link, with view counts. Views are recorded from the
+          public <code>/c/:slug</code> page.
+        </p>
+      </CardHeader>
+      <CardContent>
+        <div className="flex justify-end mb-2">
+          <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching}>
+            {isFetching && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+            Refresh
+          </Button>
+        </div>
+        {isLoading ? (
+          <div className="text-sm text-muted-foreground py-6 text-center">Loading…</div>
+        ) : error ? (
+          <div className="text-sm text-destructive py-6 text-center">
+            {(error as Error).message}
+          </div>
+        ) : !data || data.length === 0 ? (
+          <div className="text-sm text-muted-foreground py-6 text-center">
+            No public certificate links yet.
+          </div>
+        ) : (
+          <div className="overflow-auto rounded border">
+            <table className="w-full text-xs">
+              <thead className="bg-muted/50 text-left">
+                <tr>
+                  <th className="px-2 py-2">Student</th>
+                  <th className="px-2 py-2">Course</th>
+                  <th className="px-2 py-2">Public link</th>
+                  <th className="px-2 py-2 text-right">Views</th>
+                  <th className="px-2 py-2">Last viewed</th>
+                  <th className="px-2 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((row) => {
+                  const url = `${window.location.origin}/c/${row.public_slug}`;
+                  const status = row.revoked_at
+                    ? { label: "Revoked", icon: <ShieldOff className="w-3 h-3" />, cls: "text-destructive" }
+                    : { label: "Public", icon: <Globe className="w-3 h-3" />, cls: "text-emerald-700" };
+                  return (
+                    <tr key={row.id} className="border-t">
+                      <td className="px-2 py-2 align-top">{row.student_name}</td>
+                      <td className="px-2 py-2 align-top">{row.course_title}</td>
+                      <td className="px-2 py-2 align-top">
+                        <div className="flex items-center gap-1">
+                          <a
+                            className="underline break-all"
+                            href={`/c/${row.public_slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            /c/{row.public_slug}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => copy(url)}
+                            className="p-1 hover:bg-accent rounded"
+                            title="Copy link"
+                          >
+                            <Copy className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 align-top text-right font-mono">{row.view_count}</td>
+                      <td className="px-2 py-2 align-top">
+                        {row.last_viewed_at
+                          ? new Date(row.last_viewed_at).toLocaleString()
+                          : <span className="text-muted-foreground">—</span>}
+                      </td>
+                      <td className={`px-2 py-2 align-top ${status.cls}`}>
+                        <span className="inline-flex items-center gap-1">
+                          {status.icon} {status.label}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </CardContent>
@@ -434,6 +788,7 @@ export default function CertificateAdminTools() {
     <div className="space-y-4 mb-6">
       <PreviewCertificatePanel courses={list} />
       <IssueCertificatePanel courses={list} />
+      <PublicLinkAnalyticsPanel />
     </div>
   );
 }
