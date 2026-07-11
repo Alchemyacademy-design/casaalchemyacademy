@@ -37,7 +37,9 @@ Sempre use: linguagem baseada em princípios, framing de transformação (antes/
 
 O quiz deve testar compreensão real do conteúdo da aula fornecida — nunca inventar teoria que não esteja no material de origem. Perguntas objetivas, com exatamente uma resposta correta, e uma explicação curta e didática para cada uma.
 
-Você DEVE responder exclusivamente em JSON válido, sem texto fora do JSON, exatamente no schema pedido pelo usuário. Escreva no mesmo idioma do conteúdo fornecido (português se o material está em português; inglês se está em inglês).`;
+LANGUAGE DETECTION (CRITICAL): Detect the dominant language of the SOURCE course/module/lesson content provided by the user (the text pulled from the database — course description, lesson descriptions, lesson content, lesson blocks). Write your ENTIRE output — title, description, every question_text, every option_text (including true/false labels), and every explanation — in that same detected language. Do NOT default to English or any fixed language. If the source is in Portuguese, the whole quiz is in Portuguese (and true/false options are "Verdadeiro"/"Falso"). If it's in English, the whole quiz is in English ("True"/"False"). If it's in Spanish, everything in Spanish ("Verdadero"/"Falso"), and so on. The administrator's extra instructions and any pasted extra context may be written in a different language purely as guidance — IGNORE that language signal for output; the output language is determined ONLY by the dominant language of the actual source lesson/module material from the database. Never mix languages inside a single quiz.
+
+Você DEVE responder exclusivamente em JSON válido, sem texto fora do JSON, exatamente no schema pedido pelo usuário.`;
 
 // deno-lint-ignore no-explicit-any
 function extractBlockText(block: any): string {
@@ -220,7 +222,7 @@ async function callAi(
       : `Este é um quiz de aula específica — foque no conteúdo dessa aula.`;
 
   const formatRule = questionFormat === "mixed"
-    ? `Formato MISTO: use múltipla escolha (4 opções) para a maioria e, quando fizer sentido, algumas perguntas verdadeiro/falso com EXATAMENTE 2 opções ("Verdadeiro"/"Falso" ou "True"/"False", no idioma do conteúdo). Toda pergunta tem exatamente 1 opção correta.`
+    ? `Formato MISTO: use múltipla escolha (4 opções) para a maioria e, quando fizer sentido, algumas perguntas verdadeiro/falso com EXATAMENTE 2 opções. Os rótulos das opções de verdadeiro/falso DEVEM estar no mesmo idioma detectado do conteúdo de origem (ex.: "Verdadeiro"/"Falso" em português, "True"/"False" em inglês, "Verdadero"/"Falso" em espanhol). Toda pergunta tem exatamente 1 opção correta.`
     : `Formato: múltipla escolha somente. Cada pergunta tem EXATAMENTE 4 opções e EXATAMENTE 1 opção correta.`;
 
   const userPrompt = `Você receberá o conteúdo real do curso "${courseTitle}" e deve gerar um RASCUNHO de ${typeLabel} baseado ESTRITAMENTE nesse conteúdo.
@@ -228,6 +230,7 @@ async function callAi(
 ${typeGuidance}
 
 Regras obrigatórias:
+- IDIOMA: detecte o idioma predominante do CONTEÚDO DO CURSO abaixo (a fonte de verdade vinda do banco) e escreva TODO o output (título, descrição, perguntas, opções, explicações) nesse mesmo idioma. Não use inglês por padrão. Instruções do administrador podem estar em outro idioma apenas como orientação — NÃO deixe isso influenciar o idioma de saída.
 - Gere ${questionCount} perguntas objetivas.
 - ${formatRule}
 - Cada pergunta tem uma explicação curta (1–3 frases) que ensina o porquê da resposta correta.
