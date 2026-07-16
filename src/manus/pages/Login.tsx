@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { readNextFromLocation, withNext } from "@/manus/lib/safe-next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, AlertCircle } from "lucide-react";
@@ -42,8 +43,10 @@ export default function Login() {
       }
 
       if (data.session) {
-        // Let PostAuthRedirect compute the right destination based on roles.
-        navigate("/auth/continue", { replace: true });
+        // Prefer a preserved `next` (e.g. OAuth consent flow) via
+        // PostAuthRedirect, which validates it again.
+        const next = readNextFromLocation();
+        navigate(withNext("/auth/continue", next), { replace: true });
       }
     } catch (err) {
       setError("An unexpected error occurred");
@@ -58,10 +61,11 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     try {
+      const next = readNextFromLocation();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}${withNext("/auth/callback", next)}`,
         },
       });
 
