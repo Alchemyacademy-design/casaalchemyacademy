@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Mail, Lock, User, AlertCircle, CheckCircle2 } from "lucide-react";
+import { readNextFromLocation, withNext } from "@/manus/lib/safe-next";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -35,11 +36,12 @@ export default function Signup() {
     }
 
     try {
+      const next = readNextFromLocation();
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          emailRedirectTo: `${window.location.origin}${withNext("/auth/callback", next)}`,
           data: { full_name: fullName },
         },
       });
@@ -51,7 +53,7 @@ export default function Signup() {
 
       // Email confirmation disabled — session is returned immediately.
       if (data.session) {
-        navigate("/dashboard");
+        navigate(next ?? "/dashboard");
         return;
       }
 
@@ -64,7 +66,7 @@ export default function Signup() {
         setError(signInError.message);
         return;
       }
-      navigate("/dashboard");
+      navigate(next ?? "/dashboard");
     } catch (err) {
       setError("An unexpected error occurred");
       console.error(err);
@@ -75,10 +77,11 @@ export default function Signup() {
 
   const handleGoogleSignup = async () => {
     try {
+      const next = readNextFromLocation();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}${withNext("/auth/callback", next)}`,
         },
       });
 
