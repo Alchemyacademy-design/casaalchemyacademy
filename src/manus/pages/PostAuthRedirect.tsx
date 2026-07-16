@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Sparkles } from "lucide-react";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { readNextFromLocation } from "@/manus/lib/safe-next";
 
 export default function PostAuthRedirect() {
   const navigate = useNavigate();
@@ -9,7 +10,12 @@ export default function PostAuthRedirect() {
 
   useEffect(() => {
     if (loading) return;
-    navigate(isAuthenticated ? defaultPath : "/login", { replace: true });
+    if (!isAuthenticated) {
+      navigate("/login", { replace: true });
+      return;
+    }
+    const next = readNextFromLocation();
+    navigate(next ?? defaultPath, { replace: true });
   }, [defaultPath, isAuthenticated, loading, navigate]);
 
   return (
