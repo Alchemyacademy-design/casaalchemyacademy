@@ -57,6 +57,7 @@ const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuil
 const AdminLinkScanner = lazyWithRetry(() => import("@/manus/pages/admin/AdminLinkScanner"), "AdminLinkScanner");
 const NotificationsInbox = lazyWithRetry(() => import("@/manus/pages/NotificationsInbox"), "NotificationsInbox");
 const PublicCertificate = lazyWithRetry(() => import("@/manus/pages/PublicCertificate"), "PublicCertificate");
+const OAuthConsent = lazyWithRetry(() => import("@/manus/pages/OAuthConsent"), "OAuthConsent");
 
 
 export default function App() {
@@ -72,6 +73,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/c/:slug" element={<PublicCertificate />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/auth/continue" element={<PostAuthRedirect />} />
             <Route path="/mycourses" element={<Modules />} />
             <Route path="/mycourses/:id" element={<ModuleDetail />} />
