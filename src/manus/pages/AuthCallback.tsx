@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabase";
+import { readNextFromLocation, withNext } from "@/manus/lib/safe-next";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -21,7 +22,12 @@ export default function AuthCallback() {
         if (error) throw error;
 
         if (!mounted) return;
-        navigate(data.session ? "/auth/continue" : "/login", { replace: true });
+        const next = readNextFromLocation();
+        if (data.session) {
+          navigate(withNext("/auth/continue", next), { replace: true });
+        } else {
+          navigate(withNext("/login", next), { replace: true });
+        }
       } catch (error) {
         console.error("Auth callback error:", error);
         if (mounted) navigate("/login", { replace: true });
