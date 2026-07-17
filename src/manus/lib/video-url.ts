@@ -155,3 +155,32 @@ export function stripQueryForDisplay(raw: string): string {
     return raw;
   }
 }
+
+/**
+ * Normalise a Dropbox share URL for a file *download* (PDF, ZIP, etc.).
+ *
+ * For non-video assets, `raw=1` on `dl.dropboxusercontent.com/scl/fi/…`
+ * returns an inline preview with `content-type: application/json`, which
+ * browsers refuse to save as the target file. `dl=1` on `www.dropbox.com`
+ * follows Dropbox's official download redirect and streams the real bytes
+ * with `Content-Disposition: attachment`. Non-Dropbox URLs pass through.
+ */
+export function normalizeDropboxDownloadUrl(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== "string") return "";
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return raw;
+  }
+  if (!isHttp(url)) return raw;
+  const host = url.hostname.toLowerCase();
+  if (!DROPBOX_HOSTS.has(host)) return url.toString();
+  // Prefer the canonical share host for downloads.
+  if (host === "dl.dropboxusercontent.com") {
+    url.hostname = "www.dropbox.com";
+  }
+  url.searchParams.delete("raw");
+  url.searchParams.set("dl", "1");
+  return url.toString();
+}
