@@ -3,7 +3,7 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Download, Loader2, PlayCircle } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
-import { normalizeVideoUrl } from "@/manus/lib/video-url";
+import { normalizeVideoUrl, normalizeDropboxDownloadUrl } from "@/manus/lib/video-url";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
 const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
@@ -27,6 +27,15 @@ function normalizeDoc(url: string | null | undefined): string {
   return url ? normalizeVideoUrl(url) || url : "";
 }
 
+/**
+ * Build a URL suitable for the "Download PDF" button. Dropbox PDFs need
+ * `dl=1` on `www.dropbox.com` — the video normalizer (`raw=1` on
+ * `dl.dropboxusercontent.com`) returns an inline JSON preview.
+ */
+function downloadUrl(url: string | null | undefined): string {
+  return url ? normalizeDropboxDownloadUrl(url) || url : "";
+}
+
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long" });
@@ -38,7 +47,7 @@ export default function Magazine() {
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
-  const currentPdf = normalizeDoc(current?.external_file_url);
+  const currentPdf = downloadUrl(current?.external_file_url);
   const currentCover = normalizeDoc(current?.cover_image_path);
 
   return (
@@ -137,7 +146,7 @@ export default function Magazine() {
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {archives.map((issue) => {
-                      const pdf = normalizeDoc(issue.external_file_url);
+                      const pdf = downloadUrl(issue.external_file_url);
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
                         <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
