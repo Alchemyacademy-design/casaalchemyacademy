@@ -2682,6 +2682,14 @@ export type Database = {
         }
         Returns: undefined
       }
+      internal_submit_quiz_attempt: {
+        Args: { p_answers: Json; p_quiz_id: number; p_user_id: string }
+        Returns: {
+          attempts_remaining: number
+          passed: boolean
+          score: number
+        }[]
+      }
       lesson_rating_summary: {
         Args: { p_lesson_id: number }
         Returns: {
