@@ -212,7 +212,7 @@ export default function CourseDetail() {
     <MemberLayout>
       <MemberPage>
         <div className="mb-5">
-          <Link to="/mycourses" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground transition hover:text-accent">
+          <Link to="/courses" className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground transition hover:text-accent">
             <ArrowLeft className="h-3.5 w-3.5" /> All courses
           </Link>
         </div>

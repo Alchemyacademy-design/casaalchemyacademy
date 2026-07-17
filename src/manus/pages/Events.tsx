@@ -42,7 +42,15 @@ export default function Events() {
               {upcoming.map((event) => {
                 const isRegistered = registeredIds.has(event.id);
                 return (
-                  <div key={event.id} className="p-6 rounded-lg border border-border/50 hover:border-border transition" style={{ backgroundColor: "white" }}>
+                  <div key={event.id} className="rounded-lg border border-border/50 hover:border-border transition overflow-hidden flex flex-col" style={{ backgroundColor: "white" }}>
+                    {event.cover_image_path && (
+                      <div
+                        className="aspect-[16/9] w-full bg-[var(--aa-cream-dark)]"
+                        style={{ backgroundImage: `url('${event.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center" }}
+                        aria-hidden="true"
+                      />
+                    )}
+                    <div className="p-6 flex flex-col flex-1">
                     <div className="mb-4">
                       <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)" }}>{event.title}</h3>
                       {event.description && (
@@ -74,6 +82,7 @@ export default function Events() {
                     >
                       {!isAuthenticated ? "Sign in to register" : isRegistered ? (<><CheckCircle2 size={14} className="inline mr-1" />Registered</>) : register.isPending ? "Registering…" : "Register"}
                     </button>
+                    </div>
                   </div>
                 );
               })}
@@ -90,7 +99,15 @@ export default function Events() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {past.map((event) => (
-                <div key={event.id} className="p-6 rounded-lg border border-border/50 opacity-75" style={{ backgroundColor: "white" }}>
+                <div key={event.id} className="rounded-lg border border-border/50 opacity-75 overflow-hidden" style={{ backgroundColor: "white" }}>
+                  {event.cover_image_path && (
+                    <div
+                      className="aspect-[16/9] w-full bg-[var(--aa-cream-dark)]"
+                      style={{ backgroundImage: `url('${event.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center" }}
+                      aria-hidden="true"
+                    />
+                  )}
+                  <div className="p-6">
                   <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)" }}>{event.title}</h3>
                   {event.description && (
                     <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>{event.description}</p>
@@ -98,6 +115,7 @@ export default function Events() {
                   <div className="flex items-center gap-2 text-sm border-t border-border/30 pt-4" style={{ color: "var(--aa-text-mid)" }}>
                     <Calendar size={16} style={{ color: "var(--aa-accent)" }} />
                     <span>{fmtDate(event.starts_at)}</span>
+                  </div>
                   </div>
                 </div>
               ))}

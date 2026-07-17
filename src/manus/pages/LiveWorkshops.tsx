@@ -41,6 +41,13 @@ export default function LiveWorkshops() {
                   const isReg = registered.has(w.id);
                   return (
                     <div key={w.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
+                      {w.cover_image_path && (
+                        <div
+                          className="aspect-[16/9] w-full"
+                          style={{ backgroundImage: `url('${w.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}
+                          aria-hidden="true"
+                        />
+                      )}
                       <div className="p-6">
                         <div className="mb-4">
                           <div className="flex items-center gap-2 mb-2">
@@ -85,6 +92,13 @@ export default function LiveWorkshops() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {past.map((w) => (
                   <div key={w.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
+                    {w.cover_image_path && (
+                      <div
+                        className="aspect-[16/9] w-full opacity-80"
+                        style={{ backgroundImage: `url('${w.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}
+                        aria-hidden="true"
+                      />
+                    )}
                     <div className="p-6">
                       <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{w.title}</h3>
                       <p className="text-xs mb-2" style={{ color: "var(--aa-text-light)" }}>{fmtDate(w.starts_at)}</p>
