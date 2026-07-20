@@ -1722,6 +1722,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          leaderboard_opt_out: boolean
           notification_prefs: Json
           timezone: string
           updated_at: string
@@ -1733,6 +1734,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          leaderboard_opt_out?: boolean
           notification_prefs?: Json
           timezone?: string
           updated_at?: string
@@ -1744,6 +1746,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          leaderboard_opt_out?: boolean
           notification_prefs?: Json
           timezone?: string
           updated_at?: string
@@ -2606,6 +2609,18 @@ export type Database = {
           id: string
         }[]
       }
+      get_alchemist_leaderboard: {
+        Args: { p_limit?: number; p_window?: string }
+        Returns: {
+          avatar_path: string
+          display_name: string
+          rank: number
+          tier: string
+          user_id: string
+          xp: number
+        }[]
+      }
+      get_my_alchemist_stats: { Args: never; Returns: Json }
       get_public_certificate: {
         Args: { slug: string }
         Returns: {
