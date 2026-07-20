@@ -158,6 +158,28 @@ export default function Profile() {
             </ul>
           </div>
 
+          <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
+            <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Alchemist ranking</h2>
+            <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)" }}>
+              Show your display name and avatar on the public leaderboard alongside other Alchemists.
+            </p>
+            <div className="flex items-center justify-between gap-4">
+              <span className="text-sm" style={{ color: "var(--aa-text-dark)" }}>Appear on the leaderboard</span>
+              <button
+                type="button"
+                onClick={() => update.mutate({ leaderboard_opt_out: !((profile as { leaderboard_opt_out?: boolean } | null)?.leaderboard_opt_out ?? false) })}
+                aria-pressed={!((profile as { leaderboard_opt_out?: boolean } | null)?.leaderboard_opt_out ?? false)}
+                className="relative inline-flex h-6 w-11 items-center rounded-full transition"
+                style={{ backgroundColor: !((profile as { leaderboard_opt_out?: boolean } | null)?.leaderboard_opt_out ?? false) ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)" }}
+              >
+                <span
+                  className="inline-block h-5 w-5 transform rounded-full bg-white transition"
+                  style={{ transform: !((profile as { leaderboard_opt_out?: boolean } | null)?.leaderboard_opt_out ?? false) ? "translateX(22px)" : "translateX(2px)" }}
+                />
+              </button>
+            </div>
+          </div>
+
           {!isAdmin && activeMembership && (
             <div className="p-8" style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
               <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Billing</h2>

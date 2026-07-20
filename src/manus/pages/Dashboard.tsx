@@ -14,6 +14,8 @@ import {
 import ResumeHero from "@/manus/components/member/ResumeHero";
 import ActivityStrip from "@/manus/components/member/ActivityStrip";
 import InboxWidget from "@/manus/components/member/InboxWidget";
+import AlchemistLevelCard from "@/manus/components/member/AlchemistLevelCard";
+import LeaderboardCard from "@/manus/components/member/LeaderboardCard";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
 import type { ModuleRow, ProgressRow } from "@/manus/lib/types";
@@ -105,6 +107,13 @@ export default function Dashboard() {
             <ActivityStrip />
           </div>
           <InboxWidget />
+        </section>
+
+        <section className="mb-10 grid grid-cols-1 gap-4 lg:grid-cols-3" aria-label="Alchemist Level and leaderboard">
+          <div className="lg:col-span-2">
+            <AlchemistLevelCard />
+          </div>
+          <LeaderboardCard />
         </section>
 
         <section className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-2" aria-label="Learning summary">
