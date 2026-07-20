@@ -27,7 +27,16 @@ export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }
         { name: "capacity", label: "Capacity", type: "number", hideInTable: true },
         { name: "meeting_url", label: "Meeting URL", type: "text", hideInTable: true },
         { name: "replay_url", label: "Replay URL", type: "text", hideInTable: true },
-        { name: "cover_image_path", label: "Cover image path", type: "text", hideInTable: true },
+        {
+          name: "cover_image_path",
+          label: "Cover image",
+          type: "file",
+          uploadFolder: "workshops",
+          accept: "image/*",
+          preview: true,
+          hideInTable: true,
+          placeholder: "Upload or paste an image URL",
+        },
         { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
       ]}
     />
