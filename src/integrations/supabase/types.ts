@@ -1617,6 +1617,41 @@ export type Database = {
           },
         ]
       }
+      module_ratings: {
+        Row: {
+          created_at: string
+          id: number
+          module_id: number
+          rating: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          module_id: number
+          rating: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          module_id?: number
+          rating?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_ratings_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           body: string | null
@@ -2549,6 +2584,7 @@ export type Database = {
     }
     Functions: {
       can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
+      can_access_module: { Args: { _module_id: number }; Returns: boolean }
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }
       community_notify_mentions: {
         Args: {
@@ -2692,6 +2728,14 @@ export type Database = {
       }
       lesson_rating_summary: {
         Args: { p_lesson_id: number }
+        Returns: {
+          avg_rating: number
+          total: number
+          user_rating: number
+        }[]
+      }
+      module_rating_summary: {
+        Args: { p_module_id: number }
         Returns: {
           avg_rating: number
           total: number
