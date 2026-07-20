@@ -1,102 +1,50 @@
-# Premortem — Premium Certificate System
+# Alchemist Level — sistema de engajamento com ranking
 
-## Vision
+Como você pediu para executar sem responder as 4 perguntas do premortem, vou seguir com defaults sensatos. Se quiser mudar algum ponto, avisa antes de eu começar (ou depois, é fácil ajustar).
 
-Move away from the current canvas-drawn PNG (generic, low fidelity) toward a **museum-grade certificate** that matches the platform's editorial identity (Instrument Serif + Manrope, Chocolate / Terracotta / Sandstone / Gold tokens). Every certificate must exist in **two forms with identical visuals**:
+## Defaults assumidos
+1. **5 tiers**: Novice (0), Apprentice (100), Alchemist (500), Master (1500), Luminary (4000).
+2. **Fórmula de XP** (calculada via SQL a partir de tabelas existentes — sem duplicar dados):
+   - Lição concluída (`lesson_progress.completed_at`): **10 XP**
+   - Tentativa de quiz aprovada (`quiz_attempts.passed`): **25 XP** (1x por quiz)
+   - Post na comunidade (`community_posts` publicado): **5 XP**
+   - Reply na comunidade (`community_replies`): **3 XP**
+   - Certificado emitido (`certificates` ativo): **200 XP**
+   - Streak diário (dia com ≥1 lição): **+2 XP/dia** (via `useActivityStats` já existente)
+3. **Ranking**: dois recortes lado a lado — **All-time** e **Últimos 30 dias**. Top 10.
+4. **Privacidade**: **opt-in por padrão** (todo aluno aparece com display_name/avatar; pode ocultar em Profile). Admin nunca aparece no ranking público.
 
-1. **Online, shareable page** — a permanent public URL (`/c/:code`) the student can post on LinkedIn, send by email, or embed.
-2. **Downloadable PDF** — pixel-perfect A4 landscape file, vector text, embedded fonts, generated on demand.
+## Entregas
 
-Both surfaces render from the **same React component** so the design never drifts.
+### 1. Migration — função + view
+- Função SQL `public.get_alchemist_leaderboard(window text)` (SECURITY DEFINER) que agrega XP para todos os usuários. `window ∈ ('all', '30d')`. Exclui admins (via `has_role`) e usuários com `profiles.leaderboard_opt_out = true`.
+- Função `public.get_my_alchemist_stats()` que retorna `{ xp, tier, next_tier, xp_to_next, rank_all, rank_30d, breakdown }` para o `auth.uid()` atual.
+- Adiciona `profiles.leaderboard_opt_out boolean default false`.
+- GRANT EXECUTE para `authenticated`.
 
----
+### 2. Frontend — dashboard
+- Novo componente `src/manus/components/member/AlchemistLevelCard.tsx`:
+  - Header do card: tier atual + progress bar até próximo tier + XP total.
+  - Breakdown pequeno (lessons/quizzes/community/certs).
+  - Sua posição no ranking (all-time e 30d).
+- Novo componente `src/manus/components/member/LeaderboardCard.tsx`:
+  - Toggle All-time / 30d.
+  - Top 10 com avatar, display_name, tier badge, XP.
+  - Destaca o usuário logado se estiver no top 10; senão mostra "Você: #N" abaixo.
+- `useAlchemistLevel()` hook consumindo as 2 RPCs via react-query.
+- Insere ambos no `Dashboard.tsx` entre `ActivityStrip` e a seção "Coming up".
 
-## Premortem — what could go wrong, and how we prevent it
+### 3. Profile — opt-out
+- Toggle "Aparecer no ranking Alchemist" em `Profile.tsx` que grava `profiles.leaderboard_opt_out`.
 
+## Não-escopo (fica pra depois)
+- Não vou criar tabela `user_xp` materializada. Cálculo por SQL agregando as tabelas atuais é rápido o suficiente com poucos milhares de usuários e evita drift/backfill.
+- Nada de notificações "você subiu de nível" ainda — dá para adicionar depois observando a mudança de tier no client.
+- Sem badges/achievements — só tiers.
 
-| Risk                                                         | Prevention                                                                                                                                                                                                                                     |
-| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| PDF looks different from web (fonts fall back, colors shift) | Use `@react-pdf/renderer` with embedded Instrument Serif + Manrope TTFs from `/public/fonts`. Single design token file shared with the web view.                                                                                               |
-| Public link leaks private student data                       | Public page shows only: student display name, course title, issued date, certificate №, verification checkmark. No email, no user id, no progress detail.                                                                                      |
-| Certificates can be forged by editing the URL                | Verification uses `certificate_number` (already unique + random) as the lookup key, plus a signed `verification_hash` column. Public page reads via a `SECURITY DEFINER` RPC that only returns non-sensitive fields.                           |
-| Revoked certificates still resolve publicly                  | RPC filters `revoked_at IS NULL`; revoked links render a "This certificate has been revoked" state.                                                                                                                                            |
-| Slow PDF generation blocks the UI                            | Generate client-side with `@react-pdf/renderer` (fast, no server round-trip). Fallback edge function for email attachments later.                                                                                                              |
-| Design becomes generic AI-looking                            | Commit to one distinctive layout: **asymmetric editorial** — oversized serif student name off-center, gold seal, thin double-rule border, small caps metadata grid, subtle paper texture. No purple gradients, no centered corporate template. |
-| Mobile share preview looks broken on LinkedIn                | Add per-certificate OG image (rendered via edge function on first view, cached in `public-assets` bucket) + JSON-LD `EducationalOccupationalCredential`.                                                                                       |
-| Existing `CertificatePreview` and download button diverge    | Delete the canvas download path. Both preview and real certificate render `<CertificateArtwork />`. PDF wraps the same tokens in `@react-pdf/renderer` primitives.                                                                             |
+## Riscos e mitigação
+- **Performance** da view agregada: usar `LATERAL` + índices existentes; limitar `WITH data AS (...) SELECT ... LIMIT 200` antes de ordenar. Se ficar lento, migro para uma materialized view refresh 5min.
+- **Privacidade**: admin não aparece; usuários sem `display_name` caem para "Alchemist #<curto>" (não vazamos email).
+- **Gaming**: post/reply valem pouco (5/3) e ficam capados a 50 posts/dia via `LEAST(count, 50)` no SQL.
 
-
----
-
-## Design direction (single committed style)
-
-- **Layout**: A4 landscape, asymmetric. Left rail: vertical small-caps `CASA ALCHEMY STUDIO · CERTIFICATE №`. Center-left block: eyebrow "Certificate of Completion" → oversized Instrument Serif student name (clamp 64–96pt) → italic course title → 2-column metadata (Issued / Verify at). Right: hand-drawn gold seal SVG + signature line.
-- **Palette**: `--aa-cream` background, `--aa-olive-dark` primary ink, `--aa-terracotta` accent rule, `--aa-gold` seal only. No drop shadows, no gradients.
-- **Texture**: subtle SVG paper grain at 4% opacity — printable, not distracting.
-- **Border**: thin double rule 12mm from edge, corner flourishes in gold.
-- **Typography**: Instrument Serif (display), Manrope (labels/metadata). Embed both as TTF for PDF parity.
-
----
-
-## Deliverables
-
-### 1. Schema (migration)
-
-- Add `certificates.verification_hash TEXT UNIQUE` (sha256 of `certificate_number || user_id || course_id || issued_at`).
-- Add `certificates.public_slug TEXT UNIQUE` (short URL-safe id, e.g. `aa-x7k2m9`).
-- Add `certificates.pdf_cached_path TEXT` (option`public-assets`).
-- RPC `public.get_public_certificate(slug text)` — SECURITY DEFINER, returns only safe fields, filters revoked.
-
-### 2. Shared design primitive
-
-- `src/manus/components/certificates/CertificateArtwork.tsx` — pure presentational component, takes `{ studentName, courseTitle, issuedAt, certificateNumber, verifyUrl }`. Used by preview, member page, and public page.
-- `src/manus/components/certificates/CertificatePdf.tsx` — `@react-pdf/renderer` mirror using the same tokens + embedded fonts.
-
-### 3. Public page
-
-- Route `/c/:slug` (unauthenticated). Renders `CertificateArtwork` + verification badge + "Download PDF" + "Share on LinkedIn" + JSON-LD.
-- SEO: title `{Student} — {Course} · Casa Alchemy Studio`, description, canonical.
-
-### 4. Member surface
-
-- Replace `CertificateSection.tsx` canvas download with:
-  - "View certificate" (opens `/c/:slug` in new tab)
-  - "Download PDF" (client-side `@react-pdf/renderer` blob)
-  - "Copy share link"
-  - "Share on LinkedIn" (prefilled `addToProfile` URL using JSON-LD data)
-
-### 5. Admin surface
-
-- `AdminCertificates.tsx`: add columns for public slug + revoke action.
-- `AdminCourseDetail` preview button already exists — point it at the new `CertificateArtwork`.
-
-### 6. Backfill
-
-- One-off migration to generate `public_slug` + `verification_hash` for existing rows.
-
----
-
-## Rollout phases
-
-**Phase 1 — Foundation (schema + shared artwork)**
-Migration, RPC, `CertificateArtwork` component, replace preview usage. No user-facing behavior change yet.
-
-**Phase 2 — Public link**
-`/c/:slug` route, JSON-LD, SEO, LinkedIn share, backfill slugs.
-
-**Phase 3 — PDF parity**
-`@react-pdf/renderer` + embedded fonts, download button, remove canvas path.
-
-**Phase 4 — Polish**
-OG image edge function, admin revoke UI, verification badge micro-interactions.
-
----
-
-## Technical notes
-
-- New dep: `@react-pdf/renderer` (~1 dep, tree-shakes well). Fonts already in project or added under `/public/fonts/`.
-- No new secrets required. No Stripe impact.
-- Follows existing RLS: public read via SECURITY DEFINER RPC only, no broad grants on `certificates`.
-- Fully compatible with the designated admin rule and current `has_role` gating.
-
-Approve and I'll execute Phase 1 next.
+Confirma para eu executar (ou responde os 4 pontos do premortem se quiser ajustar defaults).
