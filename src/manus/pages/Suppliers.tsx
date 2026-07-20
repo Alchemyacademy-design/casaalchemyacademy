@@ -1,6 +1,6 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ExternalLink, Heart } from "lucide-react";
+import { ExternalLink, Heart, Lock } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -20,7 +20,10 @@ type SupplierLike = {
 };
 
 export default function Suppliers() {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
+  // Hub not activated yet — show locked overlay for non-admins.
+  const SUPPLIERS_HUB_ENABLED = false;
+  const locked = !SUPPLIERS_HUB_ENABLED && !isAdmin;
   const { data: suppliers = [] } = trpc.suppliers.publicList.useQuery();
   const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
   const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
@@ -212,7 +215,11 @@ export default function Suppliers() {
         )}
 
         {/* Suppliers Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="relative">
+          <div
+            className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 ${locked ? "blur-sm opacity-60 pointer-events-none select-none" : ""}`}
+            aria-hidden={locked}
+          >
           {filtered.length === 0 ? (
             <div className="col-span-full text-center py-12" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
               <p>No suppliers match your filters.</p>
@@ -260,6 +267,55 @@ export default function Suppliers() {
                 </div>
               );
             })
+          )}
+          </div>
+
+          {locked && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div
+                className="max-w-md text-center px-8 py-10 backdrop-blur-md"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.85)",
+                  border: "1px solid var(--aa-cream-dark)",
+                }}
+              >
+                <div
+                  className="inline-flex items-center justify-center mb-4"
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: "50%",
+                    backgroundColor: "var(--aa-olive-dark)",
+                    color: "var(--aa-cream)",
+                  }}
+                >
+                  <Lock size={22} />
+                </div>
+                <p
+                  className="section-label mb-2"
+                  style={{ color: "var(--aa-gold)" }}
+                >
+                  Coming soon
+                </p>
+                <h2
+                  className="font-serif text-2xl md:text-3xl mb-3"
+                  style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}
+                >
+                  Supplier Hub launching soon
+                </h2>
+                <p
+                  className="text-sm"
+                  style={{
+                    color: "var(--aa-text-mid)",
+                    fontFamily: "'DM Sans', sans-serif",
+                    fontWeight: 300,
+                  }}
+                >
+                  We&apos;re curating our directory of trusted partners and exclusive
+                  member discounts. You&apos;ll be notified as soon as it&apos;s live.
+                </p>
+              </div>
+            </div>
           )}
         </div>
       </div>
