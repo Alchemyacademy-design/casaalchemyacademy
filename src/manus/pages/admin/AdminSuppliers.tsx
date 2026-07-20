@@ -61,7 +61,16 @@ export function AdminSuppliersInner({ embedded = false }: { embedded?: boolean }
         { name: "email", label: "Email", type: "text", hideInTable: true },
         { name: "phone", label: "Phone", type: "text", hideInTable: true },
         { name: "website_url", label: "Website", type: "text", hideInTable: true },
-        { name: "logo_image_path", label: "Logo image path", type: "text", hideInTable: true },
+        {
+          name: "logo_image_path",
+          label: "Logo image",
+          type: "file",
+          uploadFolder: "suppliers",
+          accept: "image/*",
+          preview: true,
+          hideInTable: true,
+          placeholder: "Upload or paste an image URL",
+        },
         { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
       ]}
     />
