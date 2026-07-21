@@ -966,6 +966,54 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string
+          email: string
+          hubspot_contact_id: string | null
+          hubspot_error: string | null
+          hubspot_synced_at: string | null
+          id: number
+          ip_hash: string | null
+          metadata: Json
+          name: string
+          phone: string
+          source: Database["public"]["Enums"]["lead_source"]
+          updated_at: string
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          hubspot_contact_id?: string | null
+          hubspot_error?: string | null
+          hubspot_synced_at?: string | null
+          id?: never
+          ip_hash?: string | null
+          metadata?: Json
+          name: string
+          phone: string
+          source: Database["public"]["Enums"]["lead_source"]
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          hubspot_contact_id?: string | null
+          hubspot_error?: string | null
+          hubspot_synced_at?: string | null
+          id?: never
+          ip_hash?: string | null
+          metadata?: Json
+          name?: string
+          phone?: string
+          source?: Database["public"]["Enums"]["lead_source"]
+          updated_at?: string
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       lesson_attachments: {
         Row: {
           created_at: string
@@ -2826,6 +2874,7 @@ export type Database = {
         | "manual"
         | "per_cohort"
       course_visibility: "public" | "unlisted" | "private"
+      lead_source: "popup" | "quiz"
       lesson_kind:
         | "video"
         | "text"
@@ -3030,6 +3079,7 @@ export const Constants = {
         "per_cohort",
       ],
       course_visibility: ["public", "unlisted", "private"],
+      lead_source: ["popup", "quiz"],
       lesson_kind: [
         "video",
         "text",
