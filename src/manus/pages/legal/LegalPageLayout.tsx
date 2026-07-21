@@ -9,11 +9,11 @@ interface LegalPageLayoutProps {
 }
 
 const legalNav = [
-  { label: "Início", href: "/" },
-  { label: "Política de Privacidade", href: "/politica-de-privacidade" },
-  { label: "Termos de Uso", href: "/termos-de-uso" },
-  { label: "Suporte", href: "/suporte" },
-  { label: "Exclusão de Dados", href: "/exclusao-de-dados" },
+  { label: "Home", href: "/" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Terms of Use", href: "/terms-of-use" },
+  { label: "Support", href: "/support" },
+  { label: "Data Deletion", href: "/data-deletion" },
 ];
 
 export default function LegalPageLayout({ title, description, updatedAt, children }: LegalPageLayoutProps) {
@@ -42,7 +42,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
           <Link to="/" className="brand" style={{ fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: "1.5rem", color: "var(--aa-olive-dark)", letterSpacing: "0.05em" }}>
             Casa Alchemy Academy
           </Link>
-          <nav className="hidden md:flex gap-6" aria-label="Navegação legal">
+          <nav className="hidden md:flex gap-6" aria-label="Legal navigation">
             {legalNav.map((item) => (
               <Link
                 key={item.href}
@@ -65,7 +65,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
         <h1 style={{ fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "0.75rem" }}>{title}</h1>
         {updatedAt && (
           <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.85rem", color: "var(--aa-text-light)", marginBottom: "2rem" }}>
-            Última atualização: {updatedAt}
+            Last updated: {updatedAt}
           </p>
         )}
         <div
@@ -100,7 +100,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
           </div>
           <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "1.5rem", textAlign: "center" }}>
             <p style={{ color: "rgba(245,240,232,0.5)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem" }}>
-              © {new Date().getFullYear()} Casa Alchemy Academy. Todos os direitos reservados.
+              © {new Date().getFullYear()} Casa Alchemy Academy. All rights reserved.
             </p>
           </div>
         </div>
