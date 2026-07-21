@@ -95,6 +95,15 @@ export default function Events() {
                           <ExternalLink size={16} /> <span>More info</span>
                         </a>
                       )}
+                      <a
+                        href={gcalRenderUrl(event)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-sm hover:underline"
+                        style={{ color: "var(--aa-accent)" }}
+                      >
+                        <CalendarPlus size={16} /> <span>Add to Google Calendar</span>
+                      </a>
                     </div>
                     <button
                       className="w-full mt-4 px-4 py-2 rounded-lg transition text-sm font-medium disabled:opacity-60"
