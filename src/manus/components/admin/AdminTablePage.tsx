@@ -157,6 +157,16 @@ export interface AdminTablePageProps<T extends PublicTableName = PublicTableName
    * inside a tabbed hub that already renders its own AdminShell.
    */
   noShell?: boolean;
+  /**
+   * Called after a successful save/archive/delete mutation. Receives the
+   * operation and, when available, the primary-key id of the affected row
+   * plus the payload that was written. Insert operations perform a
+   * `.select(primaryKey).single()` so the new id is included.
+   */
+  afterMutate?: (
+    op: "save" | "archive" | "delete",
+    ctx: { id: unknown; isInsert: boolean; payload: Record<string, unknown> | null },
+  ) => void | Promise<void>;
 }
 
 function emptyForFields(fields: FieldDef[]): Record<string, unknown> {
