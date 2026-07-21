@@ -35,6 +35,7 @@ import FileUploadField from "@/manus/components/admin/FileUploadField";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { slugify } from "@/manus/lib/admin-content";
 
 export type PublicTableName = keyof Database["public"]["Tables"];
 
@@ -78,6 +79,12 @@ export interface FieldDef {
   virtual?: boolean;
   virtualHost?: string;
   virtualMarker?: string;
+  /**
+   * When set, this field's value is auto-derived by slugifying the value of
+   * the referenced source field, until the admin manually edits it. Only
+   * applies to new records (no primary key yet).
+   */
+  deriveSlugFrom?: string;
 }
 
 const virtualMarkerRe = (key: string) =>
@@ -342,6 +349,10 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search, 300);
   const [page, setPage] = useState(0);
+  // Fields (by name) that the admin has manually edited during this dialog
+  // session — used to stop auto-derivation (e.g. slug from title) once the
+  // admin takes over the field.
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   // Reset to first page whenever the search term changes.
   useEffect(() => {
@@ -542,7 +553,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
             <h2 className="text-lg font-semibold">{title}</h2>
             {description && <p className="text-sm text-foreground/60">{description}</p>}
           </div>
-          <Button onClick={() => setEditing(emptyForFields(fields))}>
+          <Button onClick={() => { setTouchedFields({}); setEditing(emptyForFields(fields)); }}>
             <Plus className="w-4 h-4 mr-1" /> New
           </Button>
         </div>
@@ -619,6 +630,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                             }
                           }
                           r[primaryKey] = row[primaryKey];
+                          setTouchedFields({});
                           setEditing(r);
                         }}
                         aria-label="Edit"
@@ -693,7 +705,24 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
             <div className="space-y-4 py-2">
               {formFields.map((f) => {
                 const value = editing[f.name];
-                const set = (v: unknown) => setEditing({ ...editing, [f.name]: v });
+                const isNewRecord = !editing[primaryKey];
+                const set = (v: unknown) => {
+                  const next: Record<string, unknown> = { ...editing, [f.name]: v };
+                  // Auto-derive dependent slug fields (only for new records, and
+                  // only while the admin hasn't manually edited the slug).
+                  if (isNewRecord && typeof v === "string") {
+                    for (const other of fields) {
+                      if (other.deriveSlugFrom === f.name && !touchedFields[other.name]) {
+                        next[other.name] = slugify(v);
+                      }
+                    }
+                  }
+                  setEditing(next);
+                  // Mark this field as touched when the admin edits it directly.
+                  if (!touchedFields[f.name]) {
+                    setTouchedFields((t) => ({ ...t, [f.name]: true }));
+                  }
+                };
                 return (
                   <div key={f.name}>
                     <Label className="text-xs">{f.label}{f.required && " *"}</Label>
@@ -765,7 +794,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
       description={description}
       crumbs={[{ label: title }]}
       actions={
-        <Button onClick={() => setEditing(emptyForFields(fields))}>
+        <Button onClick={() => { setTouchedFields({}); setEditing(emptyForFields(fields)); }}>
           <Plus className="w-4 h-4 mr-1" /> New
         </Button>
       }
