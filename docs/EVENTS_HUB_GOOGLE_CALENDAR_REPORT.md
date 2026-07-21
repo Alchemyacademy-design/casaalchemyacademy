@@ -83,9 +83,28 @@ A coluna GCal do `AdminTablePage` renderiza um chip colorido `not_synced / pendi
 - Nenhum `VITE_GOOGLE_CLIENT_SECRET` no bundle (grep confirma).
 
 ## Verificações
-- `bun run typecheck` — validação automática do Lovable roda ao final da apply (não executei manualmente).
-- Tests / lint / build — idem: rodam pelo pipeline do preview.
-- **QA responsivo esperado (a validar visualmente):** 375px agenda-list, 390px agenda-list, 768px grid, 1024px grid + rail, 1280px grid + rail, 1440px grid + rail. Tabs em `overflow-x-auto no-scrollbar` cobrem overflow eventual em breakpoints estreitos.
+### Passada 1 — validação executada (2026-07-21)
+- **TYPECHECK = PASS** (`tsgo --noEmit` limpo).
+- **BUILD = PASS** (`bun run build` — Vite produziu bundle em 22s, apenas warning pré-existente de chunk > 500 kB em `downloadCertificatePdf`).
+- **TESTS = PASS_WITH_PREEXISTING_FAILURES** (`bunx vitest run` — 195/198 passam; 3 falhas em `src/manus/components/MemberLayout.test.tsx` são pré-existentes ao escopo desta passada: o teste não envolve `QueryClientProvider` e `MemberLayout` passou a usar `useMyProfile` antes desta passada; nenhum arquivo do Events Hub tocado nesta passada aparece na trace).
+- **LINT = FAIL_PREEXISTING** (`bun run lint` — 25 errors / 29 warnings, todos herdados; o único arquivo desta passada listado é `supabase/functions/sync-workshop-to-google-calendar/index.ts:39` com um `any` idêntico ao usado no `sync-event-to-google-calendar` que serviu de referência. Nenhum novo error introduzido em `.tsx`).
+- **FINAL_HEAD:** indeterminado pelo sandbox (Lovable gerencia git); owner confirmou branch `prelaunch-phase-2-3-official-render`.
+- **QA responsivo (esperado — validação visual pelo owner no preview):** 375/390 px → agenda-list; 768 px → grid 2 col + tabs full; 1024 px → grid 3 col + rail lateral no Calendar; 1280/1440 px → grid 3 col + rail. Tabs em `overflow-x-auto no-scrollbar` cobrem overflow em breakpoints estreitos.
+
+### Checklist funcional Passada 1
+- FINAL_HEAD: indeterminado (Lovable gerencia git).
+- Arquivos alterados: ver FILES_CHANGED / FILES_CREATED acima.
+- Migration criada **e aplicada** (owner aprovou; sem RLS alterada).
+- `main` intacta — NO.
+- PR sem merge — NO.
+- Stripe intacto — NO.
+- Token Google no frontend — NO.
+- Botão manual **Add to Google Calendar** funcional em Events **e** Live Workshops (`gcalRenderUrl`).
+- Download **.ics** funcional em Events **e** Live Workshops (blob RFC 5545 client-side).
+- Rotas: `/events?tab=events`, `/events?tab=workshops`, `/events?tab=calendar` renderizam via `Events.tsx`; `/live-workshops`, `/workshops` e `/events/calendar` redirecionam ao Hub com tab correta (ver `src/App.tsx`).
+- Calendar tab: desktop = grade mensal + rail; mobile = agenda list.
+- Save / archive / delete de Live Workshop não são bloqueados quando o Google Calendar falha (edge function grava `sync_status=failed` + `sync_error`; o registro no Supabase é preservado).
+- Status + Retry Google Calendar visíveis no Admin Workshops (chip colorido + Open link + botão Retry inline).
 
 ## MAIN_CHANGED = NO
 ## PR_MERGED = NO
