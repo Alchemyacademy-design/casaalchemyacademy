@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, RefreshCw } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 const STATUS = [
   { value: "draft", label: "draft" },
@@ -18,22 +19,31 @@ const SYNC_STATUS = [
   { value: "deleted", label: "deleted" },
 ];
 
-async function callSync(workshopId: unknown, action: "upsert" | "delete") {
+async function callSync(workshopId: unknown, action: "upsert" | "delete" | "cancel") {
   if (workshopId == null) return;
   const { data, error } = await supabase.functions.invoke("sync-workshop-to-google-calendar", {
     body: { workshop_id: Number(workshopId), action },
   });
+  const isRemoval = action === "delete" || action === "cancel";
   if (error) {
-    toast.error("Google Calendar sync failed", { description: error.message });
+    toast.error(
+      isRemoval
+        ? "Removed from the platform. Google Calendar may still need manual cleanup."
+        : "Saved in the platform, but Google Calendar sync failed. Retry sync.",
+      { description: error.message },
+    );
     return;
   }
   const payload = data as { ok?: boolean; status?: string; error?: string | null } | null;
   if (payload?.ok) {
-    toast.success(action === "delete" ? "Removed from Google Calendar" : "Synced to Google Calendar");
+    toast.success(isRemoval ? "Removed from Google Calendar" : "Synced to Google Calendar");
   } else {
-    toast.error("Google Calendar sync returned an error", {
-      description: payload?.error ?? payload?.status ?? "unknown",
-    });
+    toast.error(
+      isRemoval
+        ? "Removed from the platform. Google Calendar may still need manual cleanup."
+        : "Saved in the platform, but Google Calendar sync failed. Retry sync.",
+      { description: payload?.error ?? payload?.status ?? "unknown" },
+    );
   }
 }
 
@@ -46,6 +56,7 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 function GCalCell({ row }: { row: Record<string, unknown> }) {
+  const qc = useQueryClient();
   const status = (row.google_calendar_sync_status as string) ?? "not_synced";
   const link = row.google_calendar_html_link as string | null;
   const style = STATUS_STYLES[status] ?? STATUS_STYLES.not_synced;
@@ -64,7 +75,11 @@ function GCalCell({ row }: { row: Record<string, unknown> }) {
         variant="ghost"
         className="h-6 px-1.5"
         title="Retry sync"
-        onClick={(e) => { e.stopPropagation(); void callSync(row.id, "upsert"); }}
+        onClick={async (e) => {
+          e.stopPropagation();
+          await callSync(row.id, "upsert");
+          await qc.invalidateQueries({ queryKey: ["admin", "live_workshops"] });
+        }}
       >
         <RefreshCw className="h-3.5 w-3.5" />
       </Button>
@@ -73,6 +88,7 @@ function GCalCell({ row }: { row: Record<string, unknown> }) {
 }
 
 export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }) {
+  const qc = useQueryClient();
   return (
     <AdminTablePage
       noShell={embedded}
@@ -84,10 +100,12 @@ export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }
       publicInvalidateKeys={[["public", "live_workshops"]]}
       deletionMode="archive"
       archivePatch={{ status: "archived" }}
-      afterMutate={(op, ctx) => {
+      afterMutate={async (op, ctx) => {
         if (!ctx?.id) return;
-        if (op === "save") void callSync(ctx.id, "upsert");
-        else if (op === "archive" || op === "delete") void callSync(ctx.id, "delete");
+        if (op === "save") await callSync(ctx.id, "upsert");
+        else if (op === "archive") await callSync(ctx.id, "cancel");
+        else if (op === "delete") await callSync(ctx.id, "delete");
+        await qc.invalidateQueries({ queryKey: ["admin", "live_workshops"] });
       }}
       fields={[
         { name: "title", label: "Title", type: "text", required: true },

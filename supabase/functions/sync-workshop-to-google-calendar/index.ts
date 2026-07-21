@@ -81,10 +81,12 @@ Deno.serve(async (req) => {
     if (!(await isAdminUser(admin, userId))) return json({ error: "forbidden" }, 403);
 
     const body = await req.json().catch(() => null) as
-      | { workshop_id?: number; action?: "upsert" | "delete" }
+      | { workshop_id?: number; action?: "upsert" | "delete" | "cancel" }
       | null;
     const wid = Number(body?.workshop_id);
-    const action = body?.action;
+    const rawAction = body?.action;
+    // "cancel" accepted as alias for "delete" to match admin vocabulary.
+    const action = rawAction === "cancel" ? "delete" : rawAction;
     if (!Number.isFinite(wid) || (action !== "upsert" && action !== "delete")) {
       return json({ error: "invalid_request" }, 400);
     }
@@ -102,6 +104,12 @@ Deno.serve(async (req) => {
 
     const shouldDelete = action === "delete" ||
       (action === "upsert" && (w.archived_at || w.status !== "published"));
+
+    // Mark pending immediately so realtime surfaces the transition.
+    await admin
+      .from("live_workshops")
+      .update({ google_calendar_sync_status: "pending", google_calendar_sync_error: null })
+      .eq("id", wid);
 
     let gatewayStatus = 0;
     let gatewayBody = "";

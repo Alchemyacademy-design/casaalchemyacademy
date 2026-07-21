@@ -86,10 +86,13 @@ Deno.serve(async (req) => {
     if (!(await isAdminUser(admin, userId))) return json({ error: "forbidden" }, 403);
 
     const body = await req.json().catch(() => null) as
-      | { event_id?: number; action?: "upsert" | "delete" }
+      | { event_id?: number; action?: "upsert" | "delete" | "cancel" }
       | null;
     const eventId = Number(body?.event_id);
-    const action = body?.action;
+    const rawAction = body?.action;
+    // "cancel" is accepted as an alias for "delete" to match the admin-side
+    // vocabulary (archive/cancel/delete all result in the same GCal removal).
+    const action = rawAction === "cancel" ? "delete" : rawAction;
     if (!Number.isFinite(eventId) || (action !== "upsert" && action !== "delete")) {
       return json({ error: "invalid_request" }, 400);
     }
@@ -108,6 +111,13 @@ Deno.serve(async (req) => {
     // DELETE branch — either explicit delete request, or archived/draft on upsert.
     const shouldDelete = action === "delete" ||
       (action === "upsert" && (ev.archived_at || ev.status !== "published"));
+
+    // Mark pending immediately so the admin calendar shows the transition
+    // via realtime while the Google call is in flight.
+    await admin
+      .from("events")
+      .update({ google_calendar_sync_status: "pending", google_calendar_sync_error: null })
+      .eq("id", eventId);
 
     let gatewayStatus = 0;
     let gatewayBody = "";
