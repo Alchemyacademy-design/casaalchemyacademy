@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Pencil,
   Eye,
   EyeOff,
   Filter,
@@ -37,6 +38,10 @@ import {
   useReplyReactions,
   useSpaces,
   useToggleReaction,
+  useUpdateSpace,
+  useDeleteSpace,
+  useUpdateChannel,
+  useDeleteChannel,
 } from "@/manus/hooks/community/useCommunityData";
 import {
   type CommunityAuthorProfile,
