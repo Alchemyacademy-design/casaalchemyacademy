@@ -6,6 +6,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
+import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 
@@ -568,6 +569,33 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      {/* ── Lead magnet — fixed homepage section ── */}
+      {!isAuthenticated && (
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "5rem 0" }}>
+          <div className="container">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
+              <div>
+                <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
+                  Try one lesson first
+                </p>
+                <h2 className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "1rem", fontWeight: 400 }}>
+                  Watch a free lesson before you join
+                </h2>
+                <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "1rem" }}>
+                  Experience one class from Casa Alchemy Academy and see how the method helps you make clearer, more intentional design decisions — room by room.
+                </p>
+                <p style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
+                  No pressure. Just a taste of the Alchemy method.
+                </p>
+              </div>
+              <div style={{ background: "var(--aa-white)", padding: "2rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
+                <LeadMagnetForm source="popup" ctaLabel="Watch the Free Lesson" />
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── Footer ── */}
       <footer style={{ backgroundColor: "#1F0A03", padding: "4rem 0 2rem" }}>
