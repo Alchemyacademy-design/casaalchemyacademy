@@ -596,9 +596,9 @@ export default function Home() {
 
       {/* ── Lead magnet — fixed homepage section ── */}
       {!isAuthenticated && (
-        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "5rem 0" }}>
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center max-w-5xl mx-auto">
               <div>
                 <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
                   Try one lesson first
