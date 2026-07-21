@@ -284,6 +284,9 @@ export default function CommunityPremium({
   const deleteChannel = useDeleteChannel(spaceId);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("new");
+  const [reportOpen, setReportOpen] = useState<CommunityPost | null>(null);
+  const reportPost = useReportPost(userId);
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
   // Handle→userId mapping accumulated as the composer inserts mentions.
