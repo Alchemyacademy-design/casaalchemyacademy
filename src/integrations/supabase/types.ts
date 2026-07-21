@@ -953,6 +953,84 @@ export type Database = {
           },
         ]
       }
+      google_calendar_connections: {
+        Row: {
+          access_token_encrypted: string
+          connected_at: string
+          connection_status: string
+          created_at: string
+          disconnected_at: string | null
+          google_account_email: string | null
+          granted_scopes: string[]
+          id: string
+          refresh_token_encrypted: string | null
+          token_expires_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token_encrypted: string
+          connected_at?: string
+          connection_status?: string
+          created_at?: string
+          disconnected_at?: string | null
+          google_account_email?: string | null
+          granted_scopes?: string[]
+          id?: string
+          refresh_token_encrypted?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token_encrypted?: string
+          connected_at?: string
+          connection_status?: string
+          created_at?: string
+          disconnected_at?: string | null
+          google_account_email?: string | null
+          granted_scopes?: string[]
+          id?: string
+          refresh_token_encrypted?: string | null
+          token_expires_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      google_calendar_oauth_states: {
+        Row: {
+          code_verifier_encrypted: string | null
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          redirect_path: string
+          state_hash: string
+          user_id: string
+        }
+        Insert: {
+          code_verifier_encrypted?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          redirect_path?: string
+          state_hash: string
+          user_id: string
+        }
+        Update: {
+          code_verifier_encrypted?: string | null
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          redirect_path?: string
+          state_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       integration_secret_requirements: {
         Row: {
           configured_at: string | null
@@ -2752,7 +2830,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      my_google_calendar_connection: {
+        Row: {
+          access_token_expired: boolean | null
+          connected_at: string | null
+          connection_status: string | null
+          disconnected_at: string | null
+          google_account_email: string | null
+          granted_scopes: string[] | null
+          has_refresh_token: boolean | null
+          id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token_expired?: never
+          connected_at?: string | null
+          connection_status?: string | null
+          disconnected_at?: string | null
+          google_account_email?: string | null
+          granted_scopes?: string[] | null
+          has_refresh_token?: never
+          id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token_expired?: never
+          connected_at?: string | null
+          connection_status?: string | null
+          disconnected_at?: string | null
+          google_account_email?: string | null
+          granted_scopes?: string[] | null
+          has_refresh_token?: never
+          id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
