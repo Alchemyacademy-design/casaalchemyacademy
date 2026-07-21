@@ -35,6 +35,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
@@ -72,6 +82,10 @@ import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
+const RULES_OPEN_KEY = "community:rulesOpen";
+const HIDDEN_CHANNELS_KEY = "community:hiddenChannels";
+
+type ChannelRow = { id: number; name: string; slug: string; description: string | null };
 
 const CHANNEL_PURPOSES: Record<string, string> = {
   general: "Open conversation about the course and the space.",
@@ -306,8 +320,46 @@ export default function CommunityPremium({
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
   // House rules: default closed on tablet/mobile to save space, open on desktop
   const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
-    typeof window === "undefined" ? true : window.matchMedia("(min-width: 1280px)").matches,
+    typeof window === "undefined"
+      ? true
+      : (() => {
+          try {
+            const saved = window.localStorage.getItem(RULES_OPEN_KEY);
+            if (saved === "1") return true;
+            if (saved === "0") return false;
+          } catch { /* ignore */ }
+          return window.matchMedia("(min-width: 1280px)").matches;
+        })(),
   );
+  useEffect(() => {
+    try { window.localStorage.setItem(RULES_OPEN_KEY, rulesOpen ? "1" : "0"); } catch { /* ignore */ }
+  }, [rulesOpen]);
+
+  // Per-user hidden channels (client-side only; can be restored anytime)
+  const [hiddenChannelIds, setHiddenChannelIds] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(HIDDEN_CHANNELS_KEY);
+      const arr = raw ? (JSON.parse(raw) as number[]) : [];
+      return new Set(Array.isArray(arr) ? arr.filter((n) => Number.isFinite(n)) : []);
+    } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(HIDDEN_CHANNELS_KEY, JSON.stringify(Array.from(hiddenChannelIds)));
+    } catch { /* ignore */ }
+  }, [hiddenChannelIds]);
+  const [showHiddenList, setShowHiddenList] = useState(false);
+  const [channelPendingDelete, setChannelPendingDelete] = useState<ChannelRow | null>(null);
+
+  function toggleChannelHidden(id: number, hide: boolean) {
+    setHiddenChannelIds((prev) => {
+      const next = new Set(prev);
+      if (hide) next.add(id); else next.delete(id);
+      return next;
+    });
+    if (hide && channelId === id) setChannelId(null);
+  }
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -631,7 +683,7 @@ export default function CommunityPremium({
           <nav aria-label="Community channels">
             {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
             {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">No channels published.</p>}
-            {channels.map((channel) => {
+            {channels.filter((c) => !hiddenChannelIds.has(c.id)).map((channel) => {
               const unread = unreadByChannel[channel.id] ?? 0;
               const isActive = channel.id === channelId;
               const purpose = CHANNEL_PURPOSES[channel.slug];
@@ -712,6 +764,14 @@ export default function CommunityPremium({
                           {isFollowed ? "Unfollow channel" : "Follow channel"}
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          toggleChannelHidden(channel.id, true);
+                          toast.success(`Hidden #${channel.name}. Restore it from "Hidden channels" below.`);
+                        }}
+                      >
+                        <EyeOff size={14} /> Hide channel
+                      </DropdownMenuItem>
                       {isAdmin && (
                         <>
                           <DropdownMenuSeparator />
@@ -732,15 +792,14 @@ export default function CommunityPremium({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onSelect={async () => {
-                              if (!window.confirm(`Delete channel "${channel.name}"? Its posts will be removed.`)) return;
-                              try {
-                                await deleteChannel.mutateAsync(channel.id);
-                                if (channelId === channel.id) setChannelId(null);
-                                toast.success("Channel deleted");
-                              } catch (err) {
-                                toast.error(err instanceof Error ? err.message : "Failed to delete channel");
-                              }
+                            onSelect={(event) => {
+                              event.preventDefault();
+                              setChannelPendingDelete({
+                                id: channel.id,
+                                name: channel.name,
+                                slug: channel.slug,
+                                description: channel.description,
+                              });
                             }}
                           >
                             <Trash2 size={14} /> Delete channel
@@ -753,6 +812,48 @@ export default function CommunityPremium({
                 </div>
               );
             })}
+            {(() => {
+              const hidden = channels.filter((c) => hiddenChannelIds.has(c.id));
+              if (hidden.length === 0) return null;
+              return (
+                <Collapsible open={showHiddenList} onOpenChange={setShowHiddenList} className="aa-community-hidden-wrap" style={{ marginTop: 8 }}>
+                  <CollapsibleTrigger
+                    className="aa-community-rules-trigger"
+                    aria-label="Toggle hidden channels"
+                    style={{ width: "100%" }}
+                  >
+                    <span className="section-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <EyeOff size={12} /> Hidden channels ({hidden.length})
+                    </span>
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
+                      {hidden.map((c) => (
+                        <li key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem" }}>
+                          <Hash size={12} aria-hidden="true" />
+                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {c.name}
+                          </span>
+                          <button
+                            type="button"
+                            className="aa-community-channel-more"
+                            aria-label={`Restore ${c.name}`}
+                            title={`Restore #${c.name}`}
+                            onClick={() => {
+                              toggleChannelHidden(c.id, false);
+                              toast.success(`Restored #${c.name}`);
+                            }}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })()}
           </nav>
         </ScrollArea>
         {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
@@ -1005,6 +1106,41 @@ export default function CommunityPremium({
 
       <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
       <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
+
+      <AlertDialog
+        open={!!channelPendingDelete}
+        onOpenChange={(open) => { if (!open) setChannelPendingDelete(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete #{channelPendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This channel and all of its posts and replies will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault();
+                const target = channelPendingDelete;
+                if (!target) return;
+                try {
+                  await deleteChannel.mutateAsync(target.id);
+                  if (channelId === target.id) setChannelId(null);
+                  toast.success(`Deleted #${target.name}`);
+                  setChannelPendingDelete(null);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Failed to delete channel");
+                }
+              }}
+            >
+              Delete channel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={!!reportOpen} onOpenChange={(open) => !open && setReportOpen(null)}>
         <SheetContent side="right" className="aa-community-thread">
