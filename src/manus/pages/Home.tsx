@@ -221,8 +221,17 @@ export default function Home() {
             <p className="mb-8 max-w-lg" style={{ color: "rgba(245,240,232,0.85)", fontSize: "1.05rem", lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
               Embark on a journey to redefine your relationship with your home through the joys of learning interior design. Our platform connects enthusiasts with essential theories, allowing you to train your eyes and mind to design your own life.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a href={getLoginUrl()} className="btn-cream">Join the Academy</a>
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+                className="btn-cream w-full sm:w-auto justify-center"
+              >
+                Watch a Free Lesson
+              </button>
+              <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
+                Find your course
+              </a>
             </div>
           </div>
         </div>
@@ -253,8 +262,17 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="mt-12 text-center">
-            <a href={getLoginUrl()} className="btn-cream">Become an Alchemist</a>
+          <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+              className="btn-cream w-full sm:w-auto justify-center"
+            >
+              Watch a Free Lesson
+            </button>
+            <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
+              Take the course quiz
+            </a>
           </div>
         </div>
       </section>
