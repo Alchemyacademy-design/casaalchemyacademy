@@ -344,6 +344,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     deletionMode = "disabled",
     archivePatch,
     noShell = false,
+    afterMutate,
   } = props;
 
   const qc = useQueryClient();
@@ -477,20 +478,27 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         update: (p: Record<string, unknown>) => {
           eq: (col: string, value: unknown) => Promise<{ error: { message: string } | null }>;
         };
-        insert: (p: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+        insert: (p: Record<string, unknown>) => {
+          select: (cols: string) => {
+            single: () => Promise<{ data: Record<string, unknown> | null; error: { message: string } | null }>;
+          };
+        };
       };
       if (id) {
         const { error } = await client.update(payload).eq(primaryKey, id);
         if (error) throw error;
+        return { id, isInsert: false, payload };
       } else {
-        const { error } = await client.insert(payload);
+        const { data, error } = await client.insert(payload).select(primaryKey).single();
         if (error) throw error;
+        return { id: data?.[primaryKey] ?? null, isInsert: true, payload };
       }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Saved");
       setEditing(null);
       invalidateAll();
+      try { void afterMutate?.("save", result); } catch { /* ignore */ }
     },
     onError: (e: unknown) => {
       const { title: t, description: d } = describeError(e, "save", table);
@@ -512,10 +520,12 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
         })
         .eq(primaryKey, id);
       if (error) throw error;
+      return { id };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Archived");
       invalidateAll();
+      try { void afterMutate?.("archive", { id: result.id, isInsert: false, payload: null }); } catch { /* ignore */ }
     },
     onError: (e: unknown) => {
       const { title: t, description: d } = describeError(e, "archive", table);
@@ -532,10 +542,12 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
       };
       const { error } = await client.delete().eq(primaryKey, id);
       if (error) throw error;
+      return { id };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       toast.success("Deleted");
       invalidateAll();
+      try { void afterMutate?.("delete", { id: result.id, isInsert: false, payload: null }); } catch { /* ignore */ }
     },
     onError: (e: unknown) => {
       const { title: t, description: d } = describeError(e, "delete", table);
