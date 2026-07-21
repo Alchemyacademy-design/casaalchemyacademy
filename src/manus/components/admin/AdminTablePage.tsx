@@ -35,6 +35,7 @@ import FileUploadField from "@/manus/components/admin/FileUploadField";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
+import { slugify } from "@/manus/lib/admin-content";
 
 export type PublicTableName = keyof Database["public"]["Tables"];
 
@@ -78,6 +79,12 @@ export interface FieldDef {
   virtual?: boolean;
   virtualHost?: string;
   virtualMarker?: string;
+  /**
+   * When set, this field's value is auto-derived by slugifying the value of
+   * the referenced source field, until the admin manually edits it. Only
+   * applies to new records (no primary key yet).
+   */
+  deriveSlugFrom?: string;
 }
 
 const virtualMarkerRe = (key: string) =>
