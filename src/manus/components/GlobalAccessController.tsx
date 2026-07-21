@@ -10,6 +10,10 @@ const publicPaths = new Set([
   "/reset-password",
   "/auth/callback",
   "/auth/update-password",
+  "/politica-de-privacidade",
+  "/termos-de-uso",
+  "/suporte",
+  "/exclusao-de-dados",
 ]);
 
 const unpaidAllowedPaths = new Set([
