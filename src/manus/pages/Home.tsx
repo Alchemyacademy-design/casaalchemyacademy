@@ -363,7 +363,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative z-10 mt-4">
-                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+                  style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.65rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none", border: 0 }}
+                >
+                  Watch a Free Lesson
+                </button>
               </div>
             </div>
           </div>
