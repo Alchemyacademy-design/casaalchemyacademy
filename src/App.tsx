@@ -93,7 +93,9 @@ export default function App() {
             <Route path="/magazine" element={<Magazine />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<NotificationsInbox />} />
-            <Route path="/live-workshops" element={<LiveWorkshops />} />
+            <Route path="/live-workshops" element={<Navigate to="/events?tab=workshops" replace />} />
+            <Route path="/workshops" element={<Navigate to="/events?tab=workshops" replace />} />
+            <Route path="/events/calendar" element={<Navigate to="/events?tab=calendar" replace />} />
             <Route path="/activate" element={<Activate />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
