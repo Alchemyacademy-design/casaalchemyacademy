@@ -683,7 +683,7 @@ export default function CommunityPremium({
           <nav aria-label="Community channels">
             {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
             {!channelsLoading && channels.length === 0 && <p className="aa-community-muted">No channels published.</p>}
-            {channels.map((channel) => {
+            {channels.filter((c) => !hiddenChannelIds.has(c.id)).map((channel) => {
               const unread = unreadByChannel[channel.id] ?? 0;
               const isActive = channel.id === channelId;
               const purpose = CHANNEL_PURPOSES[channel.slug];
@@ -764,6 +764,14 @@ export default function CommunityPremium({
                           {isFollowed ? "Unfollow channel" : "Follow channel"}
                         </DropdownMenuItem>
                       )}
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          toggleChannelHidden(channel.id, true);
+                          toast.success(`Hidden #${channel.name}. Restore it from "Hidden channels" below.`);
+                        }}
+                      >
+                        <EyeOff size={14} /> Hide channel
+                      </DropdownMenuItem>
                       {isAdmin && (
                         <>
                           <DropdownMenuSeparator />
@@ -784,15 +792,14 @@ export default function CommunityPremium({
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
-                            onSelect={async () => {
-                              if (!window.confirm(`Delete channel "${channel.name}"? Its posts will be removed.`)) return;
-                              try {
-                                await deleteChannel.mutateAsync(channel.id);
-                                if (channelId === channel.id) setChannelId(null);
-                                toast.success("Channel deleted");
-                              } catch (err) {
-                                toast.error(err instanceof Error ? err.message : "Failed to delete channel");
-                              }
+                            onSelect={(event) => {
+                              event.preventDefault();
+                              setChannelPendingDelete({
+                                id: channel.id,
+                                name: channel.name,
+                                slug: channel.slug,
+                                description: channel.description,
+                              });
                             }}
                           >
                             <Trash2 size={14} /> Delete channel
@@ -805,6 +812,48 @@ export default function CommunityPremium({
                 </div>
               );
             })}
+            {(() => {
+              const hidden = channels.filter((c) => hiddenChannelIds.has(c.id));
+              if (hidden.length === 0) return null;
+              return (
+                <Collapsible open={showHiddenList} onOpenChange={setShowHiddenList} className="aa-community-hidden-wrap" style={{ marginTop: 8 }}>
+                  <CollapsibleTrigger
+                    className="aa-community-rules-trigger"
+                    aria-label="Toggle hidden channels"
+                    style={{ width: "100%" }}
+                  >
+                    <span className="section-label" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      <EyeOff size={12} /> Hidden channels ({hidden.length})
+                    </span>
+                    <ChevronDown size={14} aria-hidden="true" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <ul style={{ listStyle: "none", padding: 0, margin: "6px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
+                      {hidden.map((c) => (
+                        <li key={c.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "0.8rem" }}>
+                          <Hash size={12} aria-hidden="true" />
+                          <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {c.name}
+                          </span>
+                          <button
+                            type="button"
+                            className="aa-community-channel-more"
+                            aria-label={`Restore ${c.name}`}
+                            title={`Restore #${c.name}`}
+                            onClick={() => {
+                              toggleChannelHidden(c.id, false);
+                              toast.success(`Restored #${c.name}`);
+                            }}
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </CollapsibleContent>
+                </Collapsible>
+              );
+            })()}
           </nav>
         </ScrollArea>
         {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
