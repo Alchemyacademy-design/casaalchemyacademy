@@ -60,6 +60,10 @@ const AdminModeration = lazyWithRetry(() => import("@/manus/pages/admin/AdminMod
 const NotificationsInbox = lazyWithRetry(() => import("@/manus/pages/NotificationsInbox"), "NotificationsInbox");
 const PublicCertificate = lazyWithRetry(() => import("@/manus/pages/PublicCertificate"), "PublicCertificate");
 const OAuthConsent = lazyWithRetry(() => import("@/manus/pages/OAuthConsent"), "OAuthConsent");
+const PrivacyPolicy = lazyWithRetry(() => import("@/manus/pages/legal/PrivacyPolicy"), "PrivacyPolicy");
+const TermsOfUse = lazyWithRetry(() => import("@/manus/pages/legal/TermsOfUse"), "TermsOfUse");
+const SupportPage = lazyWithRetry(() => import("@/manus/pages/legal/Support"), "SupportPage");
+const DataDeletion = lazyWithRetry(() => import("@/manus/pages/legal/DataDeletion"), "DataDeletion");
 
 
 export default function App() {
@@ -73,6 +77,10 @@ export default function App() {
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
+            <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
+            <Route path="/termos-de-uso" element={<TermsOfUse />} />
+            <Route path="/suporte" element={<SupportPage />} />
+            <Route path="/exclusao-de-dados" element={<DataDeletion />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/free-lesson" element={<FreeLesson />} />
             <Route path="/quiz" element={<CourseQuiz />} />
