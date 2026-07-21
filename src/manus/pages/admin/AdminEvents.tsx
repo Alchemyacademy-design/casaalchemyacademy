@@ -75,7 +75,7 @@ export function AdminEventsInner({ embedded = false }: { embedded?: boolean }) {
     <AdminTablePage
       noShell={embedded}
       title="Events"
-      description="Manage in-person and online events. Published events appear in /events and sync to Google Calendar automatically."
+      description="Manage in-person and online events. Published events appear in /events and sync to Google Calendar automatically. All times follow the Academy timezone: Australia/Sydney."
       table="events"
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug", "location"]}

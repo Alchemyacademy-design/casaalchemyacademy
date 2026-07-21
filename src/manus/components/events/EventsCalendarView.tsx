@@ -17,8 +17,11 @@ function sameDay(a: Date, b: Date) {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
 function fmtMonth(d: Date) { return d.toLocaleDateString(undefined, { month: "long", year: "numeric" }); }
-function fmtDay(d: Date) { return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }); }
-function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" }); }
+// Academy operates in Sydney; render all event times in the platform timezone
+// regardless of the visitor's browser locale.
+const PLATFORM_TZ = "Australia/Sydney";
+function fmtDay(d: Date) { return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", timeZone: PLATFORM_TZ }); }
+function fmtTime(iso: string) { return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", timeZone: PLATFORM_TZ }); }
 
 function buildDays(month: Date) {
   const first = startOfMonth(month);

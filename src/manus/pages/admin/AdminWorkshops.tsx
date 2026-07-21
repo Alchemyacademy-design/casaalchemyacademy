@@ -75,7 +75,7 @@ export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }
     <AdminTablePage
       noShell={embedded}
       title="Live workshops"
-      description="Manage live workshops. Published items appear in the Events Hub and sync to Google Calendar automatically."
+      description="Manage live workshops. Published items appear in the Events Hub and sync to Google Calendar automatically. All times follow the Academy timezone: Australia/Sydney."
       table="live_workshops"
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug"]}

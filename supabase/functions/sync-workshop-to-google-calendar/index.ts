@@ -22,7 +22,23 @@ function json(body: unknown, status = 200) {
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CALENDAR_ID = Deno.env.get("GOOGLE_CALENDAR_ID") || "primary";
-const CALENDAR_TZ = Deno.env.get("GOOGLE_CALENDAR_TIMEZONE") || "America/Sao_Paulo";
+// Platform is Australia-based — workshops entered in Admin are Sydney local.
+const CALENDAR_TZ = Deno.env.get("GOOGLE_CALENDAR_TIMEZONE") || "Australia/Sydney";
+
+function toZonedWallTime(iso: string, timeZone: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(d).reduce<Record<string, string>>((acc, p) => {
+    if (p.type !== "literal") acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const hour = parts.hour === "24" ? "00" : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second}`;
+}
 
 function log(step: string, extra: Record<string, unknown> = {}) {
   try {
@@ -57,8 +73,8 @@ function toGCalEvent(w: any) {
     summary: `[Workshop] ${w.title}`,
     description: parts.join("\n\n"),
     location: w.meeting_url ?? undefined,
-    start: { dateTime: new Date(start).toISOString(), timeZone: CALENDAR_TZ },
-    end: { dateTime: new Date(end).toISOString(), timeZone: CALENDAR_TZ },
+    start: { dateTime: toZonedWallTime(start, CALENDAR_TZ), timeZone: CALENDAR_TZ },
+    end: { dateTime: toZonedWallTime(end, CALENDAR_TZ), timeZone: CALENDAR_TZ },
     source: w.meeting_url ? { title: "Alchemy Academy", url: w.meeting_url } : undefined,
     extendedProperties: {
       private: {
