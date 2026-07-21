@@ -609,6 +609,28 @@ export default function CommunityPremium({
 
         <ScrollArea className="aa-community-feed">
           <div className="aa-community-feed-inner">
+            {activeChannel && CHANNEL_GUIDES[activeChannel.slug] && (() => {
+              const guide = CHANNEL_GUIDES[activeChannel.slug];
+              return (
+                <aside className="aa-community-guide" aria-label={`Guide for #${activeChannel.name}`}>
+                  <div className="aa-community-guide-head">
+                    <Pin size={14} />
+                    <span className="section-label">Pinned guide</span>
+                  </div>
+                  <h3>{guide.title}</h3>
+                  <p>{guide.intro}</p>
+                  <ul>
+                    {guide.use.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
+                  <p className="aa-community-guide-tip">{guide.tip}</p>
+                  {userId && (
+                    <Button size="sm" variant="outline" onClick={focusComposer}>
+                      <Plus size={14} /> New post in #{activeChannel.name}
+                    </Button>
+                  )}
+                </aside>
+              );
+            })()}
             {postsQuery.isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
             {postsQuery.isError && (
               <div className="aa-community-state">
