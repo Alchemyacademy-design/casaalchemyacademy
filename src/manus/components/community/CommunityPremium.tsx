@@ -68,6 +68,61 @@ const CHANNEL_PURPOSES: Record<string, string> = {
   resources: "Curated links, tools, suppliers and reading lists.",
 };
 
+type ChannelGuide = { title: string; intro: string; use: string[]; tip: string };
+
+const CHANNEL_GUIDES: Record<string, ChannelGuide> = {
+  general: {
+    title: "Welcome to #general",
+    intro: "This is the main channel of this Space — say hi, introduce yourself and share how this course is landing for you.",
+    use: [
+      "Introduce yourself: where you're from and what you're working on",
+      "React to lessons, share a-ha moments and open discussions",
+      "Keep it on-topic for this Space; use #questions, #projects, #inspiration or #resources for those",
+    ],
+    tip: "New here? Drop a short intro post so the community can welcome you.",
+  },
+  questions: {
+    title: "How to use #questions",
+    intro: "Ask anything about the course, the method or a decision you're stuck on. The community and mentors reply here.",
+    use: [
+      "Give context: which lesson or step you're on",
+      "Attach a photo or link when it helps explain the situation",
+      "One question per post — easier to follow and answer",
+    ],
+    tip: "Reply to others too — teaching what you know is the fastest way to learn.",
+  },
+  projects: {
+    title: "Share in #projects",
+    intro: "Post your work in progress and finished projects. Feedback is welcome and encouraged here.",
+    use: [
+      "Say what you're trying to achieve and the brief you're working from",
+      "Share photos, plans or moodboards of the current state",
+      "Ask for the kind of feedback you want (layout, palette, styling…)",
+    ],
+    tip: "Come back and post the “after” — the community loves a before/after.",
+  },
+  inspiration: {
+    title: "Curate in #inspiration",
+    intro: "A shared moodboard of references, images and ideas that spark something for you.",
+    use: [
+      "Post images, links or short notes about what you love and why",
+      "Credit the source or designer whenever possible",
+      "Group your finds by theme when it makes sense (light, texture, colour…)",
+    ],
+    tip: "Great references beat clever words — let the images do the talking.",
+  },
+  resources: {
+    title: "Save in #resources",
+    intro: "Curated links, tools, suppliers and reading that support the course.",
+    use: [
+      "Share a link with one line on why it's useful",
+      "Tag the type: tool, supplier, article, book, video…",
+      "Keep it high-signal — quality over quantity",
+    ],
+    tip: "Search before posting — the resource you're about to add might already be here.",
+  },
+};
+
 const SPACE_RULES: string[] = [
   "Be kind and constructive — this is a space for creators helping creators.",
   "Stay on topic for the course this Space belongs to.",
