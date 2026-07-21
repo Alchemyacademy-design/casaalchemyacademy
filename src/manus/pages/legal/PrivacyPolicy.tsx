@@ -3,105 +3,105 @@ import LegalPageLayout from "./LegalPageLayout";
 export default function PrivacyPolicy() {
   return (
     <LegalPageLayout
-      title="Política de Privacidade"
-      description="Como a Casa Alchemy Academy coleta, usa e protege os seus dados pessoais, incluindo o uso opcional da Google Agenda."
-      updatedAt="21 de julho de 2026"
+      title="Privacy Policy"
+      description="How Casa Alchemy Academy collects, uses and protects your personal data, including the optional Google Calendar integration."
+      updatedAt="July 21, 2026"
     >
       <p>
-        Esta Política descreve como a Casa Alchemy Academy trata os dados pessoais dos usuários da plataforma
-        <em> casaalchemyacademy.lovable.app</em>. Ela é escrita em linguagem clara e reflete o funcionamento real do aplicativo.
+        This Policy explains how Casa Alchemy Academy handles personal data of users of the platform
+        <em> casaalchemyacademy.lovable.app</em>. It is written in plain language and reflects how the app actually works.
       </p>
 
-      <h2>1. Quem somos</h2>
+      <h2>1. Who we are</h2>
       <p>
-        A Casa Alchemy Academy é uma plataforma educacional operada por Casa Alchemy Studio, oferecendo cursos, materiais,
-        workshops e eventos ao vivo para membros autenticados. Para questões de privacidade, escreva para{" "}
+        Casa Alchemy Academy is an educational platform operated by Casa Alchemy Studio, offering courses, materials,
+        workshops and live events for authenticated members. For privacy matters, write to{" "}
         <a href="mailto:contact@casaalchemystudio.com">contact@casaalchemystudio.com</a>.
       </p>
 
-      <h2>2. Dados que coletamos</h2>
+      <h2>2. Data we collect</h2>
       <ul>
-        <li><strong>Cadastro e autenticação:</strong> nome, e-mail, senha (criptografada) e provedor de login (e-mail ou Google).</li>
-        <li><strong>Perfil:</strong> avatar, biografia e preferências informadas voluntariamente pelo usuário.</li>
-        <li><strong>Uso da plataforma:</strong> cursos acessados, aulas concluídas, notas, comentários da comunidade, inscrições em eventos e workshops, certificados emitidos.</li>
-        <li><strong>Suporte:</strong> mensagens enviadas por canais oficiais.</li>
-        <li><strong>Dados técnicos:</strong> registros mínimos necessários para segurança, prevenção de fraude e diagnóstico de erros.</li>
+        <li><strong>Sign-up and authentication:</strong> name, email, password (hashed) and sign-in provider (email or Google).</li>
+        <li><strong>Profile:</strong> avatar, biography and preferences voluntarily provided by the user.</li>
+        <li><strong>Platform usage:</strong> courses accessed, lessons completed, notes, community comments, event and workshop registrations, and issued certificates.</li>
+        <li><strong>Support:</strong> messages sent through official channels.</li>
+        <li><strong>Technical data:</strong> minimal logs required for security, fraud prevention and error diagnosis.</li>
       </ul>
 
-      <h2>3. Finalidades</h2>
+      <h2>3. Purposes</h2>
       <ul>
-        <li>Criar e manter sua conta e autenticar seus acessos.</li>
-        <li>Disponibilizar cursos, eventos, workshops, certificados e a área de comunidade.</li>
-        <li>Registrar inscrições em eventos e workshops.</li>
-        <li>Enviar comunicações operacionais relacionadas ao seu uso da plataforma.</li>
-        <li>Cumprir obrigações legais e responder a solicitações do titular.</li>
+        <li>Create and maintain your account and authenticate your sessions.</li>
+        <li>Provide courses, events, workshops, certificates and the community area.</li>
+        <li>Record registrations for events and workshops.</li>
+        <li>Send operational communications related to your use of the platform.</li>
+        <li>Comply with legal obligations and respond to data subject requests.</li>
       </ul>
 
-      <h2>4. Uso de dados da Google Agenda</h2>
+      <h2>4. Use of Google Calendar data</h2>
       <p>
-        A conexão da sua conta Google à Casa Alchemy Academy é <strong>opcional</strong> e depende do seu consentimento explícito.
-        Ela é utilizada exclusivamente para adicionar, atualizar e remover, na sua Google Agenda, os eventos e workshops da Casa
-        Alchemy Academy que você escolher.
+        Connecting your Google account to Casa Alchemy Academy is <strong>optional</strong> and requires your explicit consent.
+        It is used exclusively to add, update and remove Casa Alchemy Academy events and workshops that you choose in your
+        Google Calendar.
       </p>
       <ul>
-        <li>Escopo solicitado: <code>https://www.googleapis.com/auth/calendar.events</code>.</li>
-        <li>Não lemos nem armazenamos os demais compromissos da sua agenda pessoal.</li>
-        <li><strong>Não usamos</strong> os dados da Google Agenda para publicidade.</li>
-        <li><strong>Não vendemos</strong> dados da Google Agenda a terceiros.</li>
-        <li><strong>Não criamos</strong> perfis publicitários com esses dados.</li>
-        <li>Tokens OAuth são armazenados <strong>criptografados</strong> no backend (AES-GCM) e nunca são enviados ao frontend.</li>
-        <li>Você pode desconectar sua conta Google a qualquer momento em <em>/profile</em>. A desconexão revoga o token no lado do Google e apaga os dados de conexão do nosso banco.</li>
+        <li>Scope requested: <code>https://www.googleapis.com/auth/calendar.events</code>.</li>
+        <li>We do not read or store other appointments on your personal calendar.</li>
+        <li>We <strong>do not use</strong> Google Calendar data for advertising.</li>
+        <li>We <strong>do not sell</strong> Google Calendar data to third parties.</li>
+        <li>We <strong>do not build</strong> advertising profiles from this data.</li>
+        <li>OAuth tokens are stored <strong>encrypted</strong> in the backend (AES-GCM) and are never sent to the frontend.</li>
+        <li>You may disconnect your Google account at any time at <em>/profile</em>. Disconnecting revokes the token on Google's side and deletes the connection data from our database.</li>
       </ul>
       <div className="legal-callout">
-        O uso e a transferência, para qualquer outro aplicativo, de informações recebidas das APIs do Google aderem à{" "}
+        The use and transfer of information received from Google APIs to any other app adhere to the{" "}
         <a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
-        incluindo os requisitos de Uso Limitado (<em>Limited Use</em>).
+        including the <em>Limited Use</em> requirements.
       </div>
 
-      <h2>5. Compartilhamento com fornecedores</h2>
-      <p>Utilizamos os seguintes fornecedores, comprovadamente integrados ao aplicativo:</p>
+      <h2>5. Sharing with service providers</h2>
+      <p>We use the following providers, confirmed to be integrated with the app:</p>
       <ul>
-        <li><strong>Supabase</strong> — banco de dados, autenticação e funções de backend.</li>
-        <li><strong>Google</strong> — login opcional e integração com Google Agenda quando autorizada pelo usuário.</li>
-        <li><strong>Stripe</strong> — processamento de pagamentos de assinaturas.</li>
-        <li><strong>Resend</strong> — envio de e-mails transacionais.</li>
-        <li><strong>HubSpot</strong> — gestão de leads que optaram por receber materiais gratuitos.</li>
+        <li><strong>Supabase</strong> — database, authentication and backend functions.</li>
+        <li><strong>Google</strong> — optional sign-in and Google Calendar integration when authorized by the user.</li>
+        <li><strong>Stripe</strong> — subscription payment processing.</li>
+        <li><strong>Resend</strong> — transactional email delivery.</li>
+        <li><strong>HubSpot</strong> — management of leads who opt in to receive free materials.</li>
       </ul>
 
-      <h2>6. Segurança</h2>
+      <h2>6. Security</h2>
       <p>
-        Aplicamos controles como criptografia em repouso para tokens OAuth, políticas de acesso por linha (RLS) no banco de
-        dados, autenticação por JWT e princípio do menor privilégio nas funções de backend. Nenhum sistema é 100% seguro, mas
-        trabalhamos continuamente para mitigar riscos.
+        We apply controls such as encryption at rest for OAuth tokens, row-level security (RLS) policies in the database,
+        JWT-based authentication and least-privilege principles in backend functions. No system is 100% secure, but we work
+        continuously to mitigate risks.
       </p>
 
-      <h2>7. Seus direitos</h2>
-      <p>Você pode, a qualquer momento:</p>
+      <h2>7. Your rights</h2>
+      <p>At any time you may:</p>
       <ul>
-        <li>Acessar e atualizar os dados do seu perfil em <em>/profile</em>.</li>
-        <li>Desconectar a Google Agenda em <em>/profile</em>.</li>
-        <li>Solicitar exclusão da sua conta e dos dados associados — veja{" "}
-          <a href="/exclusao-de-dados">Exclusão de conta e dados</a>.
+        <li>Access and update your profile data at <em>/profile</em>.</li>
+        <li>Disconnect Google Calendar at <em>/profile</em>.</li>
+        <li>Request deletion of your account and associated data — see{" "}
+          <a href="/data-deletion">Account and data deletion</a>.
         </li>
-        <li>Solicitar esclarecimentos escrevendo para <a href="mailto:contact@casaalchemystudio.com">contact@casaalchemystudio.com</a>.</li>
+        <li>Ask questions by writing to <a href="mailto:contact@casaalchemystudio.com">contact@casaalchemystudio.com</a>.</li>
       </ul>
 
-      <h2>8. Retenção</h2>
+      <h2>8. Retention</h2>
       <p>
-        Mantemos dados enquanto sua conta estiver ativa e pelo tempo necessário para cumprir obrigações legais, contábeis e de
-        segurança. Após a exclusão da conta, dados de identificação são removidos; registros mínimos podem ser retidos quando
-        exigidos por lei (por exemplo, comprovantes de pagamento).
+        We keep data while your account is active and for as long as necessary to comply with legal, accounting and security
+        obligations. After account deletion, identifying data is removed; minimal records may be retained where required by
+        law (for example, payment receipts).
       </p>
 
-      <h2>9. Contato</h2>
+      <h2>9. Contact</h2>
       <p>
-        Para dúvidas sobre privacidade ou exercício de direitos, escreva para{" "}
+        For questions about privacy or to exercise your rights, write to{" "}
         <a href="mailto:contact@casaalchemystudio.com">contact@casaalchemystudio.com</a>.
       </p>
 
       <p style={{ marginTop: "2rem", fontSize: "0.85rem", color: "var(--aa-text-light)" }}>
-        Este texto foi redigido com base no funcionamento real do aplicativo e deve ser validado pelo responsável legal antes
-        de ser considerado aviso jurídico definitivo.
+        This text was drafted based on how the app actually works and should be reviewed by the responsible legal party
+        before being considered a definitive legal notice.
       </p>
     </LegalPageLayout>
   );
