@@ -85,11 +85,42 @@ function toGCalEvent(ev: any) {
       : undefined,
     extendedProperties: {
       private: {
+          alchemy_source_type: "event",
         alchemy_event_id: String(ev.id),
         alchemy_slug: String(ev.slug ?? ""),
       },
     },
   };
+}
+
+// Look up an existing Google Calendar event owned by this platform for the
+// given source id via extendedProperties. Returns the first match's id +
+// htmlLink, or null. Used as an idempotency fallback when the DB row has no
+// google_calendar_event_id (e.g. after a failed sync that partially created
+// the remote event) so retries never duplicate.
+async function findExistingByPrivateProp(
+  encodedCalendar: string,
+  sourceType: "event" | "workshop",
+  sourceId: string | number,
+): Promise<{ id: string; htmlLink: string | null } | null> {
+  try {
+    const url =
+      `${GATEWAY_BASE}/calendars/${encodedCalendar}/events` +
+      `?privateExtendedProperty=${encodeURIComponent("alchemy_source_type=" + sourceType)}` +
+      `&privateExtendedProperty=${encodeURIComponent("alchemy_event_id=" + String(sourceId))}` +
+      `&showDeleted=false&maxResults=5`;
+    const res = await fetch(url, { method: "GET", headers: gatewayHeaders() });
+    if (!res.ok) {
+      log("dedupe_search_failed", { status: res.status });
+      return null;
+    }
+    const body = await res.json() as { items?: Array<{ id?: string; htmlLink?: string; status?: string }> };
+    const hit = (body.items ?? []).find((it) => it?.id && it.status !== "cancelled");
+    return hit?.id ? { id: hit.id, htmlLink: hit.htmlLink ?? null } : null;
+  } catch (e) {
+    log("dedupe_search_exception", { error: e instanceof Error ? e.message : String(e) });
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
