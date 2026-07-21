@@ -304,6 +304,10 @@ export default function CommunityPremium({
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
   const composerRef = useRef<HTMLDivElement | null>(null);
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
+  // House rules: default closed on tablet/mobile to save space, open on desktop
+  const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(min-width: 1280px)").matches,
+  );
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -608,7 +612,7 @@ export default function CommunityPremium({
           <h2>{activeSpace?.name ?? "Community"}</h2>
           {activeSpace?.description && <p>{activeSpace.description}</p>}
         </header>
-        <Collapsible defaultOpen className="aa-community-rules-wrap">
+        <Collapsible open={rulesOpen} onOpenChange={setRulesOpen} className="aa-community-rules-wrap">
           <div className="aa-community-rules" aria-label="House rules">
             <CollapsibleTrigger className="aa-community-rules-trigger" aria-label="Toggle house rules">
               <span className="section-label">House rules</span>
