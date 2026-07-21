@@ -836,6 +836,11 @@ export type Database = {
           description: string | null
           ends_at: string | null
           external_url: string | null
+          google_calendar_event_id: string | null
+          google_calendar_html_link: string | null
+          google_calendar_sync_error: string | null
+          google_calendar_sync_status: string
+          google_calendar_synced_at: string | null
           id: number
           location: string | null
           published_at: string | null
@@ -855,6 +860,11 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           external_url?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_html_link?: string | null
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?: string
+          google_calendar_synced_at?: string | null
           id?: never
           location?: string | null
           published_at?: string | null
@@ -874,6 +884,11 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           external_url?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_html_link?: string | null
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?: string
+          google_calendar_synced_at?: string | null
           id?: never
           location?: string | null
           published_at?: string | null

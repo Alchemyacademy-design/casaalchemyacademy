@@ -1,6 +1,6 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { Calendar, MapPin, ExternalLink, CheckCircle2, Loader2 } from "lucide-react";
+import { Calendar, MapPin, ExternalLink, CheckCircle2, Loader2, CalendarPlus } from "lucide-react";
 import { useUpcomingEvents, usePastEvents, useMyRegistrations, useRegisterForTarget } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
 
@@ -9,6 +9,28 @@ function fmtDate(iso: string) {
 }
 function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+}
+
+function toGCalStamp(iso: string) {
+  // Google Calendar expects UTC in YYYYMMDDTHHMMSSZ.
+  return new Date(iso).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+}
+
+// deno-lint-ignore no-explicit-any
+function gcalRenderUrl(ev: { title: string; description?: string | null; location?: string | null; starts_at: string; ends_at?: string | null; external_url?: string | null; }) {
+  const start = toGCalStamp(ev.starts_at);
+  const endIso = ev.ends_at ?? new Date(new Date(ev.starts_at).getTime() + 60 * 60 * 1000).toISOString();
+  const end = toGCalStamp(endIso);
+  const details = [ev.description ?? "", ev.external_url ? `More info: ${ev.external_url}` : ""]
+    .filter(Boolean).join("\n\n");
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: ev.title,
+    dates: `${start}/${end}`,
+    details,
+    location: ev.location ?? "",
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 export default function Events() {
@@ -73,6 +95,15 @@ export default function Events() {
                           <ExternalLink size={16} /> <span>More info</span>
                         </a>
                       )}
+                      <a
+                        href={gcalRenderUrl(event)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 text-sm hover:underline"
+                        style={{ color: "var(--aa-accent)" }}
+                      >
+                        <CalendarPlus size={16} /> <span>Add to Google Calendar</span>
+                      </a>
                     </div>
                     <button
                       className="w-full mt-4 px-4 py-2 rounded-lg transition text-sm font-medium disabled:opacity-60"
