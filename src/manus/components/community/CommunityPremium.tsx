@@ -275,6 +275,29 @@ export default function CommunityPremium({
     window.setTimeout(() => composerBodyRef.current?.focus?.(), 200);
   }
 
+  const { data: followedChannels } = useChannelFollows(userId);
+  const toggleFollow = useToggleChannelFollow(userId);
+
+  function applyTemplateForChannel(slug: string | undefined) {
+    if (!slug) return;
+    const template = CHANNEL_TEMPLATES[slug];
+    const guide = CHANNEL_GUIDES[slug];
+    if (!template) return;
+    // Do not overwrite if the user already typed something meaningful
+    const hasDraft = draftTitle.trim().length > 0 || draftBody.trim().length > 0;
+    if (hasDraft) return;
+    setDraftTitle(template.title);
+    setDraftBody(template.body(guide?.intro ?? ""));
+  }
+
+  function startNewPost(nextChannelId: number, slug: string | undefined) {
+    setChannelId(nextChannelId);
+    window.setTimeout(() => {
+      applyTemplateForChannel(slug);
+      focusComposer();
+    }, 80);
+  }
+
   useEffect(() => {
     if (!spaces.length || spaceId) return;
     try {
