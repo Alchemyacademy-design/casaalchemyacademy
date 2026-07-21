@@ -77,10 +77,14 @@ export default function App() {
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/politica-de-privacidade" element={<PrivacyPolicy />} />
-            <Route path="/termos-de-uso" element={<TermsOfUse />} />
-            <Route path="/suporte" element={<SupportPage />} />
-            <Route path="/exclusao-de-dados" element={<DataDeletion />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-use" element={<TermsOfUse />} />
+            <Route path="/support" element={<SupportPage />} />
+            <Route path="/data-deletion" element={<DataDeletion />} />
+            <Route path="/politica-de-privacidade" element={<Navigate to="/privacy-policy" replace />} />
+            <Route path="/termos-de-uso" element={<Navigate to="/terms-of-use" replace />} />
+            <Route path="/suporte" element={<Navigate to="/support" replace />} />
+            <Route path="/exclusao-de-dados" element={<Navigate to="/data-deletion" replace />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/free-lesson" element={<FreeLesson />} />
             <Route path="/quiz" element={<CourseQuiz />} />

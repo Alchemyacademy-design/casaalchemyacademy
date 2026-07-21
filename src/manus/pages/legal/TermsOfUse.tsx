@@ -3,100 +3,100 @@ import LegalPageLayout from "./LegalPageLayout";
 export default function TermsOfUse() {
   return (
     <LegalPageLayout
-      title="Termos de Uso"
-      description="Condições de uso da plataforma educacional Casa Alchemy Academy: cadastro, cursos, eventos, workshops e integrações opcionais."
-      updatedAt="21 de julho de 2026"
+      title="Terms of Use"
+      description="Conditions of use for the Casa Alchemy Academy educational platform: sign-up, courses, events, workshops and optional integrations."
+      updatedAt="July 21, 2026"
     >
       <p>
-        Estes Termos regem o uso da plataforma Casa Alchemy Academy, disponível em{" "}
-        <em>casaalchemyacademy.lovable.app</em>. Ao criar uma conta ou acessar o serviço, você concorda com estes termos.
+        These Terms govern the use of the Casa Alchemy Academy platform, available at{" "}
+        <em>casaalchemyacademy.lovable.app</em>. By creating an account or accessing the service, you agree to these terms.
       </p>
 
-      <h2>1. Aceitação</h2>
+      <h2>1. Acceptance</h2>
       <p>
-        Se você não concordar com estes termos, não utilize a plataforma. Podemos atualizar este documento; alterações
-        relevantes serão comunicadas aos usuários autenticados.
+        If you do not agree with these terms, do not use the platform. We may update this document; material changes will
+        be communicated to authenticated users.
       </p>
 
-      <h2>2. Cadastro e segurança da conta</h2>
+      <h2>2. Sign-up and account security</h2>
       <ul>
-        <li>Você deve fornecer informações verdadeiras no cadastro.</li>
-        <li>Você é responsável pela guarda das suas credenciais e por toda atividade realizada na sua conta.</li>
-        <li>É permitido autenticar via e-mail e senha ou via Google Sign-In.</li>
+        <li>You must provide accurate information at sign-up.</li>
+        <li>You are responsible for safeguarding your credentials and for all activity on your account.</li>
+        <li>You may sign in with email and password or with Google Sign-In.</li>
       </ul>
 
-      <h2>3. Cursos e materiais</h2>
+      <h2>3. Courses and materials</h2>
       <p>
-        Membros ativos têm acesso aos cursos, aulas, guias e materiais complementares publicados na plataforma. Certificados
-        de conclusão são emitidos conforme os critérios de cada curso.
+        Active members have access to the courses, lessons, guides and supplementary materials published on the platform.
+        Completion certificates are issued according to the criteria of each course.
       </p>
 
-      <h2>4. Workshops e eventos</h2>
+      <h2>4. Workshops and events</h2>
       <p>
-        Workshops ao vivo e eventos são organizados pela Casa Alchemy Academy. A inscrição fica registrada na sua conta e pode
-        ser sincronizada com a sua Google Agenda quando você autorizar a integração.
+        Live workshops and events are organized by Casa Alchemy Academy. Your registration is recorded on your account and
+        can be synced with your Google Calendar when you authorize the integration.
       </p>
 
-      <h2>5. Comunidade e conduta</h2>
+      <h2>5. Community and conduct</h2>
       <ul>
-        <li>Trate os demais membros com respeito.</li>
-        <li>Não publique conteúdo ilegal, ofensivo, discriminatório ou que infrinja direitos de terceiros.</li>
-        <li>Não envie spam nem utilize a comunidade para fins comerciais não autorizados.</li>
-        <li>Reservamo-nos o direito de moderar, remover conteúdo e suspender contas que violem estas regras.</li>
+        <li>Treat other members with respect.</li>
+        <li>Do not post illegal, offensive, discriminatory content or content that infringes third-party rights.</li>
+        <li>Do not send spam or use the community for unauthorized commercial purposes.</li>
+        <li>We reserve the right to moderate, remove content and suspend accounts that violate these rules.</li>
       </ul>
 
-      <h2>6. Propriedade intelectual</h2>
+      <h2>6. Intellectual property</h2>
       <p>
-        Todos os conteúdos (aulas, textos, imagens, vídeos, marca) são de propriedade da Casa Alchemy Studio ou de seus
-        licenciadores. É proibido copiar, redistribuir, revender ou compartilhar credenciais e materiais fora da plataforma.
+        All content (lessons, text, images, videos, brand) is owned by Casa Alchemy Studio or its licensors. Copying,
+        redistributing, reselling or sharing credentials and materials outside the platform is prohibited.
       </p>
 
-      <h2>7. Integrações de terceiros</h2>
+      <h2>7. Third-party integrations</h2>
       <p>
-        A plataforma integra-se com Supabase, Google (login e Google Agenda), Stripe, Resend e HubSpot. Cada integração é
-        governada também pelos termos do respectivo fornecedor. A conexão com a Google Agenda é <strong>opcional</strong> e
-        pode ser revogada a qualquer momento em <em>/profile</em>.
+        The platform integrates with Supabase, Google (sign-in and Google Calendar), Stripe, Resend and HubSpot. Each
+        integration is also governed by the respective provider's terms. The Google Calendar connection is <strong>optional</strong>
+        and can be revoked at any time at <em>/profile</em>.
       </p>
 
-      <h2>8. Disponibilidade do serviço</h2>
+      <h2>8. Service availability</h2>
       <p>
-        Buscamos manter a plataforma disponível de forma contínua, mas o serviço pode passar por manutenções, atualizações ou
-        indisponibilidades. Não garantimos operação ininterrupta ou livre de erros.
+        We aim to keep the platform continuously available, but the service may be subject to maintenance, updates or
+        downtime. We do not guarantee uninterrupted or error-free operation.
       </p>
 
-      <h2>9. Pagamentos e assinaturas</h2>
+      <h2>9. Payments and subscriptions</h2>
       <p>
-        Planos pagos podem ser oferecidos e processados via Stripe. Condições específicas de preço, período e cancelamento são
-        apresentadas no momento da contratação. [CONFIRMAÇÃO NECESSÁRIA: política definitiva de reembolso e cancelamento a ser
-        validada pelo responsável comercial.]
+        Paid plans may be offered and processed via Stripe. Specific price, term and cancellation conditions are shown at
+        the moment of purchase. [CONFIRMATION REQUIRED: final refund and cancellation policy to be validated by the
+        commercial owner.]
       </p>
 
-      <h2>10. Limitação de responsabilidade</h2>
+      <h2>10. Limitation of liability</h2>
       <p>
-        Na máxima extensão permitida pela legislação aplicável, a Casa Alchemy Academy não será responsável por danos
-        indiretos, lucros cessantes ou perda de dados decorrentes do uso da plataforma.
+        To the maximum extent permitted by applicable law, Casa Alchemy Academy shall not be liable for indirect damages,
+        lost profits or loss of data arising from use of the platform.
       </p>
 
-      <h2>11. Suspensão e encerramento</h2>
+      <h2>11. Suspension and termination</h2>
       <p>
-        Podemos suspender ou encerrar contas que violem estes termos. Você pode solicitar o encerramento da sua conta a
-        qualquer momento conforme <a href="/exclusao-de-dados">Exclusão de conta e dados</a>.
+        We may suspend or terminate accounts that violate these terms. You may request termination of your account at any
+        time as described in <a href="/data-deletion">Account and data deletion</a>.
       </p>
 
-      <h2>12. Alterações</h2>
+      <h2>12. Changes</h2>
       <p>
-        Podemos atualizar estes termos. A versão vigente terá sempre a data de atualização indicada no topo desta página.
+        We may update these terms. The current version will always display the update date at the top of this page.
       </p>
 
-      <h2>13. Contato</h2>
+      <h2>13. Contact</h2>
       <p>
-        Dúvidas sobre estes termos:{" "}
+        Questions about these terms:{" "}
         <a href="mailto:contact@casaalchemystudio.com">contact@casaalchemystudio.com</a>.
       </p>
 
       <p style={{ marginTop: "2rem", fontSize: "0.85rem", color: "var(--aa-text-light)" }}>
-        Este documento deve ser validado pelo responsável legal antes de ser considerado texto jurídico definitivo. Cláusulas
-        de foro, jurisdição e legislação aplicável dependem de confirmação da entidade contratante.
+        This document should be reviewed by the responsible legal party before being considered definitive legal text.
+        Venue, jurisdiction and governing law clauses depend on confirmation by the contracting entity.
       </p>
     </LegalPageLayout>
   );
