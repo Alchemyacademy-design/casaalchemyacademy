@@ -705,7 +705,24 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
             <div className="space-y-4 py-2">
               {formFields.map((f) => {
                 const value = editing[f.name];
-                const set = (v: unknown) => setEditing({ ...editing, [f.name]: v });
+                const isNewRecord = !editing[primaryKey];
+                const set = (v: unknown) => {
+                  const next: Record<string, unknown> = { ...editing, [f.name]: v };
+                  // Auto-derive dependent slug fields (only for new records, and
+                  // only while the admin hasn't manually edited the slug).
+                  if (isNewRecord && typeof v === "string") {
+                    for (const other of fields) {
+                      if (other.deriveSlugFrom === f.name && !touchedFields[other.name]) {
+                        next[other.name] = slugify(v);
+                      }
+                    }
+                  }
+                  setEditing(next);
+                  // Mark this field as touched when the admin edits it directly.
+                  if (!touchedFields[f.name]) {
+                    setTouchedFields((t) => ({ ...t, [f.name]: true }));
+                  }
+                };
                 return (
                   <div key={f.name}>
                     <Label className="text-xs">{f.label}{f.required && " *"}</Label>
