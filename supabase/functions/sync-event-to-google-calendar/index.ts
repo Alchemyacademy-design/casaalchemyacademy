@@ -215,9 +215,21 @@ Deno.serve(async (req) => {
       }
     } else {
       const gcalBody = toGCalEvent(ev);
-      const res = existingId
+      // Idempotency: if we have no persisted GCal id, first search Google
+      // for a prior copy tagged with alchemy_event_id and reuse it. This
+      // prevents duplicates from retries after a partial failure.
+      let effectiveId = existingId;
+      if (!effectiveId) {
+        const found = await findExistingByPrivateProp(encodedCalendar, "event", ev.id);
+        if (found) {
+          effectiveId = found.id;
+          newHtmlLink = found.htmlLink ?? newHtmlLink;
+          log("dedupe_reused_existing", { existing_id: found.id });
+        }
+      }
+      const res = effectiveId
         ? await fetch(
-          `${GATEWAY_BASE}/calendars/${encodedCalendar}/events/${encodeURIComponent(existingId)}`,
+          `${GATEWAY_BASE}/calendars/${encodedCalendar}/events/${encodeURIComponent(effectiveId)}`,
           { method: "PATCH", headers: gatewayHeaders(), body: JSON.stringify(gcalBody) },
         )
         : await fetch(
@@ -228,7 +240,7 @@ Deno.serve(async (req) => {
       gatewayBody = await res.text();
 
       // If PATCH target is gone at Google, retry as insert.
-      if (existingId && (res.status === 404 || res.status === 410)) {
+      if (effectiveId && (res.status === 404 || res.status === 410)) {
         const retry = await fetch(
           `${GATEWAY_BASE}/calendars/${encodedCalendar}/events`,
           { method: "POST", headers: gatewayHeaders(), body: JSON.stringify(gcalBody) },
@@ -246,7 +258,7 @@ Deno.serve(async (req) => {
         }
       } else if (res.ok) {
         const parsed = gatewayBody ? JSON.parse(gatewayBody) : {};
-        newExternalId = parsed.id ?? existingId;
+        newExternalId = parsed.id ?? effectiveId;
         newHtmlLink = parsed.htmlLink ?? newHtmlLink;
         newStatus = "synced";
       } else {
