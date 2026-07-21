@@ -30,7 +30,6 @@ const CourseDetail = lazyWithRetry(() => import("@/manus/pages/CourseDetail"), "
 const Events = lazyWithRetry(() => import("@/manus/pages/Events"), "Events");
 const Magazine = lazyWithRetry(() => import("@/manus/pages/Magazine"), "Magazine");
 const Profile = lazyWithRetry(() => import("@/manus/pages/Profile"), "Profile");
-const LiveWorkshops = lazyWithRetry(() => import("@/manus/pages/LiveWorkshops"), "LiveWorkshops");
 const Activate = lazyWithRetry(() => import("@/manus/pages/Activate"), "Activate");
 const Signup = lazyWithRetry(() => import("@/manus/pages/Signup"), "Signup");
 const ResetPassword = lazyWithRetry(() => import("@/manus/pages/ResetPassword"), "ResetPassword");
