@@ -87,6 +87,27 @@
 .aa-community-guide ul{margin:0 0 .5rem;padding-left:1.1rem;display:flex;flex-direction:column;gap:.25rem}
 .aa-community-guide li{font-size:.75rem;line-height:1.45;color:var(--aa-text-mid)}
 .aa-community-guide-tip{font-style:italic;color:var(--aa-text-light);font-size:.72rem}
+/* House rules collapsible trigger */
+.aa-community-rules-trigger{display:flex;align-items:center;justify-content:space-between;width:100%;gap:.5rem;border:0;background:transparent;padding:0;color:var(--aa-text-light);cursor:pointer}
+.aa-community-rules-trigger .section-label{margin:0}
+.aa-community-rules-trigger svg{transition:transform .2s ease;color:var(--aa-text-light)}
+.aa-community-rules-trigger[data-state="open"] svg{transform:rotate(180deg)}
+.aa-community-rules-wrap [data-state="closed"] ul{display:none}
+.aa-community-rules ul{margin-top:.5rem}
+/* Channel row "more" menu trigger */
+.aa-community-channels nav>div{padding:.1rem 0}
+.aa-community-channel-more{padding:.4rem;border:0;background:transparent;color:var(--aa-text-light);border-radius:.25rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+.aa-community-channel-more:hover,.aa-community-channel-more[data-state="open"]{background:rgba(196,160,90,.14);color:var(--aa-olive-dark)}
+@media(hover:hover){.aa-community-channel-more{opacity:0;transition:opacity .15s}.aa-community-channels nav>div:hover .aa-community-channel-more,.aa-community-channels nav>div:focus-within .aa-community-channel-more,.aa-community-channel-more[data-state="open"]{opacity:1}}
+/* Premium empty state with centered CTA */
+.aa-community-empty{gap:.75rem;padding:clamp(2rem,4vw,3.5rem) 1.5rem;border:1px dashed var(--aa-cream-dark);background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(245,240,232,.6));border-radius:.35rem}
+.aa-community-empty-icon{display:grid;place-items:center;width:3.25rem;height:3.25rem;border-radius:999px;background:rgba(196,160,90,.14);color:var(--aa-olive-dark);margin-bottom:.25rem}
+.aa-community-empty-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:clamp(1.35rem,2.4vw,1.85rem);font-weight:400;color:var(--aa-olive-dark);margin:0;line-height:1.15;max-width:32rem}
+.aa-community-empty-body{max-width:36rem;margin:0;color:var(--aa-text-mid);font-size:.85rem;line-height:1.65}
+.aa-community-empty-cta{margin-top:.5rem;background:var(--aa-gold);color:var(--aa-olive-dark);border:0;padding:.7rem 1.25rem;font-weight:600;letter-spacing:.03em}
+.aa-community-empty-cta:hover{background:var(--aa-gold-light);color:var(--aa-olive-dark)}
+/* Auto-collapse house rules on tablet/mobile */
+@media(max-width:1279px){.aa-community-rules-wrap [data-state="open"] ~ .aa-community-rules-hint,.aa-community-rules ul{max-height:none}}
 /* Mobile / tablet vertical: single-column layout */
 @media(max-width:899px){
   .aa-community-shell{grid-template-columns:1fr;height:calc(100dvh - 4rem)}

@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  MoreHorizontal,
   Pin,
   Plus,
   Search,
@@ -17,7 +18,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Bell, BellOff, Flag, Award, ArrowDownUp } from "lucide-react";
+import { Bell, BellOff, Flag, Award, ArrowDownUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +26,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
@@ -294,6 +304,10 @@ export default function CommunityPremium({
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
   const composerRef = useRef<HTMLDivElement | null>(null);
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
+  // House rules: default closed on tablet/mobile to save space, open on desktop
+  const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
+    typeof window === "undefined" ? true : window.matchMedia("(min-width: 1280px)").matches,
+  );
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -598,14 +612,21 @@ export default function CommunityPremium({
           <h2>{activeSpace?.name ?? "Community"}</h2>
           {activeSpace?.description && <p>{activeSpace.description}</p>}
         </header>
-        <div className="aa-community-rules" aria-label="House rules">
-          <p className="section-label">House rules</p>
-          <ul>
-            {SPACE_RULES.map((rule) => (
-              <li key={rule}>{rule}</li>
-            ))}
-          </ul>
-        </div>
+        <Collapsible open={rulesOpen} onOpenChange={setRulesOpen} className="aa-community-rules-wrap">
+          <div className="aa-community-rules" aria-label="House rules">
+            <CollapsibleTrigger className="aa-community-rules-trigger" aria-label="Toggle house rules">
+              <span className="section-label">House rules</span>
+              <ChevronDown size={14} aria-hidden="true" />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ul>
+                {SPACE_RULES.map((rule) => (
+                  <li key={rule}>{rule}</li>
+                ))}
+              </ul>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
         <ScrollArea className="flex-1">
           <nav aria-label="Community channels">
             {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
@@ -619,7 +640,7 @@ export default function CommunityPremium({
                 <div key={channel.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   type="button"
-                  className={isActive ? "is-active" : ""}
+                  className={`aa-community-channel-btn ${isActive ? "is-active" : ""}`}
                   onClick={() => setChannelId(channel.id)}
                   style={{ flex: 1 }}
                   title={purpose ?? channel.description ?? channel.name}
@@ -658,75 +679,76 @@ export default function CommunityPremium({
                     </span>
                   )}
                 </button>
-                {userId && (
-                  <button
-                    type="button"
-                    title={isFollowed ? `Unfollow #${channel.name}` : `Follow #${channel.name} to get notified about new posts`}
-                    aria-label={isFollowed ? `Unfollow ${channel.name}` : `Follow ${channel.name}`}
-                    aria-pressed={isFollowed}
-                    onClick={async () => {
-                      try {
-                        await toggleFollow.mutateAsync({ channelId: channel.id, follow: !isFollowed });
-                        toast.success(isFollowed ? `Unfollowed #${channel.name}` : `Following #${channel.name}`);
-                      } catch (err) {
-                        toast.error(err instanceof Error ? err.message : "Could not update follow");
-                      }
-                    }}
-                    style={{ padding: 4, opacity: isFollowed ? 1 : 0.55, color: isFollowed ? "var(--aa-olive-dark, #3a3f2b)" : undefined }}
-                  >
-                    {isFollowed ? <Bell size={13} /> : <BellOff size={13} />}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  title={`New post in #${channel.name}`}
-                  aria-label={`New post in #${channel.name}`}
-                  onClick={() => {
-                    startNewPost(channel.id, channel.slug);
-                  }}
-                  style={{ padding: 4, opacity: 0.7 }}
-                >
-                  <Plus size={13} />
-                </button>
-                {isAdmin && (
-                  <>
-                    <button
-                      type="button"
-                      title="Rename channel"
-                      aria-label={`Rename ${channel.name}`}
-                      onClick={async () => {
-                        const name = window.prompt("Rename channel", channel.name);
-                        if (!name || !name.trim() || name.trim() === channel.name) return;
-                        try {
-                          await updateChannel.mutateAsync({ id: channel.id, patch: { name: name.trim() } });
-                          toast.success("Channel updated");
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed to update channel");
-                        }
-                      }}
-                      style={{ padding: 4, opacity: 0.6 }}
-                    >
-                      <Pencil size={12} />
-                    </button>
-                    <button
-                      type="button"
-                      title="Delete channel"
-                      aria-label={`Delete ${channel.name}`}
-                      onClick={async () => {
-                        if (!window.confirm(`Delete channel "${channel.name}"? Its posts will be removed.`)) return;
-                        try {
-                          await deleteChannel.mutateAsync(channel.id);
-                          if (channelId === channel.id) setChannelId(null);
-                          toast.success("Channel deleted");
-                        } catch (err) {
-                          toast.error(err instanceof Error ? err.message : "Failed to delete channel");
-                        }
-                      }}
-                      style={{ padding: 4, opacity: 0.6, color: "var(--destructive, #b91c1c)" }}
-                    >
-                      <Trash2 size={12} />
-                    </button>
-                  </>
+                {(userId || isAdmin) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        className="aa-community-channel-more"
+                        aria-label={`More actions for ${channel.name}`}
+                        title={`More actions for #${channel.name}`}
+                      >
+                        <MoreHorizontal size={14} />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[13rem]">
+                      <DropdownMenuLabel>#{channel.name}</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onSelect={() => startNewPost(channel.id, channel.slug)}>
+                        <Plus size={14} /> Add post
+                      </DropdownMenuItem>
+                      {userId && (
+                        <DropdownMenuItem
+                          onSelect={async () => {
+                            try {
+                              await toggleFollow.mutateAsync({ channelId: channel.id, follow: !isFollowed });
+                              toast.success(isFollowed ? `Unfollowed #${channel.name}` : `Following #${channel.name}`);
+                            } catch (err) {
+                              toast.error(err instanceof Error ? err.message : "Could not update follow");
+                            }
+                          }}
+                        >
+                          {isFollowed ? <BellOff size={14} /> : <Bell size={14} />}
+                          {isFollowed ? "Unfollow channel" : "Follow channel"}
+                        </DropdownMenuItem>
+                      )}
+                      {isAdmin && (
+                        <>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuLabel className="text-xs opacity-70">Admin</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onSelect={async () => {
+                              const name = window.prompt("Rename channel", channel.name);
+                              if (!name || !name.trim() || name.trim() === channel.name) return;
+                              try {
+                                await updateChannel.mutateAsync({ id: channel.id, patch: { name: name.trim() } });
+                                toast.success("Channel updated");
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Failed to update channel");
+                              }
+                            }}
+                          >
+                            <Pencil size={14} /> Edit channel
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onSelect={async () => {
+                              if (!window.confirm(`Delete channel "${channel.name}"? Its posts will be removed.`)) return;
+                              try {
+                                await deleteChannel.mutateAsync(channel.id);
+                                if (channelId === channel.id) setChannelId(null);
+                                toast.success("Channel deleted");
+                              } catch (err) {
+                                toast.error(err instanceof Error ? err.message : "Failed to delete channel");
+                              }
+                            }}
+                          >
+                            <Trash2 size={14} /> Delete channel
+                          </DropdownMenuItem>
+                        </>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
                 </div>
               );
@@ -824,8 +846,31 @@ export default function CommunityPremium({
               </div>
             )}
             {!postsQuery.isLoading && !postsQuery.isError && visiblePosts.length === 0 && activeChannel && (
-              <div className="aa-community-state">
-                <p>{posts.length ? "No posts match the filters." : `Be the first to start a conversation in #${activeChannel.name}.`}</p>
+              <div className="aa-community-state aa-community-empty" role="status">
+                <div className="aa-community-empty-icon" aria-hidden="true">
+                  <MessageCircle size={28} />
+                </div>
+                <h3 className="aa-community-empty-title">
+                  {posts.length ? "No posts match the filters." : `Start the conversation in #${activeChannel.name}`}
+                </h3>
+                <p className="aa-community-empty-body">
+                  {posts.length
+                    ? "Try clearing search or filters to see every conversation in this channel."
+                    : "Be the first to share an idea, a question, or your progress with the community."}
+                </p>
+                {posts.length === 0 && userId && (
+                  <Button
+                    className="aa-community-empty-cta"
+                    onClick={() => startNewPost(activeChannel.id, activeChannel.slug)}
+                  >
+                    <Plus size={15} /> Start a conversation
+                  </Button>
+                )}
+                {posts.length > 0 && (
+                  <Button variant="outline" onClick={() => { setSearch(""); setFilter("all"); }}>
+                    Clear filters
+                  </Button>
+                )}
               </div>
             )}
 
