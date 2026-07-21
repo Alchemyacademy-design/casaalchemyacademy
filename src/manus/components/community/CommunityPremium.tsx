@@ -17,7 +17,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, Flag, Award, ArrowDownUp } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -200,6 +200,28 @@ function useToggleChannelFollow(userId: string | null) {
 }
 
 type FilterMode = "all" | "pinned" | "mine" | "hidden";
+type SortMode = "new" | "top";
+
+const REPORT_REASONS = [
+  "Spam or advertising",
+  "Harassment or hate",
+  "Off-topic",
+  "Inappropriate content",
+  "Misinformation",
+  "Other",
+];
+
+function useReportPost(userId: string | null) {
+  return useMutation({
+    mutationFn: async ({ postId, reason, details }: { postId: number; reason: string; details?: string }) => {
+      if (!userId) throw new Error("Sign in to report");
+      const { error } = await supabase
+        .from("post_reports" as never)
+        .insert({ post_id: postId, reporter_id: userId, reason, details: details ?? null } as never);
+      if (error) throw error;
+    },
+  });
+}
 
 type Props = {
   initialSpaceSlug?: string;
@@ -262,6 +284,9 @@ export default function CommunityPremium({
   const deleteChannel = useDeleteChannel(spaceId);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
+  const [sortMode, setSortMode] = useState<SortMode>("new");
+  const [reportOpen, setReportOpen] = useState<CommunityPost | null>(null);
+  const reportPost = useReportPost(userId);
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
   // Handle→userId mapping accumulated as the composer inserts mentions.
@@ -389,8 +414,25 @@ export default function CommunityPremium({
     return map;
   }, [postReactions, userId]);
 
+  const postScore = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const post of posts) {
+      const reactions = reactionsByPost.get(post.id) ?? [];
+      const rx = reactions.reduce((n, r) => n + r.count, 0);
+      const rp = replyCounts[post.id] ?? 0;
+      map.set(post.id, rx * 2 + rp);
+    }
+    return map;
+  }, [posts, reactionsByPost, replyCounts]);
+
+  const topPostScore = useMemo(() => {
+    let best = 0;
+    postScore.forEach((v) => { if (v > best) best = v; });
+    return best;
+  }, [postScore]);
+
   const visiblePosts = useMemo(() => {
-    return posts.filter((post) => {
+    const filtered = posts.filter((post) => {
       if (!isAdmin && post.hidden_at) return false;
       if (filter === "hidden" && !post.hidden_at) return false;
       if (filter !== "hidden" && post.hidden_at) return false;
@@ -402,7 +444,15 @@ export default function CommunityPremium({
       }
       return true;
     });
-  }, [debouncedSearch, filter, isAdmin, posts, userId]);
+    if (sortMode === "top") {
+      return [...filtered].sort((a, b) => {
+        // Keep pinned on top regardless of sort mode
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return (postScore.get(b.id) ?? 0) - (postScore.get(a.id) ?? 0);
+      });
+    }
+    return filtered;
+  }, [debouncedSearch, filter, isAdmin, posts, userId, sortMode, postScore]);
 
   const activeSpace = spaces.find((space) => space.id === spaceId) ?? null;
   const activeChannel = channels.find((channel) => channel.id === channelId) ?? null;
@@ -718,6 +768,20 @@ export default function CommunityPremium({
               ))}
               {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Hidden</button>}
             </div>
+            <div className="aa-community-filters" aria-label="Sort">
+              <ArrowDownUp size={14} />
+              {(["new", "top"] as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={sortMode === mode ? "is-active" : ""}
+                  onClick={() => setSortMode(mode)}
+                  title={mode === "top" ? "Most reactions and replies first" : "Newest first"}
+                >
+                  {mode === "new" ? "Newest" : "Top"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -769,8 +833,10 @@ export default function CommunityPremium({
               const own = post.author_id === userId;
               const profile = profileMap.get(post.author_id);
               const reactions = reactionsByPost.get(post.id) ?? [];
+              const score = postScore.get(post.id) ?? 0;
+              const isTop = sortMode === "top" && score > 0 && score === topPostScore;
               return (
-                <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""}`}>
+                <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""} ${isTop ? "is-top" : ""}`}>
                   <div className="aa-community-post-author">
                     <ProfileMark profile={profile} own={own} />
                     <div>
@@ -781,6 +847,7 @@ export default function CommunityPremium({
                       {post.pinned && <span><Pin size={12} /> Pinned</span>}
                       {post.locked && <span><Lock size={12} /> Closed</span>}
                       {post.hidden_at && <span><EyeOff size={12} /> Hidden</span>}
+                      {isTop && <span title="Best post in this channel"><Award size={12} /> Top post</span>}
                     </div>
                   </div>
 
@@ -824,6 +891,18 @@ export default function CommunityPremium({
                       {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reopen" : "Close"}</button>}
                       {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restore" : "Hide"}</button>}
                       <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remove</button>
+                    </div>
+                  )}
+                  {userId && !own && !post.hidden_at && (
+                    <div className="aa-community-report-row">
+                      <button
+                        type="button"
+                        className="aa-community-report-btn"
+                        onClick={() => setReportOpen(post)}
+                        title="Report this post"
+                      >
+                        <Flag size={12} /> Report
+                      </button>
                     </div>
                   )}
                 </article>
@@ -881,7 +960,80 @@ export default function CommunityPremium({
 
       <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
       <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
+
+      <Sheet open={!!reportOpen} onOpenChange={(open) => !open && setReportOpen(null)}>
+        <SheetContent side="right" className="aa-community-thread">
+          <SheetHeader>
+            <SheetTitle>Report post</SheetTitle>
+          </SheetHeader>
+          {reportOpen && (
+            <ReportForm
+              post={reportOpen}
+              submitting={reportPost.isPending}
+              onCancel={() => setReportOpen(null)}
+              onSubmit={async ({ reason, details }) => {
+                try {
+                  await reportPost.mutateAsync({ postId: reportOpen.id, reason, details });
+                  toast.success("Thanks — the moderation team was notified.");
+                  setReportOpen(null);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Could not send report");
+                }
+              }}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
     </section>
+  );
+}
+
+function ReportForm({
+  post,
+  submitting,
+  onSubmit,
+  onCancel,
+}: {
+  post: CommunityPost;
+  submitting: boolean;
+  onSubmit: (v: { reason: string; details: string }) => void | Promise<void>;
+  onCancel: () => void;
+}) {
+  const [reason, setReason] = useState<string>(REPORT_REASONS[0]);
+  const [details, setDetails] = useState<string>("");
+  return (
+    <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+      <p style={{ fontSize: 13, color: "var(--aa-text-light)" }}>
+        Reporting: <strong>{post.title || post.body.slice(0, 60)}</strong>
+      </p>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, fontWeight: 600 }}>
+        Reason
+        <select
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          style={{ padding: 8, border: "1px solid var(--border)", borderRadius: 6, background: "var(--background)" }}
+        >
+          {REPORT_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </label>
+      <label style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: 12, fontWeight: 600 }}>
+        Additional context (optional)
+        <textarea
+          value={details}
+          onChange={(e) => setDetails(e.target.value)}
+          rows={4}
+          maxLength={1000}
+          placeholder="Anything the moderation team should know…"
+          style={{ padding: 8, border: "1px solid var(--border)", borderRadius: 6, background: "var(--background)", fontFamily: "inherit" }}
+        />
+      </label>
+      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+        <Button variant="ghost" onClick={onCancel} disabled={submitting}>Cancel</Button>
+        <Button onClick={() => onSubmit({ reason, details: details.trim() })} disabled={submitting}>
+          {submitting ? <Loader2 size={14} className="animate-spin" /> : <Flag size={14} />} Send report
+        </Button>
+      </div>
+    </div>
   );
 }
 
