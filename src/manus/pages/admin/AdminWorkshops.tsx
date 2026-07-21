@@ -80,8 +80,8 @@ export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug"]}
       publicInvalidateKeys={[["public", "live_workshops"]]}
-      deletionMode="archive"
-      archivePatch={{ status: "archived" }}
+      deletionMode="hard"
+      deletionLabelOverride="Delete permanently"
       beforeDelete={async (id) => {
         await callSync(id, "delete");
       }}

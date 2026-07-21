@@ -80,8 +80,8 @@ export function AdminEventsInner({ embedded = false }: { embedded?: boolean }) {
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug", "location"]}
       publicInvalidateKeys={[["public", "events"]]}
-      deletionMode="archive"
-      archivePatch={{ status: "archived" }}
+      deletionMode="hard"
+      deletionLabelOverride="Delete permanently"
       beforeDelete={async (id) => {
         // Remove from Google Calendar first while the row still exists so
         // the sync function can read google_calendar_event_id from the DB.
