@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  MoreHorizontal,
   Pin,
   Plus,
   Search,
@@ -17,7 +18,7 @@ import {
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Bell, BellOff, Flag, Award, ArrowDownUp } from "lucide-react";
+import { Bell, BellOff, Flag, Award, ArrowDownUp, ChevronDown } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -25,6 +26,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
