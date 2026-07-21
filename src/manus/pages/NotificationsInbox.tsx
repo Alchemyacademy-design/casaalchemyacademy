@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Bell, Check, CheckCheck } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
@@ -11,7 +12,29 @@ import { useMarkNotificationRead, useNotifications } from "@/manus/hooks/useNoti
 export default function NotificationsInbox() {
   const { data = [], isLoading } = useNotifications();
   const mark = useMarkNotificationRead();
-  const unreadCount = data.filter((n) => !n.read_at).length;
+  const [kindFilter, setKindFilter] = useState<string>("all");
+  const [channelFilter, setChannelFilter] = useState<string>("all");
+
+  const kinds = useMemo(() => Array.from(new Set(data.map((n) => n.kind))).sort(), [data]);
+  const channels = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const n of data) {
+      const cid = (n.data as { channel_id?: number | string } | null)?.channel_id;
+      if (cid != null) map.set(String(cid), String(cid));
+    }
+    return Array.from(map.keys());
+  }, [data]);
+
+  const filtered = useMemo(() => data.filter((n) => {
+    if (kindFilter !== "all" && n.kind !== kindFilter) return false;
+    if (channelFilter !== "all") {
+      const cid = (n.data as { channel_id?: number | string } | null)?.channel_id;
+      if (String(cid ?? "") !== channelFilter) return false;
+    }
+    return true;
+  }), [data, kindFilter, channelFilter]);
+
+  const unreadCount = filtered.filter((n) => !n.read_at).length;
 
   return (
     <MemberLayout>
@@ -32,9 +55,31 @@ export default function NotificationsInbox() {
           }
         />
 
+        <div className="mb-4 flex flex-wrap items-center gap-2 text-xs">
+          <span className="uppercase tracking-[0.12em] text-muted-foreground">Filter</span>
+          <select
+            value={kindFilter}
+            onChange={(e) => setKindFilter(e.target.value)}
+            className="rounded-md border border-border bg-background px-2 py-1"
+          >
+            <option value="all">All kinds</option>
+            {kinds.map((k) => <option key={k} value={k}>{k}</option>)}
+          </select>
+          {channels.length > 0 && (
+            <select
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="rounded-md border border-border bg-background px-2 py-1"
+            >
+              <option value="all">All channels</option>
+              {channels.map((c) => <option key={c} value={c}>Channel #{c}</option>)}
+            </select>
+          )}
+        </div>
+
         {isLoading ? (
           <div className="aa-panel h-24 animate-pulse" aria-hidden />
-        ) : data.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="aa-empty-state">
             <Bell className="mx-auto mb-3 h-6 w-6 text-accent" />
             <h3 className="font-serif text-2xl text-primary">Nothing here yet</h3>
@@ -44,7 +89,7 @@ export default function NotificationsInbox() {
           </div>
         ) : (
           <ul className="space-y-3">
-            {data.map((n) => {
+            {filtered.map((n) => {
               const Wrapper = n.href ? Link : "div";
               return (
                 <li key={n.id}>
