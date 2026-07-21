@@ -80,9 +80,9 @@ Deno.serve(async (req) => {
     const admin = createClient(url, service);
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: claimsErr } = await authed.auth.getClaims(token);
-    if (claimsErr || !claims?.claims?.sub) return json({ error: "unauthorized" }, 401);
-    const userId = claims.claims.sub as string;
+    const { data: userData, error: userErr } = await authed.auth.getUser(token);
+    if (userErr || !userData?.user?.id) return json({ error: "unauthorized" }, 401);
+    const userId = userData.user.id;
     if (!(await isAdminUser(admin, userId))) return json({ error: "forbidden" }, 403);
 
     const body = await req.json().catch(() => null) as
