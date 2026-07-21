@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  Pencil,
   Eye,
   EyeOff,
   Filter,
@@ -37,6 +38,10 @@ import {
   useReplyReactions,
   useSpaces,
   useToggleReaction,
+  useUpdateSpace,
+  useDeleteSpace,
+  useUpdateChannel,
+  useDeleteChannel,
 } from "@/manus/hooks/community/useCommunityData";
 import {
   type CommunityAuthorProfile,
@@ -112,6 +117,10 @@ export default function CommunityPremium({
   const [openPost, setOpenPost] = useState<CommunityPost | null>(null);
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
+  const updateSpace = useUpdateSpace();
+  const deleteSpace = useDeleteSpace();
+  const updateChannel = useUpdateChannel(spaceId);
+  const deleteChannel = useDeleteChannel(spaceId);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
@@ -310,15 +319,56 @@ export default function CommunityPremium({
       <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
-          <button
-            key={space.id}
-            type="button"
-            className={space.id === spaceId ? "is-active" : ""}
-            onClick={() => setSpaceId(space.id)}
-            title={space.name}
-          >
-            {space.name.slice(0, 2).toUpperCase()}
-          </button>
+          <div key={space.id} style={{ position: "relative" }}>
+            <button
+              type="button"
+              className={space.id === spaceId ? "is-active" : ""}
+              onClick={() => setSpaceId(space.id)}
+              title={space.name}
+            >
+              {space.name.slice(0, 2).toUpperCase()}
+            </button>
+            {isAdmin && (
+              <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 2 }}>
+                <button
+                  type="button"
+                  title="Rename space"
+                  aria-label={`Rename ${space.name}`}
+                  onClick={async () => {
+                    const name = window.prompt("Rename space", space.name);
+                    if (!name || !name.trim() || name.trim() === space.name) return;
+                    try {
+                      await updateSpace.mutateAsync({ id: space.id, patch: { name: name.trim() } });
+                      toast.success("Space updated");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Failed to update space");
+                    }
+                  }}
+                  style={{ padding: 2, opacity: 0.7 }}
+                >
+                  <Pencil size={11} />
+                </button>
+                <button
+                  type="button"
+                  title="Delete space"
+                  aria-label={`Delete ${space.name}`}
+                  onClick={async () => {
+                    if (!window.confirm(`Delete space "${space.name}"? All its channels and posts will be removed.`)) return;
+                    try {
+                      await deleteSpace.mutateAsync(space.id);
+                      if (spaceId === space.id) setSpaceId(null);
+                      toast.success("Space deleted");
+                    } catch (err) {
+                      toast.error(err instanceof Error ? err.message : "Failed to delete space");
+                    }
+                  }}
+                  style={{ padding: 2, opacity: 0.7, color: "var(--destructive, #b91c1c)" }}
+                >
+                  <Trash2 size={11} />
+                </button>
+              </div>
+            )}
+          </div>
         ))}
         {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="New space"><Plus size={16} /></button>}
       </aside>
@@ -337,11 +387,12 @@ export default function CommunityPremium({
               const unread = unreadByChannel[channel.id] ?? 0;
               const isActive = channel.id === channelId;
               return (
+                <div key={channel.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
                   type="button"
-                  key={channel.id}
                   className={isActive ? "is-active" : ""}
                   onClick={() => setChannelId(channel.id)}
+                  style={{ flex: 1 }}
                 >
                   <Hash size={14} />
                   <span style={{ flex: 1, fontWeight: unread && !isActive ? 600 : undefined }}>{channel.name}</span>
@@ -367,6 +418,47 @@ export default function CommunityPremium({
                     </span>
                   )}
                 </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      title="Rename channel"
+                      aria-label={`Rename ${channel.name}`}
+                      onClick={async () => {
+                        const name = window.prompt("Rename channel", channel.name);
+                        if (!name || !name.trim() || name.trim() === channel.name) return;
+                        try {
+                          await updateChannel.mutateAsync({ id: channel.id, patch: { name: name.trim() } });
+                          toast.success("Channel updated");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to update channel");
+                        }
+                      }}
+                      style={{ padding: 4, opacity: 0.6 }}
+                    >
+                      <Pencil size={12} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Delete channel"
+                      aria-label={`Delete ${channel.name}`}
+                      onClick={async () => {
+                        if (!window.confirm(`Delete channel "${channel.name}"? Its posts will be removed.`)) return;
+                        try {
+                          await deleteChannel.mutateAsync(channel.id);
+                          if (channelId === channel.id) setChannelId(null);
+                          toast.success("Channel deleted");
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Failed to delete channel");
+                        }
+                      }}
+                      style={{ padding: 4, opacity: 0.6, color: "var(--destructive, #b91c1c)" }}
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  </>
+                )}
+                </div>
               );
             })}
           </nav>
