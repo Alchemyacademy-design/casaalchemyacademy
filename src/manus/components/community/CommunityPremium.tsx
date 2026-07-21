@@ -718,10 +718,11 @@ export default function CommunityPremium({
         </ScrollArea>
 
         {activeChannel && userId && (
-          <footer className="aa-community-composer">
+          <footer className="aa-community-composer" ref={composerRef}>
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
               <MentionInput
+                ref={composerBodyRef}
                 value={draftBody}
                 onChange={(next, patch) => {
                   setDraftBody(next);
