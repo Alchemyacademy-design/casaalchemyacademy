@@ -768,6 +768,20 @@ export default function CommunityPremium({
               ))}
               {isAdmin && <button type="button" className={filter === "hidden" ? "is-active" : ""} onClick={() => setFilter("hidden")}>Hidden</button>}
             </div>
+            <div className="aa-community-filters" aria-label="Sort">
+              <ArrowDownUp size={14} />
+              {(["new", "top"] as SortMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={sortMode === mode ? "is-active" : ""}
+                  onClick={() => setSortMode(mode)}
+                  title={mode === "top" ? "Most reactions and replies first" : "Newest first"}
+                >
+                  {mode === "new" ? "Newest" : "Top"}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -819,8 +833,10 @@ export default function CommunityPremium({
               const own = post.author_id === userId;
               const profile = profileMap.get(post.author_id);
               const reactions = reactionsByPost.get(post.id) ?? [];
+              const score = postScore.get(post.id) ?? 0;
+              const isTop = sortMode === "top" && score > 0 && score === topPostScore;
               return (
-                <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""}`}>
+                <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""} ${isTop ? "is-top" : ""}`}>
                   <div className="aa-community-post-author">
                     <ProfileMark profile={profile} own={own} />
                     <div>
@@ -831,6 +847,7 @@ export default function CommunityPremium({
                       {post.pinned && <span><Pin size={12} /> Pinned</span>}
                       {post.locked && <span><Lock size={12} /> Closed</span>}
                       {post.hidden_at && <span><EyeOff size={12} /> Hidden</span>}
+                      {isTop && <span title="Best post in this channel"><Award size={12} /> Top post</span>}
                     </div>
                   </div>
 
@@ -874,6 +891,18 @@ export default function CommunityPremium({
                       {isAdmin && <button type="button" onClick={() => applyModeration(post, "lock")}>{post.locked ? <Unlock size={14} /> : <Lock size={14} />} {post.locked ? "Reopen" : "Close"}</button>}
                       {isAdmin && <button type="button" onClick={() => applyModeration(post, "hide")}>{post.hidden_at ? <Eye size={14} /> : <EyeOff size={14} />} {post.hidden_at ? "Restore" : "Hide"}</button>}
                       <button type="button" className="is-destructive" onClick={() => removePost(post)}><Trash2 size={14} /> Remove</button>
+                    </div>
+                  )}
+                  {userId && !own && !post.hidden_at && (
+                    <div className="aa-community-report-row">
+                      <button
+                        type="button"
+                        className="aa-community-report-btn"
+                        onClick={() => setReportOpen(post)}
+                        title="Report this post"
+                      >
+                        <Flag size={12} /> Report
+                      </button>
                     </div>
                   )}
                 </article>
