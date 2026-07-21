@@ -102,6 +102,32 @@ export type Database = {
           },
         ]
       }
+      channel_follows: {
+        Row: {
+          channel_id: number
+          created_at: string
+          user_id: string
+        }
+        Insert: {
+          channel_id: number
+          created_at?: string
+          user_id: string
+        }
+        Update: {
+          channel_id?: number
+          created_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "channel_follows_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "community_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       checkout_rate_limits: {
         Row: {
           attempt_count: number
