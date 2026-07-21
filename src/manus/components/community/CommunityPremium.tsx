@@ -60,6 +60,21 @@ import { notifyMentions, resolveMentionUserIds } from "./mentions";
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
 
+const CHANNEL_PURPOSES: Record<string, string> = {
+  general: "Open conversation about the course and the space.",
+  questions: "Ask anything — the community and mentors reply here.",
+  projects: "Share your work in progress and finished projects.",
+  inspiration: "Post references, moodboards and things that spark ideas.",
+  resources: "Curated links, tools, suppliers and reading lists.",
+};
+
+const SPACE_RULES: string[] = [
+  "Be kind and constructive — this is a space for creators helping creators.",
+  "Stay on topic for the course this Space belongs to.",
+  "Credit references and never share paid course content outside the Academy.",
+  "Use the right channel: general, questions, projects, inspiration or resources.",
+];
+
 type FilterMode = "all" | "pinned" | "mine" | "hidden";
 
 type Props = {
