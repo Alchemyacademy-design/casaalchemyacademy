@@ -1107,6 +1107,41 @@ export default function CommunityPremium({
       <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
       <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
 
+      <AlertDialog
+        open={!!channelPendingDelete}
+        onOpenChange={(open) => { if (!open) setChannelPendingDelete(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete #{channelPendingDelete?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This channel and all of its posts and replies will be permanently removed. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async (e) => {
+                e.preventDefault();
+                const target = channelPendingDelete;
+                if (!target) return;
+                try {
+                  await deleteChannel.mutateAsync(target.id);
+                  if (channelId === target.id) setChannelId(null);
+                  toast.success(`Deleted #${target.name}`);
+                  setChannelPendingDelete(null);
+                } catch (err) {
+                  toast.error(err instanceof Error ? err.message : "Failed to delete channel");
+                }
+              }}
+            >
+              Delete channel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Sheet open={!!reportOpen} onOpenChange={(open) => !open && setReportOpen(null)}>
         <SheetContent side="right" className="aa-community-thread">
           <SheetHeader>
