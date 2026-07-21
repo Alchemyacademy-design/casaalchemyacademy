@@ -17,6 +17,9 @@ import {
   Unlock,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Bell, BellOff } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -129,6 +132,72 @@ const SPACE_RULES: string[] = [
   "Credit references and never share paid course content outside the Academy.",
   "Use the right channel: general, questions, projects, inspiration or resources.",
 ];
+
+type PostTemplate = { title: string; body: (guideIntro: string) => string };
+
+const CHANNEL_TEMPLATES: Record<string, PostTemplate> = {
+  general: {
+    title: "Hi from [your name / city]",
+    body: (intro) => `> ${intro}\n\nA little about me:\n- Where I'm joining from:\n- What I'm working on right now:\n- What I'd love to learn or share here:\n`,
+  },
+  questions: {
+    title: "Question about [topic]",
+    body: (intro) => `> ${intro}\n\nContext (lesson / step I'm on):\n\nMy question:\n\nWhat I've already tried:\n`,
+  },
+  projects: {
+    title: "Project: [name of the project]",
+    body: (intro) => `> ${intro}\n\nBrief / goal:\n\nCurrent state (attach photos, plans or a moodboard):\n\nFeedback I'd love:\n- \n- \n\nLinks:\n- \n`,
+  },
+  inspiration: {
+    title: "Inspiration: [theme]",
+    body: (intro) => `> ${intro}\n\nWhat caught my eye:\n\nWhy it inspires me / how I'd use it:\n\nSource / credit:\n\nLinks / images:\n- \n`,
+  },
+  resources: {
+    title: "Resource: [name] — [tool / supplier / article / book / video]",
+    body: (intro) => `> ${intro}\n\nType: (tool / supplier / article / book / video)\n\nWhy it's useful:\n\nLink:\n`,
+  },
+};
+
+function useChannelFollows(userId: string | null) {
+  return useQuery({
+    queryKey: ["channel-follows", userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("channel_follows" as never)
+        .select("channel_id")
+        .eq("user_id", userId!);
+      if (error) throw error;
+      return new Set<number>(((data as Array<{ channel_id: number }>) ?? []).map((r) => Number(r.channel_id)));
+    },
+  });
+}
+
+function useToggleChannelFollow(userId: string | null) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ channelId, follow }: { channelId: number; follow: boolean }) => {
+      if (!userId) throw new Error("Sign in to follow channels");
+      if (follow) {
+        const { error } = await supabase
+          .from("channel_follows" as never)
+          .insert({ user_id: userId, channel_id: channelId } as never);
+        if (error && !String(error.message).toLowerCase().includes("duplicate")) throw error;
+      } else {
+        const { error } = await supabase
+          .from("channel_follows" as never)
+          .delete()
+          .eq("user_id", userId)
+          .eq("channel_id", channelId);
+        if (error) throw error;
+      }
+      return { channelId, follow };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["channel-follows", userId] });
+    },
+  });
+}
 
 type FilterMode = "all" | "pinned" | "mine" | "hidden";
 
