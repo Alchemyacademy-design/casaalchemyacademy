@@ -651,9 +651,14 @@ export default function Home() {
             <div>
               <p className="text-xs mb-3" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>Contact</p>
               <ul className="space-y-2">
-                {["Privacy", "Terms"].map((item) => (
-                  <li key={item}>
-                    <a href="#" style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>{item}</a>
+                {[
+                  { label: "Política de Privacidade", href: "/politica-de-privacidade" },
+                  { label: "Termos de Uso", href: "/termos-de-uso" },
+                  { label: "Suporte", href: "/suporte" },
+                  { label: "Exclusão de dados", href: "/exclusao-de-dados" },
+                ].map((item) => (
+                  <li key={item.href}>
+                    <a href={item.href} style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>{item.label}</a>
                   </li>
                 ))}
                 <li>
