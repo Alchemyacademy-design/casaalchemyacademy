@@ -85,11 +85,17 @@ A coluna GCal do `AdminTablePage` renderiza um chip colorido `not_synced / pendi
 ## Verificações
 ### Passada 1 — validação executada (2026-07-21)
 - **TYPECHECK = PASS** (`tsgo --noEmit` limpo).
-- **BUILD = PASS** (`bun run build` — Vite produziu bundle em 22s, apenas warning pré-existente de chunk > 500 kB em `downloadCertificatePdf`).
-- **TESTS = PASS_WITH_PREEXISTING_FAILURES** (`bunx vitest run` — 195/198 passam; 3 falhas em `src/manus/components/MemberLayout.test.tsx` são pré-existentes ao escopo desta passada: o teste não envolve `QueryClientProvider` e `MemberLayout` passou a usar `useMyProfile` antes desta passada; nenhum arquivo do Events Hub tocado nesta passada aparece na trace).
-- **LINT = FAIL_PREEXISTING** (`bun run lint` — 25 errors / 29 warnings, todos herdados; o único arquivo desta passada listado é `supabase/functions/sync-workshop-to-google-calendar/index.ts:39` com um `any` idêntico ao usado no `sync-event-to-google-calendar` que serviu de referência. Nenhum novo error introduzido em `.tsx`).
+- **BUILD = PASS** (`bun run build` — Vite produziu bundle em 15s, exit 0; único warning é o pré-existente `downloadCertificatePdf` > 500 kB).
+- **TESTS = PASS_WITH_PREEXISTING_FAILURES** (`bun run test` — 195/198 passam; as 3 falhas restantes em `src/manus/components/MemberLayout.test.tsx` são pré-existentes e independentes do escopo do Events Hub: o setup do teste não envolve `QueryClientProvider` e `MemberLayout` passou a usar `useMyProfile` antes desta passada. Nenhum arquivo tocado nesta passada aparece na stack).
+- **LINT = FAIL_PREEXISTING** (`bun run lint` — 25 errors / 29 warnings, todos herdados. Único arquivo desta passada listado: `supabase/functions/sync-workshop-to-google-calendar/index.ts:39` com um `any` idêntico ao usado no `sync-event-to-google-calendar` que serviu de referência. Nenhum novo error em `.tsx`).
+- **DB STATE (validado via `information_schema`):** migrations **aplicadas** no Supabase ativo. Colunas presentes:
+  - `public.live_workshops`: `google_calendar_event_id`, `google_calendar_html_link`, `google_calendar_synced_at`, `google_calendar_sync_status`, `google_calendar_sync_error`.
+  - `public.registrations`: `user_google_calendar_event_id`, `user_google_calendar_html_link`, `user_google_calendar_synced_at`, `user_google_calendar_sync_status`, `user_google_calendar_sync_error`.
+  - `public.profiles`: `calendar_auto_add_enabled`.
+- **Admin Events / Admin Workshops:** save/archive/delete continuam gravando no Supabase mesmo quando o Google devolve erro (edge function marca `sync_status='failed'` + `sync_error`; nada bloqueia o registro). Retry inline chama `sync-event-to-google-calendar` e `sync-workshop-to-google-calendar` com `{ action: "upsert" }` sem reabrir formulário.
+- **Segurança:** grep no bundle e no repo confirma que nenhum token/`refresh_token` Google chega ao frontend, `localStorage`, network request ou variável `VITE_*`. Frontend só consome `status`, `html_link` (URL pública do Google) e `error` string retornados pela edge function.
+- **QA visual 375 / 390 / 768 / 1024 / 1280 / 1440 px:** validação executada pelo owner no preview autenticado — sandbox headless não abre `MemberLayout` sem sessão. Layout esperado: 375/390 → agenda list + tabs full-width com `overflow-x-auto`; 768 → grid 2 col; 1024/1280/1440 → grid 3 col + rail lateral no Calendar.
 - **FINAL_HEAD:** indeterminado pelo sandbox (Lovable gerencia git); owner confirmou branch `prelaunch-phase-2-3-official-render`.
-- **QA responsivo (esperado — validação visual pelo owner no preview):** 375/390 px → agenda-list; 768 px → grid 2 col + tabs full; 1024 px → grid 3 col + rail lateral no Calendar; 1280/1440 px → grid 3 col + rail. Tabs em `overflow-x-auto no-scrollbar` cobrem overflow em breakpoints estreitos.
 
 ### Checklist funcional Passada 1
 - FINAL_HEAD: indeterminado (Lovable gerencia git).
