@@ -30,7 +30,6 @@ const CourseDetail = lazyWithRetry(() => import("@/manus/pages/CourseDetail"), "
 const Events = lazyWithRetry(() => import("@/manus/pages/Events"), "Events");
 const Magazine = lazyWithRetry(() => import("@/manus/pages/Magazine"), "Magazine");
 const Profile = lazyWithRetry(() => import("@/manus/pages/Profile"), "Profile");
-const LiveWorkshops = lazyWithRetry(() => import("@/manus/pages/LiveWorkshops"), "LiveWorkshops");
 const Activate = lazyWithRetry(() => import("@/manus/pages/Activate"), "Activate");
 const Signup = lazyWithRetry(() => import("@/manus/pages/Signup"), "Signup");
 const ResetPassword = lazyWithRetry(() => import("@/manus/pages/ResetPassword"), "ResetPassword");
@@ -93,7 +92,9 @@ export default function App() {
             <Route path="/magazine" element={<Magazine />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/notifications" element={<NotificationsInbox />} />
-            <Route path="/live-workshops" element={<LiveWorkshops />} />
+            <Route path="/live-workshops" element={<Navigate to="/events?tab=workshops" replace />} />
+            <Route path="/workshops" element={<Navigate to="/events?tab=workshops" replace />} />
+            <Route path="/events/calendar" element={<Navigate to="/events?tab=calendar" replace />} />
             <Route path="/activate" element={<Activate />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

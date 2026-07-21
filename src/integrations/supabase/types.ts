@@ -1449,6 +1449,11 @@ export type Database = {
           created_by: string | null
           description: string | null
           ends_at: string | null
+          google_calendar_event_id: string | null
+          google_calendar_html_link: string | null
+          google_calendar_sync_error: string | null
+          google_calendar_sync_status: string | null
+          google_calendar_synced_at: string | null
           id: number
           meeting_url: string | null
           published_at: string | null
@@ -1468,6 +1473,11 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_html_link?: string | null
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?: string | null
+          google_calendar_synced_at?: string | null
           id?: never
           meeting_url?: string | null
           published_at?: string | null
@@ -1487,6 +1497,11 @@ export type Database = {
           created_by?: string | null
           description?: string | null
           ends_at?: string | null
+          google_calendar_event_id?: string | null
+          google_calendar_html_link?: string | null
+          google_calendar_sync_error?: string | null
+          google_calendar_sync_status?: string | null
+          google_calendar_synced_at?: string | null
           id?: never
           meeting_url?: string | null
           published_at?: string | null
