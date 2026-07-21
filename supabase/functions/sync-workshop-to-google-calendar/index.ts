@@ -78,11 +78,33 @@ function toGCalEvent(w: any) {
     source: w.meeting_url ? { title: "Alchemy Academy", url: w.meeting_url } : undefined,
     extendedProperties: {
       private: {
+        alchemy_source_type: "workshop",
         alchemy_workshop_id: String(w.id),
         alchemy_slug: String(w.slug ?? ""),
       },
     },
   };
+}
+
+async function findExistingByPrivateProp(
+  encodedCalendar: string,
+  sourceId: string | number,
+): Promise<{ id: string; htmlLink: string | null } | null> {
+  try {
+    const url =
+      `${GATEWAY_BASE}/calendars/${encodedCalendar}/events` +
+      `?privateExtendedProperty=${encodeURIComponent("alchemy_source_type=workshop")}` +
+      `&privateExtendedProperty=${encodeURIComponent("alchemy_workshop_id=" + String(sourceId))}` +
+      `&showDeleted=false&maxResults=5`;
+    const res = await fetch(url, { method: "GET", headers: gatewayHeaders() });
+    if (!res.ok) { log("dedupe_search_failed", { status: res.status }); return null; }
+    const body = await res.json() as { items?: Array<{ id?: string; htmlLink?: string; status?: string }> };
+    const hit = (body.items ?? []).find((it) => it?.id && it.status !== "cancelled");
+    return hit?.id ? { id: hit.id, htmlLink: hit.htmlLink ?? null } : null;
+  } catch (e) {
+    log("dedupe_search_exception", { error: e instanceof Error ? e.message : String(e) });
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
