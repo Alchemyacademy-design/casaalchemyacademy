@@ -60,6 +60,21 @@ import { notifyMentions, resolveMentionUserIds } from "./mentions";
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
 
+const CHANNEL_PURPOSES: Record<string, string> = {
+  general: "Open conversation about the course and the space.",
+  questions: "Ask anything — the community and mentors reply here.",
+  projects: "Share your work in progress and finished projects.",
+  inspiration: "Post references, moodboards and things that spark ideas.",
+  resources: "Curated links, tools, suppliers and reading lists.",
+};
+
+const SPACE_RULES: string[] = [
+  "Be kind and constructive — this is a space for creators helping creators.",
+  "Stay on topic for the course this Space belongs to.",
+  "Credit references and never share paid course content outside the Academy.",
+  "Use the right channel: general, questions, projects, inspiration or resources.",
+];
+
 type FilterMode = "all" | "pinned" | "mine" | "hidden";
 
 type Props = {
@@ -379,6 +394,14 @@ export default function CommunityPremium({
           <h2>{activeSpace?.name ?? "Community"}</h2>
           {activeSpace?.description && <p>{activeSpace.description}</p>}
         </header>
+        <div className="aa-community-rules" aria-label="House rules">
+          <p className="section-label">House rules</p>
+          <ul>
+            {SPACE_RULES.map((rule) => (
+              <li key={rule}>{rule}</li>
+            ))}
+          </ul>
+        </div>
         <ScrollArea className="flex-1">
           <nav aria-label="Community channels">
             {channelsLoading && <p className="aa-community-muted">Loading channels…</p>}
@@ -386,6 +409,7 @@ export default function CommunityPremium({
             {channels.map((channel) => {
               const unread = unreadByChannel[channel.id] ?? 0;
               const isActive = channel.id === channelId;
+              const purpose = CHANNEL_PURPOSES[channel.slug];
               return (
                 <div key={channel.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
@@ -393,9 +417,17 @@ export default function CommunityPremium({
                   className={isActive ? "is-active" : ""}
                   onClick={() => setChannelId(channel.id)}
                   style={{ flex: 1 }}
+                  title={purpose ?? channel.description ?? channel.name}
                 >
                   <Hash size={14} />
-                  <span style={{ flex: 1, fontWeight: unread && !isActive ? 600 : undefined }}>{channel.name}</span>
+                  <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
+                    <span style={{ fontWeight: unread && !isActive ? 600 : undefined }}>{channel.name}</span>
+                    {purpose && (
+                      <span style={{ fontSize: "0.68rem", color: "var(--aa-text-light)", lineHeight: 1.35, whiteSpace: "normal" }}>
+                        {purpose}
+                      </span>
+                    )}
+                  </span>
                   {unread > 0 && !isActive && (
                     <span
                       aria-label={`${unread} unread`}
