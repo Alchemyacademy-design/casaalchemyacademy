@@ -22,6 +22,15 @@ function json(body: unknown, status = 200) {
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CALENDAR_ID = Deno.env.get("GOOGLE_CALENDAR_ID") || "primary";
+const CALENDAR_TZ = Deno.env.get("GOOGLE_CALENDAR_TIMEZONE") || "America/Sao_Paulo";
+
+function log(step: string, extra: Record<string, unknown> = {}) {
+  try {
+    console.log(JSON.stringify({ fn: "sync-workshop-to-google-calendar", step, ...extra }));
+  } catch {
+    console.log(`sync-workshop-to-google-calendar:${step}`);
+  }
+}
 
 function gatewayHeaders() {
   const lovable = Deno.env.get("LOVABLE_API_KEY");
@@ -48,8 +57,8 @@ function toGCalEvent(w: any) {
     summary: `[Workshop] ${w.title}`,
     description: parts.join("\n\n"),
     location: w.meeting_url ?? undefined,
-    start: { dateTime: new Date(start).toISOString() },
-    end: { dateTime: new Date(end).toISOString() },
+    start: { dateTime: new Date(start).toISOString(), timeZone: CALENDAR_TZ },
+    end: { dateTime: new Date(end).toISOString(), timeZone: CALENDAR_TZ },
     source: w.meeting_url ? { title: "Alchemy Academy", url: w.meeting_url } : undefined,
     extendedProperties: {
       private: {
@@ -65,6 +74,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ error: "method_not_allowed" }, 405);
 
   try {
+    log("function_started");
     const authHeader = req.headers.get("Authorization") ?? "";
     if (!authHeader.startsWith("Bearer ")) return json({ error: "unauthorized" }, 401);
 
@@ -79,6 +89,7 @@ Deno.serve(async (req) => {
     if (userErr || !userData?.user?.id) return json({ error: "unauthorized" }, 401);
     const userId = userData.user.id;
     if (!(await isAdminUser(admin, userId))) return json({ error: "forbidden" }, 403);
+    log("admin_authenticated", { user_id: userId });
 
     const body = await req.json().catch(() => null) as
       | { workshop_id?: number; action?: "upsert" | "delete" | "cancel" }
@@ -90,6 +101,7 @@ Deno.serve(async (req) => {
     if (!Number.isFinite(wid) || (action !== "upsert" && action !== "delete")) {
       return json({ error: "invalid_request" }, 400);
     }
+    log("request_parsed", { workshop_id: wid, action });
 
     const { data: w, error: wErr } = await admin
       .from("live_workshops")
@@ -98,6 +110,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
     if (wErr) return json({ error: "db_error", details: wErr.message }, 500);
     if (!w) return json({ error: "workshop_not_found" }, 404);
+    log("workshop_loaded", { workshop_id: wid, status: w.status, has_external_id: !!w.google_calendar_event_id });
 
     const existingId = w.google_calendar_event_id as string | null;
     const encodedCalendar = encodeURIComponent(CALENDAR_ID);
@@ -110,6 +123,7 @@ Deno.serve(async (req) => {
       .from("live_workshops")
       .update({ google_calendar_sync_status: "pending", google_calendar_sync_error: null })
       .eq("id", wid);
+    log("payload_built", { should_delete: shouldDelete, calendar_id: CALENDAR_ID, timezone: CALENDAR_TZ });
 
     let gatewayStatus = 0;
     let gatewayBody = "";
@@ -180,6 +194,8 @@ Deno.serve(async (req) => {
       }
     }
 
+    log("gateway_called", { gateway_status: gatewayStatus, result_status: newStatus, has_html_link: !!newHtmlLink });
+
     const { error: updErr } = await admin
       .from("live_workshops")
       .update({
@@ -191,6 +207,7 @@ Deno.serve(async (req) => {
       })
       .eq("id", wid);
     if (updErr) return json({ error: "db_update_failed", details: updErr.message }, 500);
+    log("db_updated", { workshop_id: wid, final_status: newStatus });
 
     return json({
       ok: newStatus === "synced" || newStatus === "deleted",
