@@ -53,7 +53,7 @@ import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/commun
 import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
 import "@/manus/styles/community-premium.css";
 import { useChannelUnread, useMarkChannelReadEffect } from "@/manus/hooks/community/useChannelUnread";
-import MentionInput from "./MentionInput";
+import MentionInput, { type MentionInputHandle } from "./MentionInput";
 import MentionText from "./MentionText";
 import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
@@ -199,11 +199,11 @@ export default function CommunityPremium({
   const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
   const composerRef = useRef<HTMLDivElement | null>(null);
-  const composerBodyRef = useRef<HTMLTextAreaElement | null>(null);
+  const composerBodyRef = useRef<MentionInputHandle | null>(null);
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-    window.setTimeout(() => composerBodyRef.current?.focus(), 200);
+    window.setTimeout(() => composerBodyRef.current?.focus?.(), 200);
   }
 
   useEffect(() => {
