@@ -11,6 +11,7 @@ export interface NotificationRow {
   href: string | null;
   read_at: string | null;
   created_at: string;
+  data?: Record<string, unknown> | null;
 }
 
 const KEY = (userId: string | null | undefined) => ["notifications", userId ?? null] as const;
@@ -35,7 +36,7 @@ export function useNotifications() {
       };
       const { data, error } = await client
         .from("notifications")
-        .select("id,kind,title,body,href,read_at,created_at")
+        .select("id,kind,title,body,href,read_at,created_at,data")
         .order("created_at", { ascending: false })
         .limit(30);
       if (error) throw error as Error;
