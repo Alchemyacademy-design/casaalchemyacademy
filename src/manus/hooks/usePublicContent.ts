@@ -290,15 +290,37 @@ export function useMyRegistrations() {
 
 export function useRegisterForTarget() {
   const qc = useQueryClient();
-  return useMutation({
-    mutationFn: async ({ target_type, target_id }: { target_type: "event" | "live_workshop"; target_id: number }) => {
+  type InviteResult = { ok?: boolean; status?: string; masked_email?: string; reason?: string; already?: boolean };
+  type RegisterResult = { registration: unknown; invite: InviteResult | null };
+  return useMutation<RegisterResult, Error, { target_type: "event" | "live_workshop"; target_id: number }>({
+    mutationFn: async ({ target_type, target_id }) => {
       const { data, error } = await supabase.rpc("register_for_event", { target_type, target_id });
       if (error) throw error;
-      return data;
+      let invite: InviteResult | null = null;
+      try {
+        const res = await supabase.functions.invoke("invite-user-to-google-event", {
+          body: { target_type, target_id, action: "invite" },
+        });
+        if (!res.error && res.data) invite = res.data as InviteResult;
+      } catch {
+        // swallowed — registration itself already succeeded
+      }
+      return { registration: data, invite };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["me", "registrations"] });
-      toast.success("You're registered");
+      const inv = result?.invite;
+      if (inv?.ok && inv.status === "invited") {
+        toast.success("Participation confirmed!", {
+          description: `Invite sent to ${inv.masked_email ?? "your email"}. Open it and accept to add this event to your Google Calendar.`,
+        });
+      } else if (inv?.status === "invited" && inv.already) {
+        toast.success("Your invite for this event was already sent.");
+      } else {
+        toast.success("Participation confirmed!", {
+          description: "Your spot is saved. You can also add this event to your calendar manually below.",
+        });
+      }
     },
     onError: (e) => {
       const d = describeError(e, "register");
