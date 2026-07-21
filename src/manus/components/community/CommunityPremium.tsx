@@ -53,7 +53,7 @@ import { dedupePostPages, resolveDeepLinkChannel } from "@/manus/services/commun
 import { CreateChannelDialog, CreateSpaceDialog } from "./CommunityDialogs";
 import "@/manus/styles/community-premium.css";
 import { useChannelUnread, useMarkChannelReadEffect } from "@/manus/hooks/community/useChannelUnread";
-import MentionInput from "./MentionInput";
+import MentionInput, { type MentionInputHandle } from "./MentionInput";
 import MentionText from "./MentionText";
 import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
@@ -66,6 +66,61 @@ const CHANNEL_PURPOSES: Record<string, string> = {
   projects: "Share your work in progress and finished projects.",
   inspiration: "Post references, moodboards and things that spark ideas.",
   resources: "Curated links, tools, suppliers and reading lists.",
+};
+
+type ChannelGuide = { title: string; intro: string; use: string[]; tip: string };
+
+const CHANNEL_GUIDES: Record<string, ChannelGuide> = {
+  general: {
+    title: "Welcome to #general",
+    intro: "This is the main channel of this Space — say hi, introduce yourself and share how this course is landing for you.",
+    use: [
+      "Introduce yourself: where you're from and what you're working on",
+      "React to lessons, share a-ha moments and open discussions",
+      "Keep it on-topic for this Space; use #questions, #projects, #inspiration or #resources for those",
+    ],
+    tip: "New here? Drop a short intro post so the community can welcome you.",
+  },
+  questions: {
+    title: "How to use #questions",
+    intro: "Ask anything about the course, the method or a decision you're stuck on. The community and mentors reply here.",
+    use: [
+      "Give context: which lesson or step you're on",
+      "Attach a photo or link when it helps explain the situation",
+      "One question per post — easier to follow and answer",
+    ],
+    tip: "Reply to others too — teaching what you know is the fastest way to learn.",
+  },
+  projects: {
+    title: "Share in #projects",
+    intro: "Post your work in progress and finished projects. Feedback is welcome and encouraged here.",
+    use: [
+      "Say what you're trying to achieve and the brief you're working from",
+      "Share photos, plans or moodboards of the current state",
+      "Ask for the kind of feedback you want (layout, palette, styling…)",
+    ],
+    tip: "Come back and post the “after” — the community loves a before/after.",
+  },
+  inspiration: {
+    title: "Curate in #inspiration",
+    intro: "A shared moodboard of references, images and ideas that spark something for you.",
+    use: [
+      "Post images, links or short notes about what you love and why",
+      "Credit the source or designer whenever possible",
+      "Group your finds by theme when it makes sense (light, texture, colour…)",
+    ],
+    tip: "Great references beat clever words — let the images do the talking.",
+  },
+  resources: {
+    title: "Save in #resources",
+    intro: "Curated links, tools, suppliers and reading that support the course.",
+    use: [
+      "Share a link with one line on why it's useful",
+      "Tag the type: tool, supplier, article, book, video…",
+      "Keep it high-signal — quality over quantity",
+    ],
+    tip: "Search before posting — the resource you're about to add might already be here.",
+  },
 };
 
 const SPACE_RULES: string[] = [
@@ -143,6 +198,13 @@ export default function CommunityPremium({
   // Handle→userId mapping accumulated as the composer inserts mentions.
   const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
+  const composerRef = useRef<HTMLDivElement | null>(null);
+  const composerBodyRef = useRef<MentionInputHandle | null>(null);
+
+  function focusComposer() {
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    window.setTimeout(() => composerBodyRef.current?.focus?.(), 200);
+  }
 
   useEffect(() => {
     if (!spaces.length || spaceId) return;
@@ -450,6 +512,18 @@ export default function CommunityPremium({
                     </span>
                   )}
                 </button>
+                <button
+                  type="button"
+                  title={`New post in #${channel.name}`}
+                  aria-label={`New post in #${channel.name}`}
+                  onClick={() => {
+                    setChannelId(channel.id);
+                    window.setTimeout(focusComposer, 60);
+                  }}
+                  style={{ padding: 4, opacity: 0.7 }}
+                >
+                  <Plus size={13} />
+                </button>
                 {isAdmin && (
                   <>
                     <button
@@ -535,6 +609,28 @@ export default function CommunityPremium({
 
         <ScrollArea className="aa-community-feed">
           <div className="aa-community-feed-inner">
+            {activeChannel && CHANNEL_GUIDES[activeChannel.slug] && (() => {
+              const guide = CHANNEL_GUIDES[activeChannel.slug];
+              return (
+                <aside className="aa-community-guide" aria-label={`Guide for #${activeChannel.name}`}>
+                  <div className="aa-community-guide-head">
+                    <Pin size={14} />
+                    <span className="section-label">Pinned guide</span>
+                  </div>
+                  <h3>{guide.title}</h3>
+                  <p>{guide.intro}</p>
+                  <ul>
+                    {guide.use.map((line) => <li key={line}>{line}</li>)}
+                  </ul>
+                  <p className="aa-community-guide-tip">{guide.tip}</p>
+                  {userId && (
+                    <Button size="sm" variant="outline" onClick={focusComposer}>
+                      <Plus size={14} /> New post in #{activeChannel.name}
+                    </Button>
+                  )}
+                </aside>
+              );
+            })()}
             {postsQuery.isLoading && <div className="aa-community-loading"><Loader2 className="animate-spin" /></div>}
             {postsQuery.isError && (
               <div className="aa-community-state">
@@ -622,10 +718,11 @@ export default function CommunityPremium({
         </ScrollArea>
 
         {activeChannel && userId && (
-          <footer className="aa-community-composer">
+          <footer className="aa-community-composer" ref={composerRef}>
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
               <MentionInput
+                ref={composerBodyRef}
                 value={draftBody}
                 onChange={(next, patch) => {
                   setDraftBody(next);
