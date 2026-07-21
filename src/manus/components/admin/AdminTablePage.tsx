@@ -777,7 +777,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
       description={description}
       crumbs={[{ label: title }]}
       actions={
-        <Button onClick={() => setEditing(emptyForFields(fields))}>
+        <Button onClick={() => { setTouchedFields({}); setEditing(emptyForFields(fields)); }}>
           <Plus className="w-4 h-4 mr-1" /> New
         </Button>
       }
