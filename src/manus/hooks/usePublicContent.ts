@@ -294,11 +294,34 @@ export function useRegisterForTarget() {
     mutationFn: async ({ target_type, target_id }: { target_type: "event" | "live_workshop"; target_id: number }) => {
       const { data, error } = await supabase.rpc("register_for_event", { target_type, target_id });
       if (error) throw error;
-      return data;
+      // Fire the admin-side Google Calendar invite. Never blocks nor rolls
+      // back the registration — even if this fails, the app registration is
+      // already confirmed. The edge function marks pending/failed for retry.
+      let invite: { ok?: boolean; status?: string; masked_email?: string; reason?: string } | null = null;
+      try {
+        const res = await supabase.functions.invoke("invite-user-to-google-event", {
+          body: { target_type, target_id, action: "invite" },
+        });
+        if (!res.error && res.data) invite = res.data as typeof invite;
+      } catch {
+        // swallowed — registration itself already succeeded
+      }
+      return { registration: data, invite };
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["me", "registrations"] });
-      toast.success("You're registered");
+      const inv = result?.invite;
+      if (inv?.ok && inv.status === "invited") {
+        toast.success("Participation confirmed!", {
+          description: `Invite sent to ${inv.masked_email ?? "your email"}. Open it and accept to add this event to your Google Calendar.`,
+        });
+      } else if (inv?.status === "invited" && (inv as { already?: boolean }).already) {
+        toast.success("Your invite for this event was already sent.");
+      } else {
+        toast.success("Participation confirmed!", {
+          description: "Your spot is saved. You can also add this event to your calendar manually below.",
+        });
+      }
     },
     onError: (e) => {
       const d = describeError(e, "register");
