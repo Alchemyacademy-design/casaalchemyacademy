@@ -222,13 +222,9 @@ export default function Home() {
               Embark on a journey to redefine your relationship with your home through the joys of learning interior design. Our platform connects enthusiasts with essential theories, allowing you to train your eyes and mind to design your own life.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
-                className="btn-cream w-full sm:w-auto justify-center"
-              >
-                Watch a Free Lesson
-              </button>
+              <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
+                See our plans
+              </a>
               <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
                 Find your course
               </a>
@@ -263,13 +259,9 @@ export default function Home() {
             ))}
           </div>
           <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
-            <button
-              type="button"
-              onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
-              className="btn-cream w-full sm:w-auto justify-center"
-            >
-              Watch a Free Lesson
-            </button>
+            <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
+              See our plans
+            </a>
             <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
               Take the course quiz
             </a>
