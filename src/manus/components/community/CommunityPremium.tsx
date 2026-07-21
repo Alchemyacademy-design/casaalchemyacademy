@@ -414,8 +414,25 @@ export default function CommunityPremium({
     return map;
   }, [postReactions, userId]);
 
+  const postScore = useMemo(() => {
+    const map = new Map<number, number>();
+    for (const post of posts) {
+      const reactions = reactionsByPost.get(post.id) ?? [];
+      const rx = reactions.reduce((n, r) => n + r.count, 0);
+      const rp = replyCounts[post.id] ?? 0;
+      map.set(post.id, rx * 2 + rp);
+    }
+    return map;
+  }, [posts, reactionsByPost, replyCounts]);
+
+  const topPostScore = useMemo(() => {
+    let best = 0;
+    postScore.forEach((v) => { if (v > best) best = v; });
+    return best;
+  }, [postScore]);
+
   const visiblePosts = useMemo(() => {
-    return posts.filter((post) => {
+    const filtered = posts.filter((post) => {
       if (!isAdmin && post.hidden_at) return false;
       if (filter === "hidden" && !post.hidden_at) return false;
       if (filter !== "hidden" && post.hidden_at) return false;
@@ -427,7 +444,15 @@ export default function CommunityPremium({
       }
       return true;
     });
-  }, [debouncedSearch, filter, isAdmin, posts, userId]);
+    if (sortMode === "top") {
+      return [...filtered].sort((a, b) => {
+        // Keep pinned on top regardless of sort mode
+        if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+        return (postScore.get(b.id) ?? 0) - (postScore.get(a.id) ?? 0);
+      });
+    }
+    return filtered;
+  }, [debouncedSearch, filter, isAdmin, posts, userId, sortMode, postScore]);
 
   const activeSpace = spaces.find((space) => space.id === spaceId) ?? null;
   const activeChannel = channels.find((channel) => channel.id === channelId) ?? null;
