@@ -349,6 +349,10 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounced(search, 300);
   const [page, setPage] = useState(0);
+  // Fields (by name) that the admin has manually edited during this dialog
+  // session — used to stop auto-derivation (e.g. slug from title) once the
+  // admin takes over the field.
+  const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
 
   // Reset to first page whenever the search term changes.
   useEffect(() => {
