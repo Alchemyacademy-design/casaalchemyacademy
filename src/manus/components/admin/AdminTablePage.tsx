@@ -553,7 +553,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
             <h2 className="text-lg font-semibold">{title}</h2>
             {description && <p className="text-sm text-foreground/60">{description}</p>}
           </div>
-          <Button onClick={() => setEditing(emptyForFields(fields))}>
+          <Button onClick={() => { setTouchedFields({}); setEditing(emptyForFields(fields)); }}>
             <Plus className="w-4 h-4 mr-1" /> New
           </Button>
         </div>
@@ -630,6 +630,7 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                             }
                           }
                           r[primaryKey] = row[primaryKey];
+                          setTouchedFields({});
                           setEditing(r);
                         }}
                         aria-label="Edit"
