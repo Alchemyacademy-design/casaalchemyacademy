@@ -221,8 +221,17 @@ export default function Home() {
             <p className="mb-8 max-w-lg" style={{ color: "rgba(245,240,232,0.85)", fontSize: "1.05rem", lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
               Embark on a journey to redefine your relationship with your home through the joys of learning interior design. Our platform connects enthusiasts with essential theories, allowing you to train your eyes and mind to design your own life.
             </p>
-            <div className="flex flex-wrap gap-4">
-              <a href={getLoginUrl()} className="btn-cream">Join the Academy</a>
+            <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+                className="btn-cream w-full sm:w-auto justify-center"
+              >
+                Watch a Free Lesson
+              </button>
+              <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
+                Find your course
+              </a>
             </div>
           </div>
         </div>
@@ -253,8 +262,17 @@ export default function Home() {
               </div>
             ))}
           </div>
-          <div className="mt-12 text-center">
-            <a href={getLoginUrl()} className="btn-cream">Become an Alchemist</a>
+          <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+              className="btn-cream w-full sm:w-auto justify-center"
+            >
+              Watch a Free Lesson
+            </button>
+            <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
+              Take the course quiz
+            </a>
           </div>
         </div>
       </section>
@@ -345,7 +363,13 @@ export default function Home() {
                 </div>
               </div>
               <div className="relative z-10 mt-4">
-                <a href={getLoginUrl()} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.5rem 1rem", display: "block", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none" }}>Join the Academy</a>
+                <button
+                  type="button"
+                  onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
+                  style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.65rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none", border: 0 }}
+                >
+                  Watch a Free Lesson
+                </button>
               </div>
             </div>
           </div>
@@ -572,9 +596,9 @@ export default function Home() {
 
       {/* ── Lead magnet — fixed homepage section ── */}
       {!isAuthenticated && (
-        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "5rem 0" }}>
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center max-w-5xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center max-w-5xl mx-auto">
               <div>
                 <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
                   Try one lesson first
