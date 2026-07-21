@@ -200,6 +200,28 @@ function useToggleChannelFollow(userId: string | null) {
 }
 
 type FilterMode = "all" | "pinned" | "mine" | "hidden";
+type SortMode = "new" | "top";
+
+const REPORT_REASONS = [
+  "Spam or advertising",
+  "Harassment or hate",
+  "Off-topic",
+  "Inappropriate content",
+  "Misinformation",
+  "Other",
+];
+
+function useReportPost(userId: string | null) {
+  return useMutation({
+    mutationFn: async ({ postId, reason, details }: { postId: number; reason: string; details?: string }) => {
+      if (!userId) throw new Error("Sign in to report");
+      const { error } = await supabase
+        .from("post_reports" as never)
+        .insert({ post_id: postId, reporter_id: userId, reason, details: details ?? null } as never);
+      if (error) throw error;
+    },
+  });
+}
 
 type Props = {
   initialSpaceSlug?: string;
