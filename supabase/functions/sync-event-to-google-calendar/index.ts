@@ -23,7 +23,27 @@ function json(body: unknown, status = 200) {
 
 const GATEWAY_BASE = "https://connector-gateway.lovable.dev/google_calendar/calendar/v3";
 const CALENDAR_ID = Deno.env.get("GOOGLE_CALENDAR_ID") || "primary";
-const CALENDAR_TZ = Deno.env.get("GOOGLE_CALENDAR_TIMEZONE") || "America/Sao_Paulo";
+// Platform is Australia-based — events entered in Admin are Sydney local time.
+const CALENDAR_TZ = Deno.env.get("GOOGLE_CALENDAR_TIMEZONE") || "Australia/Sydney";
+
+// Format a UTC instant as a naive wall-clock string (YYYY-MM-DDTHH:mm:ss) in
+// the given IANA timezone. Google Calendar treats `dateTime` without a UTC
+// offset + explicit `timeZone` as local time in that zone, which is what we
+// want — sending an ISO string with `Z` makes Google ignore `timeZone`.
+function toZonedWallTime(iso: string, timeZone: string): string {
+  const d = new Date(iso);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
+  }).formatToParts(d).reduce<Record<string, string>>((acc, p) => {
+    if (p.type !== "literal") acc[p.type] = p.value;
+    return acc;
+  }, {});
+  const hour = parts.hour === "24" ? "00" : parts.hour;
+  return `${parts.year}-${parts.month}-${parts.day}T${hour}:${parts.minute}:${parts.second}`;
+}
 
 function log(step: string, extra: Record<string, unknown> = {}) {
   try {
@@ -58,8 +78,8 @@ function toGCalEvent(ev: any) {
     summary: ev.title,
     description: descriptionParts.join("\n\n"),
     location: ev.location ?? undefined,
-    start: { dateTime: new Date(start).toISOString(), timeZone: CALENDAR_TZ },
-    end: { dateTime: new Date(end).toISOString(), timeZone: CALENDAR_TZ },
+    start: { dateTime: toZonedWallTime(start, CALENDAR_TZ), timeZone: CALENDAR_TZ },
+    end: { dateTime: toZonedWallTime(end, CALENDAR_TZ), timeZone: CALENDAR_TZ },
     source: ev.external_url
       ? { title: "Alchemy Academy", url: ev.external_url }
       : undefined,
