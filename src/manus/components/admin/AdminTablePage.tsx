@@ -152,6 +152,15 @@ export interface AdminTablePageProps<T extends PublicTableName = PublicTableName
    */
   archivePatch?: Record<string, unknown>;
   /**
+   * Runs before the hard-delete mutation removes the row from the DB.
+   * Use to clean up external side-effects (e.g. Google Calendar) while the
+   * row still exists. If it throws, the delete is aborted and the error is
+   * surfaced through the delete toast.
+   */
+  beforeDelete?: (id: unknown) => void | Promise<void>;
+  /** Override the destructive button label (e.g. "Delete permanently"). */
+  deletionLabelOverride?: string;
+  /**
    * When true, skip the outer AdminShell wrapper (title/description/crumbs/actions)
    * and render only the inner table + editor. Useful when embedding this page
    * inside a tabbed hub that already renders its own AdminShell.
@@ -343,6 +352,8 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
     searchFields = [],
     deletionMode = "disabled",
     archivePatch,
+    beforeDelete,
+    deletionLabelOverride,
     noShell = false,
     afterMutate,
   } = props;
@@ -535,6 +546,9 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
 
   const hardDeleteMutation = useMutation({
     mutationFn: async (id: unknown) => {
+      if (beforeDelete) {
+        await beforeDelete(id);
+      }
       const client = supabase.from(table) as unknown as {
         delete: () => {
           eq: (col: string, value: unknown) => Promise<{ error: { message: string } | null }>;
@@ -558,11 +572,16 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
   const tableFields = fields.filter((f) => !f.hideInTable);
   const formFields = fields.filter((f) => !f.hideInForm);
 
-  const deletionLabel = deletionMode === "archive" ? "Archive" : "Delete";
+  const deletionLabel = deletionLabelOverride
+    ?? (deletionMode === "archive" ? "Archive" : "Delete permanently");
   const deletionVerb = deletionMode === "archive" ? "archive" : "delete";
   const confirmDestructive = (row: Record<string, unknown>) => {
     if (deletionMode === "disabled") return;
-    if (!confirm(`${deletionLabel} this ${table.replace(/_/g, " ").replace(/s$/, "")}?`)) return;
+    const entity = table.replace(/_/g, " ").replace(/s$/, "");
+    const msg = deletionMode === "hard"
+      ? `Delete this ${entity} permanently?\n\nThis will remove the record from the platform database and from the connected Google Calendar. This action cannot be undone.`
+      : `${deletionLabel} this ${entity}?`;
+    if (!confirm(msg)) return;
     if (deletionMode === "archive") archiveMutation.mutate(row[primaryKey]);
     else hardDeleteMutation.mutate(row[primaryKey]);
   };
