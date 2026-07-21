@@ -85,11 +85,42 @@ function toGCalEvent(ev: any) {
       : undefined,
     extendedProperties: {
       private: {
+          alchemy_source_type: "event",
         alchemy_event_id: String(ev.id),
         alchemy_slug: String(ev.slug ?? ""),
       },
     },
   };
+}
+
+// Look up an existing Google Calendar event owned by this platform for the
+// given source id via extendedProperties. Returns the first match's id +
+// htmlLink, or null. Used as an idempotency fallback when the DB row has no
+// google_calendar_event_id (e.g. after a failed sync that partially created
+// the remote event) so retries never duplicate.
+async function findExistingByPrivateProp(
+  encodedCalendar: string,
+  sourceType: "event" | "workshop",
+  sourceId: string | number,
+): Promise<{ id: string; htmlLink: string | null } | null> {
+  try {
+    const url =
+      `${GATEWAY_BASE}/calendars/${encodedCalendar}/events` +
+      `?privateExtendedProperty=${encodeURIComponent("alchemy_source_type=" + sourceType)}` +
+      `&privateExtendedProperty=${encodeURIComponent("alchemy_event_id=" + String(sourceId))}` +
+      `&showDeleted=false&maxResults=5`;
+    const res = await fetch(url, { method: "GET", headers: gatewayHeaders() });
+    if (!res.ok) {
+      log("dedupe_search_failed", { status: res.status });
+      return null;
+    }
+    const body = await res.json() as { items?: Array<{ id?: string; htmlLink?: string; status?: string }> };
+    const hit = (body.items ?? []).find((it) => it?.id && it.status !== "cancelled");
+    return hit?.id ? { id: hit.id, htmlLink: hit.htmlLink ?? null } : null;
+  } catch (e) {
+    log("dedupe_search_exception", { error: e instanceof Error ? e.message : String(e) });
+    return null;
+  }
 }
 
 Deno.serve(async (req) => {
@@ -184,9 +215,21 @@ Deno.serve(async (req) => {
       }
     } else {
       const gcalBody = toGCalEvent(ev);
-      const res = existingId
+      // Idempotency: if we have no persisted GCal id, first search Google
+      // for a prior copy tagged with alchemy_event_id and reuse it. This
+      // prevents duplicates from retries after a partial failure.
+      let effectiveId = existingId;
+      if (!effectiveId) {
+        const found = await findExistingByPrivateProp(encodedCalendar, "event", ev.id);
+        if (found) {
+          effectiveId = found.id;
+          newHtmlLink = found.htmlLink ?? newHtmlLink;
+          log("dedupe_reused_existing", { existing_id: found.id });
+        }
+      }
+      const res = effectiveId
         ? await fetch(
-          `${GATEWAY_BASE}/calendars/${encodedCalendar}/events/${encodeURIComponent(existingId)}`,
+          `${GATEWAY_BASE}/calendars/${encodedCalendar}/events/${encodeURIComponent(effectiveId)}`,
           { method: "PATCH", headers: gatewayHeaders(), body: JSON.stringify(gcalBody) },
         )
         : await fetch(
@@ -197,7 +240,7 @@ Deno.serve(async (req) => {
       gatewayBody = await res.text();
 
       // If PATCH target is gone at Google, retry as insert.
-      if (existingId && (res.status === 404 || res.status === 410)) {
+      if (effectiveId && (res.status === 404 || res.status === 410)) {
         const retry = await fetch(
           `${GATEWAY_BASE}/calendars/${encodedCalendar}/events`,
           { method: "POST", headers: gatewayHeaders(), body: JSON.stringify(gcalBody) },
@@ -215,7 +258,7 @@ Deno.serve(async (req) => {
         }
       } else if (res.ok) {
         const parsed = gatewayBody ? JSON.parse(gatewayBody) : {};
-        newExternalId = parsed.id ?? existingId;
+        newExternalId = parsed.id ?? effectiveId;
         newHtmlLink = parsed.htmlLink ?? newHtmlLink;
         newStatus = "synced";
       } else {

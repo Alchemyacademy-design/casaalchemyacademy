@@ -80,13 +80,15 @@ export function AdminWorkshopsInner({ embedded = false }: { embedded?: boolean }
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug"]}
       publicInvalidateKeys={[["public", "live_workshops"]]}
-      deletionMode="archive"
-      archivePatch={{ status: "archived" }}
+      deletionMode="hard"
+      deletionLabelOverride="Delete permanently"
+      beforeDelete={async (id) => {
+        await callSync(id, "delete");
+      }}
       afterMutate={async (op, ctx) => {
         if (!ctx?.id) return;
         if (op === "save") await callSync(ctx.id, "upsert");
         else if (op === "archive") await callSync(ctx.id, "cancel");
-        else if (op === "delete") await callSync(ctx.id, "delete");
         await qc.invalidateQueries({ queryKey: ["admin", "live_workshops"] });
       }}
       fields={[

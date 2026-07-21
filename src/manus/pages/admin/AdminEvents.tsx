@@ -80,13 +80,18 @@ export function AdminEventsInner({ embedded = false }: { embedded?: boolean }) {
       orderBy={{ column: "starts_at", ascending: false }}
       searchFields={["title", "slug", "location"]}
       publicInvalidateKeys={[["public", "events"]]}
-      deletionMode="archive"
-      archivePatch={{ status: "archived" }}
+      deletionMode="hard"
+      deletionLabelOverride="Delete permanently"
+      beforeDelete={async (id) => {
+        // Remove from Google Calendar first while the row still exists so
+        // the sync function can read google_calendar_event_id from the DB.
+        // If Google returns 404/410 the edge function treats it as success.
+        await callSync(id, "delete");
+      }}
       afterMutate={async (op, ctx) => {
         if (!ctx?.id) return;
         if (op === "save") await callSync(ctx.id, "upsert");
         else if (op === "archive") await callSync(ctx.id, "cancel");
-        else if (op === "delete") await callSync(ctx.id, "delete");
         // Refresh admin calendar + tables after Google sync completed so
         // pending → synced/failed and removed items propagate without reload.
         await qc.invalidateQueries({ queryKey: ["admin", "events"] });
