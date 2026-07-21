@@ -55,8 +55,8 @@ export async function submitLead(payload: LeadPayload): Promise<{ ok: true; redi
     // Try to surface the underlying body.
     let detail = error.message;
     try {
-      // @ts-expect-error — supabase-js exposes context on FunctionsHttpError.
-      const text = await error.context?.text?.();
+      const ctx = (error as { context?: { text?: () => Promise<string> } }).context;
+      const text = await ctx?.text?.();
       if (text) detail = text;
     } catch { /* noop */ }
     throw new Error(detail || "Could not submit lead");
