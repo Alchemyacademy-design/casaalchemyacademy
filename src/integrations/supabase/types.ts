@@ -1868,6 +1868,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_path: string | null
+          calendar_auto_add_enabled: boolean
           created_at: string
           display_name: string | null
           email: string | null
@@ -1880,6 +1881,7 @@ export type Database = {
         }
         Insert: {
           avatar_path?: string | null
+          calendar_auto_add_enabled?: boolean
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -1892,6 +1894,7 @@ export type Database = {
         }
         Update: {
           avatar_path?: string | null
+          calendar_auto_add_enabled?: boolean
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -2158,6 +2161,11 @@ export type Database = {
           registered_at: string
           status: Database["public"]["Enums"]["registration_status"]
           updated_at: string
+          user_google_calendar_event_id: string | null
+          user_google_calendar_html_link: string | null
+          user_google_calendar_sync_error: string | null
+          user_google_calendar_sync_status: string
+          user_google_calendar_synced_at: string | null
           user_id: string
           waitlist_position: number | null
         }
@@ -2172,6 +2180,11 @@ export type Database = {
           registered_at?: string
           status?: Database["public"]["Enums"]["registration_status"]
           updated_at?: string
+          user_google_calendar_event_id?: string | null
+          user_google_calendar_html_link?: string | null
+          user_google_calendar_sync_error?: string | null
+          user_google_calendar_sync_status?: string
+          user_google_calendar_synced_at?: string | null
           user_id: string
           waitlist_position?: number | null
         }
@@ -2186,6 +2199,11 @@ export type Database = {
           registered_at?: string
           status?: Database["public"]["Enums"]["registration_status"]
           updated_at?: string
+          user_google_calendar_event_id?: string | null
+          user_google_calendar_html_link?: string | null
+          user_google_calendar_sync_error?: string | null
+          user_google_calendar_sync_status?: string
+          user_google_calendar_synced_at?: string | null
           user_id?: string
           waitlist_position?: number | null
         }
@@ -2930,6 +2948,11 @@ export type Database = {
           registered_at: string
           status: Database["public"]["Enums"]["registration_status"]
           updated_at: string
+          user_google_calendar_event_id: string | null
+          user_google_calendar_html_link: string | null
+          user_google_calendar_sync_error: string | null
+          user_google_calendar_sync_status: string
+          user_google_calendar_synced_at: string | null
           user_id: string
           waitlist_position: number | null
         }

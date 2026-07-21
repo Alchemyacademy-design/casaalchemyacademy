@@ -22,7 +22,8 @@ Ambos indeterminados via sandbox (Lovable gerencia git internamente).
 ## DATABASE_TABLES_USED
 - `public.events` — colunas `google_calendar_event_id/html_link/synced_at/sync_status/sync_error` já existiam.
 - `public.live_workshops` — colunas equivalentes adicionadas nesta passada.
-- `public.registrations` — inalterada (colunas por-usuário ficam para a Passada 2).
+- `public.registrations` — colunas `user_google_calendar_event_id/html_link/synced_at/sync_status/sync_error` adicionadas nesta passada (schema preparado; escrita/leitura ficam para a Passada 2).
+- `public.profiles` — coluna `calendar_auto_add_enabled boolean not null default false` adicionada (opt-in de auto-sync individual; UI fica para a Passada 2).
 
 ## MIGRATION_CREATED / MIGRATION_APPLIED
 **Sim / Sim.** Uma única migration `ALTER TABLE public.live_workshops` + índice parcial em `google_calendar_sync_status`. Aprovada pelo owner. Nenhuma mudança em RLS.
@@ -71,7 +72,7 @@ Depende do OAuth de usuário. Copy nos cards deixa isso explícito para o regist
 ## PROFILE_CALENDAR_INTEGRATION = PENDING_PHASE_2
 
 ## ADMIN_SYNC_STATUS = DONE
-A coluna GCal do `AdminTablePage` mostra `not_synced / pending / synced / failed / deleted`. Retry manual = reabrir e salvar (invoca `sync-*-to-google-calendar` de novo). "Open in Google Calendar" fica no campo `google_calendar_html_link` já persistido.
+A coluna GCal do `AdminTablePage` renderiza um chip colorido `not_synced / pending / synced / failed / deleted`, um ícone **Open in Google Calendar** (usando o `html_link` retornado pelo provider) e um botão **Retry** que dispara `sync-*-to-google-calendar` com `action: "upsert"` in-place, sem abrir o formulário. Se o Google devolver erro, o toast mostra `[status] body` real do provider e a linha fica em `failed` com `sync_error` populado — não bloqueia o registro no Supabase.
 
 ## USER_SYNC_STATUS = PENDING_PHASE_2
 
