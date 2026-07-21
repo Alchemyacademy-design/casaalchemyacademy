@@ -37,7 +37,7 @@ export function AdminEventsInner({ embedded = false }: { embedded?: boolean }) {
           hideInTable: true,
           placeholder: "Upload or paste an image URL",
         },
-        { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "draft" },
+        { name: "status", label: "Status", type: "select", options: STATUS, defaultValue: "published" },
       ]}
     />
   );
