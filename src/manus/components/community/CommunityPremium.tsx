@@ -35,6 +35,16 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
 import {
@@ -72,6 +82,10 @@ import { notifyMentions, resolveMentionUserIds } from "./mentions";
 
 const REACTIONS = ["❤️", "🔥", "✨", "👏", "😍"];
 const STORAGE_KEY = "community:last";
+const RULES_OPEN_KEY = "community:rulesOpen";
+const HIDDEN_CHANNELS_KEY = "community:hiddenChannels";
+
+type ChannelRow = { id: number; name: string; slug: string; description: string | null };
 
 const CHANNEL_PURPOSES: Record<string, string> = {
   general: "Open conversation about the course and the space.",
