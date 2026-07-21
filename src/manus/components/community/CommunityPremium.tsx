@@ -117,6 +117,10 @@ export default function CommunityPremium({
   const [openPost, setOpenPost] = useState<CommunityPost | null>(null);
   const [spaceDialogOpen, setSpaceDialogOpen] = useState(false);
   const [channelDialogOpen, setChannelDialogOpen] = useState(false);
+  const updateSpace = useUpdateSpace();
+  const deleteSpace = useDeleteSpace();
+  const updateChannel = useUpdateChannel(spaceId);
+  const deleteChannel = useDeleteChannel(spaceId);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<FilterMode>("all");
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
