@@ -686,6 +686,7 @@ export default function Home() {
           </div>
         </div>
       )}
+      {!isAuthenticated && <LeadMagnetDialog />}
     </div>
   );
 }
