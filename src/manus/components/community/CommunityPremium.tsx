@@ -564,6 +564,7 @@ export default function CommunityPremium({
               const unread = unreadByChannel[channel.id] ?? 0;
               const isActive = channel.id === channelId;
               const purpose = CHANNEL_PURPOSES[channel.slug];
+              const isFollowed = followedChannels?.has(channel.id) ?? false;
               return (
                 <div key={channel.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
                 <button
@@ -575,7 +576,10 @@ export default function CommunityPremium({
                 >
                   <Hash size={14} />
                   <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
-                    <span style={{ fontWeight: unread && !isActive ? 600 : undefined }}>{channel.name}</span>
+                    <span style={{ fontWeight: unread && !isActive ? 600 : undefined, display: "inline-flex", alignItems: "center", gap: 6 }}>
+                      {channel.name}
+                      {isFollowed && <Bell size={10} aria-label="Following" style={{ opacity: 0.7 }} />}
+                    </span>
                     {purpose && (
                       <span style={{ fontSize: "0.68rem", color: "var(--aa-text-light)", lineHeight: 1.35, whiteSpace: "normal" }}>
                         {purpose}
@@ -604,13 +608,31 @@ export default function CommunityPremium({
                     </span>
                   )}
                 </button>
+                {userId && (
+                  <button
+                    type="button"
+                    title={isFollowed ? `Unfollow #${channel.name}` : `Follow #${channel.name} to get notified about new posts`}
+                    aria-label={isFollowed ? `Unfollow ${channel.name}` : `Follow ${channel.name}`}
+                    aria-pressed={isFollowed}
+                    onClick={async () => {
+                      try {
+                        await toggleFollow.mutateAsync({ channelId: channel.id, follow: !isFollowed });
+                        toast.success(isFollowed ? `Unfollowed #${channel.name}` : `Following #${channel.name}`);
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Could not update follow");
+                      }
+                    }}
+                    style={{ padding: 4, opacity: isFollowed ? 1 : 0.55, color: isFollowed ? "var(--aa-olive-dark, #3a3f2b)" : undefined }}
+                  >
+                    {isFollowed ? <Bell size={13} /> : <BellOff size={13} />}
+                  </button>
+                )}
                 <button
                   type="button"
                   title={`New post in #${channel.name}`}
                   aria-label={`New post in #${channel.name}`}
                   onClick={() => {
-                    setChannelId(channel.id);
-                    window.setTimeout(focusComposer, 60);
+                    startNewPost(channel.id, channel.slug);
                   }}
                   style={{ padding: 4, opacity: 0.7 }}
                 >
