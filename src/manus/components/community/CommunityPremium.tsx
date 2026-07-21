@@ -512,6 +512,18 @@ export default function CommunityPremium({
                     </span>
                   )}
                 </button>
+                <button
+                  type="button"
+                  title={`New post in #${channel.name}`}
+                  aria-label={`New post in #${channel.name}`}
+                  onClick={() => {
+                    setChannelId(channel.id);
+                    window.setTimeout(focusComposer, 60);
+                  }}
+                  style={{ padding: 4, opacity: 0.7 }}
+                >
+                  <Plus size={13} />
+                </button>
                 {isAdmin && (
                   <>
                     <button
