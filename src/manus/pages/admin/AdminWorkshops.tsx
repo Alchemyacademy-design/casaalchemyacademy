@@ -1,9 +1,8 @@
 import AdminTablePage from "@/manus/components/admin/AdminTablePage";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ExternalLink, RefreshCw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { callGcalSync } from "@/manus/lib/gcal-sync-toast";
 
 const STATUS = [
   { value: "draft", label: "draft" },
@@ -21,30 +20,13 @@ const SYNC_STATUS = [
 
 async function callSync(workshopId: unknown, action: "upsert" | "delete" | "cancel") {
   if (workshopId == null) return;
-  const { data, error } = await supabase.functions.invoke("sync-workshop-to-google-calendar", {
-    body: { workshop_id: Number(workshopId), action },
+  await callGcalSync({
+    table: "live_workshops",
+    fn: "sync-workshop-to-google-calendar",
+    bodyKey: "workshop_id",
+    id: Number(workshopId),
+    action,
   });
-  const isRemoval = action === "delete" || action === "cancel";
-  if (error) {
-    toast.error(
-      isRemoval
-        ? "Removed from the platform. Google Calendar may still need manual cleanup."
-        : "Saved in the platform, but Google Calendar sync failed. Retry sync.",
-      { description: error.message },
-    );
-    return;
-  }
-  const payload = data as { ok?: boolean; status?: string; error?: string | null } | null;
-  if (payload?.ok) {
-    toast.success(isRemoval ? "Removed from Google Calendar" : "Synced to Google Calendar");
-  } else {
-    toast.error(
-      isRemoval
-        ? "Removed from the platform. Google Calendar may still need manual cleanup."
-        : "Saved in the platform, but Google Calendar sync failed. Retry sync.",
-      { description: payload?.error ?? payload?.status ?? "unknown" },
-    );
-  }
 }
 
 const STATUS_STYLES: Record<string, string> = {
