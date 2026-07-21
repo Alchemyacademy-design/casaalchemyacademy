@@ -320,8 +320,46 @@ export default function CommunityPremium({
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
   // House rules: default closed on tablet/mobile to save space, open on desktop
   const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
-    typeof window === "undefined" ? true : window.matchMedia("(min-width: 1280px)").matches,
+    typeof window === "undefined"
+      ? true
+      : (() => {
+          try {
+            const saved = window.localStorage.getItem(RULES_OPEN_KEY);
+            if (saved === "1") return true;
+            if (saved === "0") return false;
+          } catch { /* ignore */ }
+          return window.matchMedia("(min-width: 1280px)").matches;
+        })(),
   );
+  useEffect(() => {
+    try { window.localStorage.setItem(RULES_OPEN_KEY, rulesOpen ? "1" : "0"); } catch { /* ignore */ }
+  }, [rulesOpen]);
+
+  // Per-user hidden channels (client-side only; can be restored anytime)
+  const [hiddenChannelIds, setHiddenChannelIds] = useState<Set<number>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = window.localStorage.getItem(HIDDEN_CHANNELS_KEY);
+      const arr = raw ? (JSON.parse(raw) as number[]) : [];
+      return new Set(Array.isArray(arr) ? arr.filter((n) => Number.isFinite(n)) : []);
+    } catch { return new Set(); }
+  });
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(HIDDEN_CHANNELS_KEY, JSON.stringify(Array.from(hiddenChannelIds)));
+    } catch { /* ignore */ }
+  }, [hiddenChannelIds]);
+  const [showHiddenList, setShowHiddenList] = useState(false);
+  const [channelPendingDelete, setChannelPendingDelete] = useState<ChannelRow | null>(null);
+
+  function toggleChannelHidden(id: number, hide: boolean) {
+    setHiddenChannelIds((prev) => {
+      const next = new Set(prev);
+      if (hide) next.add(id); else next.delete(id);
+      return next;
+    });
+    if (hide && channelId === id) setChannelId(null);
+  }
 
   function focusComposer() {
     composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
