@@ -198,6 +198,13 @@ export default function CommunityPremium({
   // Handle→userId mapping accumulated as the composer inserts mentions.
   const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
+  const composerRef = useRef<HTMLDivElement | null>(null);
+  const composerBodyRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function focusComposer() {
+    composerRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    window.setTimeout(() => composerBodyRef.current?.focus(), 200);
+  }
 
   useEffect(() => {
     if (!spaces.length || spaceId) return;
