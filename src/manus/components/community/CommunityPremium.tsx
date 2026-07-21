@@ -738,7 +738,14 @@ export default function CommunityPremium({
                   </ul>
                   <p className="aa-community-guide-tip">{guide.tip}</p>
                   {userId && (
-                    <Button size="sm" variant="outline" onClick={focusComposer}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        applyTemplateForChannel(activeChannel.slug);
+                        focusComposer();
+                      }}
+                    >
                       <Plus size={14} /> New post in #{activeChannel.name}
                     </Button>
                   )}
