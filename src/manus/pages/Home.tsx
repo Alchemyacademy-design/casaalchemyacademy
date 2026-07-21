@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import SubscribeModal from "@/manus/components/SubscribeModal";
 import { getLoginUrl } from "@/manus/const";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
+import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 
@@ -94,6 +95,11 @@ const TESTIMONIALS = [
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin } = useAuth();
+  const navigate = useNavigate();
+  useEffect(() => {
+    // Signed-in visitors bypass the marketing landing page.
+    if (isAuthenticated && !isAdmin) navigate("/dashboard", { replace: true });
+  }, [isAuthenticated, isAdmin, navigate]);
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
