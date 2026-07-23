@@ -363,7 +363,13 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
 }
 
 async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, session: Stripe.Checkout.Session, event: Stripe.Event) {
-  const userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  let userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  if (!userId) {
+    // Guest checkout: resolve (or provision) the Supabase user from the
+    // email Stripe collected at checkout, then trigger the password-setup
+    // email via inviteUserByEmail on first provision.
+    userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
+  }
   if (!userId) throw new BillingError(`Checkout session ${session.id} missing supabase_user_id`);
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
   const { error } = await supabase.from("stripe_checkout_sessions").upsert({
@@ -427,8 +433,11 @@ async function applyAnnualCheckoutPayment(
 
   // Payment Links carry the user via `client_reference_id`; fall back to it
   // when metadata.supabase_user_id is absent.
-  const userId = metadataUserId(session.metadata)
+  let userId = metadataUserId(session.metadata)
     ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  if (!userId) {
+    userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
+  }
   if (!userId) throw new BillingError(`Annual Checkout session ${session.id} missing supabase_user_id`);
 
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
