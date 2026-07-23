@@ -384,10 +384,18 @@ Deno.serve(async (req) => {
     .eq("id", leadRow.id);
 
   // Confirmation email (also non-blocking).
+  let emailProvider: "gmail" | "resend" | "failed" = "failed";
   try {
-    await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl });
+    emailProvider = await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl });
   } catch (e) {
-    console.error("resend send error:", e);
+    console.error("confirmation email error:", e);
+  }
+
+  try {
+    const nextMetadata = { ...(metadata ?? {}), email_provider_used: emailProvider };
+    await supabase.from("leads").update({ metadata: nextMetadata }).eq("id", leadRow.id);
+  } catch (e) {
+    console.warn("failed to record email_provider_used:", e);
   }
 
   return new Response(
