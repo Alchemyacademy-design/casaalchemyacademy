@@ -75,12 +75,12 @@ export default function CourseQuiz() {
               Unlock your result and your free gift
             </h2>
             <p className="text-foreground/70 mb-6">
-              Enter your details to reveal the course matched to you — plus a free lesson from the method.
+              Enter your details to reveal the course matched to you — plus a free copy of our latest magazine issue.
             </p>
             <LeadMagnetForm
               source="quiz"
               metadata={{ answers, recommended_course: recommendation }}
-              ctaLabel="Reveal my course + free lesson"
+              ctaLabel="Reveal my course + magazine"
               redirectTo={`/courses/${recommendation}`}
               onSubmitted={() => setStage("result")}
             />
@@ -108,10 +108,10 @@ export default function CourseQuiz() {
                 See the recommended course
               </Link>
               <Link
-                to="/free-lesson"
+                to="/magazine"
                 className="inline-flex items-center justify-center rounded px-6 py-3 border border-foreground/20 font-medium"
               >
-                Watch your free lesson
+                Get your free magazine issue
               </Link>
             </div>
           </div>

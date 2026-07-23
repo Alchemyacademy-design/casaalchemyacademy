@@ -25,7 +25,9 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const HUBSPOT_TOKEN = Deno.env.get("HUBSPOT_PRIVATE_APP_TOKEN");
 const HUBSPOT_LIST_ID = Deno.env.get("HUBSPOT_LEAD_LIST_ID");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const FREE_LESSON_URL_ENV = Deno.env.get("FREE_LESSON_PUBLIC_URL");
+const MAGAZINE_URL_ENV =
+  Deno.env.get("MAGAZINE_PUBLIC_URL") ?? Deno.env.get("FREE_LESSON_PUBLIC_URL");
+const MAGAZINE_PDF_URL_ENV = Deno.env.get("MAGAZINE_PDF_URL");
 // The `from` address must belong to a domain verified in Resend.
 // Uses onboarding@resend.dev when nothing is configured — that only delivers
 // to the Resend account owner, so verify a domain and set FROM_EMAIL for real
@@ -35,7 +37,7 @@ const FROM_EMAIL = Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ?? "Casa Alchemy <onbo
 const HUBSPOT_BASE = "https://api.hubapi.com";
 
 function labelForSource(source: "popup" | "quiz"): string {
-  return source === "popup" ? "Website Pop-up — Free Lesson" : "Course Quiz";
+  return source === "popup" ? "Website Pop-up — Magazine" : "Course Quiz";
 }
 
 function splitName(full: string): { firstname: string; lastname: string } {
@@ -155,21 +157,23 @@ async function addToStaticList(contactId: string): Promise<void> {
 async function sendConfirmationEmail(input: {
   to: string;
   name: string;
-  freeLessonUrl: string;
+  magazineUrl: string;
+  downloadUrl: string;
 }): Promise<void> {
   if (!RESEND_API_KEY) {
     console.info("resend: RESEND_API_KEY not configured, skipping confirmation email");
     return;
   }
-  const subject = "Your free lesson from Casa Alchemy Studio";
+  const subject = "Your free issue of the Casa Alchemy magazine";
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
       <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Welcome, ${input.name.split(" ")[0] ?? ""}.</h1>
-      <p style="font-size:15px;line-height:1.6;">Thank you for stepping into the Alchemy. Your free lesson is ready — you can watch it right now on the page below, and come back to it any time using this link.</p>
+      <p style="font-size:15px;line-height:1.6;">Thank you for subscribing. Your free copy of the latest Casa Alchemy magazine is ready — real projects, real principles, and the professional knowledge you need to design your own home with confidence.</p>
       <p style="margin:24px 0;">
-        <a href="${input.freeLessonUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Watch the free lesson</a>
+        <a href="${input.downloadUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Download the magazine</a>
       </p>
-      <p style="font-size:14px;line-height:1.6;color:#666;">If the button doesn't work, paste this into your browser:<br/><a href="${input.freeLessonUrl}">${input.freeLessonUrl}</a></p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">If the button doesn't work, paste this into your browser:<br/><a href="${input.downloadUrl}">${input.downloadUrl}</a></p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">You can also revisit your issue any time here: <a href="${input.magazineUrl}">${input.magazineUrl}</a></p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
@@ -226,7 +230,7 @@ Deno.serve(async (req) => {
   const { name, email, phone, source, metadata, website } = parsed.data;
   if (website && website.length > 0) {
     // Silently accept honeypot hits but do nothing else.
-    return new Response(JSON.stringify({ ok: true, redirect: "/free-lesson" }), {
+    return new Response(JSON.stringify({ ok: true, redirect: "/magazine" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -234,7 +238,8 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const origin = req.headers.get("origin") ?? `${url.protocol}//${url.host}`;
-  const freeLessonUrl = FREE_LESSON_URL_ENV || `${origin}/free-lesson`;
+  const magazineUrl = MAGAZINE_URL_ENV || `${origin}/magazine`;
+  const downloadUrl = MAGAZINE_PDF_URL_ENV || magazineUrl;
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
@@ -304,13 +309,13 @@ Deno.serve(async (req) => {
 
   // Confirmation email (also non-blocking).
   try {
-    await sendConfirmationEmail({ to: email, name, freeLessonUrl });
+    await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl });
   } catch (e) {
     console.error("resend send error:", e);
   }
 
   return new Response(
-    JSON.stringify({ ok: true, redirect: "/free-lesson", leadId: leadRow.id }),
+    JSON.stringify({ ok: true, redirect: "/magazine", leadId: leadRow.id }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
