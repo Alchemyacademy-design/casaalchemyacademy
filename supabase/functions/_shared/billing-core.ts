@@ -2,6 +2,7 @@ import Stripe from "npm:stripe@22.2.1";
 import { createAdminClient } from "npm:@supabase/server@1.1.0/core";
 import { createClient as createRawClient } from "npm:@supabase/supabase-js@2";
 import type { Database } from "../../../shared/supabase.types.ts";
+import { sendPostPaymentWelcomeEmail } from "./welcome-email.ts";
 
 export const STRIPE_API_VERSION = "2026-05-27.dahlia" as const;
 export const MAX_RECOVERY_BATCH_SIZE = 25;
@@ -499,6 +500,21 @@ async function applyAnnualCheckoutPayment(
   if ((data as { result?: string } | null)?.result === "processed_ignored_stale") {
     throw new IgnoredEvent("stale_annual_checkout_event", true);
   }
+
+  // Welcome email — annual (one-time). Guard lives on
+  // stripe_checkout_sessions.metadata.welcome_email; safe against webhook
+  // retries and against the completed vs async_payment_succeeded pair.
+  try {
+    await sendPostPaymentWelcomeEmail({
+      supabase,
+      userId,
+      fallbackEmail: session.customer_details?.email ?? null,
+      planKey: "annual_member",
+      checkoutSessionId: session.id,
+    });
+  } catch (err) {
+    console.error("[applyAnnualCheckoutPayment] welcome email failed", err);
+  }
 }
 
 async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string) {
@@ -570,6 +586,23 @@ async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: 
   });
   if (error) throw error;
   if ((data as { result?: string } | null)?.result === "processed_ignored_stale") throw new IgnoredEvent("stale_event", true);
+
+  // Welcome email — monthly / individual course subscriptions. Only fires on
+  // the first paid invoice of the subscription lifecycle. Guard lives on
+  // stripe_subscriptions.metadata.welcome_email.
+  if (invoice.billing_reason === "subscription_create") {
+    try {
+      await sendPostPaymentWelcomeEmail({
+        supabase,
+        userId,
+        fallbackEmail: invoice.customer_email ?? null,
+        planKey: mapping.plan_key,
+        subscriptionId: subscription.id,
+      });
+    } catch (err) {
+      console.error("[applyInvoicePaid] welcome email failed", err);
+    }
+  }
 }
 
 async function paymentForCharge(supabase: SupabaseAdmin, stripe: Stripe, chargeId: string) {
