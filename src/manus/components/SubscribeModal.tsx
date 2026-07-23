@@ -59,21 +59,20 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
-      if (!user) {
-        setError("Please sign in before continuing to payment.");
-        toast.error("You need to be signed in to continue to checkout.");
-        return;
-      }
-      if (!user.email) {
-        setError("Your account has no email. Please update your profile before checkout.");
-        return;
-      }
 
       const baseUrl = PAYMENT_LINKS[type];
       const url = new URL(baseUrl);
-      // Prefill email and pass through metadata so the webhook can match the user.
-      url.searchParams.set("prefilled_email", user.email);
-      url.searchParams.set("client_reference_id", user.id);
+      // Prefill email + pass client_reference_id when the visitor is already
+      // signed in. Guests can pay without an account — the webhook resolves
+      // (or provisions) the Supabase user from customer_details.email after
+      // Stripe confirms payment.
+      if (user?.email) {
+        url.searchParams.set("prefilled_email", user.email);
+        url.searchParams.set("client_reference_id", user.id);
+      } else {
+        const leadEmail = (typeof window !== "undefined" && window.localStorage.getItem("aa_lead_email")) || "";
+        if (leadEmail) url.searchParams.set("prefilled_email", leadEmail);
+      }
       if (type === "guide" && courseId) {
         url.searchParams.set("utm_content", `course_${courseId}`);
       }
