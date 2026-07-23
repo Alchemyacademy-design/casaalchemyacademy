@@ -6,6 +6,9 @@ export type CommunityAuthorProfile = {
   display_name: string | null;
   full_name: string | null;
   avatar_path: string | null;
+  bio: string | null;
+  profession: string | null;
+  region: string | null;
 };
 
 const sortedKey = (values: Array<string | number>) => [...new Set(values)].sort().join(",");
@@ -17,10 +20,8 @@ export function useCommunityAuthorProfiles(authorIds: string[]) {
     enabled: ids.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, display_name, full_name, avatar_path")
-        .in("id", ids);
+      // Use the public-safe RPC so we get bio/profession/region without exposing email or prefs.
+      const { data, error } = await supabase.rpc("get_public_profiles", { _ids: ids });
       if (error) throw error;
       return (data ?? []) as CommunityAuthorProfile[];
     },
