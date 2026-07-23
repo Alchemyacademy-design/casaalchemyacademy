@@ -466,34 +466,34 @@ export default function Home() {
                 <tr style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)", fontWeight: 500 }}>
                   <td style={{ padding: "1.5rem" }}></td>
                   <td className="cta-cell cta-annual-highlight">
-                    <span className="cta-best-badge">Melhor Valor</span>
+                    <span className="cta-best-badge">Best Value</span>
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">59</span><span className="per">/ mês</span>
-                      <span className="sub">AUD 708 cobrados anualmente</span>
-                      <span className="save">Economize AUD 480</span>
+                      <span className="cur">AUD</span><span className="amt">59</span><span className="per">/ month</span>
+                      <span className="sub">AUD 708 billed annually</span>
+                      <span className="save">Save AUD 480</span>
                     </div>
-                    <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Assinar plano anual">Assinar Agora</button>
+                    <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Subscribe to annual plan">Subscribe Now</button>
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">99</span><span className="per">/ mês</span>
-                      <span className="sub">Cobrança mensal</span>
-                      <span className="save">Sem fidelidade</span>
+                      <span className="cur">AUD</span><span className="amt">99</span><span className="per">/ month</span>
+                      <span className="sub">Billed monthly</span>
+                      <span className="save">No commitment</span>
                     </div>
-                    <button onClick={() => setSubscribeModal("monthly")} className="cta-btn" aria-label="Assinar plano mensal">Assinar Agora</button>
+                    <button onClick={() => setSubscribeModal("monthly")} className="cta-btn" aria-label="Subscribe to monthly plan">Subscribe Now</button>
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
                       <span className="cur">AUD</span><span className="amt">159</span>
-                      <span className="sub">Pagamento único</span>
-                      <span className="save">Sem fidelidade</span>
+                      <span className="sub">One-time payment</span>
+                      <span className="save">No commitment</span>
                     </div>
-                    <button onClick={() => setSubscribeModal("guide")} className="cta-btn" aria-label="Escolher curso individual">Escolher Curso</button>
+                    <button onClick={() => setSubscribeModal("guide")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
                   </td>
                 </tr>
               </tbody>
             </table>
-            <p className="currency-note">Todos os valores estão expressos em dólares australianos (AUD).</p>
+            <p className="currency-note">All prices are in Australian Dollars (AUD).</p>
           </div>
         </div>
         </div>
