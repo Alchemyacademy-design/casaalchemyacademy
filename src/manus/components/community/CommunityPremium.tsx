@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
+import MemberProfileDialog from "@/manus/components/community/MemberProfileDialog";
 import {
   type CommunityPost,
   useChannelBySlug,
@@ -279,6 +280,39 @@ function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: 
   );
 }
 
+/**
+ * Clickable wrapper around the avatar + author name that opens the member's
+ * public bio card. Rendered inline inside `.aa-community-post-author` so it
+ * inherits existing styling.
+ */
+function AuthorButton({
+  profile,
+  own,
+  onOpen,
+  meta,
+}: {
+  profile?: CommunityAuthorProfile;
+  own: boolean;
+  onOpen: (profile: CommunityAuthorProfile | undefined, fallbackName: string) => void;
+  meta: string;
+}) {
+  const name = profileName(profile, own);
+  return (
+    <button
+      type="button"
+      className="aa-community-author-btn"
+      onClick={() => onOpen(profile, name)}
+      aria-label={`View ${name}'s profile`}
+    >
+      <ProfileMark profile={profile} own={own} />
+      <div>
+        <strong>{name}</strong>
+        <span>{meta}</span>
+      </div>
+    </button>
+  );
+}
+
 function useDebouncedValue(value: string, delay = 300) {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
@@ -311,6 +345,9 @@ export default function CommunityPremium({
   const [sortMode, setSortMode] = useState<SortMode>("new");
   const [reportOpen, setReportOpen] = useState<CommunityPost | null>(null);
   const reportPost = useReportPost(userId);
+  const [memberDialog, setMemberDialog] = useState<{ profile?: CommunityAuthorProfile; fallbackName: string } | null>(null);
+  const openMember = (profile: CommunityAuthorProfile | undefined, fallbackName: string) =>
+    setMemberDialog({ profile, fallbackName });
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
   // Handle→userId mapping accumulated as the composer inserts mentions.
@@ -984,11 +1021,12 @@ export default function CommunityPremium({
               return (
                 <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""} ${isTop ? "is-top" : ""}`}>
                   <div className="aa-community-post-author">
-                    <ProfileMark profile={profile} own={own} />
-                    <div>
-                      <strong>{profileName(profile, own)}</strong>
-                      <span>{relativeTime(post.created_at)}{own ? " · you" : ""}</span>
-                    </div>
+                    <AuthorButton
+                      profile={profile}
+                      own={own}
+                      onOpen={openMember}
+                      meta={`${relativeTime(post.created_at)}${own ? " · you" : ""}`}
+                    />
                     <div className="aa-community-post-flags">
                       {post.pinned && <span><Pin size={12} /> Pinned</span>}
                       {post.locked && <span><Lock size={12} /> Closed</span>}
@@ -1103,6 +1141,13 @@ export default function CommunityPremium({
           )}
         </SheetContent>
       </Sheet>
+
+      <MemberProfileDialog
+        open={!!memberDialog}
+        onOpenChange={(next) => { if (!next) setMemberDialog(null); }}
+        profile={memberDialog?.profile ?? null}
+        fallbackName={memberDialog?.fallbackName ?? "Academy member"}
+      />
 
       <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
       <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
@@ -1239,6 +1284,9 @@ function ThreadPanel({
   const toggleReaction = useToggleReaction();
   const [draft, setDraft] = useState("");
   const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
+  const [memberDialog, setMemberDialog] = useState<{ profile?: CommunityAuthorProfile; fallbackName: string } | null>(null);
+  const openMember = (profile: CommunityAuthorProfile | undefined, fallbackName: string) =>
+    setMemberDialog({ profile, fallbackName });
   const replyIds = useMemo(() => replies.map((reply) => reply.id), [replies]);
   const replyAuthors = useMemo(() => replies.map((reply) => reply.author_id), [replies]);
   const { data: replyProfiles = [] } = useCommunityAuthorProfiles(replyAuthors);
@@ -1321,8 +1369,12 @@ function ThreadPanel({
             return (
               <article key={reply.id} className="aa-community-reply">
                 <div className="aa-community-post-author">
-                  <ProfileMark profile={profile} own={own} />
-                  <div><strong>{profileName(profile, own)}</strong><span>{relativeTime(reply.created_at)}</span></div>
+                  <AuthorButton
+                    profile={profile}
+                    own={own}
+                    onOpen={openMember}
+                    meta={relativeTime(reply.created_at)}
+                  />
                   {(own || isAdmin) && <button type="button" onClick={() => removeReply(reply.id)}><Trash2 size={13} /></button>}
                 </div>
                 <p><MentionText text={reply.body} /></p>
@@ -1369,6 +1421,13 @@ function ThreadPanel({
           <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
+
+      <MemberProfileDialog
+        open={!!memberDialog}
+        onOpenChange={(next) => { if (!next) setMemberDialog(null); }}
+        profile={memberDialog?.profile ?? null}
+        fallbackName={memberDialog?.fallbackName ?? "Academy member"}
+      />
     </div>
   );
 }

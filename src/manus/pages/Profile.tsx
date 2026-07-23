@@ -25,16 +25,32 @@ export default function Profile() {
 
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [profession, setProfession] = useState("");
+  const [region, setRegion] = useState("");
+  const [bio, setBio] = useState("");
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name ?? "");
       setDisplayName(profile.display_name ?? "");
+      const p = profile as unknown as { birthdate?: string | null; profession?: string | null; region?: string | null; bio?: string | null };
+      setBirthdate(p.birthdate ?? "");
+      setProfession(p.profession ?? "");
+      setRegion(p.region ?? "");
+      setBio(p.bio ?? "");
     }
   }, [profile]);
 
   const onSave = async () => {
-    await update.mutateAsync({ full_name: fullName || null, display_name: displayName || null });
+    await update.mutateAsync({
+      full_name: fullName || null,
+      display_name: displayName || null,
+      birthdate: birthdate || null,
+      profession: profession.trim() || null,
+      region: region.trim() || null,
+      bio: bio.trim() || null,
+    } as never);
     await refreshAccess();
   };
 
@@ -107,6 +123,60 @@ export default function Profile() {
                   <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Email Address</label>
                   <input type="email" value={user?.email ?? ""} disabled
                     className="w-full px-4 py-2 text-sm" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-text-mid)", border: "1px solid var(--aa-cream-dark)" }} />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Date of birth</label>
+                    <input
+                      type="date"
+                      value={birthdate}
+                      max={new Date().toISOString().slice(0, 10)}
+                      onChange={(e) => setBirthdate(e.target.value)}
+                      className="w-full px-4 py-2 text-sm"
+                      style={{ backgroundColor: "var(--aa-white)", color: "var(--aa-text-dark)", border: "1px solid var(--aa-cream-dark)" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Profession</label>
+                    <input
+                      type="text"
+                      value={profession}
+                      maxLength={120}
+                      placeholder="e.g. Interior designer"
+                      onChange={(e) => setProfession(e.target.value)}
+                      className="w-full px-4 py-2 text-sm"
+                      style={{ backgroundColor: "var(--aa-white)", color: "var(--aa-text-dark)", border: "1px solid var(--aa-cream-dark)" }}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Region</label>
+                  <input
+                    type="text"
+                    value={region}
+                    maxLength={120}
+                    placeholder="e.g. Byron Bay, Australia"
+                    onChange={(e) => setRegion(e.target.value)}
+                    className="w-full px-4 py-2 text-sm"
+                    style={{ backgroundColor: "var(--aa-white)", color: "var(--aa-text-dark)", border: "1px solid var(--aa-cream-dark)" }}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>
+                    Short bio <span style={{ textTransform: "none", letterSpacing: 0 }}>({bio.length}/600)</span>
+                  </label>
+                  <textarea
+                    value={bio}
+                    maxLength={600}
+                    rows={4}
+                    placeholder="Tell the community a little about yourself — your style, your current project, what you're curious about."
+                    onChange={(e) => setBio(e.target.value)}
+                    className="w-full px-4 py-2 text-sm resize-y"
+                    style={{ backgroundColor: "var(--aa-white)", color: "var(--aa-text-dark)", border: "1px solid var(--aa-cream-dark)" }}
+                  />
+                  <p className="text-xs mt-1" style={{ color: "var(--aa-text-light)" }}>
+                    Visible to other members when they click your name in the community.
+                  </p>
                 </div>
                 <div>
                   <label className="text-xs mb-2 block uppercase tracking-wider" style={{ color: "var(--aa-text-light)" }}>Current Plan</label>
