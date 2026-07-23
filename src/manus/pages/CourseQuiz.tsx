@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { COURSE_QUIZ, computeInsights } from "@/manus/data/course-quiz-config";
 
-type Stage = "quiz" | "gate" | "result";
+type Stage = "quiz" | "result";
 
 export default function CourseQuiz() {
   const [stage, setStage] = useState<Stage>("quiz");
@@ -25,19 +24,19 @@ export default function CourseQuiz() {
     if (step + 1 < total) {
       setStep((s) => s + 1);
     } else {
-      setStage("gate");
+      setStage("result");
     }
   }
 
   return (
     <div className="min-h-screen" style={{ background: "var(--aa-cream, #f7f2ea)" }}>
       <div className="max-w-2xl mx-auto px-6 py-16">
-        <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-4">Course finder</p>
+        <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-4">Find your block</p>
         <h1 className="font-serif text-3xl md:text-5xl font-normal mb-4">
-          Not sure which course is right for you?
+          What's really stopping you from designing your home?
         </h1>
         <p className="text-foreground/70 mb-10">
-          Take the quiz and find out — there's a gift at the end.
+          Three quick questions. No sign-up, no email — just clarity on what's in your way.
         </p>
 
         {stage === "quiz" && q && (
@@ -72,45 +71,21 @@ export default function CourseQuiz() {
           </div>
         )}
 
-        {stage === "gate" && (
-          <div className="rounded-xl border border-foreground/10 bg-background p-6 md:p-8">
-            <h2 className="font-serif text-2xl md:text-3xl font-normal mb-2">
-              Unlock your result and your free gift
-            </h2>
-            <p className="text-foreground/70 mb-6">
-              Enter your details to reveal the course matched to you — plus a free copy of our latest magazine issue.
-            </p>
-            <LeadMagnetForm
-              source="quiz"
-              metadata={{ answers, insights }}
-              ctaLabel="Reveal my result + magazine"
-              onSubmitted={() => setStage("result")}
-            />
-            <button
-              type="button"
-              onClick={() => setStage("quiz")}
-              className="text-xs text-foreground/50 mt-4 underline"
-            >
-              Go back and change my answers
-            </button>
-          </div>
-        )}
-
         {stage === "result" && (
           <div className="rounded-xl border border-foreground/10 bg-background p-6 md:p-8">
-            <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-3">What your answers reveal</p>
+            <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-3">Here's what's really going on</p>
             {insights.length > 0 && (
-              <ul className="space-y-3 mb-8">
-                {insights.map((line, i) => (
-                  <li key={i} className="flex gap-3 text-foreground/80">
-                    <span className="text-foreground/40 mt-1">•</span>
-                    <span>{line}</span>
+              <ul className="space-y-6 mb-8">
+                {insights.map((item, i) => (
+                  <li key={i} className="border-l-2 border-foreground/20 pl-4">
+                    <p className="text-foreground/90 font-medium mb-1">{item.objection}</p>
+                    <p className="text-foreground/70 text-sm">{item.answer}</p>
                   </li>
                 ))}
               </ul>
             )}
             <h2 className="font-serif text-2xl md:text-3xl font-normal mb-6">
-              This is exactly what the Academy trains you to see. Knowledge is the most democratic design tool there is — here's how to start.
+              Everything you just named — the Academy is built exactly for that. This is the platform you've been looking for.
             </h2>
             <div className="flex flex-col sm:flex-row gap-3">
               <Button
@@ -118,6 +93,13 @@ export default function CourseQuiz() {
                 className="inline-flex items-center justify-center rounded px-6 py-3 bg-foreground text-background font-medium h-auto"
               >
                 See how to join the Academy
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => { setStage("quiz"); setStep(0); setAnswers({}); }}
+                className="inline-flex items-center justify-center rounded px-6 py-3 h-auto"
+              >
+                Retake the quiz
               </Button>
             </div>
           </div>
