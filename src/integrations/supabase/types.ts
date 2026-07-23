@@ -1946,6 +1946,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_path: string | null
+          bio: string | null
+          birthdate: string | null
           calendar_auto_add_enabled: boolean
           created_at: string
           display_name: string | null
@@ -1954,11 +1956,15 @@ export type Database = {
           id: string
           leaderboard_opt_out: boolean
           notification_prefs: Json
+          profession: string | null
+          region: string | null
           timezone: string
           updated_at: string
         }
         Insert: {
           avatar_path?: string | null
+          bio?: string | null
+          birthdate?: string | null
           calendar_auto_add_enabled?: boolean
           created_at?: string
           display_name?: string | null
@@ -1967,11 +1973,15 @@ export type Database = {
           id: string
           leaderboard_opt_out?: boolean
           notification_prefs?: Json
+          profession?: string | null
+          region?: string | null
           timezone?: string
           updated_at?: string
         }
         Update: {
           avatar_path?: string | null
+          bio?: string | null
+          birthdate?: string | null
           calendar_auto_add_enabled?: boolean
           created_at?: string
           display_name?: string | null
@@ -1980,6 +1990,8 @@ export type Database = {
           id?: string
           leaderboard_opt_out?: boolean
           notification_prefs?: Json
+          profession?: string | null
+          region?: string | null
           timezone?: string
           updated_at?: string
         }
@@ -2928,6 +2940,18 @@ export type Database = {
           status: string
           student_name: string
           verification_hash: string
+        }[]
+      }
+      get_public_profiles: {
+        Args: { _ids: string[] }
+        Returns: {
+          avatar_path: string
+          bio: string
+          display_name: string
+          full_name: string
+          id: string
+          profession: string
+          region: string
         }[]
       }
       has_role: {
