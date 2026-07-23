@@ -82,13 +82,15 @@ async function generateActivationLink(
 ): Promise<string | null> {
   const redirectTo = `${SITE_URL}/auth/continue`;
   try {
-    // `invite` produces a magic-link that lets a passwordless account set
-    // their password on first sign-in. If it fails (user already has a
-    // password), fall back to `recovery` which serves the same purpose.
-    let res = await adminAuth(supabase).generateLink({ type: "invite", email, options: { redirectTo } });
+    // Guests are provisioned with `email_confirm: true`, which makes Supabase
+    // reject `type:"invite"` (invites are for un-confirmed accounts only). Try
+    // `recovery` first — it works for both new guests and existing accounts
+    // that need a reset — and fall back to `invite` for the rare unconfirmed
+    // case.
+    let res = await adminAuth(supabase).generateLink({ type: "recovery", email, options: { redirectTo } });
     let link = res.data?.properties?.action_link ?? null;
     if (!link) {
-      res = await adminAuth(supabase).generateLink({ type: "recovery", email, options: { redirectTo } });
+      res = await adminAuth(supabase).generateLink({ type: "invite", email, options: { redirectTo } });
       link = res.data?.properties?.action_link ?? null;
     }
     return link;
