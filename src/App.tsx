@@ -86,8 +86,7 @@ export default function App() {
             <Route path="/suporte" element={<Navigate to="/support" replace />} />
             <Route path="/exclusao-de-dados" element={<Navigate to="/data-deletion" replace />} />
             <Route path="/plans" element={<Plans />} />
-            <Route path="/magazine" element={<FreeLesson />} />
-            <Route path="/free-lesson" element={<Navigate to="/magazine" replace />} />
+            <Route path="/free-lesson" element={<FreeLesson />} />
             <Route path="/quiz" element={<CourseQuiz />} />
             <Route path="/c/:slug" element={<PublicCertificate />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />

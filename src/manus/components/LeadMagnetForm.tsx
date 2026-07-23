@@ -25,7 +25,7 @@ type Props = {
 export default function LeadMagnetForm({
   source,
   metadata,
-  ctaLabel = "Get the Magazine",
+  ctaLabel = "Watch the Free Lesson",
   redirectTo,
   onSubmitted,
   variant = "light",
@@ -54,9 +54,9 @@ export default function LeadMagnetForm({
         metadata,
         website,
       });
-      toast.success("You're in. Your issue is ready.");
+      toast.success("You're in. Your free lesson is ready.");
       onSubmitted?.();
-      navigate(redirectTo ?? result.redirect ?? "/magazine");
+      navigate(redirectTo ?? result.redirect ?? "/free-lesson");
     } catch (err) {
       toast.error("Could not submit", { description: (err as Error).message });
     } finally {

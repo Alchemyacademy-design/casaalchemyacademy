@@ -1,72 +1,99 @@
-## Goal
-Replace the "free lesson" lead magnet with "Subscribe and get our latest magazine issue, free." across every touchpoint — popup, homepage capture section, post-submit page, and Resend confirmation email — without changing the underlying form, storage, HubSpot sync, or 7-day suppression logic.
+## Escopo confirmado
 
-## Changes
+- `/` vira landing page pública. Usuários logados são redirecionados automaticamente para `/dashboard` ao acessar `/`.
+- HubSpot via **Private App Token** (`HUBSPOT_PRIVATE_APP_TOKEN` como secret).
+- Email de confirmação via **Resend**.
+- Vídeo da free lesson: **usar placeholder até você me passar o link** (edito depois em 1 minuto).
 
-### 1. Popup — `src/manus/components/LeadMagnetDialog.tsx`
-- Title → `"Consider this your first experiment."`
-- Description → `"Subscribe and get our latest issue, free. Real projects, real principles — the professional knowledge you need to design your own home, with confidence."`
-- CTA label passed to `LeadMagnetForm` → `"Get the Magazine"`
+---
 
-### 2. Homepage capture section — `src/manus/pages/Home.tsx` (`#free-lesson-cta`, ~line 624)
-This section already exists as the second capture point the brief asks for. Repurpose in place (keep the form + flow):
-- Kicker → `"Get the magazine"`
-- Headline → `"Get our latest issue, free."`
-- Body copy → short magazine-focused paragraph (subscribe, get the PDF now, no video wait).
-- Form CTA → `"Get the Magazine"`.
-- Rename the section anchor `id` to `magazine-cta` and update any in-page anchors (currently none link to it).
+## Etapa 1 — Landing page pública em `/`
 
-### 3. Thank-you page — repurpose `src/manus/pages/FreeLesson.tsx` + add `/magazine` route
-- Rewrite `FreeLesson.tsx` to render the magazine landing: cover image, short preview blurb, primary download button (opens PDF in new tab), and a secondary CTA `"Want the full toolkit, not just the preview?"` linking to `/#offers`.
-- Headline → `"Thanks for subscribing. Here's your issue."`
-- Add `/magazine` route in `src/App.tsx` pointing at the same component; keep `/free-lesson` as a `Navigate` redirect to `/magazine` so any old confirmation emails still land somewhere valid.
-- Use two `import.meta.env` values with hard-coded placeholder fallbacks:
-  - `VITE_MAGAZINE_PDF_URL` → default `/lead-magnet/casa-alchemy-issue-01.pdf`
-  - `VITE_MAGAZINE_COVER_URL` → default `/lead-magnet/magazine-cover.jpg`
+Refazer `Home.tsx` como landing de conversão, mantendo a identidade visual (Instrument Serif + Manrope, paleta atual). Estrutura:
 
-### 4. Form redirect — `src/manus/components/LeadMagnetForm.tsx`
-- Default CTA label → `"Get the Magazine"`.
-- Success toast → `"You're in. Your issue is ready."`
-- Default post-submit navigate target → `/magazine` (kept overridable via `redirectTo` / server `result.redirect`).
+1. **Hero** — headline emocional, sub, CTA duplo: "Watch free lesson" (abre pop-up) + "Take the quiz".
+2. **Sobre o método** — 3 pilares curtos, tom Lorena.
+3. **Cursos em destaque** — 3-4 cards puxados de `courses` (published + featured), link pra `/courses`.
+4. **Bloco quiz** — banner "Not sure which course is right for you?" com CTA pra `/quiz`.
+5. **Depoimentos / prova social** — placeholder editável (você me passa depois).
+6. **Lead magnet inline** — bloco fixo perto do footer com o mesmo formulário do pop-up (Name/Email/Phone → "Watch the free lesson").
+7. **FAQ** curto + **Footer** com links legais.
 
-### 5. `src/manus/lib/lead-magnet.ts`
-- No structural change. Type/comments stay as-is; keeps `LeadSource = "popup" | "quiz"` so the quiz capture path is unaffected.
+Logados vão pra `/dashboard` automaticamente (guard em `Home.tsx`).
 
-### 6. Edge function — `supabase/functions/capture-lead/index.ts`
-- Rename local var `freeLessonUrl` → `magazineUrl`; source order becomes:
-  1. new env `MAGAZINE_PUBLIC_URL` (added), else
-  2. legacy `FREE_LESSON_PUBLIC_URL` (kept for continuity), else
-  3. `${origin}/magazine`.
-- Optional new env `MAGAZINE_PDF_URL` — if set, email links directly to the PDF; otherwise it links to `magazineUrl` (the thank-you page, which itself hosts the download button).
-- Response `redirect` → `/magazine` (both success and honeypot branches).
-- HubSpot `labelForSource("popup")` → `"Website Pop-up — Magazine"`.
-- Resend email:
-  - Subject → `"Your free issue of the Casa Alchemy magazine"`
-  - Body → magazine-focused copy, primary button `"Download the magazine"` pointing at `MAGAZINE_PDF_URL || magazineUrl`, plaintext fallback link, unchanged footer signature.
-- Quiz path (`source: "quiz"`) keeps its existing copy; email template branches on source.
+---
 
-### 7. `src/manus/pages/CourseQuiz.tsx`
-- Update the small "already got the lesson" fallback link (`to="/free-lesson"`) to `/magazine` and the surrounding copy to reference the magazine, so the quiz page stays consistent. No form logic changes.
+## Etapa 2 — Lead magnet pop-up
 
-## Assets — where to upload the real files
-Once you send the PDF + cover, upload them via the Lovable Assets CLI (keeps the repo lightweight, served from CDN):
+- Componente `LeadMagnetDialog.tsx` que abre 10s após load, uma vez por visitante.
+- Suprimido para: usuários logados, `localStorage.leadPopupDismissedAt` < 7 dias atrás, admin.
+- Campos: Name, Email, Phone (todos required) + honeypot invisível anti-bot.
+- Validação client-side com Zod.
+- Submit chama edge function `capture-lead` → redireciona pra `/free-lesson`.
+- Página `/free-lesson` pública com o vídeo embed (placeholder até você me passar o link).
+- Versão inline (não-modal) do mesmo form no footer da landing.
 
-```text
-lovable-assets create --file <local-cover.jpg> --filename magazine-cover.jpg \
-  > src/assets/magazine-cover.jpg.asset.json
-lovable-assets create --file <local-magazine.pdf> --filename casa-alchemy-issue-01.pdf \
-  > src/assets/casa-alchemy-issue-01.pdf.asset.json
-```
+---
 
-I will then wire those `.asset.json` `url` fields into `FreeLesson.tsx` and set `MAGAZINE_PDF_URL` in the edge function secrets. Until you send them, the page uses placeholder paths under `/public/lead-magnet/` — if you'd rather drop the two files into `public/lead-magnet/` yourself with those exact names, everything works without env changes.
+## Etapa 3 — Quiz de recomendação em `/quiz`
 
-## Out of scope
-- No changes to leads schema, HubSpot list wiring, honeypot, or 7-day suppression.
-- No changes to the popup trigger timing or the auth-based suppression.
-- No new secondary popup (footer section = same form/flow, not a second dialog).
+- 5 perguntas de múltipla escolha (mapeadas para cursos existentes) num arquivo `quizConfig.ts` fácil de editar.
+- Draft inicial baseado no seu texto (cores, sala, jantar, quarto) + 1 pergunta de estilo e 1 de orçamento/timeline.
+- Progress bar, uma pergunta por tela, botão "voltar".
+- Antes de revelar o resultado, gate com form Name/Email/Phone ("unlock your result and free gift").
+- Após submit → mostra o curso recomendado + botão "Watch your free lesson" → `/free-lesson`.
+- Backend igual ao pop-up, mas `source = 'quiz'` + `metadata.recommended_course` gravado.
 
-## Verification
-- Build passes.
-- Popup opens with new copy; form submits; localStorage suppression still holds for 7 days.
-- `/magazine` renders cover + download button; `/free-lesson` redirects to `/magazine`.
-- Curl `capture-lead` with a test payload → response `redirect: "/magazine"`, Resend log shows magazine subject line.
+---
+
+## Etapa 4 — Backend
+
+### Migration
+- Tabela `public.leads` (name, email, phone, source enum `'popup'|'quiz'`, metadata jsonb, ip_hash text, user_agent text, created_at).
+- `GRANT INSERT` para `anon` (sem SELECT). `SELECT/UPDATE/DELETE` só para admin via RLS.
+- Índice único parcial em `(lower(email), source)` para deduplicar.
+
+### Edge function `capture-lead`
+- CORS habilitado. Aceita POST público sem JWT.
+- Valida payload com Zod. Rate limit simples via `checkout_rate_limits` (reutiliza padrão existente) por IP.
+- Insere em `leads` (upsert on conflict).
+- Chama HubSpot Contacts API (`PATCH /crm/v3/objects/contacts/{email}?idProperty=email` com fallback pra POST):
+  - Cria/atualiza propriedades: `firstname`, `lastname`, `email`, `phone`, `lead_source` (custom).
+  - Se `lead_source` property não existir no HubSpot, cria via `POST /crm/v3/properties/contacts` uma vez (ignora 409).
+  - Se `HUBSPOT_LEAD_LIST_ID` estiver setado, adiciona à static list; senão skip com log.
+- Chama Resend (`/emails`) com o email de confirmação (subject/copy editáveis).
+- Retorna `{ ok: true, redirect: '/free-lesson' }`.
+
+### Secrets
+- `HUBSPOT_PRIVATE_APP_TOKEN` — pedirei via secure form.
+- `HUBSPOT_LEAD_LIST_ID` — opcional, você me passa depois; skip gracioso enquanto ausente.
+- `RESEND_API_KEY` — se ainda não configurado, conectarei o connector Resend.
+- `FREE_LESSON_VIDEO_URL` — opcional; se ausente, `/free-lesson` mostra um "coming soon" só para admin poder testar.
+
+---
+
+## Etapa 5 — Ordem de execução
+
+1. Migration `leads` + índice + RLS.
+2. `add_secret` para `HUBSPOT_PRIVATE_APP_TOKEN` (você preenche no formulário seguro).
+3. Conectar Resend (se ainda não conectado) via connector.
+4. Edge function `capture-lead`.
+5. Componentes: `LeadMagnetDialog`, `LeadMagnetInlineBlock`, `/free-lesson` page.
+6. Página `/quiz` + `quizConfig.ts`.
+7. Reescrita de `Home.tsx` como landing.
+8. Guard: logado em `/` → `/dashboard`.
+9. Typecheck + smoke test com Playwright.
+
+---
+
+## Pendências que travam produção (não bloqueiam o build)
+
+Vou entregar tudo funcional com placeholders claros. Depois você me passa:
+
+1. Link do vídeo da free lesson.
+2. ID da static list HubSpot ("Lead Magnet Sign-ups") — ou aprovação para eu criar via API na primeira execução.
+3. Subject + corpo do email de confirmação.
+4. Wording final das 5 perguntas do quiz + mapeamento answer → curso.
+5. Scopes na Private App HubSpot: `crm.objects.contacts.read`, `crm.objects.contacts.write`, `crm.lists.write`, `crm.schemas.contacts.write`.
+
+Confirma que posso executar assim? Se quiser mudar algo (ex.: adiar quiz, cortar Resend), me avisa antes.

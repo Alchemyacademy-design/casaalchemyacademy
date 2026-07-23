@@ -623,25 +623,25 @@ export default function Home() {
 
       {/* ── Lead magnet — fixed homepage section ── */}
       {!isAuthenticated && (
-        <section id="magazine-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center max-w-5xl mx-auto">
               <div>
                 <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
-                  Get the magazine
+                  Try one lesson first
                 </p>
                 <h2 className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "1rem", fontWeight: 400 }}>
-                  Get our latest issue, free.
+                  Watch a free lesson before you join
                 </h2>
                 <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "1rem" }}>
-                  Subscribe and download our latest magazine issue straight away — real projects, real principles, and the professional knowledge you need to design your own home with confidence.
+                  Experience one class from Casa Alchemy Academy and see how the method helps you make clearer, more intentional design decisions — room by room.
                 </p>
                 <p style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
-                  No waiting. The PDF is ready the moment you subscribe.
+                  No pressure. Just a taste of the Alchemy method.
                 </p>
               </div>
               <div style={{ background: "var(--aa-white)", padding: "2rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
-                <LeadMagnetForm source="popup" ctaLabel="Get the Magazine" />
+                <LeadMagnetForm source="popup" ctaLabel="Watch the Free Lesson" />
               </div>
             </div>
           </div>
