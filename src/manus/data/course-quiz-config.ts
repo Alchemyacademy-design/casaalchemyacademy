@@ -1,14 +1,12 @@
-// Course-recommendation quiz configuration.
-// Edit the questions/options here and the mapping is applied automatically.
-// `courseSlug` matches a slug in public.courses (see /courses).
-// If the recommended course does not exist yet, the quiz falls back to /courses.
+// Pain-point recognition quiz configuration.
+// Each answer maps to a short closing insight/theme shown at the end.
+// The quiz no longer recommends a single course — it points to the Academy as a whole.
 
 export type QuizOption = {
   id: string;
   label: string;
-  courseSlug: string;
-  /** Weight added to the target course when this option is selected. */
-  weight?: number;
+  /** Short insight/theme surfaced in the closing message. */
+  insight: string;
 };
 
 export type QuizQuestion = {
@@ -23,63 +21,61 @@ export const COURSE_QUIZ: QuizQuestion[] = [
     id: "pain",
     question: "What's bothering you most about your space right now?",
     options: [
-      { id: "colour", label: "The colours never feel right, nothing matches or feels intentional", courseSlug: "the-path-to-a-colourful-life", weight: 3 },
-      { id: "living", label: "The living area doesn't feel practical to actually live in", courseSlug: "the-soulful-living-room", weight: 3 },
-      { id: "dining", label: "It doesn't feel special for meals or entertaining", courseSlug: "the-crafted-dining-room", weight: 3 },
-      { id: "bedroom", label: "It doesn't feel like a proper place to rest", courseSlug: "the-sacred-bedroom", weight: 3 },
+      { id: "colour", label: "The colours never feel right, nothing matches or feels intentional", insight: "You're missing a palette language — the rules that make colour feel intentional." },
+      { id: "living", label: "The living area doesn't feel practical to actually live in", insight: "Your living space needs a layout logic that balances comfort with everyday use." },
+      { id: "dining", label: "It doesn't feel special for meals or entertaining", insight: "Your dining space is missing the rituals and details that turn a room into an occasion." },
+      { id: "bedroom", label: "It doesn't feel like a proper place to rest", insight: "Your bedroom needs the sensory foundations — light, texture, quiet — that create true rest." },
     ],
   },
   {
     id: "style",
     question: "Which best describes the feeling you want at home?",
     options: [
-      { id: "warm", label: "Warm, layered, full of character", courseSlug: "the-soulful-living-room", weight: 1 },
-      { id: "calm", label: "Calm, restful, spa-like", courseSlug: "the-sacred-bedroom", weight: 1 },
-      { id: "bold", label: "Bold, colourful, expressive", courseSlug: "the-path-to-a-colourful-life", weight: 1 },
-      { id: "hosting", label: "Elegant, made for hosting", courseSlug: "the-crafted-dining-room", weight: 1 },
+      { id: "warm", label: "Warm, layered, full of character", insight: "You're chasing warmth — layered texture, story, and lived-in depth." },
+      { id: "calm", label: "Calm, restful, spa-like", insight: "You're chasing calm — restraint, softness, and space to breathe." },
+      { id: "bold", label: "Bold, colourful, expressive", insight: "You're chasing expression — confident colour and unapologetic personality." },
+      { id: "hosting", label: "Elegant, made for hosting", insight: "You're chasing elegance — the crafted details that make a home feel generous." },
     ],
   },
   {
     id: "priority",
     question: "Which room would change the most if you got it right?",
     options: [
-      { id: "bed", label: "Bedroom", courseSlug: "the-sacred-bedroom", weight: 2 },
-      { id: "liv", label: "Living room", courseSlug: "the-soulful-living-room", weight: 2 },
-      { id: "din", label: "Dining room", courseSlug: "the-crafted-dining-room", weight: 2 },
-      { id: "col", label: "The palette across every room", courseSlug: "the-path-to-a-colourful-life", weight: 2 },
+      { id: "bed", label: "Bedroom", insight: "The bedroom is where design most directly shapes how you feel every day." },
+      { id: "liv", label: "Living room", insight: "The living room is the heart of the home — where design becomes daily life." },
+      { id: "din", label: "Dining room", insight: "The dining room is where design turns everyday meals into memory." },
+      { id: "col", label: "The palette across every room", insight: "A coherent palette is the single decision that pulls a whole home together." },
     ],
   },
   {
     id: "timeline",
     question: "When do you plan to act on what you learn?",
     options: [
-      { id: "now", label: "Right now — I'm mid-project", courseSlug: "the-path-to-a-colourful-life", weight: 1 },
-      { id: "soon", label: "In the next few months", courseSlug: "the-soulful-living-room", weight: 1 },
-      { id: "later", label: "Planning for the year ahead", courseSlug: "the-sacred-bedroom", weight: 1 },
-      { id: "curious", label: "Just curious for now", courseSlug: "the-crafted-dining-room", weight: 1 },
+      { id: "now", label: "Right now — I'm mid-project", insight: "You need frameworks you can apply this week — not theory for later." },
+      { id: "soon", label: "In the next few months", insight: "You're planning ahead — the right time to build a real design foundation." },
+      { id: "later", label: "Planning for the year ahead", insight: "You have time to learn deeply before deciding — the best position to be in." },
+      { id: "curious", label: "Just curious for now", insight: "Curiosity is where every great home starts — trust it." },
     ],
   },
   {
     id: "budget",
     question: "How would you describe your budget?",
     options: [
-      { id: "invest", label: "Ready to invest in a full transformation", courseSlug: "the-soulful-living-room", weight: 1 },
-      { id: "modest", label: "Modest — I want to make the right decisions", courseSlug: "the-path-to-a-colourful-life", weight: 1 },
-      { id: "focus", label: "Focused on one room at a time", courseSlug: "the-sacred-bedroom", weight: 1 },
-      { id: "entertain", label: "Prioritising entertaining spaces", courseSlug: "the-crafted-dining-room", weight: 1 },
+      { id: "invest", label: "Ready to invest in a full transformation", insight: "With budget in hand, the biggest risk is spending it in the wrong order — knowledge fixes that." },
+      { id: "modest", label: "Modest — I want to make the right decisions", insight: "A modest budget rewards the trained eye more than any other — every choice has to earn its place." },
+      { id: "focus", label: "Focused on one room at a time", insight: "Room-by-room only works when each decision fits a bigger vision — that's what you're missing." },
+      { id: "entertain", label: "Prioritising entertaining spaces", insight: "Entertaining spaces reward craft — the details guests never name but always feel." },
     ],
   },
 ];
 
-export function computeRecommendation(answers: Record<string, string>): string {
-  const scores: Record<string, number> = {};
+export function computeInsights(answers: Record<string, string>): string[] {
+  const out: string[] = [];
   for (const q of COURSE_QUIZ) {
     const optId = answers[q.id];
     if (!optId) continue;
     const opt = q.options.find((o) => o.id === optId);
-    if (!opt) continue;
-    scores[opt.courseSlug] = (scores[opt.courseSlug] ?? 0) + (opt.weight ?? 1);
+    if (opt) out.push(opt.insight);
   }
-  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-  return sorted[0]?.[0] ?? "the-path-to-a-colourful-life";
+  return out;
 }
