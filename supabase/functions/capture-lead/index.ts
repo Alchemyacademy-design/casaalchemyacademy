@@ -30,6 +30,11 @@ const GOOGLE_MAIL_API_KEY = Deno.env.get("GOOGLE_MAIL_API_KEY");
 const MAGAZINE_URL_ENV =
   Deno.env.get("MAGAZINE_PUBLIC_URL") ?? Deno.env.get("FREE_LESSON_PUBLIC_URL");
 const MAGAZINE_PDF_URL_ENV = Deno.env.get("MAGAZINE_PDF_URL");
+// Default asset paths (uploaded via lovable-assets, served from the app origin).
+const DEFAULT_MAGAZINE_PDF_PATH =
+  "/__l5e/assets-v1/52520714-f907-4744-9aba-d0c9f9db237c/casa-alchemy-autumn-26.pdf";
+const DEFAULT_MAGAZINE_COVER_PATH =
+  "/__l5e/assets-v1/9cd1be74-97d5-4d02-8704-d1b4075151fe/magazine-cover-autumn26.png";
 // The `from` address must belong to a domain verified in Resend.
 // Uses onboarding@resend.dev when nothing is configured — that only delivers
 // to the Resend account owner, so verify a domain and set FROM_EMAIL for real
@@ -168,9 +173,10 @@ async function sendConfirmationEmail(input: {
   name: string;
   magazineUrl: string;
   downloadUrl: string;
+  coverUrl: string;
 }): Promise<"gmail" | "resend" | "failed"> {
   const firstName = input.name.trim().split(/\s+/)[0] ?? "";
-  const subject = "Thanks for subscribing — here's your magazine";
+  const subject = "Your free issue — CA MAG Autumn 26";
   let offersUrl: string;
   try {
     offersUrl = new URL("/#offers", input.magazineUrl).toString();
@@ -180,7 +186,10 @@ async function sendConfirmationEmail(input: {
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
       <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Consider this your first experiment.</h1>
-      <p style="font-size:15px;line-height:1.6;">Thanks for subscribing, ${firstName}. Your free copy of the latest Casa Alchemy magazine is ready — real projects, real principles, and the professional knowledge you need to design your own home with confidence.</p>
+      <p style="font-size:15px;line-height:1.6;">Thanks for subscribing, ${firstName}. Your free copy of <strong>CA MAG — Autumn 26</strong> is ready. Inside: the ArchDaily-awarded Casa Byron, a 4-day budget flip, and our latest suppliers list.</p>
+      <p style="margin:20px 0;text-align:center;">
+        <a href="${input.downloadUrl}"><img src="${input.coverUrl}" alt="CA MAG — Autumn 26 cover" width="320" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></a>
+      </p>
       <p style="margin:24px 0;">
         <a href="${input.downloadUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Download the magazine</a>
       </p>
@@ -194,7 +203,7 @@ async function sendConfirmationEmail(input: {
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
-  const plaintext = `Consider this your first experiment.\n\nThanks for subscribing, ${firstName}. Your free copy of the Casa Alchemy magazine is ready.\n\nDownload: ${input.downloadUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
+  const plaintext = `Consider this your first experiment.\n\nThanks for subscribing, ${firstName}. Your free copy of CA MAG — Autumn 26 is ready.\n\nInside: the ArchDaily-awarded Casa Byron, a 4-day budget flip, and our latest suppliers list.\n\nDownload: ${input.downloadUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
 
   // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
@@ -314,7 +323,8 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
   const origin = req.headers.get("origin") ?? `${url.protocol}//${url.host}`;
   const magazineUrl = MAGAZINE_URL_ENV || `${origin}/magazine`;
-  const downloadUrl = MAGAZINE_PDF_URL_ENV || magazineUrl;
+  const downloadUrl = MAGAZINE_PDF_URL_ENV || `${origin}${DEFAULT_MAGAZINE_PDF_PATH}`;
+  const coverUrl = `${origin}${DEFAULT_MAGAZINE_COVER_PATH}`;
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
@@ -386,7 +396,7 @@ Deno.serve(async (req) => {
   // Confirmation email (also non-blocking).
   let emailProvider: "gmail" | "resend" | "failed" = "failed";
   try {
-    emailProvider = await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl });
+    emailProvider = await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl, coverUrl });
   } catch (e) {
     console.error("confirmation email error:", e);
   }
