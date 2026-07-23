@@ -168,25 +168,89 @@ async function sendConfirmationEmail(input: {
   name: string;
   magazineUrl: string;
   downloadUrl: string;
-}): Promise<void> {
-  if (!RESEND_API_KEY) {
-    console.info("resend: RESEND_API_KEY not configured, skipping confirmation email");
-    return;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const firstName = input.name.trim().split(/\s+/)[0] ?? "";
+  const subject = "Thanks for subscribing — here's your magazine";
+  let offersUrl: string;
+  try {
+    offersUrl = new URL("/#offers", input.magazineUrl).toString();
+  } catch {
+    offersUrl = `${input.magazineUrl}#offers`;
   }
-  const subject = "Your free issue of the Casa Alchemy magazine";
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
-      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Welcome, ${input.name.split(" ")[0] ?? ""}.</h1>
-      <p style="font-size:15px;line-height:1.6;">Thank you for subscribing. Your free copy of the latest Casa Alchemy magazine is ready — real projects, real principles, and the professional knowledge you need to design your own home with confidence.</p>
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Consider this your first experiment.</h1>
+      <p style="font-size:15px;line-height:1.6;">Thanks for subscribing, ${firstName}. Your free copy of the latest Casa Alchemy magazine is ready — real projects, real principles, and the professional knowledge you need to design your own home with confidence.</p>
       <p style="margin:24px 0;">
         <a href="${input.downloadUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Download the magazine</a>
       </p>
       <p style="font-size:14px;line-height:1.6;color:#666;">If the button doesn't work, paste this into your browser:<br/><a href="${input.downloadUrl}">${input.downloadUrl}</a></p>
-      <p style="font-size:14px;line-height:1.6;color:#666;">You can also revisit your issue any time here: <a href="${input.magazineUrl}">${input.magazineUrl}</a></p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">Ready for the full toolkit?</h2>
+      <p style="font-size:15px;line-height:1.6;">The magazine is a preview of how we think. Inside the Alchemy Academy you get the full method — courses, live workshops, and a community designing their own homes with intention.</p>
+      <p style="margin:20px 0 28px;">
+        <a href="${offersUrl}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Explore the Academy plans</a>
+      </p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
+  const plaintext = `Consider this your first experiment.\n\nThanks for subscribing, ${firstName}. Your free copy of the Casa Alchemy magazine is ready.\n\nDownload: ${input.downloadUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
 
+  // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
+  if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
+    try {
+      const boundary = `casa_${crypto.randomUUID().replace(/-/g, "")}`;
+      const rfc2822 = [
+        `From: ${FROM_EMAIL}`,
+        `To: ${input.to}`,
+        `Subject: ${subject}`,
+        `MIME-Version: 1.0`,
+        `Content-Type: multipart/alternative; boundary="${boundary}"`,
+        ``,
+        `--${boundary}`,
+        `Content-Type: text/plain; charset="UTF-8"`,
+        `Content-Transfer-Encoding: 7bit`,
+        ``,
+        plaintext,
+        ``,
+        `--${boundary}`,
+        `Content-Type: text/html; charset="UTF-8"`,
+        `Content-Transfer-Encoding: 7bit`,
+        ``,
+        html,
+        ``,
+        `--${boundary}--`,
+        ``,
+      ].join("\r\n");
+      const raw = btoa(unescape(encodeURIComponent(rfc2822)))
+        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+      const res = await fetch(`${GMAIL_GATEWAY}/users/me/messages/send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "X-Connection-Api-Key": GOOGLE_MAIL_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ raw }),
+      });
+      if (res.ok) {
+        await res.text();
+        return "gmail";
+      }
+      const body = await res.text();
+      console.warn(`gmail send failed [${res.status}]: ${body} — falling back to Resend`);
+    } catch (e) {
+      console.warn(`gmail send threw, falling back to Resend:`, e);
+    }
+  } else {
+    console.info("gmail: connector env not configured, falling back to Resend");
+  }
+
+  if (!RESEND_API_KEY) {
+    console.warn("resend: RESEND_API_KEY not configured, no fallback available");
+    return "failed";
+  }
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -198,14 +262,16 @@ async function sendConfirmationEmail(input: {
       to: [input.to],
       subject,
       html,
+      text: plaintext,
     }),
   });
   if (!res.ok) {
     const body = await res.text();
     console.warn(`resend send failed [${res.status}]: ${body}`);
-  } else {
-    await res.text();
+    return "failed";
   }
+  await res.text();
+  return "resend";
 }
 
 Deno.serve(async (req) => {
