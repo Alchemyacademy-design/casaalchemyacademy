@@ -21,10 +21,9 @@ type SupplierLike = {
 
 export default function Suppliers() {
   const { user, isAdmin } = useAuth();
-  // Hub not activated yet — show locked overlay for non-admins.
-  const SUPPLIERS_HUB_ENABLED = false;
-  const locked = !SUPPLIERS_HUB_ENABLED && !isAdmin;
   const { data: suppliers = [] } = trpc.suppliers.publicList.useQuery();
+  // Auto-unlock once at least one supplier is published. Admins always see it.
+  const locked = !isAdmin && (suppliers as SupplierLike[]).length === 0;
   const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
   const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
