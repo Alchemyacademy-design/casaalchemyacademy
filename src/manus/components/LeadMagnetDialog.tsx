@@ -38,12 +38,12 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
     >
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="font-serif text-2xl font-normal">Watch a free lesson on us</DialogTitle>
+          <DialogTitle className="font-serif text-2xl font-normal">Consider this your first experiment.</DialogTitle>
           <DialogDescription>
-            Step inside the Alchemy. Enter your details and start watching immediately — no waiting for email.
+            Subscribe and get our latest issue, free. Real projects, real principles — the professional knowledge you need to design your own home, with confidence.
           </DialogDescription>
         </DialogHeader>
-        <LeadMagnetForm source="popup" ctaLabel="Watch the Free Lesson" />
+        <LeadMagnetForm source="popup" ctaLabel="Get the Magazine" />
       </DialogContent>
     </Dialog>
   );

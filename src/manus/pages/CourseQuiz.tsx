@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
@@ -16,6 +15,10 @@ export default function CourseQuiz() {
   const q = COURSE_QUIZ[step];
   const progress = Math.round(((step + (answers[q?.id ?? ""] ? 1 : 0)) / total) * 100);
   const insights = useMemo(() => computeInsights(answers), [answers]);
+
+  function goToOffers() {
+    window.location.href = "/#offers";
+  }
 
   function choose(optId: string) {
     setAnswers((a) => ({ ...a, [q.id]: optId }));
@@ -75,13 +78,12 @@ export default function CourseQuiz() {
               Unlock your result and your free gift
             </h2>
             <p className="text-foreground/70 mb-6">
-              Enter your details to reveal what your answers say about your home — plus a free lesson from the method.
+              Enter your details to reveal the course matched to you — plus a free copy of our latest magazine issue.
             </p>
             <LeadMagnetForm
               source="quiz"
               metadata={{ answers, insights }}
-              ctaLabel="Reveal my result + free lesson"
-              redirectTo="/quiz"
+              ctaLabel="Reveal my result + magazine"
               onSubmitted={() => setStage("result")}
             />
             <button
@@ -96,28 +98,27 @@ export default function CourseQuiz() {
 
         {stage === "result" && (
           <div className="rounded-xl border border-foreground/10 bg-background p-6 md:p-8">
-            <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-3">Your result</p>
+            <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-3">What your answers reveal</p>
             {insights.length > 0 && (
-              <p className="text-foreground/70 mb-4">
-                You're looking for <span className="text-foreground">{insights.join(" · ")}</span>.
-              </p>
+              <ul className="space-y-3 mb-8">
+                {insights.map((line, i) => (
+                  <li key={i} className="flex gap-3 text-foreground/80">
+                    <span className="text-foreground/40 mt-1">•</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
             )}
             <h2 className="font-serif text-2xl md:text-3xl font-normal mb-6">
               This is exactly what the Academy trains you to see. Knowledge is the most democratic design tool there is — here's how to start.
             </h2>
             <div className="flex flex-col sm:flex-row gap-3">
-              <Link
-                to="/#offers"
-                className="inline-flex items-center justify-center rounded px-6 py-3 bg-foreground text-background font-medium"
+              <Button
+                onClick={goToOffers}
+                className="inline-flex items-center justify-center rounded px-6 py-3 bg-foreground text-background font-medium h-auto"
               >
-                See how to start
-              </Link>
-              <Link
-                to="/free-lesson"
-                className="inline-flex items-center justify-center rounded px-6 py-3 border border-foreground/20 font-medium"
-              >
-                Watch your free lesson
-              </Link>
+                See how to join the Academy
+              </Button>
             </div>
           </div>
         )}
