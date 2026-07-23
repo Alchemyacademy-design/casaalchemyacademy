@@ -15,6 +15,7 @@ const Schema = z.object({
 
 type Props = {
   source: LeadSource;
+  placement?: "popup" | "footer" | "quiz_gate";
   metadata?: Record<string, unknown>;
   ctaLabel?: string;
   redirectTo?: string;
@@ -24,6 +25,7 @@ type Props = {
 
 export default function LeadMagnetForm({
   source,
+  placement,
   metadata,
   ctaLabel = "Get the Magazine",
   redirectTo,
@@ -51,7 +53,7 @@ export default function LeadMagnetForm({
         email: parse.data.email,
         phone: parse.data.phone,
         source,
-        metadata,
+        metadata: { ...(metadata ?? {}), ...(placement ? { placement } : {}) },
         website,
       });
       toast.success("You're in. Your issue is ready.");
