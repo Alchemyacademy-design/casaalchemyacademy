@@ -415,6 +415,27 @@ export default function Home() {
               .pricing-highlight {
                 animation: highlightPulse 2s infinite;
               }
+              .cta-cell { padding: 1.5rem !important; text-align: center; vertical-align: bottom; }
+              .cta-price { color: var(--aa-olive-dark); font-family: 'DM Sans', sans-serif; font-weight: 600; margin-bottom: 1rem; line-height: 1.2; }
+              .cta-price .cur { font-size: 0.72rem; letter-spacing: 0.14em; font-weight: 700; color: var(--aa-gold); display: inline-block; margin-right: 0.35rem; vertical-align: 0.35em; }
+              .cta-price .amt { font-family: 'Instrument Serif', serif; font-size: 2.4rem; font-weight: 400; letter-spacing: -0.01em; }
+              .cta-price .per { font-size: 0.75rem; font-weight: 500; color: var(--aa-text-mid); text-transform: uppercase; letter-spacing: 0.12em; margin-left: 0.25rem; }
+              .cta-price .sub { display: block; font-size: 0.75rem; font-weight: 300; color: var(--aa-text-mid); margin-top: 0.4rem; }
+              .cta-price .save { display: inline-block; font-size: 0.7rem; font-weight: 700; color: var(--aa-gold); letter-spacing: 0.08em; margin-top: 0.35rem; text-transform: uppercase; }
+              .cta-annual-highlight { position: relative; background: linear-gradient(180deg, rgba(145,69,33,0.06), rgba(145,69,33,0.02)); border-top: 3px solid var(--aa-gold); }
+              .cta-best-badge { position: absolute; top: -14px; left: 50%; transform: translateX(-50%); background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; box-shadow: 0 4px 12px -2px rgba(145,69,33,0.45); white-space: nowrap; }
+              .cta-btn { display: inline-flex; align-items: center; justify-content: center; width: 100%; min-height: 52px; padding: 0.95rem 1.25rem; border: 0; border-radius: 11px; cursor: pointer; font-family: 'Manrope', sans-serif; font-weight: 800; font-size: 0.82rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--aa-cream); background: linear-gradient(180deg, var(--aa-gold-light), var(--aa-gold)); box-shadow: 0 6px 18px -6px rgba(145,69,33,0.55), inset 0 1px 0 rgba(255,255,255,0.15); transition: transform .18s ease, box-shadow .18s ease, filter .18s ease, background .18s ease; }
+              .cta-btn:hover { transform: translateY(-2px); filter: brightness(1.06); box-shadow: 0 12px 26px -8px rgba(145,69,33,0.65), inset 0 1px 0 rgba(255,255,255,0.2); }
+              .cta-btn:active { transform: translateY(0); filter: brightness(0.98); box-shadow: 0 4px 12px -4px rgba(145,69,33,0.5); }
+              .cta-btn:focus-visible { outline: 3px solid var(--aa-gold-light); outline-offset: 3px; }
+              .cta-btn-primary { font-size: 0.9rem; letter-spacing: 0.18em; min-height: 58px; box-shadow: 0 10px 26px -8px rgba(145,69,33,0.7), inset 0 1px 0 rgba(255,255,255,0.2); }
+              .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
+              @media (max-width: 640px) {
+                .cta-cell { padding: 1rem !important; }
+                .cta-price .amt { font-size: 2rem; }
+                .cta-btn { font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.9rem 0.85rem; }
+                .cta-btn-primary { font-size: 0.82rem; letter-spacing: 0.14em; }
+              }
             `}</style>
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
@@ -444,21 +465,35 @@ export default function Home() {
                 ))}
                 <tr style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)", fontWeight: 500 }}>
                   <td style={{ padding: "1.5rem" }}></td>
-                  <td style={{ padding: "1.5rem", textAlign: "center" }}>
-                    <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$59 / MONTH<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>A$708 billed annually</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>Save A$480</span></div>
-                    <button onClick={() => setSubscribeModal("annual")} className="btn-gold" style={{ fontSize: "1rem", padding: "1rem 2rem", fontWeight: 700, letterSpacing: "0.12em", boxShadow: "0 8px 24px -6px rgba(196,160,90,0.55)", transform: "scale(1.05)" }}>SUBSCRIBE NOW</button>
+                  <td className="cta-cell cta-annual-highlight">
+                    <span className="cta-best-badge">Melhor Valor</span>
+                    <div className="cta-price">
+                      <span className="cur">AUD</span><span className="amt">59</span><span className="per">/ mês</span>
+                      <span className="sub">AUD 708 cobrados anualmente</span>
+                      <span className="save">Economize AUD 480</span>
+                    </div>
+                    <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Assinar plano anual">Assinar Agora</button>
                   </td>
-                   <td style={{ padding: "1.5rem", textAlign: "center" }}>
-                     <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$99 / MONTH<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>billed monthly</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>No lock-in</span></div>
-                    <button onClick={() => setSubscribeModal("monthly")} className="btn-gold" style={{ fontSize: "1rem", padding: "1rem 2rem", fontWeight: 700, letterSpacing: "0.12em", boxShadow: "0 8px 24px -6px rgba(196,160,90,0.55)" }}>SUBSCRIBE NOW</button>
+                  <td className="cta-cell">
+                    <div className="cta-price">
+                      <span className="cur">AUD</span><span className="amt">99</span><span className="per">/ mês</span>
+                      <span className="sub">Cobrança mensal</span>
+                      <span className="save">Sem fidelidade</span>
+                    </div>
+                    <button onClick={() => setSubscribeModal("monthly")} className="cta-btn" aria-label="Assinar plano mensal">Assinar Agora</button>
                   </td>
-                   <td style={{ padding: "1.5rem", textAlign: "center" }}>
-                     <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$159<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>billed individually</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>No lock-in</span></div>
-                    <button onClick={() => setSubscribeModal("guide")} className="btn-gold" style={{ fontSize: "0.85rem", padding: "0.75rem 1.5rem" }}>EXPLORE COURSES</button>
+                  <td className="cta-cell">
+                    <div className="cta-price">
+                      <span className="cur">AUD</span><span className="amt">159</span>
+                      <span className="sub">Pagamento único</span>
+                      <span className="save">Sem fidelidade</span>
+                    </div>
+                    <button onClick={() => setSubscribeModal("guide")} className="cta-btn" aria-label="Escolher curso individual">Escolher Curso</button>
                   </td>
                 </tr>
               </tbody>
             </table>
+            <p className="currency-note">Todos os valores estão expressos em dólares australianos (AUD).</p>
           </div>
         </div>
         </div>
