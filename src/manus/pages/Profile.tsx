@@ -5,7 +5,6 @@ import { ArrowLeft, Loader2, LogOut, CreditCard } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useMyProfile, useUpdateMyProfile, useMyMemberships } from "@/manus/hooks/usePublicContent";
 import AvatarUpload from "@/manus/components/AvatarUpload";
-import GoogleCalendarCard from "@/manus/components/GoogleCalendarCard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -272,8 +271,6 @@ export default function Profile() {
               <LogOut size={14} /> Sign out
             </button>
           </div>
-
-          <GoogleCalendarCard />
         </div>
       </div>
     </MemberLayout>

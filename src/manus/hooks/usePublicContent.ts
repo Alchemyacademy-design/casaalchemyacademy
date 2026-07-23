@@ -290,32 +290,30 @@ export function useMyRegistrations() {
 
 export function useRegisterForTarget() {
   const qc = useQueryClient();
-  type InviteResult = { ok?: boolean; status?: string; masked_email?: string; reason?: string; already?: boolean };
-  type RegisterResult = { registration: unknown; invite: InviteResult | null };
+  type ReminderResult = { ok?: boolean; provider?: "gmail" | "resend" | "failed"; masked_email?: string };
+  type RegisterResult = { registration: unknown; reminder: ReminderResult | null };
   return useMutation<RegisterResult, Error, { target_type: "event" | "live_workshop"; target_id: number }>({
     mutationFn: async ({ target_type, target_id }) => {
       const { data, error } = await supabase.rpc("register_for_event", { target_type, target_id });
       if (error) throw error;
-      let invite: InviteResult | null = null;
+      let reminder: ReminderResult | null = null;
       try {
-        const res = await supabase.functions.invoke("invite-user-to-google-event", {
-          body: { target_type, target_id, action: "invite" },
+        const res = await supabase.functions.invoke("send-registration-confirmation", {
+          body: { target_type, target_id },
         });
-        if (!res.error && res.data) invite = res.data as InviteResult;
+        if (!res.error && res.data) reminder = res.data as ReminderResult;
       } catch {
         // swallowed — registration itself already succeeded
       }
-      return { registration: data, invite };
+      return { registration: data, reminder };
     },
     onSuccess: (result) => {
       qc.invalidateQueries({ queryKey: ["me", "registrations"] });
-      const inv = result?.invite;
-      if (inv?.ok && inv.status === "invited") {
+      const r = result?.reminder;
+      if (r?.ok) {
         toast.success("Participation confirmed!", {
-          description: `Invite sent to ${inv.masked_email ?? "your email"}. Open it and accept to add this event to your Google Calendar.`,
+          description: `A reminder email is on its way to ${r.masked_email ?? "your inbox"}.`,
         });
-      } else if (inv?.status === "invited" && inv.already) {
-        toast.success("Your invite for this event was already sent.");
       } else {
         toast.success("Participation confirmed!", {
           description: "Your spot is saved. You can also add this event to your calendar manually below.",
