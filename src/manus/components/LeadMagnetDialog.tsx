@@ -43,7 +43,7 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
             Subscribe and get our latest issue, free. Real projects, real principles — the professional knowledge you need to design your own home, with confidence.
           </DialogDescription>
         </DialogHeader>
-        <LeadMagnetForm source="popup" ctaLabel="Get the Magazine" />
+        <LeadMagnetForm source="popup" placement="popup" ctaLabel="Get the Magazine" />
       </DialogContent>
     </Dialog>
   );
