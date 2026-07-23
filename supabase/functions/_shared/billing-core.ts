@@ -217,7 +217,6 @@ async function resolveOrProvisionUserByEmail(
     const adminAuth = (supabase as unknown as { auth: { admin: {
       listUsers: (args: { page?: number; perPage?: number }) => Promise<{ data: { users: Array<{ id: string; email?: string | null }> } | null; error: unknown }>;
       createUser: (args: { email: string; email_confirm?: boolean; user_metadata?: Record<string, unknown> }) => Promise<{ data: { user: { id: string } | null } | null; error: unknown }>;
-      inviteUserByEmail: (email: string, options?: { redirectTo?: string }) => Promise<{ data: unknown; error: unknown }>;
     } } }).auth.admin;
 
     // Small paginated scan — most projects have <1000 users; cap at 10 pages.
@@ -231,18 +230,15 @@ async function resolveOrProvisionUserByEmail(
     }
 
     // 3) Not found → provision. Confirm email so the account is usable
-    // immediately once the user sets a password.
-    const siteUrl = (envOpt("PUBLIC_SITE_URL") ?? "https://casaalchemyacademy.com").replace(/\/$/, "");
-    const redirectTo = `${siteUrl}/auth/continue`;
-
+    // immediately once the user sets a password. Do NOT send the default
+    // Supabase invite email — our custom welcome email carries the activation
+    // link so the guest doesn't receive two overlapping messages.
     const created = await adminAuth.createUser({
       email,
       email_confirm: true,
       user_metadata: { provisioned_via: "stripe_guest_checkout" },
     });
     if (!created.error && created.data?.user?.id) {
-      // Trigger the password-setup / invite email (English default template).
-      try { await adminAuth.inviteUserByEmail(email, { redirectTo }); } catch { /* best effort */ }
       return created.data.user.id;
     }
 
@@ -262,6 +258,7 @@ async function resolveOrProvisionUserByEmail(
 async function resolveUserIdForSubscription(
   supabase: SupabaseAdmin,
   subscription: Stripe.Subscription,
+  stripe?: Stripe,
 ): Promise<string | null> {
   const customerId = objectId(subscription.customer);
   const { data } = await supabase
@@ -271,7 +268,22 @@ async function resolveUserIdForSubscription(
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
-  return isUuid(data?.user_id) ? (data!.user_id as string) : null;
+  if (isUuid(data?.user_id)) return data!.user_id as string;
+
+  // Safety net (Payment Link guest flow): no checkout session row exists, so
+  // resolve/provision by the Customer's email on Stripe. Low-priority — the
+  // primary path is metadata.supabase_user_id set at Checkout creation.
+  if (stripe && customerId) {
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      const email = (customer as Stripe.Customer).email ?? null;
+      const resolved = await resolveOrProvisionUserByEmail(supabase, email);
+      if (resolved) return resolved;
+    } catch (err) {
+      console.error("[resolveUserIdForSubscription] email fallback failed", err);
+    }
+  }
+  return null;
 }
 
 function metadataCourseId(...sources: Array<Stripe.Metadata | null | undefined>): number | null {
@@ -517,9 +529,9 @@ async function applyAnnualCheckoutPayment(
   }
 }
 
-async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string) {
+async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string, stripe?: Stripe) {
   const userId = metadataUserId(subscription.metadata)
-    ?? await resolveUserIdForSubscription(supabase, subscription);
+    ?? await resolveUserIdForSubscription(supabase, subscription, stripe);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const { error } = await supabase.rpc("internal_apply_stripe_subscription_state", {
     p_stripe_event_id: event.id,
@@ -542,7 +554,7 @@ async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: 
   if (subscription.items.data.length !== 1) throw new BillingError(`Subscription ${subscription.id} must have one item`);
 
   const userId = metadataUserId(subscription.metadata)
-    ?? await resolveUserIdForSubscription(supabase, subscription);
+    ?? await resolveUserIdForSubscription(supabase, subscription, stripe);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
   const price = subscription.items.data[0].price;
   const invoicePriceId = invoiceLinePriceId(invoice);
@@ -685,10 +697,10 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "customer.subscription.updated":
       // This RPC records subscription state and may revoke access. It never
       // activates or reactivates memberships or course entitlements.
-      await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription);
+      await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription, undefined, stripe);
       return;
     case "customer.subscription.deleted":
-      await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription, "canceled");
+      await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription, "canceled", stripe);
       return;
     case "invoice.paid":
       await applyInvoicePaid(supabase, stripe, event, event.data.object as Stripe.Invoice);
@@ -698,7 +710,7 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
       const subscriptionId = invoiceSubscriptionId(invoice);
       if (!subscriptionId) throw new IgnoredEvent("payment_failed_without_subscription");
       const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-      await applySubscriptionState(supabase, event, subscription, "past_due");
+      await applySubscriptionState(supabase, event, subscription, "past_due", stripe);
       return;
     }
     case "charge.refunded":
