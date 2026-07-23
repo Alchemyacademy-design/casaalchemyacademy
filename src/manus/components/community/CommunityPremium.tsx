@@ -1142,6 +1142,13 @@ export default function CommunityPremium({
         </SheetContent>
       </Sheet>
 
+      <MemberProfileDialog
+        open={!!memberDialog}
+        onOpenChange={(next) => { if (!next) setMemberDialog(null); }}
+        profile={memberDialog?.profile ?? null}
+        fallbackName={memberDialog?.fallbackName ?? "Academy member"}
+      />
+
       <CreateSpaceDialog open={spaceDialogOpen} onOpenChange={setSpaceDialogOpen} />
       <CreateChannelDialog open={channelDialogOpen} onOpenChange={setChannelDialogOpen} spaceId={spaceId} />
 
@@ -1277,6 +1284,9 @@ function ThreadPanel({
   const toggleReaction = useToggleReaction();
   const [draft, setDraft] = useState("");
   const [mentionDir, setMentionDir] = useState<Map<string, string>>(new Map());
+  const [memberDialog, setMemberDialog] = useState<{ profile?: CommunityAuthorProfile; fallbackName: string } | null>(null);
+  const openMember = (profile: CommunityAuthorProfile | undefined, fallbackName: string) =>
+    setMemberDialog({ profile, fallbackName });
   const replyIds = useMemo(() => replies.map((reply) => reply.id), [replies]);
   const replyAuthors = useMemo(() => replies.map((reply) => reply.author_id), [replies]);
   const { data: replyProfiles = [] } = useCommunityAuthorProfiles(replyAuthors);
@@ -1359,8 +1369,12 @@ function ThreadPanel({
             return (
               <article key={reply.id} className="aa-community-reply">
                 <div className="aa-community-post-author">
-                  <ProfileMark profile={profile} own={own} />
-                  <div><strong>{profileName(profile, own)}</strong><span>{relativeTime(reply.created_at)}</span></div>
+                  <AuthorButton
+                    profile={profile}
+                    own={own}
+                    onOpen={openMember}
+                    meta={relativeTime(reply.created_at)}
+                  />
                   {(own || isAdmin) && <button type="button" onClick={() => removeReply(reply.id)}><Trash2 size={13} /></button>}
                 </div>
                 <p><MentionText text={reply.body} /></p>
