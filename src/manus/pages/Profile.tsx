@@ -271,8 +271,6 @@ export default function Profile() {
               <LogOut size={14} /> Sign out
             </button>
           </div>
-
-          <GoogleCalendarCard />
         </div>
       </div>
     </MemberLayout>
