@@ -662,7 +662,7 @@ export default function Home() {
                 </p>
               </div>
               <div style={{ background: "var(--aa-white)", padding: "2rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
-                <LeadMagnetForm source="popup" ctaLabel="Get the Magazine" />
+                <LeadMagnetForm source="popup" placement="footer" ctaLabel="Get the Magazine" />
               </div>
             </div>
           </div>

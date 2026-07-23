@@ -36,8 +36,13 @@ const FROM_EMAIL = Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ?? "Casa Alchemy <onbo
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
 
-function labelForSource(source: "popup" | "quiz"): string {
-  return source === "popup" ? "Website Pop-up — Magazine" : "Course Quiz";
+function labelForLead(source: "popup" | "quiz", placement?: string): string {
+  const p = (placement ?? "").toLowerCase();
+  if (p === "footer") return "Homepage Footer — Magazine";
+  if (p === "popup") return "Website Pop-up — Magazine";
+  if (p === "quiz_gate") return "Course Quiz — Magazine";
+  // Fallbacks based on source enum when placement is missing.
+  return source === "popup" ? "Website Pop-up — Magazine" : "Course Quiz — Magazine";
 }
 
 function splitName(full: string): { firstname: string; lastname: string } {
@@ -84,6 +89,7 @@ async function upsertHubspotContact(input: {
   lastname: string;
   phone: string;
   source: "popup" | "quiz";
+  placement?: string;
 }): Promise<{ id: string | null; error: string | null }> {
   if (!HUBSPOT_TOKEN) return { id: null, error: "HUBSPOT_PRIVATE_APP_TOKEN not configured" };
 
@@ -92,7 +98,7 @@ async function upsertHubspotContact(input: {
     firstname: input.firstname,
     lastname: input.lastname,
     phone: input.phone,
-    lead_source: labelForSource(input.source),
+    lead_source: labelForLead(input.source, input.placement),
   };
 
   // Try PATCH by email idProperty first. If contact does not exist, POST.
@@ -289,7 +295,8 @@ Deno.serve(async (req) => {
   let hubspotError: string | null = null;
   try {
     await ensureHubspotLeadSourceProperty();
-    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source });
+    const placement = typeof metadata?.placement === "string" ? metadata.placement : undefined;
+    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source, placement });
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
