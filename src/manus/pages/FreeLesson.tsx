@@ -1,14 +1,12 @@
 import { Link } from "react-router-dom";
+import magazineCover from "@/assets/magazine-cover-autumn26.png.asset.json";
+import magazinePdf from "@/assets/casa-alchemy-autumn-26.pdf.asset.json";
 
-// Once the final PDF + cover are uploaded (see docs — either place them at
-// /public/lead-magnet/ with these exact filenames, or set the VITE_MAGAZINE_*
-// env vars to the uploaded CDN URLs), this page will link straight to them.
+// Assets uploaded via lovable-assets — served from the project CDN.
 const MAGAZINE_PDF_URL: string =
-  (import.meta.env.VITE_MAGAZINE_PDF_URL as string | undefined) ??
-  "/lead-magnet/casa-alchemy-issue-01.pdf";
+  (import.meta.env.VITE_MAGAZINE_PDF_URL as string | undefined) ?? magazinePdf.url;
 const MAGAZINE_COVER_URL: string =
-  (import.meta.env.VITE_MAGAZINE_COVER_URL as string | undefined) ??
-  "/lead-magnet/magazine-cover.jpg";
+  (import.meta.env.VITE_MAGAZINE_COVER_URL as string | undefined) ?? magazineCover.url;
 
 export default function FreeLesson() {
   return (
@@ -19,7 +17,7 @@ export default function FreeLesson() {
           Thanks for subscribing. Here's your issue.
         </h1>
         <p className="text-foreground/70 max-w-2xl mb-10">
-          Your copy of the latest Casa Alchemy magazine is ready to download. We've also sent the same link to your inbox so you can come back to it any time.
+          Your copy of <em>CA MAG — Autumn 26</em> is ready to download. We've also sent the same link to your inbox so you can come back to it any time.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
