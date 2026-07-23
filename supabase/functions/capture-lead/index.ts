@@ -25,6 +25,8 @@ const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const HUBSPOT_TOKEN = Deno.env.get("HUBSPOT_PRIVATE_APP_TOKEN");
 const HUBSPOT_LIST_ID = Deno.env.get("HUBSPOT_LEAD_LIST_ID");
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+const GOOGLE_MAIL_API_KEY = Deno.env.get("GOOGLE_MAIL_API_KEY");
 const MAGAZINE_URL_ENV =
   Deno.env.get("MAGAZINE_PUBLIC_URL") ?? Deno.env.get("FREE_LESSON_PUBLIC_URL");
 const MAGAZINE_PDF_URL_ENV = Deno.env.get("MAGAZINE_PDF_URL");
@@ -35,6 +37,7 @@ const MAGAZINE_PDF_URL_ENV = Deno.env.get("MAGAZINE_PDF_URL");
 const FROM_EMAIL = Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ?? "Casa Alchemy <onboarding@resend.dev>";
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
+const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 function labelForLead(source: "popup" | "quiz", placement?: string): string {
   const p = (placement ?? "").toLowerCase();
