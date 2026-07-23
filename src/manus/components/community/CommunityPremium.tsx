@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { initialsFrom, resolveAvatarUrl } from "@/manus/components/UserAvatar";
+import MemberProfileDialog from "@/manus/components/community/MemberProfileDialog";
 import {
   type CommunityPost,
   useChannelBySlug,
@@ -276,6 +277,39 @@ function ProfileMark({ profile, own }: { profile?: CommunityAuthorProfile; own: 
     <img src={url} alt="" loading="lazy" className="aa-community-avatar" />
   ) : (
     <span className="aa-community-avatar aa-community-avatar-fallback" aria-hidden="true">{initials}</span>
+  );
+}
+
+/**
+ * Clickable wrapper around the avatar + author name that opens the member's
+ * public bio card. Rendered inline inside `.aa-community-post-author` so it
+ * inherits existing styling.
+ */
+function AuthorButton({
+  profile,
+  own,
+  onOpen,
+  meta,
+}: {
+  profile?: CommunityAuthorProfile;
+  own: boolean;
+  onOpen: (profile: CommunityAuthorProfile | undefined, fallbackName: string) => void;
+  meta: string;
+}) {
+  const name = profileName(profile, own);
+  return (
+    <button
+      type="button"
+      className="aa-community-author-btn"
+      onClick={() => onOpen(profile, name)}
+      aria-label={`View ${name}'s profile`}
+    >
+      <ProfileMark profile={profile} own={own} />
+      <div>
+        <strong>{name}</strong>
+        <span>{meta}</span>
+      </div>
+    </button>
   );
 }
 
