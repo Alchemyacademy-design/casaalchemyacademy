@@ -25,16 +25,32 @@ export default function Profile() {
 
   const [fullName, setFullName] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [birthdate, setBirthdate] = useState("");
+  const [profession, setProfession] = useState("");
+  const [region, setRegion] = useState("");
+  const [bio, setBio] = useState("");
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name ?? "");
       setDisplayName(profile.display_name ?? "");
+      const p = profile as unknown as { birthdate?: string | null; profession?: string | null; region?: string | null; bio?: string | null };
+      setBirthdate(p.birthdate ?? "");
+      setProfession(p.profession ?? "");
+      setRegion(p.region ?? "");
+      setBio(p.bio ?? "");
     }
   }, [profile]);
 
   const onSave = async () => {
-    await update.mutateAsync({ full_name: fullName || null, display_name: displayName || null });
+    await update.mutateAsync({
+      full_name: fullName || null,
+      display_name: displayName || null,
+      birthdate: birthdate || null,
+      profession: profession.trim() || null,
+      region: region.trim() || null,
+      bio: bio.trim() || null,
+    } as never);
     await refreshAccess();
   };
 
