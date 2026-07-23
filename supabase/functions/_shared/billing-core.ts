@@ -190,6 +190,71 @@ function metadataUserId(metadata: Stripe.Metadata | null | undefined): string | 
   return isUuid(metadata?.supabase_user_id) ? metadata.supabase_user_id : null;
 }
 
+// Guest-checkout fallback: resolve a Supabase auth user by email, and if it
+// doesn't exist yet, provision one and trigger the password-setup email flow.
+// Idempotent — safe to call from webhook retries. Returns null only when we
+// have no email at all (e.g. Stripe did not collect one).
+async function resolveOrProvisionUserByEmail(
+  supabase: SupabaseAdmin,
+  rawEmail: string | null | undefined,
+): Promise<string | null> {
+  const email = (rawEmail ?? "").trim().toLowerCase();
+  if (!email) return null;
+
+  // 1) Try public.profiles first (fast + covers the common case).
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .ilike("email", email)
+      .maybeSingle();
+    if (isUuid(profile?.id)) return profile!.id as string;
+  } catch { /* profiles table shape may not include email — fall through */ }
+
+  // 2) Try auth.users via admin listUsers (paginated search by email).
+  try {
+    const adminAuth = (supabase as unknown as { auth: { admin: {
+      listUsers: (args: { page?: number; perPage?: number }) => Promise<{ data: { users: Array<{ id: string; email?: string | null }> } | null; error: unknown }>;
+      createUser: (args: { email: string; email_confirm?: boolean; user_metadata?: Record<string, unknown> }) => Promise<{ data: { user: { id: string } | null } | null; error: unknown }>;
+      inviteUserByEmail: (email: string, options?: { redirectTo?: string }) => Promise<{ data: unknown; error: unknown }>;
+    } } }).auth.admin;
+
+    // Small paginated scan — most projects have <1000 users; cap at 10 pages.
+    for (let page = 1; page <= 10; page++) {
+      const { data, error } = await adminAuth.listUsers({ page, perPage: 200 });
+      if (error) break;
+      const users = data?.users ?? [];
+      const found = users.find((u) => (u.email ?? "").toLowerCase() === email);
+      if (found?.id) return found.id;
+      if (users.length < 200) break;
+    }
+
+    // 3) Not found → provision. Confirm email so the account is usable
+    // immediately once the user sets a password.
+    const siteUrl = (envOpt("PUBLIC_SITE_URL") ?? "https://casaalchemyacademy.com").replace(/\/$/, "");
+    const redirectTo = `${siteUrl}/auth/continue`;
+
+    const created = await adminAuth.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { provisioned_via: "stripe_guest_checkout" },
+    });
+    if (!created.error && created.data?.user?.id) {
+      // Trigger the password-setup / invite email (English default template).
+      try { await adminAuth.inviteUserByEmail(email, { redirectTo }); } catch { /* best effort */ }
+      return created.data.user.id;
+    }
+
+    // If createUser failed because the user already exists (race), re-scan.
+    const { data: rescan } = await adminAuth.listUsers({ page: 1, perPage: 200 });
+    const again = (rescan?.users ?? []).find((u) => (u.email ?? "").toLowerCase() === email);
+    if (again?.id) return again.id;
+  } catch (err) {
+    console.error("[resolveOrProvisionUserByEmail] failed", err);
+  }
+  return null;
+}
+
 // Payment-Link fallback: if the Subscription doesn't yet carry
 // supabase_user_id in its metadata, resolve it via the most recent
 // checkout session for the same subscription/customer.
@@ -298,7 +363,13 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
 }
 
 async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, session: Stripe.Checkout.Session, event: Stripe.Event) {
-  const userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  let userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  if (!userId) {
+    // Guest checkout: resolve (or provision) the Supabase user from the
+    // email Stripe collected at checkout, then trigger the password-setup
+    // email via inviteUserByEmail on first provision.
+    userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
+  }
   if (!userId) throw new BillingError(`Checkout session ${session.id} missing supabase_user_id`);
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
   const { error } = await supabase.from("stripe_checkout_sessions").upsert({
@@ -362,8 +433,11 @@ async function applyAnnualCheckoutPayment(
 
   // Payment Links carry the user via `client_reference_id`; fall back to it
   // when metadata.supabase_user_id is absent.
-  const userId = metadataUserId(session.metadata)
+  let userId = metadataUserId(session.metadata)
     ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  if (!userId) {
+    userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
+  }
   if (!userId) throw new BillingError(`Annual Checkout session ${session.id} missing supabase_user_id`);
 
   const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });

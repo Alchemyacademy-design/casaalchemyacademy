@@ -9,7 +9,8 @@ import { useAuth } from "@/manus/hooks/useAuth";
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const { isMember, isAdmin, activeEntitlements, refresh: refreshAuth } = useAuth();
+  const { user, isMember, isAdmin, activeEntitlements, refresh: refreshAuth } = useAuth();
+  const isGuest = !user;
   const destination = isAdmin || isMember ? "/dashboard" : activeEntitlements.length > 0 ? "/mycourses" : "/plans";
 
   useEffect(() => {
@@ -91,6 +92,18 @@ export default function PaymentSuccess() {
               ? "Your access has been confirmed by Stripe and Supabase."
               : "We are confirming your access. This usually finishes in a moment."}
           </p>
+
+          {isGuest && (
+            <div className="rounded-lg p-4 mb-6 text-left" style={{ backgroundColor: "rgba(196,160,90,0.08)", border: "1px solid rgba(196,160,90,0.3)" }}>
+              <p className="text-sm font-semibold mb-1">Check your email to set your password</p>
+              <p className="text-sm text-gray-700">
+                We created your Casa Alchemy Academy account with the email you used at checkout and sent you a link to set your password. Once you sign in, your access will already be active.
+              </p>
+              <div className="mt-3 flex gap-2">
+                <Button onClick={() => navigate("/login")} size="sm" variant="outline">Go to sign in</Button>
+              </div>
+            </div>
+          )}
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6 text-left">
             <div className="space-y-2">
