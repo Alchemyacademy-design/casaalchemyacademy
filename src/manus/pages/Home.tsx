@@ -446,15 +446,15 @@ export default function Home() {
                   <td style={{ padding: "1.5rem" }}></td>
                   <td style={{ padding: "1.5rem", textAlign: "center" }}>
                     <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$59 / MONTH<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>A$708 billed annually</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>Save A$480</span></div>
-                    <button onClick={() => setSubscribeModal("annual")} style={{ background: "none", border: "none", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.9rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: 0 }}>SUBSCRIBE NOW</button>
+                    <button onClick={() => setSubscribeModal("annual")} className="btn-gold" style={{ fontSize: "0.85rem", padding: "0.75rem 1.5rem" }}>SUBSCRIBE NOW</button>
                   </td>
                    <td style={{ padding: "1.5rem", textAlign: "center" }}>
                      <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$99 / MONTH<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>billed monthly</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>No lock-in</span></div>
-                    <button onClick={() => setSubscribeModal("monthly")} style={{ background: "none", border: "none", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.9rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: 0 }}>SUBSCRIBE NOW</button>
+                    <button onClick={() => setSubscribeModal("monthly")} className="btn-gold" style={{ fontSize: "0.85rem", padding: "0.75rem 1.5rem" }}>SUBSCRIBE NOW</button>
                   </td>
                    <td style={{ padding: "1.5rem", textAlign: "center" }}>
                      <div style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "1.1rem", marginBottom: "0.75rem" }}>A$159<br /><span style={{ fontSize: "0.75rem", fontWeight: 300 }}>billed individually</span><br /><span style={{ fontSize: "0.75rem", fontWeight: 600, color: "var(--aa-gold)" }}>No lock-in</span></div>
-                    <button onClick={() => setSubscribeModal("guide")} style={{ background: "none", border: "none", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.9rem", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, padding: 0 }}>EXPLORE COURSES</button>
+                    <button onClick={() => setSubscribeModal("guide")} className="btn-gold" style={{ fontSize: "0.85rem", padding: "0.75rem 1.5rem" }}>EXPLORE COURSES</button>
                   </td>
                 </tr>
               </tbody>
