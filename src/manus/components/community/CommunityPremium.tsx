@@ -345,6 +345,9 @@ export default function CommunityPremium({
   const [sortMode, setSortMode] = useState<SortMode>("new");
   const [reportOpen, setReportOpen] = useState<CommunityPost | null>(null);
   const reportPost = useReportPost(userId);
+  const [memberDialog, setMemberDialog] = useState<{ profile?: CommunityAuthorProfile; fallbackName: string } | null>(null);
+  const openMember = (profile: CommunityAuthorProfile | undefined, fallbackName: string) =>
+    setMemberDialog({ profile, fallbackName });
   const [draftTitle, setDraftTitle] = useState(initialDraftTitle ?? "");
   const [draftBody, setDraftBody] = useState(initialDraftBody ?? "");
   // Handle→userId mapping accumulated as the composer inserts mentions.
@@ -1018,11 +1021,12 @@ export default function CommunityPremium({
               return (
                 <article key={post.id} className={`aa-community-post ${post.pinned ? "is-pinned" : ""} ${post.hidden_at ? "is-hidden" : ""} ${isTop ? "is-top" : ""}`}>
                   <div className="aa-community-post-author">
-                    <ProfileMark profile={profile} own={own} />
-                    <div>
-                      <strong>{profileName(profile, own)}</strong>
-                      <span>{relativeTime(post.created_at)}{own ? " · you" : ""}</span>
-                    </div>
+                    <AuthorButton
+                      profile={profile}
+                      own={own}
+                      onOpen={openMember}
+                      meta={`${relativeTime(post.created_at)}${own ? " · you" : ""}`}
+                    />
                     <div className="aa-community-post-flags">
                       {post.pinned && <span><Pin size={12} /> Pinned</span>}
                       {post.locked && <span><Lock size={12} /> Closed</span>}
