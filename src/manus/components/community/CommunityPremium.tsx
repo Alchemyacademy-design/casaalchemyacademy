@@ -1421,6 +1421,13 @@ function ThreadPanel({
           <div><span>{draft.length}/3000</span><Button onClick={submitReply} disabled={!draft.trim() || createReply.isPending}>{createReply.isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />} Reply</Button></div>
         </footer>
       ) : null}
+
+      <MemberProfileDialog
+        open={!!memberDialog}
+        onOpenChange={(next) => { if (!next) setMemberDialog(null); }}
+        profile={memberDialog?.profile ?? null}
+        fallbackName={memberDialog?.fallbackName ?? "Academy member"}
+      />
     </div>
   );
 }
