@@ -730,7 +730,7 @@ export default function CommunityPremium({
                 <button
                   type="button"
                   className={`aa-community-channel-btn ${isActive ? "is-active" : ""}`}
-                  onClick={() => setChannelId(channel.id)}
+                  onClick={() => { setChannelId(channel.id); setNavOpen(false); }}
                   style={{ flex: 1 }}
                   title={purpose ?? channel.description ?? channel.name}
                 >
