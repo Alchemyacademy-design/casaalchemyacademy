@@ -735,16 +735,9 @@ export default function CommunityPremium({
                   title={purpose ?? channel.description ?? channel.name}
                 >
                   <Hash size={14} />
-                  <span style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "flex-start", minWidth: 0 }}>
-                    <span style={{ fontWeight: unread && !isActive ? 600 : undefined, display: "inline-flex", alignItems: "center", gap: 6 }}>
-                      {channel.name}
-                      {isFollowed && <Bell size={10} aria-label="Following" style={{ opacity: 0.7 }} />}
-                    </span>
-                    {purpose && (
-                      <span style={{ fontSize: "0.68rem", color: "var(--aa-text-light)", lineHeight: 1.35, whiteSpace: "normal" }}>
-                        {purpose}
-                      </span>
-                    )}
+                  <span style={{ flex: 1, minWidth: 0, display: "inline-flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", fontWeight: unread && !isActive ? 600 : undefined }}>
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{channel.name}</span>
+                    {isFollowed && <Bell size={10} aria-label="Following" style={{ opacity: 0.7, flexShrink: 0 }} />}
                   </span>
                   {unread > 0 && !isActive && (
                     <span
