@@ -19,7 +19,7 @@ const publicPaths = new Set([
   "/suporte",
   "/exclusao-de-dados",
   "/quiz",
-  "/magazine",
+  "/magazine-download",
 ]);
 
 const unpaidAllowedPaths = new Set([
