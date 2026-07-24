@@ -125,7 +125,7 @@ export default function Modules() {
           action={isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : undefined}
         />
 
-        {!hasAnyPaidAccess ? (
+        {!authLoading && !hasAnyPaidAccess ? (
           <div className="aa-panel-soft mb-7 flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-sm font-semibold text-primary">Unlock the complete curriculum</p>
@@ -153,7 +153,7 @@ export default function Modules() {
           <></>
         </QueryStateView>
 
-        {courses.length > 0 ? (
+        {!authLoading && courses.length > 0 ? (
           <>
             <div className="aa-panel mb-7 flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
               <div className="relative w-full lg:max-w-sm">

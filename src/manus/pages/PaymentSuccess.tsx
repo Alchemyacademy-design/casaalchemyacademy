@@ -9,9 +9,8 @@ import { useAuth } from "@/manus/hooks/useAuth";
 export default function PaymentSuccess() {
   const navigate = useNavigate();
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const { user, isMember, isAdmin, activeEntitlements, refresh: refreshAuth } = useAuth();
+  const { user, isMember, isAdmin, activeEntitlements, loading: authLoading, refresh: refreshAuth } = useAuth();
   const isGuest = !user;
-  const destination = isAdmin || isMember ? "/dashboard" : activeEntitlements.length > 0 ? "/mycourses" : "/plans";
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -34,6 +33,20 @@ export default function PaymentSuccess() {
     if (!isLoading) setAttempts((n) => n + 1);
   }, [isLoading]);
 
+  const pollingExhausted = attempts >= 40;
+  const accessConfirmedEarly = Boolean(status?.accessConfirmed);
+  // Only compute a destination once auth entitlements have settled AND either
+  // Stripe has confirmed access or polling has exhausted — otherwise we risk
+  // sending a brand-new paying customer to /plans on the initial render.
+  const canRouteUser = !authLoading && (accessConfirmedEarly || pollingExhausted);
+  const destination = canRouteUser
+    ? isAdmin || isMember
+      ? "/dashboard"
+      : activeEntitlements.length > 0
+        ? "/mycourses"
+        : "/plans"
+    : null;
+
   // When Stripe confirms, refresh auth entitlements so the destination CTA reflects
   // the newly granted access immediately.
   useEffect(() => {
@@ -42,6 +55,7 @@ export default function PaymentSuccess() {
   }, [status?.accessConfirmed]);
 
   if (!sessionId) {
+    const guestDestination = destination ?? "/plans";
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="p-8 max-w-md">
@@ -52,7 +66,13 @@ export default function PaymentSuccess() {
               Your Stripe checkout completed. Access will be released automatically as soon as the webhook confirms your payment.
             </p>
             <div className="space-y-2">
-              <Button onClick={() => navigate(destination)} className="w-full">Continue</Button>
+              <Button
+                onClick={() => destination && navigate(destination)}
+                className="w-full"
+                disabled={!destination}
+              >
+                {destination ? "Continue" : "Confirming your access…"}
+              </Button>
               <Button onClick={() => navigate("/plans")} variant="outline" className="w-full">View plans</Button>
             </div>
           </div>
@@ -129,8 +149,19 @@ export default function PaymentSuccess() {
           </p>
 
           <div className="space-y-2">
-            <Button onClick={() => navigate(destination)} className="w-full" size="lg" disabled={!accessConfirmed}>
-              {accessConfirmed ? (destination === "/dashboard" ? "Go to Dashboard" : destination === "/mycourses" ? "Access Your Courses" : "Choose a Plan") : "Waiting for confirmation…"}
+            <Button
+              onClick={() => destination && navigate(destination)}
+              className="w-full"
+              size="lg"
+              disabled={!accessConfirmed || !destination}
+            >
+              {!accessConfirmed || !destination
+                ? "Confirming your access…"
+                : destination === "/dashboard"
+                  ? "Go to Dashboard"
+                  : destination === "/mycourses"
+                    ? "Access Your Courses"
+                    : "Choose a Plan"}
             </Button>
             <Button onClick={() => refreshStatus()} variant="outline" className="w-full">Check again</Button>
             <Button onClick={() => navigate("/")} variant="outline" className="w-full">
