@@ -91,7 +91,7 @@ function mergeUser(user: User, access: AccessData | null): AuthUser {
   } as AuthUser;
 }
 
-async function loadAccessViaEdge(): Promise<AccessData | null> {
+async function loadAccessViaEdge(): Promise<AccessData | null | "stale_session"> {
   const { data, error } = await supabase.functions.invoke("auth-me", { method: "POST" });
   if (error) {
     // A 401 here means the JWT is stale/expired — the caller will fall back
@@ -99,7 +99,7 @@ async function loadAccessViaEdge(): Promise<AccessData | null> {
     // a runtime error, and throwing surfaces a blank-screen telemetry event.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const status = (error as any)?.context?.status ?? (error as any)?.status;
-    if (status === 401) return null;
+    if (status === 401) return "stale_session";
     throw error;
   }
   if (!data) return null;
@@ -161,11 +161,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         let next: AccessData | null = null;
         try {
-          next = await loadAccessViaEdge();
+          const edgeResult = await loadAccessViaEdge();
+          if (edgeResult === "stale_session") {
+            // Server-side session is gone (session_not_found). Clear the
+            // stale local JWT so we stop looping 401s and end up signed out.
+            await supabase.auth.signOut().catch(() => {});
+            setAccess(null);
+            setAccessReady(true);
+            return;
+          }
+          next = edgeResult;
         } catch (edgeErr) {
           if (import.meta.env.DEV) console.warn("[auth-me] failed, using fallback", edgeErr);
         }
-        if (!next) next = await loadAccessViaFallback(userId);
         if (!next) next = await loadAccessViaFallback(userId);
         setAccess(next);
         setAccessReady(true);
