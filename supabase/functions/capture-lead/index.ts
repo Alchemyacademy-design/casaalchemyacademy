@@ -9,6 +9,7 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
+import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
 
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -208,31 +209,13 @@ async function sendConfirmationEmail(input: {
   // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
     try {
-      const boundary = `casa_${crypto.randomUUID().replace(/-/g, "")}`;
-      const rfc2822 = [
-        `From: ${FROM_EMAIL}`,
-        `To: ${input.to}`,
-        `Subject: ${subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: multipart/alternative; boundary="${boundary}"`,
-        ``,
-        `--${boundary}`,
-        `Content-Type: text/plain; charset="UTF-8"`,
-        `Content-Transfer-Encoding: 7bit`,
-        ``,
-        plaintext,
-        ``,
-        `--${boundary}`,
-        `Content-Type: text/html; charset="UTF-8"`,
-        `Content-Transfer-Encoding: 7bit`,
-        ``,
+      const raw = buildGmailRawMessage({
+        from: FROM_EMAIL,
+        to: input.to,
+        subject,
         html,
-        ``,
-        `--${boundary}--`,
-        ``,
-      ].join("\r\n");
-      const raw = btoa(unescape(encodeURIComponent(rfc2822)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        plaintext,
+      });
 
       const res = await fetch(`${GMAIL_GATEWAY}/users/me/messages/send`, {
         method: "POST",
