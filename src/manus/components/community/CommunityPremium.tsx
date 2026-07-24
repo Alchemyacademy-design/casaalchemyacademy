@@ -636,8 +636,8 @@ export default function CommunityPremium({
     );
   }
 
-  return (
-    <section className="aa-community-shell">
+  const navPanels = (
+    <>
       <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
@@ -645,7 +645,7 @@ export default function CommunityPremium({
             <button
               type="button"
               className={space.id === spaceId ? "is-active" : ""}
-              onClick={() => setSpaceId(space.id)}
+              onClick={() => { setSpaceId(space.id); }}
               title={space.name}
             >
               {space.name.slice(0, 2).toUpperCase()}
