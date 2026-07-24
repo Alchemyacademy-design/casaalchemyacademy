@@ -111,19 +111,22 @@ interface RenderArgs {
 function renderHtml(a: RenderArgs): string {
   const steps = a.showActivation
     ? `<ol style="padding-left:20px;margin:0 0 20px;font-size:15px;line-height:1.7;color:#2a2a2a;">
-         <li>Click the button below to set your password.</li>
-         <li>Log in at <a href="${a.loginUrl}" style="color:#b8934a;text-decoration:underline;">${a.loginUrl}</a>.</li>
-         <li>Head to "My Courses" to start.</li>
+         <li>Click the button below to set your password for <strong>${a.email}</strong> — this is the account tied to your purchase.</li>
+         <li>Log in and open <strong>My Courses</strong>.</li>
        </ol>`
     : `<ol style="padding-left:20px;margin:0 0 20px;font-size:15px;line-height:1.7;color:#2a2a2a;">
-         <li>Log in with the account you used at checkout.</li>
-         <li>Head to "My Courses" to start.</li>
+         <li>Log in with <strong>${a.email}</strong> — the account you used at checkout.</li>
+         <li>Head to <strong>My Courses</strong> to start.</li>
        </ol>`;
-  const ctaLabel = a.showActivation ? "Set your password" : "Access the platform";
+  const ctaLabel = a.showActivation ? "Set your password" : "Log in now — your access has just been unlocked";
+  const subtitle = a.showActivation
+    ? `Your purchase is confirmed. Create your password using the same email you used at checkout to unlock access.`
+    : `Your purchase is confirmed and your access has just been unlocked. Log in to jump straight in.`;
   return `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
       <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Welcome to Alchemy Academy — you're in.</h1>
-      <p style="font-size:15px;line-height:1.6;">Congratulations${a.firstName ? `, ${a.firstName}` : ""}! Your <strong>${a.planName}</strong> purchase is confirmed and your access is active.</p>
+      <p style="font-size:15px;line-height:1.6;">Congratulations${a.firstName ? `, ${a.firstName}` : ""}! ${subtitle}</p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">Plan: <strong>${a.planName}</strong></p>
       <p style="font-size:15px;line-height:1.6;">Here's how to get started:</p>
       ${steps}
       <p style="margin:24px 0;">
@@ -137,10 +140,13 @@ function renderHtml(a: RenderArgs): string {
 }
 
 function renderPlaintext(a: RenderArgs): string {
+  const subtitle = a.showActivation
+    ? `Your purchase is confirmed. Create your password using the same email you used at checkout to unlock access.`
+    : `Your purchase is confirmed and your access has just been unlocked. Log in to jump straight in.`;
   const steps = a.showActivation
-    ? `1. Click this link to set your password: ${a.ctaUrl}\n2. Log in at ${a.loginUrl}\n3. Head to "My Courses" to start.`
-    : `1. Log in with the account you used at checkout: ${a.ctaUrl}\n2. Head to "My Courses" to start.`;
-  return `Welcome to Alchemy Academy — you're in.\n\nCongratulations${a.firstName ? `, ${a.firstName}` : ""}! Your ${a.planName} purchase is confirmed and your access is active.\n\nHere's how to get started:\n${steps}\n\nYou now have full access to the Academy's tools and resources — courses, live workshops, our exclusive supplier directory, and a community of alchemists designing homes with intention.\n\nCasa Alchemy Studio`;
+    ? `1. Click this link to set your password for ${a.email} — the account tied to your purchase: ${a.ctaUrl}\n2. Log in and open My Courses.`
+    : `1. Log in with ${a.email} — the account you used at checkout: ${a.ctaUrl}\n2. Head to My Courses to start.`;
+  return `Welcome to Alchemy Academy — you're in.\n\nCongratulations${a.firstName ? `, ${a.firstName}` : ""}! ${subtitle}\n\nPlan: ${a.planName}\n\nHere's how to get started:\n${steps}\n\nYou now have full access to the Academy's tools and resources — courses, live workshops, our exclusive supplier directory, and a community of alchemists designing homes with intention.\n\nCasa Alchemy Studio`;
 }
 
 async function deliver(
