@@ -102,6 +102,7 @@ async function generateActivationLink(
 
 interface RenderArgs {
   firstName: string;
+  email: string;
   planName: string;
   ctaUrl: string;
   loginUrl: string;
@@ -276,6 +277,7 @@ export async function sendPostPaymentWelcomeEmail(args: SendArgs): Promise<Welco
   const firstName = ((info.email.split("@")[0] ?? "").split(/[._+\-]/)[0] ?? "").trim();
   const renderArgs: RenderArgs = {
     firstName,
+    email: info.email,
     planName: planLabel(planKey),
     ctaUrl,
     loginUrl,
