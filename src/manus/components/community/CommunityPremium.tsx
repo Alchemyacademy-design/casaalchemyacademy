@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  Menu,
   MoreHorizontal,
   Pin,
   Plus,
@@ -355,19 +356,18 @@ export default function CommunityPremium({
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
   const composerRef = useRef<HTMLDivElement | null>(null);
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
-  // House rules: default closed on tablet/mobile to save space, open on desktop
-  const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
-    typeof window === "undefined"
-      ? true
-      : (() => {
-          try {
-            const saved = window.localStorage.getItem(RULES_OPEN_KEY);
-            if (saved === "1") return true;
-            if (saved === "0") return false;
-          } catch { /* ignore */ }
-          return window.matchMedia("(min-width: 1280px)").matches;
-        })(),
-  );
+  // House rules: default closed everywhere; CSS hides the wrapper on <1280px anyway.
+  // Persisted preference only applies at desktop where the panel is visible.
+  const [rulesOpen, setRulesOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = window.localStorage.getItem(RULES_OPEN_KEY);
+      if (saved === "1") return true;
+    } catch { /* ignore */ }
+    return false;
+  });
+  // Mobile / tablet slide-over nav (spaces rail + channels list)
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     try { window.localStorage.setItem(RULES_OPEN_KEY, rulesOpen ? "1" : "0"); } catch { /* ignore */ }
   }, [rulesOpen]);
