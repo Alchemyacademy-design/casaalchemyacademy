@@ -3,8 +3,12 @@
 // Token, and sends a confirmation email via Resend.
 //
 // Deployed with verify_jwt = false; the function is intentionally public so
-// unauthenticated visitors can submit. Rate limiting is a known gap; we rely
-// on the (email, source) unique index + honeypot + shape validation.
+// unauthenticated visitors can submit. Abuse protection layers:
+//   1) honeypot field (silently accepted, no side effects)
+//   2) shape validation via zod
+//   3) IP-based rate limiting via public.lead_capture_rate_limits
+//      (5 submissions per hashed IP per rolling hour window)
+//   4) unique(email, source) DB constraint
 
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
@@ -44,6 +48,10 @@ const FROM_EMAIL = Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ?? "Casa Alchemy <onbo
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
+
+// Rate-limit config: max submissions per hashed IP per window.
+const RATE_LIMIT_MAX = 5;
+const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function labelForLead(source: "popup" | "quiz", placement?: string): string {
   const p = (placement ?? "").toLowerCase();
@@ -324,6 +332,51 @@ Deno.serve(async (req) => {
     : null;
 
   const userAgent = req.headers.get("user-agent")?.slice(0, 500) ?? null;
+
+  // IP-based rate limiting. We bucket by a fixed rolling window (floor of
+  // now to the hour). If we can't hash an IP (missing header), skip — the
+  // honeypot + unique(email, source) constraint still provide protection.
+  if (ipHash) {
+    const windowStart = new Date(
+      Math.floor(Date.now() / RATE_LIMIT_WINDOW_MS) * RATE_LIMIT_WINDOW_MS,
+    ).toISOString();
+    const { data: existingLimit, error: limitReadErr } = await supabase
+      .from("lead_capture_rate_limits")
+      .select("attempt_count")
+      .eq("ip_hash", ipHash)
+      .eq("window_start", windowStart)
+      .maybeSingle();
+    if (limitReadErr) {
+      console.warn("rate limit read failed, failing open:", limitReadErr);
+    } else if ((existingLimit?.attempt_count ?? 0) >= RATE_LIMIT_MAX) {
+      return new Response(
+        JSON.stringify({ error: "rate_limited" }),
+        {
+          status: 429,
+          headers: {
+            ...corsHeaders,
+            "Content-Type": "application/json",
+            "Retry-After": String(Math.ceil(RATE_LIMIT_WINDOW_MS / 1000)),
+          },
+        },
+      );
+    }
+    const nextCount = (existingLimit?.attempt_count ?? 0) + 1;
+    const { error: limitWriteErr } = await supabase
+      .from("lead_capture_rate_limits")
+      .upsert(
+        {
+          ip_hash: ipHash,
+          window_start: windowStart,
+          attempt_count: nextCount,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "ip_hash,window_start" },
+      );
+    if (limitWriteErr) {
+      console.warn("rate limit write failed:", limitWriteErr);
+    }
+  }
 
   const { data: leadRow, error: upsertErr } = await supabase
     .from("leads")
