@@ -58,7 +58,7 @@ export default function LeadMagnetForm({
       });
       toast.success("You're in. Your issue is ready.");
       onSubmitted?.();
-      navigate(redirectTo ?? result.redirect ?? "/magazine");
+      navigate(redirectTo ?? result.redirect ?? "/magazine-download");
     } catch (err) {
       toast.error("Could not submit", { description: (err as Error).message });
     } finally {
