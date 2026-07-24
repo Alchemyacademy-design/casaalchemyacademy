@@ -9,6 +9,7 @@ import {
   Loader2,
   Lock,
   MessageCircle,
+  Menu,
   MoreHorizontal,
   Pin,
   Plus,
@@ -355,19 +356,18 @@ export default function CommunityPremium({
   const debouncedSearch = useDebouncedValue(search.trim().toLocaleLowerCase(), 300);
   const composerRef = useRef<HTMLDivElement | null>(null);
   const composerBodyRef = useRef<MentionInputHandle | null>(null);
-  // House rules: default closed on tablet/mobile to save space, open on desktop
-  const [rulesOpen, setRulesOpen] = useState<boolean>(() =>
-    typeof window === "undefined"
-      ? true
-      : (() => {
-          try {
-            const saved = window.localStorage.getItem(RULES_OPEN_KEY);
-            if (saved === "1") return true;
-            if (saved === "0") return false;
-          } catch { /* ignore */ }
-          return window.matchMedia("(min-width: 1280px)").matches;
-        })(),
-  );
+  // House rules: default closed everywhere; CSS hides the wrapper on <1280px anyway.
+  // Persisted preference only applies at desktop where the panel is visible.
+  const [rulesOpen, setRulesOpen] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const saved = window.localStorage.getItem(RULES_OPEN_KEY);
+      if (saved === "1") return true;
+    } catch { /* ignore */ }
+    return false;
+  });
+  // Mobile / tablet slide-over nav (spaces rail + channels list)
+  const [navOpen, setNavOpen] = useState(false);
   useEffect(() => {
     try { window.localStorage.setItem(RULES_OPEN_KEY, rulesOpen ? "1" : "0"); } catch { /* ignore */ }
   }, [rulesOpen]);
@@ -636,8 +636,8 @@ export default function CommunityPremium({
     );
   }
 
-  return (
-    <section className="aa-community-shell">
+  const navPanels = (
+    <>
       <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
@@ -645,7 +645,7 @@ export default function CommunityPremium({
             <button
               type="button"
               className={space.id === spaceId ? "is-active" : ""}
-              onClick={() => setSpaceId(space.id)}
+              onClick={() => { setSpaceId(space.id); }}
               title={space.name}
             >
               {space.name.slice(0, 2).toUpperCase()}
@@ -730,7 +730,7 @@ export default function CommunityPremium({
                 <button
                   type="button"
                   className={`aa-community-channel-btn ${isActive ? "is-active" : ""}`}
-                  onClick={() => setChannelId(channel.id)}
+                  onClick={() => { setChannelId(channel.id); setNavOpen(false); }}
                   style={{ flex: 1 }}
                   title={purpose ?? channel.description ?? channel.name}
                 >
@@ -895,21 +895,35 @@ export default function CommunityPremium({
         </ScrollArea>
         {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
       </aside>
+    </>
+  );
+
+  return (
+    <section className="aa-community-shell">
+      <div className="aa-community-inline-nav" style={{ display: "contents" }}>
+        {navPanels}
+      </div>
+
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="left" className="aa-community-nav-sheet" aria-label="Community navigation">
+          {navPanels}
+        </SheetContent>
+      </Sheet>
 
       <main className="aa-community-main">
         <header className="aa-community-header">
-          <div>
+          <button
+            type="button"
+            className="aa-community-nav-trigger"
+            aria-label="Open community navigation"
+            onClick={() => setNavOpen(true)}
+          >
+            <Menu size={18} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p className="section-label">Member conversation</p>
             <h1>{activeChannel?.name ?? "Select a channel"}</h1>
             {activeChannel?.description && <p>{activeChannel.description}</p>}
-          </div>
-          <div className="aa-community-mobile-selects">
-            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Select space">
-              {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
-            </select>
-            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Select channel">
-              {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}
-            </select>
           </div>
         </header>
 
