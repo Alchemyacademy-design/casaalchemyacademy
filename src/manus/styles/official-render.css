@@ -130,6 +130,48 @@
   flex: 1;
 }
 
+/* Desktop-only collapse toggle (≥1280px). Hidden below to avoid conflicting with mobile drawer. */
+.aa-member-collapse-btn {
+  display: none;
+}
+@media (min-width: 1280px) {
+  .aa-member-collapse-btn {
+    position: absolute;
+    top: 1rem;
+    right: -0.75rem;
+    z-index: 3;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    border: 1px solid hsl(var(--sidebar-border));
+    background: hsl(var(--sidebar-background));
+    color: hsl(var(--sidebar-foreground) / 0.75);
+    box-shadow: var(--aa-shadow-card);
+    cursor: pointer;
+    transition: color 160ms ease, background 160ms ease;
+  }
+  .aa-member-collapse-btn:hover {
+    color: hsl(var(--sidebar-foreground));
+    background: hsl(var(--sidebar-accent));
+  }
+  .aa-member-sidebar.is-collapsed {
+    width: 4.5rem;
+    flex-basis: 4.5rem;
+  }
+  .aa-member-sidebar.is-collapsed .aa-member-brand { min-height: 5rem; padding: 0.75rem; }
+  .aa-member-sidebar.is-collapsed .aa-member-brand img { max-width: 2.5rem; max-height: 2.5rem; }
+  .aa-member-sidebar.is-collapsed .aa-member-nav { padding: 1rem 0.5rem; }
+  .aa-member-sidebar.is-collapsed .aa-member-nav-link {
+    justify-content: center;
+    padding: 0.7rem 0;
+    gap: 0;
+  }
+  .aa-member-sidebar.is-collapsed .aa-member-nav-link:hover { transform: none; }
+}
+
 .aa-mobile-header {
   position: sticky;
   top: 0;
