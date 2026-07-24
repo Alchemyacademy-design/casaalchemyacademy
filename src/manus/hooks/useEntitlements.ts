@@ -69,23 +69,31 @@ export function useEntitlements(): Entitlements {
       }
       const asMember = previewPlan !== "free";
       return { isAuthenticated: true, isAdmin: false, isMember: asMember,
-        hasCommunity: asMember, hasEvents: asMember, hasWorkshops: asMember,
+        hasCommunity: asMember, hasEvents: asMember,
+        // Live workshops are annual-tier only. Monthly preview must not unlock them.
+        hasWorkshops: previewPlan === "annual_member",
         hasMagazine: asMember, hasDeals: asMember,
         planKey: previewPlan === "free" ? null : previewPlan,
         courseIds: [], loading: false };
     }
     const activeMembership = (memberships.data ?? [])[0] as { plan_key?: string | null } | undefined;
     const isMember = isAdmin || !!activeMembership;
+    const planKey = activeMembership?.plan_key ?? null;
+    // Live workshops are gated to the annual tier (and admins). This matches
+    // the sold plan structure until the code is wired to read plan_permissions
+    // dynamically. Keep other feature flags aligned with the flat isMember
+    // check — this scoped fix only touches workshops.
+    const hasWorkshops = isAdmin || planKey === "annual_member";
     return {
       isAuthenticated,
       isAdmin,
       isMember,
       hasCommunity: isMember,
       hasEvents: isMember,
-      hasWorkshops: isMember,
+      hasWorkshops,
       hasMagazine: isMember,
       hasDeals: isMember,
-      planKey: activeMembership?.plan_key ?? null,
+      planKey,
       courseIds: (entitlementsQ.data ?? []).map((r) => Number(r.course_id)).filter(Boolean),
       loading: !!uid && (memberships.isLoading || entitlementsQ.isLoading),
     };

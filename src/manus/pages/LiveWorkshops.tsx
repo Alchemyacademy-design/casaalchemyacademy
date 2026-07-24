@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Calendar, Clock, ExternalLink, Loader2, Lock, CheckCircle2 } from "lucide-react";
 import { useUpcomingWorkshops, usePastWorkshops, useMyRegistrations, useRegisterForTarget } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { useEntitlements } from "@/manus/hooks/useEntitlements";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -12,8 +13,10 @@ function fmtTime(iso: string) {
 }
 
 export default function LiveWorkshops() {
-  const { isAuthenticated, isMember, isAdmin } = useAuth();
-  const hasAccess = isAdmin || isMember;
+  const { isAuthenticated } = useAuth();
+  // Live workshops are annual-tier only (or admin). Do not fall back to the
+  // flat isMember check — monthly members must not see join/replay links.
+  const { hasWorkshops: hasAccess } = useEntitlements();
   const { data: upcoming = [], isLoading: loadingUp } = useUpcomingWorkshops();
   const { data: past = [], isLoading: loadingPast } = usePastWorkshops(6);
   const { data: regs = [] } = useMyRegistrations();

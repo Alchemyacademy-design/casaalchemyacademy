@@ -12,6 +12,7 @@ import {
   useMyRegistrations, useRegisterForTarget,
 } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { useEntitlements } from "@/manus/hooks/useEntitlements";
 
 type TabKey = "events" | "workshops" | "calendar";
 
@@ -36,8 +37,10 @@ function useTab(): [TabKey, (t: TabKey) => void] {
 
 export default function Events() {
   const [tab, setTab] = useTab();
-  const { isAuthenticated, isAdmin, isMember } = useAuth();
-  const hasWorkshopAccess = isAdmin || isMember;
+  const { isAuthenticated } = useAuth();
+  // Workshop join/replay links are annual-tier only (or admin). The Events
+  // tab itself stays open to all members via GlobalAccessController.
+  const { hasWorkshops: hasWorkshopAccess } = useEntitlements();
 
   const { data: upcomingEvents = [], isLoading: loadingUE } = useUpcomingEvents();
   const { data: pastEvents = [], isLoading: loadingPE } = usePastEvents(6);
