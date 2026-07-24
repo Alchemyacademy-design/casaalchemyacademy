@@ -14,12 +14,14 @@ export default function Signup() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [existingAccount, setExistingAccount] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
+    setExistingAccount(false);
     setLoading(true);
 
     // Validate passwords match
@@ -47,7 +49,18 @@ export default function Signup() {
       });
 
       if (signUpError) {
-        setError(signUpError.message);
+        const msg = (signUpError.message ?? "").toLowerCase();
+        const code = (signUpError as { code?: string }).code ?? "";
+        const isAlreadyRegistered =
+          msg.includes("already registered") ||
+          msg.includes("already been registered") ||
+          msg.includes("user already") ||
+          code === "user_already_exists";
+        if (isAlreadyRegistered) {
+          setExistingAccount(true);
+        } else {
+          setError(signUpError.message);
+        }
         return;
       }
 
@@ -103,6 +116,35 @@ export default function Signup() {
           </h1>
           <p className="text-foreground/70">Create your account to start learning</p>
         </div>
+
+        {existingAccount && (
+          <div className="mb-6 p-4 bg-accent/10 border border-accent/20 rounded-lg">
+            <div className="flex gap-3 mb-3">
+              <AlertCircle className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
+              <p className="text-sm text-foreground/90">
+                This email already has an account — likely from a previous purchase.
+                If you recently paid, your access should already be unlocked: log in below.
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 pl-8">
+              <Button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="w-full sm:w-auto"
+                style={{ backgroundColor: "var(--aa-gold)" }}
+              >
+                Go to login
+              </Button>
+              <button
+                type="button"
+                onClick={() => navigate("/reset-password")}
+                className="text-sm text-accent hover:text-accent/80 font-medium transition self-center"
+              >
+                Forgot your password? Reset it here
+              </button>
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg flex gap-3">
