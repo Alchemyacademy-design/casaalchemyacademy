@@ -51,7 +51,7 @@ async function fetchCourses(): Promise<CourseRow[]> {
 }
 
 export default function Modules() {
-  const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
+  const { loading: authLoading, isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
   const { data: progress = [] } = trpc.lessons.progress.useQuery();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -64,11 +64,12 @@ export default function Modules() {
   };
   const hasAnyPaidAccess = isAdmin || isMember || hasCourseAccess;
 
-  const { data: courses = [], isLoading, error, refetch } = useQuery({
+  const { data: courses = [], isLoading: coursesLoading, error, refetch } = useQuery({
     queryKey: ["modules-page", "courses", "published"],
     queryFn: fetchCourses,
     staleTime: 5 * 60 * 1000,
   });
+  const isLoading = coursesLoading || authLoading;
 
   const lessonCountOf = (course: CourseRow) =>
     course.course_modules.reduce(
