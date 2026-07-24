@@ -11,6 +11,7 @@
 // logged and returned as "failed" so they don't roll back access grants.
 
 import type { SupabaseAdmin } from "./billing-core.ts";
+import { buildGmailRawMessage } from "./gmail-message.ts";
 
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -158,21 +159,7 @@ async function deliver(
 ): Promise<Exclude<WelcomeProvider, "skipped">> {
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
     try {
-      const boundary = `casa_${crypto.randomUUID().replace(/-/g, "")}`;
-      const rfc2822 = [
-        `From: ${FROM_EMAIL}`, `To: ${to}`, `Subject: ${subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: multipart/alternative; boundary="${boundary}"`, ``,
-        `--${boundary}`,
-        `Content-Type: text/plain; charset="UTF-8"`,
-        `Content-Transfer-Encoding: 7bit`, ``, plaintext, ``,
-        `--${boundary}`,
-        `Content-Type: text/html; charset="UTF-8"`,
-        `Content-Transfer-Encoding: 7bit`, ``, html, ``,
-        `--${boundary}--`, ``,
-      ].join("\r\n");
-      const raw = btoa(unescape(encodeURIComponent(rfc2822)))
-        .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+      const raw = buildGmailRawMessage({ from: FROM_EMAIL, to, subject, html, plaintext });
       const res = await fetch(`${GMAIL_GATEWAY}/users/me/messages/send`, {
         method: "POST",
         headers: {
