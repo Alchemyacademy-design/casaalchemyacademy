@@ -87,7 +87,7 @@ function formatDuration(totalSeconds: number): string {
 export default function CourseDetail() {
   const { id } = useParams<{ id: string }>();
   const courseId = Number(id);
-  const { isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
+  const { loading: authLoading, isAdmin, isMember, hasCourseAccess, activeEntitlements } = useAuth();
 
   const { data: course, isLoading, isFetching, error, refetch } = useQuery({
     queryKey: ["public", "course", courseId, "published"],
@@ -165,7 +165,7 @@ export default function CourseDetail() {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || authLoading) {
     return (
       <MemberLayout>
         <MemberPage>
