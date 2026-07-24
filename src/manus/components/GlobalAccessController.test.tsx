@@ -162,3 +162,65 @@ describe("GlobalAccessController — loading state", () => {
     expect(navigateMock).not.toHaveBeenCalled();
   });
 });
+
+// Regression coverage for the loading-race bug class fixed in
+// CourseDetail/PaymentSuccess/Modules: while `loading` is true the
+// component must not act on stale/default auth flags, regardless of
+// what those flags happen to be or which route is active.
+describe("GlobalAccessController — loading gate (regression)", () => {
+  const routes = ["/login", "/plans", "/mycourses", "/dashboard"];
+  const personas: Array<[string, Partial<typeof authState>]> = [
+    ["default flags", {}],
+    ["stale unauthenticated", { isAuthenticated: false }],
+    ["stale authenticated no-access", { isAuthenticated: true }],
+    ["stale course-only", { isAuthenticated: true, hasCourseAccess: true }],
+    ["stale member", { isAuthenticated: true, isMember: true }],
+    ["stale admin", { isAuthenticated: true, isAdmin: true }],
+  ];
+  for (const route of routes) {
+    for (const [label, persona] of personas) {
+      it(`does not navigate on ${route} while loading (${label})`, () => {
+        setAuth({ ...persona, loading: true });
+        renderAt(route);
+        expect(navigateMock).not.toHaveBeenCalled();
+      });
+    }
+  }
+});
+
+describe("GlobalAccessController — membershipOnlyPrefixes (isMember bypass)", () => {
+  const memberRoutes = [
+    "/dashboard",
+    "/community",
+    "/magazine",
+    "/suppliers",
+    "/events",
+  ];
+  for (const route of memberRoutes) {
+    it(`allows an active member on ${route}`, () => {
+      setAuth({ isAuthenticated: true, isMember: true });
+      renderAt(route);
+      expect(navigateMock).not.toHaveBeenCalled();
+    });
+  }
+});
+
+describe("GlobalAccessController — admin bypass", () => {
+  it("admin is not redirected from /dashboard", () => {
+    setAuth({ isAuthenticated: true, isAdmin: true });
+    renderAt("/dashboard");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("admin is not redirected from /plans", () => {
+    setAuth({ isAuthenticated: true, isAdmin: true });
+    renderAt("/plans");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+
+  it("admin bypasses membership gate even without isMember/hasCourseAccess", () => {
+    setAuth({ isAuthenticated: true, isAdmin: true });
+    renderAt("/community");
+    expect(navigateMock).not.toHaveBeenCalled();
+  });
+});
