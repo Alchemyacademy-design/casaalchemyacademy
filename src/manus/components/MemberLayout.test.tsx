@@ -5,6 +5,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 vi.mock("@/manus/hooks/useAuth", () => ({
   useAuth: () => ({
@@ -19,12 +20,15 @@ vi.mock("@/manus/hooks/useAuth", () => ({
 import MemberLayout from "./MemberLayout";
 
 function renderAt(path: string) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <MemoryRouter initialEntries={[path]}>
-      <MemberLayout>
-        <div>content</div>
-      </MemberLayout>
-    </MemoryRouter>,
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter initialEntries={[path]}>
+        <MemberLayout>
+          <div>content</div>
+        </MemberLayout>
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
