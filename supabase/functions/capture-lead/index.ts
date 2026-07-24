@@ -314,7 +314,7 @@ Deno.serve(async (req) => {
   const { name, email, phone, source, metadata, website } = parsed.data;
   if (website && website.length > 0) {
     // Silently accept honeypot hits but do nothing else.
-    return new Response(JSON.stringify({ ok: true, redirect: "/magazine" }), {
+    return new Response(JSON.stringify({ ok: true, redirect: "/magazine-download" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -322,7 +322,7 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const origin = req.headers.get("origin") ?? `${url.protocol}//${url.host}`;
-  const magazineUrl = MAGAZINE_URL_ENV || `${origin}/magazine`;
+  const magazineUrl = MAGAZINE_URL_ENV || `${origin}/magazine-download`;
   const downloadUrl = MAGAZINE_PDF_URL_ENV || `${origin}${DEFAULT_MAGAZINE_PDF_PATH}`;
   const coverUrl = `${origin}${DEFAULT_MAGAZINE_COVER_PATH}`;
 
@@ -409,7 +409,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, redirect: "/magazine", leadId: leadRow.id }),
+    JSON.stringify({ ok: true, redirect: "/magazine-download", leadId: leadRow.id }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
