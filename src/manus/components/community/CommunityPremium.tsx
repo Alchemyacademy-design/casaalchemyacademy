@@ -895,21 +895,35 @@ export default function CommunityPremium({
         </ScrollArea>
         {isAdmin && spaceId && <Button variant="ghost" onClick={() => setChannelDialogOpen(true)}><Plus size={14} /> New channel</Button>}
       </aside>
+    </>
+  );
+
+  return (
+    <section className="aa-community-shell">
+      <div className="aa-community-inline-nav" style={{ display: "contents" }}>
+        {navPanels}
+      </div>
+
+      <Sheet open={navOpen} onOpenChange={setNavOpen}>
+        <SheetContent side="left" className="aa-community-nav-sheet" aria-label="Community navigation">
+          {navPanels}
+        </SheetContent>
+      </Sheet>
 
       <main className="aa-community-main">
         <header className="aa-community-header">
-          <div>
+          <button
+            type="button"
+            className="aa-community-nav-trigger"
+            aria-label="Open community navigation"
+            onClick={() => setNavOpen(true)}
+          >
+            <Menu size={18} />
+          </button>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <p className="section-label">Member conversation</p>
             <h1>{activeChannel?.name ?? "Select a channel"}</h1>
             {activeChannel?.description && <p>{activeChannel.description}</p>}
-          </div>
-          <div className="aa-community-mobile-selects">
-            <select value={spaceId ?? ""} onChange={(event) => setSpaceId(Number(event.target.value))} aria-label="Select space">
-              {spaces.map((space) => <option key={space.id} value={space.id}>{space.name}</option>)}
-            </select>
-            <select value={channelId ?? ""} onChange={(event) => setChannelId(Number(event.target.value))} aria-label="Select channel">
-              {channels.map((channel) => <option key={channel.id} value={channel.id}>{channel.name}</option>)}
-            </select>
           </div>
         </header>
 
