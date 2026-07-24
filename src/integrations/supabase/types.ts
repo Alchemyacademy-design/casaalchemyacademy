@@ -1007,6 +1007,30 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_capture_rate_limits: {
+        Row: {
+          attempt_count: number
+          created_at: string
+          ip_hash: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number
+          created_at?: string
+          ip_hash: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          attempt_count?: number
+          created_at?: string
+          ip_hash?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string
