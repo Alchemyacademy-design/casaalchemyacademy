@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { BookOpen, Calendar, Gift, LayoutDashboard, LogOut, Menu, Settings, Shield, Sparkles, Users, X } from "lucide-react";
+import { BookOpen, Calendar, ChevronLeft, ChevronRight, Gift, LayoutDashboard, LogOut, Menu, Settings, Shield, Sparkles, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { getLoginUrl } from "@/manus/const";
 import AdminPreviewBar from "@/manus/components/admin/AdminPreviewBar";
@@ -34,6 +35,13 @@ const discoveryNav: NavItem[] = [
 export default function MemberLayout({ children, requireAuth = true }: MemberLayoutProps) {
   const { user, loading, isAuthenticated, isAdmin, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    try { return window.localStorage.getItem("member:sidebar:collapsed") === "1"; } catch { return false; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem("member:sidebar:collapsed", sidebarCollapsed ? "1" : "0"); } catch { /* ignore */ }
+  }, [sidebarCollapsed]);
   const { data: myProfile } = useMyProfile(user?.id);
   const displayName = myProfile?.display_name || myProfile?.full_name || user?.name || user?.email || "Alchemist";
   const avatarPath = myProfile?.avatar_path ?? null;
@@ -73,10 +81,22 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
 
   const links = (items: NavItem[], mobile = false) =>
     items.map(({ label, href, icon: Icon }) => (
-      <NavLink key={href} to={href} end className={navClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
-        <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span>{label}</span>
-      </NavLink>
+      mobile || !sidebarCollapsed ? (
+        <NavLink key={href} to={href} end className={navClass} onClick={mobile ? () => setMobileOpen(false) : undefined}>
+          <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{label}</span>
+        </NavLink>
+      ) : (
+        <Tooltip key={href}>
+          <TooltipTrigger asChild>
+            <NavLink to={href} end className={navClass} aria-label={label}>
+              <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+              <span className="sr-only">{label}</span>
+            </NavLink>
+          </TooltipTrigger>
+          <TooltipContent side="right">{label}</TooltipContent>
+        </Tooltip>
+      )
     ));
 
   return (
@@ -113,18 +133,49 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
       )}
 
       <div className="aa-member-layout">
-        <aside className="aa-member-sidebar" aria-label="Member sidebar">
+        <aside className={`aa-member-sidebar${sidebarCollapsed ? " is-collapsed" : ""}`} aria-label="Member sidebar">
           <div className="aa-member-brand"><Link to="/dashboard"><img src="/img/logo.png" alt="Alchemy Academy" /></Link></div>
+          <button
+            type="button"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            className="aa-member-collapse-btn"
+            aria-label={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-pressed={sidebarCollapsed}
+            title={sidebarCollapsed ? "Expand navigation" : "Collapse navigation"}
+          >
+            {sidebarCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          </button>
           <nav className="aa-member-nav" aria-label="Member navigation">
-            {isAdmin && <><p className="aa-member-nav-label">Administration</p><NavLink to="/admin" end className={navClass}><Shield className="h-4 w-4" /><span>Admin Center</span></NavLink></>}
-            <p className="aa-member-nav-label">Learn</p>
+            {isAdmin && <>
+              {!sidebarCollapsed && <p className="aa-member-nav-label">Administration</p>}
+              {sidebarCollapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <NavLink to="/admin" end className={navClass} aria-label="Admin Center"><Shield className="h-4 w-4" /><span className="sr-only">Admin Center</span></NavLink>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Admin Center</TooltipContent>
+                </Tooltip>
+              ) : (
+                <NavLink to="/admin" end className={navClass}><Shield className="h-4 w-4" /><span>Admin Center</span></NavLink>
+              )}
+            </>}
+            {!sidebarCollapsed && <p className="aa-member-nav-label">Learn</p>}
             {links(primaryNav)}
-            <p className="aa-member-nav-label">Discover</p>
+            {!sidebarCollapsed && <p className="aa-member-nav-label">Discover</p>}
             {links(discoveryNav)}
-            <p className="aa-member-nav-label">Account</p>
-            <NavLink to="/profile" end className={navClass}><Settings className="h-4 w-4" /><span>Profile</span></NavLink>
+            {!sidebarCollapsed && <p className="aa-member-nav-label">Account</p>}
+            {sidebarCollapsed ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <NavLink to="/profile" end className={navClass} aria-label="Profile"><Settings className="h-4 w-4" /><span className="sr-only">Profile</span></NavLink>
+                </TooltipTrigger>
+                <TooltipContent side="right">Profile</TooltipContent>
+              </Tooltip>
+            ) : (
+              <NavLink to="/profile" end className={navClass}><Settings className="h-4 w-4" /><span>Profile</span></NavLink>
+            )}
           </nav>
-          <div className="aa-member-profile">
+          {!sidebarCollapsed && <div className="aa-member-profile">
             <div className="aa-member-profile-card">
               <div className="mb-3 flex items-center gap-3">
                 <UserAvatar name={displayName} avatarPath={avatarPath} size="sm" />
@@ -133,7 +184,19 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
               </div>
               <button type="button" onClick={handleLogout} className="flex w-full items-center justify-center gap-2 rounded-md border border-sidebar-border px-3 py-2 text-xs text-sidebar-foreground/72 transition hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"><LogOut className="h-3.5 w-3.5" />Sign out</button>
             </div>
-          </div>
+          </div>}
+          {sidebarCollapsed && (
+            <div className="aa-member-profile" style={{ padding: "0.75rem", display: "flex", justifyContent: "center" }}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" onClick={handleLogout} className="aa-member-nav-link" aria-label="Sign out" style={{ width: "auto" }}>
+                    <LogOut className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">Sign out</TooltipContent>
+              </Tooltip>
+            </div>
+          )}
         </aside>
         <main className="aa-member-main" id="main-content">{children}</main>
       </div>
