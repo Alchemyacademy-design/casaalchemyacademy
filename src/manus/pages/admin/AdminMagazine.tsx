@@ -15,6 +15,7 @@ export default function AdminMagazine() {
       orderBy={{ column: "id", ascending: false }}
       searchFields={["title", "slug"]}
       publicInvalidateKeys={[["public", "magazine_issues"]]}
+      deletionMode="hard"
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
         { name: "slug", label: "Slug", type: "text", required: true },
