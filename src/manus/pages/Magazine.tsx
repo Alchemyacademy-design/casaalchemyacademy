@@ -1,4 +1,3 @@
-import { useState } from "react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
 import { ArrowLeft, Download, Loader2, PlayCircle } from "lucide-react";
@@ -43,7 +42,6 @@ function fmtDate(iso?: string | null) {
 
 export default function Magazine() {
   const { data: issues = [], isLoading, isError, refetch } = useMagazineIssues();
-  const [videoUnavailable, setVideoUnavailable] = useState(false);
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
@@ -66,8 +64,7 @@ export default function Magazine() {
             </p>
           </header>
 
-          {!videoUnavailable && (
-            <section className="mb-16 overflow-hidden border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
+          <section className="mb-16 overflow-hidden border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
               <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_.55fr]">
                 <video
                   className="aspect-video h-full w-full bg-black object-cover"
@@ -77,7 +74,6 @@ export default function Magazine() {
                   playsInline
                   preload="metadata"
                   poster={current?.cover_image_path ?? undefined}
-                  onError={() => setVideoUnavailable(true)}
                 />
                 <div className="flex flex-col justify-center p-7 text-[var(--aa-cream)] md:p-10">
                   <PlayCircle size={24} className="mb-5 text-[var(--aa-gold)]" />
@@ -88,8 +84,7 @@ export default function Magazine() {
                   </p>
                 </div>
               </div>
-            </section>
-          )}
+          </section>
 
           {isLoading ? (
             <div className="flex items-center gap-2 py-12 text-sm text-[var(--aa-text-mid)]"><Loader2 className="animate-spin" size={16} /> Loading…</div>
