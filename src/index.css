@@ -125,3 +125,54 @@
 @media (prefers-reduced-motion:reduce){
   .hero .btn-cream,.hero .btn-gold{animation:none}
 }
+
+/* ============================================================
+ * Responsive baseline — safe global rules to prevent overflow,
+ * ensure legible typography, and preserve tap-target sizes on
+ * mobile without touching individual page layouts.
+ * ============================================================ */
+html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+/* `overflow-x:clip` prevents horizontal scroll from stray wide children
+ * without breaking `position:sticky` (which `overflow-x:hidden` would). */
+body{ overflow-x:clip; }
+
+/* Media never breaks the layout */
+img, video, iframe, canvas, svg{ max-width:100%; height:auto; }
+iframe{ border:0; }
+
+/* Long strings (URLs, tokens, code) must wrap on narrow viewports */
+p, li, dd, dt, blockquote, figcaption, td, th{ overflow-wrap:anywhere; word-break:break-word; }
+code, kbd, samp{ overflow-wrap:anywhere; word-break:break-word; white-space:normal; }
+pre{ max-width:100%; overflow-x:auto; white-space:pre-wrap; word-break:break-word; }
+
+/* Tables that don't opt into a scroll wrapper still stay contained */
+table{ max-width:100%; }
+
+/* Prevent focus rings from being clipped when overflow-x is hidden */
+:focus-visible{ outline-offset:2px; }
+
+/* Comfortable touch targets on coarse pointers (phones/tablets) */
+@media (pointer:coarse){
+  button, [role="button"], a.btn, a.button,
+  .btn-cream, .btn-gold, .cta-btn{
+    min-height:44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select, textarea{ min-height:44px; font-size:16px; }
+  /* iOS zoom prevention: inputs must be ≥16px to skip auto-zoom */
+}
+
+/* Mobile typography rhythm — nudge overly large display type down
+ * so headlines don't wrap awkwardly on 360-390px screens. */
+@media (max-width:640px){
+  h1{ font-size:clamp(1.75rem, 8vw, 2.5rem); line-height:1.15; }
+  h2{ font-size:clamp(1.4rem, 6.5vw, 2rem); line-height:1.2; }
+  h3{ font-size:clamp(1.15rem, 5vw, 1.5rem); line-height:1.25; }
+}
+
+/* Full-height layouts should track the dynamic viewport on mobile
+ * so browser chrome (address bar, keyboard) doesn't clip content. */
+@supports (height:100dvh){
+  .min-h-screen{ min-height:100dvh; }
+  .h-screen{ height:100dvh; }
+}
