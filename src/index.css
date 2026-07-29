@@ -132,7 +132,9 @@
  * mobile without touching individual page layouts.
  * ============================================================ */
 html{ -webkit-text-size-adjust:100%; text-size-adjust:100%; }
-body{ overflow-x:hidden; }
+/* `overflow-x:clip` prevents horizontal scroll from stray wide children
+ * without breaking `position:sticky` (which `overflow-x:hidden` would). */
+body{ overflow-x:clip; }
 
 /* Media never breaks the layout */
 img, video, iframe, canvas, svg{ max-width:100%; height:auto; }
