@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import BackNav from "@/manus/components/BackNav";
 import {
   ChevronRight,
   LayoutDashboard,
