@@ -4,6 +4,7 @@ import { Check, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SubscribeModal from "@/manus/components/SubscribeModal";
+import BackNav from "@/manus/components/BackNav";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } from "@/manus/hooks/usePublicContent";
 
@@ -41,6 +42,7 @@ export default function Plans() {
 
   return (
     <div className="aa-plans-bg min-h-screen px-4 py-10 relative">
+      <BackNav variant="top" />
       <div className="max-w-5xl mx-auto relative">
 
         <div className="text-center mb-10">
@@ -115,6 +117,7 @@ export default function Plans() {
       </div>
 
       {selectedPlan && <SubscribeModal type={selectedPlan} onClose={() => setSelectedPlan(null)} />}
+      <BackNav variant="bottom" />
     </div>
   );
 }
