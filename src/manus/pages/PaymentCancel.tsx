@@ -2,12 +2,15 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { AlertCircle } from "lucide-react";
+import BackNav from "@/manus/components/BackNav";
 
 export default function PaymentCancel() {
   const navigate = useNavigate();
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+    <div className="min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+      <BackNav variant="top" />
+      <div className="flex items-center justify-center px-4 py-12">
       <Card className="p-8 max-w-md shadow-lg">
         <div className="text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
@@ -29,6 +32,8 @@ export default function PaymentCancel() {
           </div>
         </div>
       </Card>
+      </div>
+      <BackNav variant="bottom" />
     </div>
   );
 }
