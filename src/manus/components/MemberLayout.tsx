@@ -8,6 +8,7 @@ import { getLoginUrl } from "@/manus/const";
 import AdminPreviewBar from "@/manus/components/admin/AdminPreviewBar";
 import NotificationsBell from "@/manus/components/NotificationsBell";
 import UserAvatar from "@/manus/components/UserAvatar";
+import BackNav from "@/manus/components/BackNav";
 import { useMyProfile } from "@/manus/hooks/usePublicContent";
 import "@/manus/styles/official-render.css";
 
@@ -198,7 +199,11 @@ export default function MemberLayout({ children, requireAuth = true }: MemberLay
             </div>
           )}
         </aside>
-        <main className="aa-member-main" id="main-content">{children}</main>
+        <main className="aa-member-main" id="main-content">
+          <BackNav variant="top" />
+          {children}
+          <BackNav variant="bottom" />
+        </main>
       </div>
     </div>
   );
