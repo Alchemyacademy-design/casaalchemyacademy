@@ -3,6 +3,7 @@ import Stripe from "npm:stripe@22.2.1";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
 import { env, evaluateCheckoutGate, expectedLivemode, stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
+import { buildCorsHeaders } from "../_shared/cors.ts";
 
 type OfferKey = "individual_course" | "monthly_member" | "annual_member";
 
@@ -13,19 +14,6 @@ type ExpectedTerms = {
   interval_count: number | null;
   mode: "subscription" | "payment";
 };
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": env("CHECKOUT_ALLOWED_ORIGIN"),
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-idempotency-key",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
-
-function corsJson(body: Record<string, unknown>, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
 
 function assertOfferKey(value: unknown): OfferKey {
   if (value === "individual_course" || value === "monthly_member" || value === "annual_member") return value;
@@ -46,9 +34,19 @@ function safeMetadataValue(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 && value.length <= 200 ? value : null;
 }
 
-const handler = withSupabase<Database>({ auth: "user", cors: corsHeaders }, async (request, ctx) => {
-  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
-  if (request.method !== "POST") return corsJson({ error: "Method not allowed" }, 405);
+Deno.serve((request) => {
+  const corsHeaders = buildCorsHeaders(request.headers.get("origin"), "x-idempotency-key");
+
+  function corsJson(body: Record<string, unknown>, status = 200): Response {
+    return new Response(JSON.stringify(body), {
+      status,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  const handler = withSupabase<Database>({ auth: "user", cors: corsHeaders }, async (request, ctx) => {
+    if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+    if (request.method !== "POST") return corsJson({ error: "Method not allowed" }, 405);
 
   const { data: userData, error: userError } = await ctx.supabase.auth.getUser();
   const user = userData.user;
@@ -238,7 +236,8 @@ const handler = withSupabase<Database>({ auth: "user", cors: corsHeaders }, asyn
     metadata,
   }, { onConflict: "stripe_session_id" });
 
-  return corsJson({ checkout_url: session.url });
-});
+    return corsJson({ checkout_url: session.url });
+  });
 
-Deno.serve(handler);
+  return handler(request);
+});
