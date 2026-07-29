@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
+import BackNav from "@/manus/components/BackNav";
 import {
   ChevronRight,
   LayoutDashboard,
@@ -181,6 +182,7 @@ export default function AdminShell({
             </div>
           </header>
           <main className="flex-1 px-6 py-8 lg:px-10 max-w-[1400px] w-full">
+            <BackNav variant="top" />
             <div className="flex items-end justify-between gap-4 flex-wrap mb-8 pb-5 border-b border-border">
               <div>
                 <p className="section-label mb-2">Administration</p>
@@ -190,6 +192,7 @@ export default function AdminShell({
               {actions && <div className="flex gap-2 flex-wrap">{actions}</div>}
             </div>
             {children}
+            <BackNav variant="bottom" />
           </main>
         </div>
         <AdminCommandPalette open={palette.open} onOpenChange={palette.setOpen} />

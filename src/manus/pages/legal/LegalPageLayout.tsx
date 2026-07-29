@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from "react";
 import { Link } from "react-router-dom";
+import BackNav from "@/manus/components/BackNav";
 
 interface LegalPageLayoutProps {
   title: string;
@@ -61,6 +62,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
       </header>
 
       <main className="container" style={{ maxWidth: "760px", padding: "3rem 1.25rem 4rem" }}>
+        <BackNav variant="top" />
         <p className="aa-eyebrow" style={{ marginBottom: "0.75rem" }}>Casa Alchemy Academy</p>
         <h1 style={{ fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "0.75rem" }}>{title}</h1>
         {updatedAt && (
@@ -79,6 +81,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
         >
           {children}
         </div>
+        <BackNav variant="bottom" />
       </main>
 
       <footer style={{ backgroundColor: "#1F0A03", padding: "3rem 0 2rem" }}>

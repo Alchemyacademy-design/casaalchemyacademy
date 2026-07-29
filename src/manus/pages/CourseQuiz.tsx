@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { COURSE_QUIZ, computeInsights } from "@/manus/data/course-quiz-config";
+import BackNav from "@/manus/components/BackNav";
 
 type Stage = "quiz" | "result";
 
@@ -30,6 +31,7 @@ export default function CourseQuiz() {
 
   return (
     <div className="min-h-screen" style={{ background: "var(--aa-cream, #f7f2ea)" }}>
+      <BackNav variant="top" />
       <div className="max-w-2xl mx-auto px-6 py-16">
         <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-4">Find your block</p>
         <h1 className="font-serif text-3xl md:text-5xl font-normal mb-4">
@@ -105,6 +107,7 @@ export default function CourseQuiz() {
           </div>
         )}
       </div>
+      <BackNav variant="bottom" />
     </div>
   );
 }
