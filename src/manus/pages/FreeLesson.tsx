@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BackNav from "@/manus/components/BackNav";
 import magazineCover from "@/assets/magazine-cover-autumn26.png.asset.json";
 import magazinePdf from "@/assets/casa-alchemy-autumn-26.pdf.asset.json";
 
@@ -11,6 +12,7 @@ const MAGAZINE_COVER_URL: string =
 export default function FreeLesson() {
   return (
     <div className="min-h-screen" style={{ background: "var(--aa-cream, #f7f2ea)" }}>
+      <BackNav variant="top" />
       <div className="max-w-5xl mx-auto px-6 py-16">
         <p className="uppercase tracking-[0.2em] text-xs text-foreground/60 mb-4">Your free issue</p>
         <h1 className="font-serif text-4xl md:text-5xl font-normal mb-4">
@@ -63,6 +65,7 @@ export default function FreeLesson() {
           </div>
         </div>
       </div>
+      <BackNav variant="bottom" />
     </div>
   );
 }
