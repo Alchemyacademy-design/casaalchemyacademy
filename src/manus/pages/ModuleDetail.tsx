@@ -487,6 +487,13 @@ export default function ModuleDetail() {
                     />
                   </div>
 
+                  <Card className="p-6">
+                    <SupportMaterialsList scope={{ lessonId: activeLesson.id }} emptyHidden={false} />
+                  </Card>
+                  {currentCourseId ? (
+                    <SupportMaterialsList scope={{ courseId: currentCourseId }} title="Course materials" />
+                  ) : null}
+
                   <div className="space-y-4">
                     <p className="text-xs uppercase tracking-wider text-foreground/60">
                       Lesson feedback
