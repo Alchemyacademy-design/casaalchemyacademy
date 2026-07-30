@@ -22,7 +22,6 @@ import LessonNavigation from "@/manus/components/learning/LessonNavigation";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import QueryStateView from "@/manus/components/QueryStateView";
 import QuizCard from "@/manus/components/learning/QuizCard";
-import ModuleRating from "@/manus/components/learning/ModuleRating";
 import LessonRating from "@/manus/components/lesson/LessonRating";
 import LessonComments from "@/manus/components/lesson/LessonComments";
 import StartDiscussionButton from "@/manus/components/lesson/StartDiscussionButton";
@@ -486,11 +485,6 @@ export default function ModuleDetail() {
                     <LessonMaterial
                       url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
                     />
-                  </div>
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Your feedback</p>
-                    <ModuleRating moduleId={moduleId} />
                   </div>
 
                   <div className="space-y-4">
