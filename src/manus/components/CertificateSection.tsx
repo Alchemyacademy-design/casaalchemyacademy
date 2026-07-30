@@ -286,14 +286,21 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
               </div>
             </div>
           ) : (
-            <button
-              onClick={handleIssueCertificate}
-              disabled={issueMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-            >
-              <Award size={16} />
-              {issueMutation.isPending ? "Issuing..." : "Issue My Certificate"}
-            </button>
+            <div className="space-y-3">
+              <p className="text-sm text-foreground/70 inline-flex items-center gap-2">
+                <Loader2 size={14} className={isAutoIssuing || issueMutation.isPending ? "animate-spin" : "hidden"} />
+                {isAutoIssuing || issueMutation.isPending
+                  ? "Releasing your certificate…"
+                  : "Your certificate is being released automatically."}
+              </p>
+              <button
+                onClick={handleIssueCertificate}
+                disabled={issueMutation.isPending || isAutoIssuing}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent disabled:opacity-70"
+              >
+                <Award size={16} /> Retry now
+              </button>
+            </div>
           )}
         </div>
       )}
