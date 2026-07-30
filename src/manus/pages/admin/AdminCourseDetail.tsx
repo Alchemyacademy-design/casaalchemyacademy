@@ -1405,6 +1405,19 @@ export default function AdminCourseDetail() {
 
         {courseId && <AdminQuizEditor courseId={courseId} />}
 
+        {courseId && (
+          <Card className="p-5 space-y-3">
+            <div>
+              <h2 className="font-semibold">Course support materials</h2>
+              <p className="text-xs text-foreground/60">
+                Files and links available to every student enrolled in this course. Lesson-specific materials are managed
+                inside each lesson.
+              </p>
+            </div>
+            <SupportMaterialsPanel scope={{ courseId }} />
+          </Card>
+        )}
+
         {courseId && <CertificatePreviewPanel courseTitle={course?.title ?? "This course"} />}
       </div>
 
