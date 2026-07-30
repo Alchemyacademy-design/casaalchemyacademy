@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type MaterialKind = "lesson" | "module" | "course" | "bonus";
+
 export type SupportMaterial = {
   id: number;
   lesson_id: number | null;
