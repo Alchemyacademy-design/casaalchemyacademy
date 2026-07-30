@@ -1081,45 +1081,70 @@ export type Database = {
       }
       lesson_attachments: {
         Row: {
+          course_id: number | null
           created_at: string
           created_by: string | null
+          description: string | null
+          external_url: string | null
           file_name: string
           file_size: number | null
           file_type: string | null
           id: number
           is_downloadable: boolean
           is_public: boolean
-          lesson_id: number
+          lesson_id: number | null
+          sort_order: number
           storage_bucket: string
-          storage_path: string
+          storage_path: string | null
+          title: string | null
+          updated_at: string
         }
         Insert: {
+          course_id?: number | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          external_url?: string | null
           file_name: string
           file_size?: number | null
           file_type?: string | null
           id?: number
           is_downloadable?: boolean
           is_public?: boolean
-          lesson_id: number
+          lesson_id?: number | null
+          sort_order?: number
           storage_bucket?: string
-          storage_path: string
+          storage_path?: string | null
+          title?: string | null
+          updated_at?: string
         }
         Update: {
+          course_id?: number | null
           created_at?: string
           created_by?: string | null
+          description?: string | null
+          external_url?: string | null
           file_name?: string
           file_size?: number | null
           file_type?: string | null
           id?: number
           is_downloadable?: boolean
           is_public?: boolean
-          lesson_id?: number
+          lesson_id?: number | null
+          sort_order?: number
           storage_bucket?: string
-          storage_path?: string
+          storage_path?: string | null
+          title?: string | null
+          updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "lesson_attachments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lesson_attachments_lesson_id_fkey"
             columns: ["lesson_id"]
@@ -2776,6 +2801,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_course: { Args: { _course_id: number }; Returns: boolean }
       can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       can_access_module: { Args: { _module_id: number }; Returns: boolean }
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }

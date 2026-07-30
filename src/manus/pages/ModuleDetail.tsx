@@ -26,6 +26,7 @@ import LessonRating from "@/manus/components/lesson/LessonRating";
 import LessonComments from "@/manus/components/lesson/LessonComments";
 import StartDiscussionButton from "@/manus/components/lesson/StartDiscussionButton";
 import ModuleCompletionDialog from "@/manus/components/learning/ModuleCompletionDialog";
+import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
 
 
 
@@ -486,6 +487,13 @@ export default function ModuleDetail() {
                       url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
                     />
                   </div>
+
+                  <Card className="p-6">
+                    <SupportMaterialsList scope={{ lessonId: activeLesson.id }} emptyHidden={false} />
+                  </Card>
+                  {currentCourseId ? (
+                    <SupportMaterialsList scope={{ courseId: currentCourseId }} title="Course materials" />
+                  ) : null}
 
                   <div className="space-y-4">
                     <p className="text-xs uppercase tracking-wider text-foreground/60">
