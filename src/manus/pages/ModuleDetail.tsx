@@ -504,6 +504,10 @@ export default function ModuleDetail() {
                   {currentCourseId ? (
                     <SupportMaterialsList scope={{ courseId: currentCourseId }} title="Course materials" />
                   ) : null}
+                  {isValidModuleId ? (
+                    <SupportMaterialsList scope={{ moduleId }} title="Module materials" />
+                  ) : null}
+                  <SupportMaterialsList scope={{ bonus: true }} title="Bonus materials" />
 
                   <div className="space-y-4">
                     <p className="text-xs uppercase tracking-wider text-foreground/60">

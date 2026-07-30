@@ -1093,6 +1093,8 @@ export type Database = {
           is_downloadable: boolean
           is_public: boolean
           lesson_id: number | null
+          material_kind: string
+          module_id: number | null
           sort_order: number
           storage_bucket: string
           storage_path: string | null
@@ -1112,6 +1114,8 @@ export type Database = {
           is_downloadable?: boolean
           is_public?: boolean
           lesson_id?: number | null
+          material_kind?: string
+          module_id?: number | null
           sort_order?: number
           storage_bucket?: string
           storage_path?: string | null
@@ -1131,6 +1135,8 @@ export type Database = {
           is_downloadable?: boolean
           is_public?: boolean
           lesson_id?: number | null
+          material_kind?: string
+          module_id?: number | null
           sort_order?: number
           storage_bucket?: string
           storage_path?: string | null
@@ -1150,6 +1156,13 @@ export type Database = {
             columns: ["lesson_id"]
             isOneToOne: false
             referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lesson_attachments_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "course_modules"
             referencedColumns: ["id"]
           },
         ]

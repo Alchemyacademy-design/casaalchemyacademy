@@ -49,6 +49,7 @@ const AdminLessonsBulk = lazyWithRetry(() => import("@/manus/pages/admin/AdminLe
 const AdminStudents = lazyWithRetry(() => import("@/manus/pages/admin/AdminStudents"), "AdminStudents");
 const AdminDiagnostics = lazyWithRetry(() => import("@/manus/pages/admin/AdminDiagnostics"), "AdminDiagnostics");
 const AdminMagazine = lazyWithRetry(() => import("@/manus/pages/admin/AdminMagazine"), "AdminMagazine");
+const AdminMaterials = lazyWithRetry(() => import("@/manus/pages/admin/AdminMaterials"), "AdminMaterials");
 const SuppliersHub = lazyWithRetry(() => import("@/manus/pages/admin/SuppliersHub"), "SuppliersHub");
 const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"), "AdminDeals");
 const EventsHub = lazyWithRetry(() => import("@/manus/pages/admin/EventsHub"), "EventsHub");
@@ -131,6 +132,7 @@ export default function App() {
             <Route path="/admin/events" element={<AdminGuard><EventsHub /></AdminGuard>} />
             <Route path="/admin/workshops" element={<Navigate to="/admin/events?tab=workshops" replace />} />
             <Route path="/admin/magazine" element={<AdminGuard><AdminMagazine /></AdminGuard>} />
+            <Route path="/admin/materials" element={<AdminGuard><AdminMaterials /></AdminGuard>} />
             <Route path="/admin/suppliers" element={<AdminGuard><SuppliersHub /></AdminGuard>} />
             <Route path="/admin/supplier-categories" element={<Navigate to="/admin/suppliers?tab=categories" replace />} />
             <Route path="/admin/deals" element={<AdminGuard><AdminDeals /></AdminGuard>} />

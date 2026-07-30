@@ -1,9 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
+export type MaterialKind = "lesson" | "module" | "course" | "bonus";
+
 export type SupportMaterial = {
   id: number;
   lesson_id: number | null;
+  module_id: number | null;
   course_id: number | null;
+  material_kind: MaterialKind;
   title: string | null;
   description: string | null;
   file_name: string;
@@ -13,12 +17,13 @@ export type SupportMaterial = {
   file_type: string | null;
   file_size: number | null;
   is_downloadable: boolean;
+  is_public: boolean;
   sort_order: number;
   created_at: string;
 };
 
 const SELECT =
-  "id,lesson_id,course_id,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,sort_order,created_at";
+  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,sort_order,created_at";
 
 export const MAX_MATERIAL_BYTES = 50 * 1024 * 1024;
 
@@ -51,20 +56,61 @@ export function formatBytes(bytes: number | null | undefined) {
   return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
-export type MaterialScope = { courseId: number } | { lessonId: number };
+export type MaterialScope =
+  | { courseId: number }
+  | { moduleId: number }
+  | { lessonId: number }
+  | { bonus: true };
+
+export function scopeKindOf(scope: MaterialScope): MaterialKind {
+  if ("courseId" in scope) return "course";
+  if ("moduleId" in scope) return "module";
+  if ("lessonId" in scope) return "lesson";
+  return "bonus";
+}
+
+export function scopeKeyOf(scope: MaterialScope): string {
+  if ("courseId" in scope) return `course-${scope.courseId}`;
+  if ("moduleId" in scope) return `module-${scope.moduleId}`;
+  if ("lessonId" in scope) return `lesson-${scope.lessonId}`;
+  return "bonus";
+}
 
 function scopeColumns(scope: MaterialScope) {
-  return "courseId" in scope
-    ? { course_id: scope.courseId, lesson_id: null as number | null }
-    : { lesson_id: scope.lessonId, course_id: null as number | null };
+  return {
+    material_kind: scopeKindOf(scope),
+    course_id: "courseId" in scope ? scope.courseId : null,
+    module_id: "moduleId" in scope ? scope.moduleId : null,
+    lesson_id: "lessonId" in scope ? scope.lessonId : null,
+  };
 }
 
 export async function listMaterials(scope: MaterialScope): Promise<SupportMaterial[]> {
   let query = supabase.from("lesson_attachments").select(SELECT);
-  query = "courseId" in scope ? query.eq("course_id", scope.courseId) : query.eq("lesson_id", scope.lessonId);
+  if ("courseId" in scope) query = query.eq("course_id", scope.courseId);
+  else if ("moduleId" in scope) query = query.eq("module_id", scope.moduleId);
+  else if ("lessonId" in scope) query = query.eq("lesson_id", scope.lessonId);
+  else query = query.eq("material_kind", "bonus");
   const { data, error } = await query.order("sort_order", { ascending: true }).order("id", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as SupportMaterial[];
+}
+
+/** Central library: every material, whatever it is associated with. */
+export async function listAllMaterials(): Promise<SupportMaterial[]> {
+  const { data, error } = await supabase
+    .from("lesson_attachments")
+    .select(SELECT)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []) as unknown as SupportMaterial[];
+}
+
+/** Move a material to another association (course / module / lesson / bonus). */
+export async function reassignMaterial(id: number, scope: MaterialScope) {
+  const { error } = await supabase.from("lesson_attachments").update(scopeColumns(scope)).eq("id", id);
+  if (error) throw error;
 }
 
 export async function listMaterialsForLessons(lessonIds: number[]): Promise<SupportMaterial[]> {
@@ -96,7 +142,7 @@ export async function uploadMaterialFile(params: {
     throw new Error(`File type ".${ext}" is not allowed.`);
   }
 
-  const folder = "courseId" in scope ? `course-${scope.courseId}` : `lesson-${scope.lessonId}`;
+  const folder = scopeKeyOf(scope);
   const path = `materials/${folder}/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
 
   params.onProgress?.(10);
@@ -166,7 +212,9 @@ export async function createMaterialLink(params: {
 
 export async function updateMaterial(
   id: number,
-  patch: Partial<Pick<SupportMaterial, "title" | "description" | "external_url" | "is_downloadable" | "sort_order">>,
+  patch: Partial<
+    Pick<SupportMaterial, "title" | "description" | "external_url" | "is_downloadable" | "is_public" | "sort_order">
+  >,
 ) {
   const { error } = await supabase.from("lesson_attachments").update(patch).eq("id", id);
   if (error) throw error;

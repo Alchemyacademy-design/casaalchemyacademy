@@ -12,6 +12,7 @@ import {
   formatBytes,
   getMaterialUrl,
   listMaterials,
+  scopeKeyOf,
   updateMaterial,
   uploadMaterialFile,
   type MaterialScope,
@@ -30,7 +31,7 @@ export default function SupportMaterialsPanel({
   compact?: boolean;
 }) {
   const qc = useQueryClient();
-  const scopeKey = "courseId" in scope ? `course-${scope.courseId}` : `lesson-${scope.lessonId}`;
+  const scopeKey = scopeKeyOf(scope);
   const queryKey = ["admin", "support-materials", scopeKey];
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
