@@ -533,6 +533,30 @@ function ModuleSection({
         >
           <Trash2 className="w-4 h-4" />
         </button>
+        <button
+          onClick={async () => {
+            if (
+              !confirm(
+                `Permanently DELETE the module "${module.title}" and ALL of its lessons? This cannot be undone.`,
+              )
+            )
+              return;
+            if (!confirm("Final confirmation: this removes the module and its lessons from the database forever.")) return;
+            try {
+              await deleteModulePermanently(module.id);
+              onDeleted();
+              invalidateAll();
+              toast.success("Module permanently deleted");
+            } catch (e: unknown) {
+              toast.error(errorMessage(e));
+            }
+          }}
+          className="shrink-0 rounded border border-destructive/50 px-2 py-1 text-[11px] font-medium text-destructive hover:bg-destructive/10"
+          aria-label="Delete module permanently"
+          title="Delete module permanently (cannot be undone)"
+        >
+          Delete
+        </button>
       </div>
 
       <div className="space-y-2 pl-2 border-l-2 border-border/40 ml-2">
