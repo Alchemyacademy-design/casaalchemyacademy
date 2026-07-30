@@ -599,6 +599,8 @@ function CourseHeader({
 }) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [uploadingBanner, setUploadingBanner] = useState(false);
+  const bannerRef = useRef<HTMLInputElement>(null);
 
   const onUpload = async (file: File) => {
     setUploading(true);
@@ -611,6 +613,20 @@ function CourseHeader({
       toast.error(errorMessage(e));
     } finally {
       setUploading(false);
+    }
+  };
+
+  const onUploadBanner = async (file: File) => {
+    setUploadingBanner(true);
+    try {
+      const url = await uploadCoverImage(file, "courses");
+      await updateCourse(course.id, { banner_url: url });
+      onChanged();
+      toast.success("Banner updated");
+    } catch (e: unknown) {
+      toast.error(errorMessage(e));
+    } finally {
+      setUploadingBanner(false);
     }
   };
 
@@ -700,6 +716,61 @@ function CourseHeader({
               value={course.cover_image_path}
               onSave={(v) => updateCourse(course.id, { cover_image_path: v.trim() || null }).then(onChanged)}
               className="font-mono text-xs"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="text-xs">Banner image</Label>
+            <div className="h-24 rounded overflow-hidden border bg-muted">
+              {course.banner_url ? (
+                <img
+                  src={course.banner_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={(e) => (e.currentTarget.style.opacity = "0.3")}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-xs text-foreground/40">
+                  No banner
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingBanner}
+                onClick={() => bannerRef.current?.click()}
+              >
+                <Upload className="w-3 h-3 mr-1" /> {uploadingBanner ? "Uploading…" : "Upload banner"}
+              </Button>
+              {course.banner_url && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void updateCourse(course.id, { banner_url: null }).then(onChanged)}
+                >
+                  Remove
+                </Button>
+              )}
+              <input
+                ref={bannerRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onUploadBanner(f);
+                  e.target.value = "";
+                }}
+              />
+            </div>
+            <AutoSaveInput
+              value={course.banner_url}
+              onSave={(v) => updateCourse(course.id, { banner_url: v.trim() || null }).then(onChanged)}
+              className="font-mono text-xs"
+              placeholder="Banner image URL"
             />
           </div>
           <div>
