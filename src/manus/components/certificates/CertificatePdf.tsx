@@ -155,6 +155,8 @@ export function CertificatePdfDoc({
   certificateNumber,
   verifyUrl,
 }: CertificatePdfProps) {
+  const logoSrc =
+    typeof window !== "undefined" ? `${window.location.origin}/img/logo.png` : "/img/logo.png";
   const dateLabel = issuedAt
     ? new Date(issuedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
     : new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -165,6 +167,7 @@ export function CertificatePdfDoc({
         <View style={styles.outerBorder} />
         <View style={styles.innerBorder} />
         <Seal />
+        <PdfImage src={logoSrc} style={styles.logo} />
         <View style={styles.rail}>
           <PdfText style={styles.railText}>
             CASA ALCHEMY STUDIO   ·   CERTIFICATE №  {certificateNumber}
