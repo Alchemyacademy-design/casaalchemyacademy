@@ -163,9 +163,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const edgeResult = await loadAccessViaEdge();
           if (edgeResult === "stale_session") {
-            // Server-side session is gone (session_not_found). Clear the
-            // stale local JWT so we stop looping 401s and end up signed out.
-            await supabase.auth.signOut().catch(() => {});
+            // The access token was rejected. It may simply be expired, so try
+            // a refresh once before giving up.
+            const { data: refreshed } = await supabase.auth
+              .refreshSession()
+              .catch(() => ({ data: { session: null } }));
+            if (refreshed?.session) {
+              const retry = await loadAccessViaEdge();
+              if (retry && retry !== "stale_session") {
+                setAccess(retry);
+                setAccessReady(true);
+                return;
+              }
+            }
+            // Server-side session is really gone (session_not_found). A global
+            // signOut returns 403 in that case and leaves the stale JWT in
+            // localStorage, looping 401s forever — clear it locally instead.
+            await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+            setSession(null);
             setAccess(null);
             setAccessReady(true);
             return;
