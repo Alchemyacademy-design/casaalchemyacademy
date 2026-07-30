@@ -142,7 +142,7 @@ export async function uploadMaterialFile(params: {
     throw new Error(`File type ".${ext}" is not allowed.`);
   }
 
-  const folder = "courseId" in scope ? `course-${scope.courseId}` : `lesson-${scope.lessonId}`;
+  const folder = scopeKeyOf(scope);
   const path = `materials/${folder}/${crypto.randomUUID()}-${sanitizeFileName(file.name)}`;
 
   params.onProgress?.(10);
