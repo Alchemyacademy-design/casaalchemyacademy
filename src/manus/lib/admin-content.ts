@@ -427,6 +427,28 @@ export async function archiveLesson(id: number): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * PERMANENT deletion of a module and everything under it.
+ * Admin-only (enforced by RLS). Lessons are deleted first so we do not depend
+ * on ON DELETE CASCADE being present for every child table.
+ */
+export async function deleteModulePermanently(id: number): Promise<void> {
+  const { data: lessons, error: listError } = await supabase
+    .from("lessons")
+    .select("id")
+    .eq("module_id", id);
+  if (listError) throw listError;
+
+  const lessonIds = (lessons ?? []).map((l) => l.id);
+  if (lessonIds.length > 0) {
+    const { error: lessonError } = await supabase.from("lessons").delete().in("id", lessonIds);
+    if (lessonError) throw lessonError;
+  }
+
+  const { error } = await supabase.from("course_modules").delete().eq("id", id);
+  if (error) throw error;
+}
+
 
 // Bulk reorder: assign sequential sort_order 1..N to the supplied IDs.
 // Only updates rows whose order actually changed (skips writes when stable).
