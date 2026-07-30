@@ -26,6 +26,7 @@ import LessonRating from "@/manus/components/lesson/LessonRating";
 import LessonComments from "@/manus/components/lesson/LessonComments";
 import StartDiscussionButton from "@/manus/components/lesson/StartDiscussionButton";
 import ModuleCompletionDialog from "@/manus/components/learning/ModuleCompletionDialog";
+import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
 
 
 
