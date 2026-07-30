@@ -3,7 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 export type SupportMaterial = {
   id: number;
   lesson_id: number | null;
+  module_id: number | null;
   course_id: number | null;
+  material_kind: MaterialKind;
   title: string | null;
   description: string | null;
   file_name: string;
@@ -13,12 +15,13 @@ export type SupportMaterial = {
   file_type: string | null;
   file_size: number | null;
   is_downloadable: boolean;
+  is_public: boolean;
   sort_order: number;
   created_at: string;
 };
 
 const SELECT =
-  "id,lesson_id,course_id,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,sort_order,created_at";
+  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,sort_order,created_at";
 
 export const MAX_MATERIAL_BYTES = 50 * 1024 * 1024;
 
