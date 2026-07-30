@@ -137,6 +137,11 @@ export default function CertificatePortfolioLayout({
           }}
         />
         <div className="relative max-w-6xl mx-auto px-5 md:px-10 pt-14 md:pt-24 pb-16 md:pb-24">
+          <img
+            src="/img/logo.png"
+            alt="Casa Alchemy Academy"
+            className="h-12 md:h-16 w-auto mb-8"
+          />
           <div
             className="text-[10px] md:text-[11px] font-semibold inline-flex items-center gap-2 mb-6"
             style={{ letterSpacing: "0.32em", textTransform: "uppercase", color: "var(--aa-gold, #B08A3E)" }}
