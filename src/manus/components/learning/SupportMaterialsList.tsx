@@ -6,6 +6,7 @@ import {
   formatBytes,
   getMaterialUrl,
   listMaterials,
+  scopeKeyOf,
   type MaterialScope,
   type SupportMaterial,
 } from "@/manus/lib/support-materials";
@@ -64,7 +65,7 @@ export default function SupportMaterialsList({
   title?: string;
   emptyHidden?: boolean;
 }) {
-  const scopeKey = "courseId" in scope ? `course-${scope.courseId}` : `lesson-${scope.lessonId}`;
+  const scopeKey = scopeKeyOf(scope);
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ["support-materials", scopeKey],
     queryFn: () => listMaterials(scope),
