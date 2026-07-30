@@ -212,7 +212,9 @@ export async function createMaterialLink(params: {
 
 export async function updateMaterial(
   id: number,
-  patch: Partial<Pick<SupportMaterial, "title" | "description" | "external_url" | "is_downloadable" | "sort_order">>,
+  patch: Partial<
+    Pick<SupportMaterial, "title" | "description" | "external_url" | "is_downloadable" | "is_public" | "sort_order">
+  >,
 ) {
   const { error } = await supabase.from("lesson_attachments").update(patch).eq("id", id);
   if (error) throw error;

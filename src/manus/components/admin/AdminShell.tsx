@@ -44,6 +44,7 @@ interface Crumb {
 const NAV = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, exact: true },
   { title: "Course Management", url: "/admin/course-management", icon: Wand2 },
+  { title: "Materials", url: "/admin/materials", icon: Paperclip },
   { title: "Events Hub", url: "/admin/events", icon: Calendar },
   { title: "Magazine", url: "/admin/magazine", icon: Newspaper },
   { title: "Suppliers Hub", url: "/admin/suppliers", icon: Building2 },
