@@ -32,6 +32,7 @@ import VideoPreview from "@/manus/components/admin/VideoPreview";
 import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
+import SupportMaterialsPanel from "@/manus/components/admin/SupportMaterialsPanel";
 import CertificatePreview from "@/manus/components/learning/CertificatePreview";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
 import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/lib/video-url";
@@ -345,6 +346,9 @@ function LessonRow({
               onUploaded={(v) => save({ external_video_url: v })}
               onRemoved={() => save({ external_video_url: null })}
             />
+            <div className="rounded-md border bg-muted/10 p-3">
+              <SupportMaterialsPanel scope={{ lessonId: lesson.id }} compact />
+            </div>
           </div>
         </div>
       )}
