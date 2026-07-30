@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Svg, Circle, Line, Text as PdfText, View } from "@react-pdf/renderer";
+import { Document, Image as PdfImage, Page, StyleSheet, Svg, Circle, Line, Text as PdfText, View } from "@react-pdf/renderer";
 
 export type CertificatePdfProps = {
   studentName: string;
@@ -91,6 +91,13 @@ const styles = StyleSheet.create({
   },
   metaValue: { fontSize: 9, color: "#2E2A1E", marginTop: 4 },
   metaCol: { flex: 1 },
+  logo: {
+    position: "absolute",
+    left: 110,
+    bottom: 42,
+    height: 34,
+    objectFit: "contain",
+  },
   rail: {
     position: "absolute",
     left: 50,
