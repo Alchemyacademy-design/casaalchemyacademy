@@ -16,6 +16,7 @@ import {
   Wand2,
   Search,
   Link2,
+  Paperclip,
 } from "lucide-react";
 import {
   Sidebar,
