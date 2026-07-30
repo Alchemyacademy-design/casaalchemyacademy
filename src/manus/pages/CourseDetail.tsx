@@ -16,6 +16,7 @@ import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import ModuleCard from "@/manus/components/learning/ModuleCard";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
 
 type Lesson = {
   id: number;
