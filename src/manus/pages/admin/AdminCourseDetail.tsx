@@ -76,6 +76,7 @@ import {
   slugTaken,
   archiveLesson,
   archiveModule,
+  deleteModulePermanently,
   getCourse,
   isPlaceholderVideo,
   listLessons,
