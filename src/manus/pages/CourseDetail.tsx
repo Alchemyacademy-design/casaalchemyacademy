@@ -304,16 +304,30 @@ export default function CourseDetail() {
               </div>
             </section>
 
-            {aggregatedMaterials.length > 0 ? (
-              <section className="mb-10">
-                <SectionHeader title="Materials" description="Resources collected from across the course." />
-                <div className="aa-panel flex flex-col gap-2 p-4">
-                  {aggregatedMaterials.map((lesson) => (
-                    <LessonMaterial key={lesson.id} url={lesson.external_resource_url} label={lesson.title} />
-                  ))}
-                </div>
-              </section>
-            ) : null}
+            <section className="mb-10">
+              <SectionHeader title="Materials" description="Resources collected from across the course." />
+              <div className="aa-panel flex flex-col gap-4 p-4">
+                {accessible ? (
+                  <>
+                    <SupportMaterialsList scope={{ courseId }} title="Course support materials" emptyHidden={false} />
+                    {visibleLessons.map((lesson) => (
+                      <SupportMaterialsList
+                        key={lesson.id}
+                        scope={{ lessonId: lesson.id }}
+                        title={lesson.title}
+                      />
+                    ))}
+                  </>
+                ) : (
+                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Lock className="h-4 w-4" /> Support materials unlock when you join this course.
+                  </p>
+                )}
+                {aggregatedMaterials.map((lesson) => (
+                  <LessonMaterial key={`legacy-${lesson.id}`} url={lesson.external_resource_url} label={lesson.title} />
+                ))}
+              </div>
+            </section>
 
             {accessible && finalExam ? (
               <section className="mb-10">
