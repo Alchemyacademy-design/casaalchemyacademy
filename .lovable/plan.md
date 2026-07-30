@@ -1,49 +1,72 @@
-# Plan — Persistent "Back" navigation across every screen
+# Support Materials (Materiais de apoio)
 
-## Goal
-Improve UX by giving users a consistent, always-visible way to return to the previous screen — a Back control at the top AND at the bottom of every page (public, members and admin), without breaking existing headers/layouts.
+Hoje o "material" existe só como um único link solto (`external_resource_url`) por aula. A tabela `lesson_attachments` já existe no banco (com RLS correta), mas nunca foi usada pela interface. O plano transforma isso num recurso completo: arquivos e links de apoio, anexáveis ao **curso inteiro** ou a uma **aula específica**, gerenciáveis pelo admin e visíveis para os alunos com acesso.
 
-## Approach — single shared component
+## 1. Banco de dados (uma migração)
 
-Create a new `BackNav` component used in two flavors:
+Estender `lesson_attachments` para suportar também material de curso:
 
-- **Top variant** — small pill button ("← Back"), placed just above the page content, sticky under the header on scroll.
-- **Bottom variant** — full-width strip at the end of the main content ("← Back" + optional "Top ↑"), rendered before the footer.
+- `lesson_id` passa a aceitar vazio (nulo) e entra a coluna `course_id` (referência ao curso, apaga em cascata).
+- Regra: cada material aponta para uma aula **ou** para um curso — nunca os dois, nunca nenhum (validado por constraint).
+- Novas colunas: `title` (nome amigável mostrado ao aluno), `description`, `external_url` (para material que é só um link, sem upload), `sort_order`.
+- `storage_path` passa a aceitar vazio quando o material for apenas um link externo.
+- Índice por `course_id`.
 
-Behavior:
-- If `history.length > 1` and the referrer is same-origin → `navigate(-1)`.
-- Otherwise → fallback to a smart route (`/dashboard` for members, `/` for public, `/admin` for admin routes).
-- Hidden on landing (`/`), on login/signup entry screens, and inside modals/dialogs (to avoid duplicate close controls).
-- Fully keyboard-accessible (`aria-label="Go back"`), 44px min touch target, respects existing gold theme tokens.
+Regras de acesso (RLS) atualizadas:
 
-## Wiring — 3 layout entry points, no per-page edits
+- Admin e content manager: acesso total (já existe, estender para linhas de curso).
+- Instrutor: acesso total aos materiais dos próprios cursos/aulas.
+- Aluno: leitura quando `can_access_lesson(lesson_id)` for verdadeiro, ou — para material de curso — quando tiver assinatura ativa / entitlement do curso / curso gratuito (mesma lógica já usada em `can_access_lesson`, encapsulada numa nova função `can_access_course(_course_id)`).
 
-Injecting the Back controls into the three layouts covers 100% of pages automatically:
+Storage: usar o bucket privado **`course-assets`** já existente. Políticas em `storage.objects` para que admin/content manager/instrutor possam subir e apagar em `course-assets/materials/...`, e leitura via URL assinada gerada no cliente para quem passa na RLS.
 
-1. **`MemberLayout.tsx`** — wrap `<main>` children with `<BackNav variant="top" />` above and `<BackNav variant="bottom" />` below. Covers Dashboard, Courses, Modules, Community, Events, Magazine, Suppliers, Deals, Profile, Workshops, Notifications.
-2. **`AdminPanel` / admin pages layout** — same wrapping inside the admin shell. Covers every `/admin/*` page and Course Management tabs.
-3. **Public pages** (`Home`, `Plans`, `Magazine` public, legal pages, `Support`, `Login`, `Signup`, `PaymentSuccess/Cancel`, `PublicCertificate`, `CourseQuiz`, `FreeLesson`) — add a small `<PublicPageFrame>` wrapper OR mount `BackNav` directly at the top of each page. Since these pages don't share a single layout, we add a lightweight `PublicShell` wrapper and adopt it where needed (skipping `/` landing).
+## 2. Camada de dados no app
 
-## Files to add / edit
+Novo arquivo `src/manus/lib/support-materials.ts`:
 
-- **Add** `src/manus/components/BackNav.tsx` — the shared component (top + bottom variants, smart fallback, hide-rules by pathname).
-- **Add** `src/manus/components/PublicShell.tsx` — thin wrapper that renders `BackNav` around children for pages without an existing layout.
-- **Edit** `src/manus/components/MemberLayout.tsx` — inject BackNav around `{children}`.
-- **Edit** admin layout wrapper (inside `AdminPanel.tsx` / admin pages) — inject BackNav.
-- **Edit** the ~10 public pages listed above to use `PublicShell` (or mount `BackNav` inline). Skip `/`.
-- **Edit** `src/index.css` — add small `.aa-backnav` styles matching the gold/serif system.
+- `listCourseMaterials(courseId)` / `listLessonMaterials(lessonId)`
+- `uploadMaterial({ file | externalUrl, title, description, courseId | lessonId, isDownloadable })` — sobe o arquivo para `course-assets/materials/<course|lesson>/<id>/<uuid>-<nome>` e grava a linha
+- `updateMaterial(id, patch)` — editar título, descrição, link, ordem, flag de download
+- `deleteMaterial(id)` — apaga a linha **e** o arquivo do storage
+- `getMaterialUrl(material)` — devolve o `external_url` ou uma URL assinada de curta duração
+- Validação no upload: máx. 50 MB, tipos permitidos (PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, ZIP, imagens, TXT, CSV, MP3), nome de arquivo sanitizado.
 
-## Technical details
+## 3. Admin — Course Management
 
-- Uses `useLocation` + `useNavigate` from `react-router-dom` (already installed).
-- Top variant: `position: sticky; top: 0; z-index: 30;` with backdrop blur so it stays reachable during long scroll.
-- Bottom variant: full-width bar with divider, includes "Back to top" secondary link.
-- Skip-list is a small `SKIP_BACK_ROUTES = ["/", "/login", "/signup"]` (regex-friendly for nested paths if needed).
-- No behavior change to browser back button; this only adds an in-page control.
-- No changes to auth, data-fetching, or business logic.
+Componente novo `src/manus/components/admin/SupportMaterialsPanel.tsx`, reutilizado nos dois escopos (recebe `courseId` ou `lessonId`):
 
-## Verification
+- Área de **arrastar e soltar** (ou clicar para escolher arquivo), com barra de progresso e feedback de erro.
+- Alternador "Arquivo" / "Link externo" para cadastrar material que é só uma URL.
+- Lista dos materiais existentes com ícone por tipo, tamanho, título editável em linha, descrição, ordenação por arrastar, botão de baixar (pré-visualizar) e botão de excluir com confirmação.
+- Chave "Permitir download" por material.
 
-- Playwright pass across `/dashboard`, `/mycourses`, `/community`, `/admin`, `/plans`, `/magazine`, `/support` — screenshot top + bottom.
-- Confirm mobile viewport (<768px) shows both controls without overflow.
-- Confirm click behavior: from `/community/general` → `/community`; deep link with empty history → falls back to `/dashboard`.
+Onde aparece:
+
+- **`AdminCourseDetail.tsx`** — nova aba/seção "Support materials" no nível do curso, ao lado do banner e da checklist de publicação. Materiais aqui valem para o curso todo.
+- **Lesson editor** (o painel expandido de cada aula, dentro do mesmo arquivo) — a mesma seção "Support materials" dentro da aula, permitindo adicionar, editar e excluir por aula, como pedido.
+- Um contador ("3 materiais") aparece na linha fechada da aula para saber de relance quais aulas já têm material.
+
+## 4. Renderização para o aluno
+
+- **`ModuleDetail.tsx`** (player da aula): abaixo do vídeo, bloco "Support materials" listando os materiais da aula — título, tipo, tamanho e botão de baixar/abrir (URL assinada gerada na hora do clique). Some quando a aula não tem material. Mantém o link legado `external_resource_url` se existir.
+- **`CourseDetail.tsx`**: a seção "Materials" atual passa a mostrar os materiais reais — primeiro os do curso, depois os agregados das aulas (agrupados por aula), em vez de apenas os `external_resource_url`. Para quem não tem acesso, os itens aparecem bloqueados com cadeado e chamada para assinar.
+- Estilo seguindo os tokens existentes (cartões dourados/escuros da área de membros), responsivo, alvos de toque de 44 px.
+
+## 5. Ordem de execução
+
+1. Migração do banco (schema + RLS + função `can_access_course` + políticas de storage)
+2. `support-materials.ts`
+3. `SupportMaterialsPanel.tsx`
+4. Integração no `AdminCourseDetail.tsx` (curso + lesson editor)
+5. Renderização em `ModuleDetail.tsx` e `CourseDetail.tsx`
+
+## Premortem — o que poderia dar errado
+
+- **Materiais vazando para não-assinantes**: mitigado usando bucket privado + URL assinada gerada só depois da checagem de RLS; nada de URL pública.
+- **Arquivos órfãos no storage** ao excluir aula/curso: o `ON DELETE CASCADE` limpa as linhas, mas não os arquivos. Excluir material pela interface remove os dois; para exclusão em cascata, os arquivos ficam no bucket privado sem referência (inofensivos, e limpáveis depois).
+- **Upload grande travando a interface**: limite de 50 MB e progresso visível.
+- **Constraint de escopo**: garante que nenhum material fique "solto" sem curso nem aula.
+
+## Detalhes técnicos
+
+Tabela final `lesson_attachments`: `id, lesson_id (nullable), course_id (nullable), title, description, file_name, storage_bucket, storage_path (nullable), external_url, file_type, file_size, is_downloadable, is_public, sort_order, created_by, created_at, updated_at` + `CHECK (num_nonnulls(lesson_id, course_id) = 1)` + `CHECK (storage_path IS NOT NULL OR external_url IS NOT NULL)`.
