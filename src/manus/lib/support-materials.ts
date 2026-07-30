@@ -56,20 +56,61 @@ export function formatBytes(bytes: number | null | undefined) {
   return `${value.toFixed(value >= 10 || unit === 0 ? 0 : 1)} ${units[unit]}`;
 }
 
-export type MaterialScope = { courseId: number } | { lessonId: number };
+export type MaterialScope =
+  | { courseId: number }
+  | { moduleId: number }
+  | { lessonId: number }
+  | { bonus: true };
+
+export function scopeKindOf(scope: MaterialScope): MaterialKind {
+  if ("courseId" in scope) return "course";
+  if ("moduleId" in scope) return "module";
+  if ("lessonId" in scope) return "lesson";
+  return "bonus";
+}
+
+export function scopeKeyOf(scope: MaterialScope): string {
+  if ("courseId" in scope) return `course-${scope.courseId}`;
+  if ("moduleId" in scope) return `module-${scope.moduleId}`;
+  if ("lessonId" in scope) return `lesson-${scope.lessonId}`;
+  return "bonus";
+}
 
 function scopeColumns(scope: MaterialScope) {
-  return "courseId" in scope
-    ? { course_id: scope.courseId, lesson_id: null as number | null }
-    : { lesson_id: scope.lessonId, course_id: null as number | null };
+  return {
+    material_kind: scopeKindOf(scope),
+    course_id: "courseId" in scope ? scope.courseId : null,
+    module_id: "moduleId" in scope ? scope.moduleId : null,
+    lesson_id: "lessonId" in scope ? scope.lessonId : null,
+  };
 }
 
 export async function listMaterials(scope: MaterialScope): Promise<SupportMaterial[]> {
   let query = supabase.from("lesson_attachments").select(SELECT);
-  query = "courseId" in scope ? query.eq("course_id", scope.courseId) : query.eq("lesson_id", scope.lessonId);
+  if ("courseId" in scope) query = query.eq("course_id", scope.courseId);
+  else if ("moduleId" in scope) query = query.eq("module_id", scope.moduleId);
+  else if ("lessonId" in scope) query = query.eq("lesson_id", scope.lessonId);
+  else query = query.eq("material_kind", "bonus");
   const { data, error } = await query.order("sort_order", { ascending: true }).order("id", { ascending: true });
   if (error) throw error;
   return (data ?? []) as unknown as SupportMaterial[];
+}
+
+/** Central library: every material, whatever it is associated with. */
+export async function listAllMaterials(): Promise<SupportMaterial[]> {
+  const { data, error } = await supabase
+    .from("lesson_attachments")
+    .select(SELECT)
+    .order("created_at", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return (data ?? []) as unknown as SupportMaterial[];
+}
+
+/** Move a material to another association (course / module / lesson / bonus). */
+export async function reassignMaterial(id: number, scope: MaterialScope) {
+  const { error } = await supabase.from("lesson_attachments").update(scopeColumns(scope)).eq("id", id);
+  if (error) throw error;
 }
 
 export async function listMaterialsForLessons(lessonIds: number[]): Promise<SupportMaterial[]> {
