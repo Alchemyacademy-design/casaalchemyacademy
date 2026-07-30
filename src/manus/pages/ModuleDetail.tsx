@@ -245,6 +245,14 @@ export default function ModuleDetail() {
       moduleId,
       completed: !currentStatus,
     });
+    // Automatic certificate release once the whole course is finished.
+    if (!currentStatus && courseId) {
+      const result = await ensureCertificateForCourse(Number(courseId));
+      if (result?.justIssued) {
+        toast.success("Certificate unlocked — congratulations!");
+        qc.invalidateQueries({ queryKey: ["certificates.myCertificate"] });
+      }
+    }
   };
 
   const isLessonCompleted = (lessonId: number) => completedIds.has(lessonId);
