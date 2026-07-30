@@ -1,4 +1,4 @@
-import { Document, Page, StyleSheet, Svg, Circle, Line, Text as PdfText, View } from "@react-pdf/renderer";
+import { Document, Image as PdfImage, Page, StyleSheet, Svg, Circle, Line, Text as PdfText, View } from "@react-pdf/renderer";
 
 export type CertificatePdfProps = {
   studentName: string;
@@ -91,6 +91,13 @@ const styles = StyleSheet.create({
   },
   metaValue: { fontSize: 9, color: "#2E2A1E", marginTop: 4 },
   metaCol: { flex: 1 },
+  logo: {
+    position: "absolute",
+    left: 110,
+    bottom: 42,
+    height: 34,
+    objectFit: "contain",
+  },
   rail: {
     position: "absolute",
     left: 50,
@@ -148,6 +155,8 @@ export function CertificatePdfDoc({
   certificateNumber,
   verifyUrl,
 }: CertificatePdfProps) {
+  const logoSrc =
+    typeof window !== "undefined" ? `${window.location.origin}/img/logo.png` : "/img/logo.png";
   const dateLabel = issuedAt
     ? new Date(issuedAt).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" })
     : new Date().toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -158,6 +167,7 @@ export function CertificatePdfDoc({
         <View style={styles.outerBorder} />
         <View style={styles.innerBorder} />
         <Seal />
+        <PdfImage src={logoSrc} style={styles.logo} />
         <View style={styles.rail}>
           <PdfText style={styles.railText}>
             CASA ALCHEMY STUDIO   ·   CERTIFICATE №  {certificateNumber}

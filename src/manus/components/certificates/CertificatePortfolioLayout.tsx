@@ -100,6 +100,11 @@ export default function CertificatePortfolioLayout({
         >
           <div className="max-w-6xl mx-auto flex items-center justify-between px-5 md:px-10 py-3 gap-3">
             <div className="flex items-center gap-2 min-w-0">
+              <img
+                src="/img/logo.png"
+                alt="Casa Alchemy Academy"
+                className="h-6 md:h-7 w-auto shrink-0"
+              />
               <ShieldCheck className="w-4 h-4 shrink-0" style={{ color: "var(--aa-gold, #B08A3E)" }} />
               <span
                 className="text-[10px] md:text-[11px] uppercase font-semibold truncate"
@@ -132,6 +137,11 @@ export default function CertificatePortfolioLayout({
           }}
         />
         <div className="relative max-w-6xl mx-auto px-5 md:px-10 pt-14 md:pt-24 pb-16 md:pb-24">
+          <img
+            src="/img/logo.png"
+            alt="Casa Alchemy Academy"
+            className="h-12 md:h-16 w-auto mb-8"
+          />
           <div
             className="text-[10px] md:text-[11px] font-semibold inline-flex items-center gap-2 mb-6"
             style={{ letterSpacing: "0.32em", textTransform: "uppercase", color: "var(--aa-gold, #B08A3E)" }}

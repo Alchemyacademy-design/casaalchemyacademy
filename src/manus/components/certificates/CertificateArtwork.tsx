@@ -207,6 +207,18 @@ export default function CertificateArtwork({
       <div style={outerBorder} aria-hidden="true" />
       <div style={innerBorder} aria-hidden="true" />
       {seal}
+      <img
+        src="/img/logo.png"
+        alt="Casa Alchemy Academy"
+        style={{
+          position: "absolute",
+          left: "13.5%",
+          bottom: "7%",
+          height: "9%",
+          width: "auto",
+          objectFit: "contain",
+        }}
+      />
       <div style={leftRail} aria-hidden="true">
         <span style={railText}>
           Casa Alchemy Studio · Certificate № {certificateNumber}

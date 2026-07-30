@@ -152,3 +152,25 @@ export async function issueCertificateForCourse(courseId: number): Promise<Certi
   if (error) throw error;
   return data as CertificateRecord;
 }
+
+/**
+ * Silent auto-issuance. Returns the existing certificate, issues a new one when
+ * the learner just became eligible, or returns null when not eligible yet.
+ * Never throws — it is called from background/fire-and-forget paths.
+ */
+export async function ensureCertificateForCourse(
+  courseId: number,
+): Promise<{ certificate: CertificateRecord; justIssued: boolean } | null> {
+  try {
+    if (!Number.isFinite(courseId) || courseId <= 0) return null;
+    const existing = await myCertificateForCourse(courseId);
+    if (existing) return { certificate: existing, justIssued: false };
+    const report = await eligibilityForCourse(courseId);
+    if (!report.eligible) return null;
+    const created = await issueCertificateForCourse(courseId);
+    return { certificate: created, justIssued: true };
+  } catch (err) {
+    console.warn("[certificates] auto-issue skipped:", err);
+    return null;
+  }
+}

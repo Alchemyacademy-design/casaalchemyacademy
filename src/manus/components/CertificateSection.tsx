@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, Award, AlertCircle, ExternalLink, Link as LinkIcon, Linkedin, Globe, Lock, Loader2 } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -6,6 +6,7 @@ import CertificateArtwork from "@/manus/components/certificates/CertificateArtwo
 import { downloadCertificatePdf } from "@/manus/components/certificates/downloadCertificatePdf";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureCertificateForCourse } from "@/manus/services/certificate";
 
 type Props = {
   /** Course this certificate is for. When omitted the section renders nothing. */
@@ -35,6 +36,8 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     { enabled },
   );
   const issueMutation = trpc.certificates.issueCertificate.useMutation();
+  const autoIssuedRef = useRef<number | null>(null);
+  const [isAutoIssuing, setIsAutoIssuing] = useState(false);
 
   if (!enabled) {
     return (
@@ -59,6 +62,25 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     | null
     | undefined;
   const isEligible = report?.eligible ?? false;
+
+  // Automatic release: as soon as the learner is eligible and has no active
+  // certificate for this course, issue it silently — no button required.
+  useEffect(() => {
+    if (!enabled || !isEligible) return;
+    if (certificateQuery.isLoading || certificateQuery.data) return;
+    if (autoIssuedRef.current === courseId) return;
+    autoIssuedRef.current = courseId ?? null;
+    setIsAutoIssuing(true);
+    (async () => {
+      const result = await ensureCertificateForCourse(Number(courseId));
+      if (result?.justIssued) {
+        toast.success("Certificate unlocked — congratulations!");
+      }
+      await certificateQuery.refetch();
+      setIsAutoIssuing(false);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled, isEligible, certificateQuery.isLoading, certificateQuery.data, courseId]);
 
   const handleIssueCertificate = async () => {
     try {
@@ -264,14 +286,21 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
               </div>
             </div>
           ) : (
-            <button
-              onClick={handleIssueCertificate}
-              disabled={issueMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-70"
-            >
-              <Award size={16} />
-              {issueMutation.isPending ? "Issuing..." : "Issue My Certificate"}
-            </button>
+            <div className="space-y-3">
+              <p className="text-sm text-foreground/70 inline-flex items-center gap-2">
+                <Loader2 size={14} className={isAutoIssuing || issueMutation.isPending ? "animate-spin" : "hidden"} />
+                {isAutoIssuing || issueMutation.isPending
+                  ? "Releasing your certificate…"
+                  : "Your certificate is being released automatically."}
+              </p>
+              <button
+                onClick={handleIssueCertificate}
+                disabled={issueMutation.isPending || isAutoIssuing}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded border text-sm hover:bg-accent disabled:opacity-70"
+              >
+                <Award size={16} /> Retry now
+              </button>
+            </div>
           )}
         </div>
       )}
