@@ -186,8 +186,8 @@ export default function CertificateArtwork({
           left: "50%",
           top: "50%",
           transform: "translate(-50%, -50%)",
-          width: "62%",
-          height: "62%",
+          width: "56%",
+          height: "56%",
           objectFit: "contain",
         }}
       />
