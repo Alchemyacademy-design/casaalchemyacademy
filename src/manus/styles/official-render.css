@@ -387,13 +387,13 @@
   background:
     linear-gradient(
       0deg,
-      hsl(var(--foreground) / 0.94) 0%,
-      hsl(var(--foreground) / 0.82) 26%,
-      hsl(var(--foreground) / 0.46) 58%,
-      hsl(var(--foreground) / 0.18) 100%
+      hsl(var(--foreground) / 0.92) 0%,
+      hsl(var(--foreground) / 0.7) 22%,
+      hsl(var(--foreground) / 0.28) 48%,
+      hsl(var(--foreground) / 0.06) 78%
     ),
-    linear-gradient(90deg, hsl(var(--foreground) / 0.55), hsl(var(--foreground) / 0.08) 70%),
-    hsl(var(--foreground) / 0.14);
+    linear-gradient(90deg, hsl(var(--foreground) / 0.45), hsl(var(--foreground) / 0.04) 65%),
+    hsl(var(--foreground) / 0.05);
 }
 
 .aa-course-hero-content {
