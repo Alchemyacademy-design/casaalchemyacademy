@@ -23,6 +23,7 @@ const Modules = lazyWithRetry(() => import("@/manus/pages/Modules"), "Modules");
 const ModuleDetail = lazyWithRetry(() => import("@/manus/pages/ModuleDetail"), "ModuleDetail");
 const Community = lazyWithRetry(() => import("@/manus/pages/Community"), "Community");
 const Suppliers = lazyWithRetry(() => import("@/manus/pages/Suppliers"), "Suppliers");
+const Materials = lazyWithRetry(() => import("@/manus/pages/Materials"), "Materials");
 const Deals = lazyWithRetry(() => import("@/manus/pages/Deals"), "Deals");
 const Dashboard = lazyWithRetry(() => import("@/manus/pages/Dashboard"), "Dashboard");
 const Guides = lazyWithRetry(() => import("@/manus/pages/Guides"), "Guides");
@@ -102,6 +103,7 @@ export default function App() {
             <Route path="/courses/:id" element={<CourseDetail />} />
             <Route path="/community" element={<Community />} />
             <Route path="/suppliers" element={<Suppliers />} />
+            <Route path="/materials" element={<Materials />} />
             <Route path="/deals" element={<Deals />} />
             <Route path="/events" element={<Events />} />
             <Route path="/magazine" element={<Magazine />} />
