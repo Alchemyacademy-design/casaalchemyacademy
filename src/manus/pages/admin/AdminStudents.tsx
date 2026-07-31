@@ -45,16 +45,23 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
 
   const closeDelete = () => { setTarget(null); setTypedEmail(""); };
 
+  // Accounts without an email on file are confirmed by typing the user id.
+  const expectedConfirmation = (target?.email ?? target?.id ?? "").trim().toLowerCase();
+
   async function confirmDelete() {
     if (!target) return;
     setDeleting(true);
     try {
       await deleteUserAccount(target.id, typedEmail.trim());
-      toast.success(`${target.email ?? target.id} deleted`);
-      queryClient.invalidateQueries({ queryKey: ["admin", "students"] });
+      toast.success(`${target.email ?? target.id} excluído permanentemente`);
+      // Drop the row immediately, then refresh every admin view that counts users.
+      queryClient.setQueryData<StudentRow[]>(["admin", "students"], (old) =>
+        (old ?? []).filter((r) => r.id !== target.id),
+      );
+      await queryClient.invalidateQueries({ queryKey: ["admin"] });
       closeDelete();
     } catch (e) {
-      toast.error(`Delete failed: ${(e as Error).message}`);
+      toast.error((e as Error).message || "Falha ao excluir o usuário");
     } finally {
       setDeleting(false);
     }
@@ -277,17 +284,23 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
             <DialogTitle className="text-destructive">Delete user permanently?</DialogTitle>
             <DialogDescription>
               This removes the login and every access record (memberships, course access, roles,
-              progress, community activity) for this person. It cannot be undone. Type the email to confirm:
-              <br /><span className="font-mono text-xs">{target?.email}</span>
+              progress, community activity) for this person. It cannot be undone. Type{" "}
+              {target?.email ? "the email" : "the user id"} to confirm:
+              <br /><span className="font-mono text-xs">{target?.email ?? target?.id}</span>
             </DialogDescription>
           </DialogHeader>
-          <Input value={typedEmail} onChange={(e) => setTypedEmail(e.target.value)} placeholder={target?.email ?? ""} />
+          <Input
+            value={typedEmail}
+            onChange={(e) => setTypedEmail(e.target.value)}
+            placeholder={target?.email ?? target?.id ?? ""}
+            autoComplete="off"
+          />
           <DialogFooter>
             <Button variant="ghost" onClick={closeDelete}>Cancel</Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              disabled={deleting || typedEmail.trim().toLowerCase() !== (target?.email ?? "").trim().toLowerCase()}
+              disabled={deleting || typedEmail.trim().toLowerCase() !== expectedConfirmation}
             >
               {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               Delete permanently
