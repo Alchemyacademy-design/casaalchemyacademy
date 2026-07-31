@@ -2889,6 +2889,18 @@ export type Database = {
           region: string
         }[]
       }
+      get_purchasable_courses: {
+        Args: never
+        Returns: {
+          cover_image_path: string
+          description: string
+          id: number
+          short_description: string
+          sort_order: number
+          subtitle: string
+          title: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
