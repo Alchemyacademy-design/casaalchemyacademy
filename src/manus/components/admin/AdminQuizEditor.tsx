@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Check, Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import QuizImportPanel from "@/manus/components/admin/QuizImportPanel";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   isQuestionPublishable,
@@ -33,6 +35,7 @@ type CourseLessonOption = { id: number; title: string; module_title: string; sor
 
 export default function AdminQuizEditor({ courseId }: Props) {
   const qc = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<"all" | QuizStatus>("all");
 
   const listQuery = useQuery({
     queryKey: ["admin-quizzes", courseId],
@@ -139,12 +142,33 @@ export default function AdminQuizEditor({ courseId }: Props) {
         <div>
           <h2 className="font-semibold">Quizzes</h2>
           <p className="text-xs text-foreground/60">
-            Create lesson-scoped knowledge checks. Members see published quizzes inline on the matching lesson page.
+            Create lesson-scoped knowledge checks. Drafts are saved automatically and stay hidden from students —
+            only published quizzes appear on the matching lesson, module or course page.
           </p>
         </div>
         <Button size="sm" onClick={() => createQuiz.mutate()} disabled={createQuiz.isPending}>
           <Plus className="w-3 h-3 mr-1" /> New quiz
         </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1">
+        {(["all", "draft", "published", "archived"] as const).map((s) => {
+          const count =
+            s === "all"
+              ? (listQuery.data ?? []).length
+              : (listQuery.data ?? []).filter((q) => q.status === s).length;
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`text-[11px] rounded-full border px-3 py-1 capitalize transition ${
+                statusFilter === s ? "border-primary bg-primary/10 text-foreground" : "text-foreground/60"
+              }`}
+            >
+              {s === "all" ? "All" : s} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {listQuery.isLoading && <p className="text-xs text-foreground/60">Loading…</p>}
@@ -153,7 +177,9 @@ export default function AdminQuizEditor({ courseId }: Props) {
       )}
 
       <div className="space-y-2">
-        {(listQuery.data ?? []).map((q) => (
+        {(listQuery.data ?? [])
+          .filter((q) => statusFilter === "all" || q.status === statusFilter)
+          .map((q) => (
           <div
             key={q.id}
             className={`border rounded-md p-3 flex items-center justify-between gap-3 ${
@@ -161,9 +187,17 @@ export default function AdminQuizEditor({ courseId }: Props) {
             }`}
           >
             <div className="min-w-0 flex-1">
-              <p className="font-medium truncate">{q.title || "Untitled"}</p>
+              <p className="font-medium truncate flex items-center gap-2">
+                <span className="truncate">{q.title || "Untitled"}</span>
+                <Badge
+                  variant={q.status === "published" ? "default" : "secondary"}
+                  className="text-[10px] shrink-0 capitalize"
+                >
+                  {q.status}
+                </Badge>
+              </p>
               <p className="text-[11px] text-foreground/60">
-                {q.status} · passing {q.passing_score}% ·{" "}
+                passing {q.passing_score}% ·{" "}
                 {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"} ·{" "}
                 {q.lesson_id
                   ? `lesson #${q.lesson_id}`
@@ -314,12 +348,24 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
     else invalidate();
   };
 
-  /** Toggle a single option as correct. Single-correct constraint enforced client-side. */
-  const setSoleCorrect = async (questionId: number, optionId: number, options: ReadonlyArray<{ id: number; is_correct: boolean }>) => {
-    for (const o of options) {
-      if (o.id === optionId && !o.is_correct) await patchOption(o.id, { is_correct: true });
-      else if (o.id !== optionId && o.is_correct) await patchOption(o.id, { is_correct: false });
+  /**
+   * Mark exactly one option as the correct answer. Writes the whole question's
+   * options in one pass (clear others, then set the chosen one) so the editor
+   * can never leave a question with zero or two correct answers.
+   */
+  const setSoleCorrect = async (
+    questionId: number,
+    optionId: number,
+    options: ReadonlyArray<{ id: number; is_correct: boolean }>,
+  ) => {
+    const others = options.filter((o) => o.id !== optionId && o.is_correct).map((o) => o.id);
+    if (others.length > 0) {
+      const { error } = await db.from("quiz_options").update({ is_correct: false }).in("id", others);
+      if (error) { toast.error(errMsg(error)); return; }
     }
+    const { error } = await db.from("quiz_options").update({ is_correct: true }).eq("id", optionId);
+    if (error) { toast.error(errMsg(error)); return; }
+    invalidate();
   };
 
   if (quizQuery.isLoading) return <Card className="p-4 text-xs">Loading editor…</Card>;
@@ -340,6 +386,18 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
         courseId={courseId}
         existingQuestionCount={questions.length}
         onApplied={invalidate}
+      />
+
+      <QuizImportPanel
+        quizId={quiz.id}
+        quizTitle={quiz.title}
+        existingQuestionCount={questions.length}
+        onSaved={({ title }) => {
+          if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
+            patchQuiz({ title }).catch(() => undefined);
+          }
+          invalidate();
+        }}
       />
 
       <div className="grid sm:grid-cols-2 gap-3">
@@ -449,19 +507,32 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
               rows={2}
             />
             <div className="space-y-1 pl-4">
-              {q.options.map((o) => (
+              <p className="text-[11px] text-foreground/55">
+                Click the circle to set the correct answer. Green = the answer used for grading.
+              </p>
+              {q.options.map((o, oi) => (
                 <div key={o.id} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={`correct-${q.id}`}
-                    checked={o.is_correct}
-                    onChange={() => setSoleCorrect(q.id, o.id, q.options)}
-                    aria-label="Correct option"
-                  />
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={o.is_correct}
+                    aria-label={`Mark option ${String.fromCharCode(65 + oi)} as the correct answer`}
+                    onClick={() => setSoleCorrect(q.id, o.id, q.options)}
+                    className={`shrink-0 h-6 w-6 rounded-full border flex items-center justify-center transition ${
+                      o.is_correct
+                        ? "bg-emerald-500 border-emerald-500 text-white"
+                        : "border-border text-transparent hover:border-emerald-400"
+                    }`}
+                  >
+                    <Check className="w-3 h-3" />
+                  </button>
+                  <span className="text-[11px] font-mono text-foreground/50 w-4">
+                    {String.fromCharCode(65 + oi)}
+                  </span>
                   <Input
                     defaultValue={o.option_text}
                     onBlur={(e) => patchOption(o.id, { option_text: e.target.value })}
-                    className="flex-1"
+                    className={`flex-1 ${o.is_correct ? "border-emerald-500/60 bg-emerald-500/5" : ""}`}
                   />
                   <button
                     onClick={() => removeOption(o.id)}
