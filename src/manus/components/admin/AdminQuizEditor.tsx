@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import QuizImportPanel from "@/manus/components/admin/QuizImportPanel";
+import QuizCreateWizard from "@/manus/components/admin/QuizCreateWizard";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -94,24 +95,8 @@ export default function AdminQuizEditor({ courseId }: Props) {
 
   const [activeQuizId, setActiveQuizId] = useState<number | null>(null);
   const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
-
-  const createQuiz = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await db
-        .from("quizzes")
-        .insert({ course_id: courseId, title: "Untitled quiz", passing_score: 70, status: "draft" })
-        .select()
-        .single();
-      if (error) throw error;
-      return data as QuizRow;
-    },
-    onSuccess: (q) => {
-      toast.success("Quiz created");
-      setActiveQuizId(q.id);
-      qc.invalidateQueries({ queryKey: ["admin-quizzes", courseId] });
-    },
-    onError: (e) => toast.error(errMsg(e)),
-  });
+  const [creating, setCreating] = useState(false);
+  const [activeTool, setActiveTool] = useState<QuizEditorTool>("manual");
 
   const setScope = useMutation({
     mutationFn: async ({
@@ -146,10 +131,25 @@ export default function AdminQuizEditor({ courseId }: Props) {
             only published quizzes appear on the matching lesson, module or course page.
           </p>
         </div>
-        <Button size="sm" onClick={() => createQuiz.mutate()} disabled={createQuiz.isPending}>
+        <Button size="sm" onClick={() => setCreating((v) => !v)}>
           <Plus className="w-3 h-3 mr-1" /> New quiz
         </Button>
       </div>
+
+      {creating && (
+        <QuizCreateWizard
+          courses={[{ id: courseId, title: "This course" }]}
+          modules={(modulesQuery.data ?? []).map((m) => ({ id: m.id, title: m.title, course_id: courseId }))}
+          lessons={(lessonsQuery.data ?? []).map((l) => ({ id: l.id, title: `${l.module_title} · ${l.title}`, module_id: 0 }))}
+          fixedCourseId={courseId}
+          onCancel={() => setCreating(false)}
+          onCreated={({ quizId, method }) => {
+            setCreating(false);
+            setActiveTool(method);
+            setActiveQuizId(quizId);
+          }}
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-1">
         {(["all", "draft", "published", "archived"] as const).map((s) => {
@@ -269,7 +269,12 @@ export default function AdminQuizEditor({ courseId }: Props) {
       )}
 
       {activeQuizId != null && (
-        <QuizEditor quizId={activeQuizId} courseId={courseId} onClose={() => setActiveQuizId(null)} />
+        <QuizEditor
+          quizId={activeQuizId}
+          courseId={courseId}
+          initialTool={activeTool}
+          onClose={() => setActiveQuizId(null)}
+        />
       )}
     </Card>
   );
