@@ -377,11 +377,23 @@
   background: linear-gradient(90deg, hsl(var(--foreground) / 0.78), hsl(var(--foreground) / 0.18));
 }
 
-/* When an uploaded hero image is used, add a vertical scrim so the title stays legible. */
+/*
+ * When an uploaded hero image is used, layer a scrim so the title/subtitle stay
+ * fully legible over any photo (including bright ones) while the image is still
+ * clearly visible: a deep bottom fade where the text sits, a softer left fade,
+ * and a light overall tint to tame highlights.
+ */
 .aa-course-hero--image::after {
   background:
-    linear-gradient(0deg, hsl(var(--foreground) / 0.86), hsl(var(--foreground) / 0.25) 62%, hsl(var(--foreground) / 0.12)),
-    linear-gradient(90deg, hsl(var(--foreground) / 0.6), hsl(var(--foreground) / 0.05));
+    linear-gradient(
+      0deg,
+      hsl(var(--foreground) / 0.92) 0%,
+      hsl(var(--foreground) / 0.7) 22%,
+      hsl(var(--foreground) / 0.28) 48%,
+      hsl(var(--foreground) / 0.06) 78%
+    ),
+    linear-gradient(90deg, hsl(var(--foreground) / 0.45), hsl(var(--foreground) / 0.04) 65%),
+    hsl(var(--foreground) / 0.05);
 }
 
 .aa-course-hero-content {
@@ -394,6 +406,15 @@
   justify-content: end;
   padding: 1.75rem;
   color: hsl(var(--primary-foreground));
+}
+
+/* Soft text shadows keep the hero copy crisp over photos without a heavy box. */
+.aa-course-hero-title {
+  text-shadow: 0 2px 18px hsl(var(--foreground) / 0.55), 0 1px 2px hsl(var(--foreground) / 0.45);
+}
+
+.aa-course-hero-subtitle {
+  text-shadow: 0 1px 12px hsl(var(--foreground) / 0.5);
 }
 
 .aa-course-meta {

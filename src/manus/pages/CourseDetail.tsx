@@ -241,8 +241,8 @@ export default function CourseDetail() {
               {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
               {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
             </div>
-            <h1 className="font-serif text-4xl leading-none text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
-            {course.subtitle ? <p className="mt-4 max-w-2xl text-sm leading-7 text-white/82 sm:text-base">{course.subtitle}</p> : null}
+            <h1 className="aa-course-hero-title font-serif text-4xl leading-none text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
+            {course.subtitle ? <p className="aa-course-hero-subtitle mt-4 max-w-2xl text-sm leading-7 text-white sm:text-base">{course.subtitle}</p> : null}
           </div>
         </section>
 
