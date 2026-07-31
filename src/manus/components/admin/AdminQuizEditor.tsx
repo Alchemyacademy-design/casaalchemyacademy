@@ -348,12 +348,24 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
     else invalidate();
   };
 
-  /** Toggle a single option as correct. Single-correct constraint enforced client-side. */
-  const setSoleCorrect = async (questionId: number, optionId: number, options: ReadonlyArray<{ id: number; is_correct: boolean }>) => {
-    for (const o of options) {
-      if (o.id === optionId && !o.is_correct) await patchOption(o.id, { is_correct: true });
-      else if (o.id !== optionId && o.is_correct) await patchOption(o.id, { is_correct: false });
+  /**
+   * Mark exactly one option as the correct answer. Writes the whole question's
+   * options in one pass (clear others, then set the chosen one) so the editor
+   * can never leave a question with zero or two correct answers.
+   */
+  const setSoleCorrect = async (
+    questionId: number,
+    optionId: number,
+    options: ReadonlyArray<{ id: number; is_correct: boolean }>,
+  ) => {
+    const others = options.filter((o) => o.id !== optionId && o.is_correct).map((o) => o.id);
+    if (others.length > 0) {
+      const { error } = await db.from("quiz_options").update({ is_correct: false }).in("id", others);
+      if (error) { toast.error(errMsg(error)); return; }
     }
+    const { error } = await db.from("quiz_options").update({ is_correct: true }).eq("id", optionId);
+    if (error) { toast.error(errMsg(error)); return; }
+    invalidate();
   };
 
   if (quizQuery.isLoading) return <Card className="p-4 text-xs">Loading editor…</Card>;
