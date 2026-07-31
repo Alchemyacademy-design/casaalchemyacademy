@@ -380,6 +380,15 @@ td,
   background: linear-gradient(130deg, var(--aa-olive-dark), var(--aa-text-dark)) !important;
 }
 
+/* An uploaded hero image must beat the palette override above. */
+.aa-course-hero.aa-course-hero--image {
+  background-color: var(--aa-text-dark) !important;
+  background-image: var(--aa-hero-image) !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
 /* Admin Center uses the same light navigation and approved palette */
 .aa-admin-shell,
 body:has(a[href="/admin"]) {
