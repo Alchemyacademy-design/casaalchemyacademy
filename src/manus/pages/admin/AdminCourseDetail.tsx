@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
+import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Eye, GripVertical, Plus, Trash2, Upload } from "lucide-react";
 import {
@@ -645,7 +646,7 @@ function CourseHeader({
         <div className="space-y-2">
           <div className="aspect-video bg-muted rounded overflow-hidden border">
             {course.cover_image_path ? (
-              <img src={course.cover_image_path} alt="" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.opacity = "0.3")} />
+              <img src={resolveAssetUrl(course.cover_image_path) ?? ""} alt="" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.opacity = "0.3")} />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-xs text-foreground/40">No cover</div>
             )}
@@ -730,7 +731,7 @@ function CourseHeader({
             <div className="h-24 rounded overflow-hidden border bg-muted">
               {course.banner_url ? (
                 <img
-                  src={course.banner_url}
+                  src={resolveAssetUrl(course.banner_url) ?? ""}
                   alt=""
                   className="w-full h-full object-cover"
                   onError={(e) => (e.currentTarget.style.opacity = "0.3")}
