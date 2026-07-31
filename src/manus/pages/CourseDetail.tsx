@@ -224,12 +224,11 @@ export default function CourseDetail() {
           className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}`}
           style={
             heroImage
-              ? {
-                  backgroundImage: `url(${heroImage})`,
-                  backgroundSize: "cover",
-                  backgroundPosition: "center",
-                  backgroundRepeat: "no-repeat",
-                }
+              ? ({
+                  // Consumed by `.aa-course-hero--image`, which needs !important to
+                  // beat the palette gradient override in academy-design-system.css.
+                  "--aa-hero-image": `url("${heroImage}")`,
+                } as CSSProperties)
               : undefined
           }
         >
