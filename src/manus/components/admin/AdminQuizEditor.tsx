@@ -388,6 +388,18 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
         onApplied={invalidate}
       />
 
+      <QuizImportPanel
+        quizId={quiz.id}
+        quizTitle={quiz.title}
+        existingQuestionCount={questions.length}
+        onSaved={({ title }) => {
+          if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
+            patchQuiz({ title }).catch(() => undefined);
+          }
+          invalidate();
+        }}
+      />
+
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
           <Label className="text-xs">Title</Label>
