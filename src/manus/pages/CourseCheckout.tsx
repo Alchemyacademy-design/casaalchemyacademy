@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Check, Loader2, Lock, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
@@ -34,7 +34,22 @@ function breakOutAndGo(url: string) {
 
 export default function CourseCheckout() {
   const navigate = useNavigate();
-  const { data: courses = [], isLoading } = usePublishedCourses();
+  const { data: courses = [], isLoading } = useQuery({
+    queryKey: ["purchasable-courses"],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("get_purchasable_courses");
+      if (error) throw error;
+      return (data ?? []) as Array<{
+        id: number;
+        title: string;
+        subtitle: string | null;
+        short_description: string | null;
+        description: string | null;
+        cover_image_path: string | null;
+      }>;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
   const { isAuthenticated, user } = useAuth();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
