@@ -19,7 +19,8 @@ type Action =
   | "grant_course_entitlement"
   | "revoke_course_entitlement"
   | "promote_admin"
-  | "demote_admin";
+  | "demote_admin"
+  | "delete_user";
 
 interface Payload {
   action: Action;
@@ -31,6 +32,7 @@ interface Payload {
   reason?: string;
   membership_id?: number;
   entitlement_id?: number;
+  confirmation_email?: string;
 }
 
 function json(body: unknown, status = 200) {
