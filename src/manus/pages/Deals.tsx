@@ -53,9 +53,18 @@ export default function Deals() {
             {active.map((deal) => (
               <div
                 key={deal.id}
-                className="p-6 module-card-hover"
+                className="module-card-hover overflow-hidden"
                 style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}
               >
+                {(deal as { cover_image_path?: string | null }).cover_image_path && (
+                  <img
+                    src={(deal as { cover_image_path?: string | null }).cover_image_path as string}
+                    alt={deal.title}
+                    loading="lazy"
+                    className="w-full aspect-[4/3] object-cover"
+                  />
+                )}
+                <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={14} style={{ color: "var(--aa-gold)" }} />
                   <span
