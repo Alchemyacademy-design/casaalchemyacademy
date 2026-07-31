@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Check, Loader2, Lock, ArrowRight, ShieldCheck, AlertCircle } from "lucide-react";
+import { Check, Loader2, Lock, ArrowRight, ShieldCheck, AlertCircle, Heart } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
@@ -8,6 +8,11 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/8x2cN64Bj74z6A56H0aZi03";
+
+const CHARITIES = [
+  { id: "lighthouse", name: "The Lighthouse for the Community" },
+  { id: "acasa", name: "A Casa Org" },
+];
 
 const INCLUDED = [
   "Every lesson of the course you choose — videos and written guides",
@@ -53,6 +58,7 @@ export default function CourseCheckout() {
   const { isAuthenticated, user } = useAuth();
 
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedCharity, setSelectedCharity] = useState<string>("");
   const [step, setStep] = useState<"choose" | "account">("choose");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -69,7 +75,7 @@ export default function CourseCheckout() {
   const goToPayment = async (courseId: number) => {
     try {
       const { data, error: fnError } = await supabase.functions.invoke("create-checkout-session", {
-        body: { offer_key: "individual_course", course_id: courseId },
+        body: { offer_key: "individual_course", course_id: courseId, charity_id: selectedCharity || undefined },
       });
       const url = (data as { checkout_url?: string } | null)?.checkout_url;
       if (url) {
@@ -95,12 +101,13 @@ export default function CourseCheckout() {
     }
     link.searchParams.set("utm_content", `course_${courseId}`);
     link.searchParams.set("utm_source", "course_checkout");
+    if (selectedCharity) link.searchParams.set("utm_campaign", selectedCharity);
     toast.success("Redirecting to secure Stripe checkout…");
     breakOutAndGo(link.toString());
   };
 
   const handleContinueToAccount = () => {
-    if (!selectedId) return;
+    if (!selectedId || !selectedCharity) return;
     setError(null);
     if (isAuthenticated) {
       setBusy(true);
@@ -263,14 +270,33 @@ export default function CourseCheckout() {
                   </li>
                 ))}
               </ul>
+              <div className="mb-6" style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.5rem" }}>
+                <div className="flex items-center gap-2 mb-3">
+                  <Heart size={13} style={{ color: "var(--aa-gold)" }} />
+                  <p className="text-xs font-medium" style={{ color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                    Choose a charity to receive your $1 donation:
+                  </p>
+                </div>
+                <div className="space-y-2 mb-3 max-w-md">
+                  {CHARITIES.map((charity) => (
+                    <label key={charity.id} className="flex items-center gap-3 cursor-pointer p-3" style={{ border: `1px solid ${selectedCharity === charity.id ? "var(--aa-gold)" : "var(--aa-cream-dark)"}`, backgroundColor: selectedCharity === charity.id ? "rgba(196,160,90,0.06)" : "transparent", transition: "all 0.15s ease" }}>
+                      <input type="radio" name="charity" value={charity.id} checked={selectedCharity === charity.id} onChange={() => setSelectedCharity(charity.id)} style={{ accentColor: "var(--aa-gold)" }} />
+                      <span className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{charity.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs leading-relaxed" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontStyle: "italic" }}>
+                  This is our way of giving back. You pay nothing more.
+                </p>
+              </div>
               <button
                 onClick={handleContinueToAccount}
-                disabled={!selectedId || busy}
+                disabled={!selectedId || !selectedCharity || busy}
                 className="btn-gold w-full sm:w-auto inline-flex items-center justify-center gap-2"
-                style={{ opacity: selectedId && !busy ? 1 : 0.45 }}
+                style={{ opacity: selectedId && selectedCharity && !busy ? 1 : 0.45 }}
               >
                 {busy && <Loader2 size={14} className="animate-spin" />}
-                {selected ? `Continue with ${selected.title}` : "Select a course to continue"}
+                {!selectedId ? "Select a course to continue" : !selectedCharity ? "Choose a charity to continue" : `Continue with ${selected?.title}`}
                 {!busy && <ArrowRight size={15} />}
               </button>
               <p className="text-xs mt-3" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
