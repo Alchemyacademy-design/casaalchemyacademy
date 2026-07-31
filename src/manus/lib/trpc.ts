@@ -33,8 +33,15 @@ async function requireUser() {
 
 async function authMe() {
   const user = await requireUser();
-  const invoked = await supabase.functions.invoke("auth-me", { method: "POST" });
-  if (!invoked.error && invoked.data) return invoked.data;
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (token) {
+    const invoked = await supabase.functions.invoke("auth-me", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!invoked.error && invoked.data) return invoked.data;
+  }
   const [{ data: profile }, { data: roles }, { data: memberships }, { data: entitlements }] = await Promise.all([
     db.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     db.from("user_roles").select("role").eq("user_id", user.id),

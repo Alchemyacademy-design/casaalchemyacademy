@@ -92,7 +92,17 @@ function mergeUser(user: User, access: AccessData | null): AuthUser {
 }
 
 async function loadAccessViaEdge(): Promise<AccessData | null | "stale_session"> {
-  const { data, error } = await supabase.functions.invoke("auth-me", { method: "POST" });
+  // Never call the function without a user token: the client would send only
+  // the anon apikey and auth-me would answer 401, which surfaces as a runtime
+  // error / blank-screen telemetry event.
+  const { data: sessionData } = await supabase.auth.getSession();
+  const token = sessionData.session?.access_token;
+  if (!token) return "stale_session";
+
+  const { data, error } = await supabase.functions.invoke("auth-me", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
   if (error) {
     // A 401 here means the JWT is stale/expired — the caller will fall back
     // to direct queries. Don't throw: it's an expected signed-out state, not
