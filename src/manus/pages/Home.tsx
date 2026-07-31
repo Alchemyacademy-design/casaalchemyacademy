@@ -494,7 +494,7 @@ export default function Home() {
                       <span className="sub">One-time payment</span>
                       <span className="save">No commitment</span>
                     </div>
-                    <button onClick={() => setSubscribeModal("guide")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
+                    <button onClick={() => navigate("/choose-course")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
                   </td>
                 </tr>
               </tbody>
