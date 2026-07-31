@@ -430,6 +430,15 @@ export default function Home() {
               .cta-btn:focus-visible { outline: 3px solid var(--aa-gold-light); outline-offset: 3px; }
               .cta-btn-primary { font-size: 0.9rem; letter-spacing: 0.18em; min-height: 58px; box-shadow: 0 10px 26px -8px rgba(145,69,33,0.7), inset 0 1px 0 rgba(255,255,255,0.2); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
+              .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
+              .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; }
+              .plan-detail-name { font-family: 'Manrope', sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aa-gold); margin-bottom: 0.5rem; }
+              .plan-detail-price { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--aa-olive-dark); margin-bottom: 0.75rem; }
+              .plan-detail-intro { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.6; margin-bottom: 1rem; }
+              .plan-detail-card ul { list-style: none; margin: 0; padding: 0; }
+              .plan-detail-card li { position: relative; padding-left: 1.1rem; margin-bottom: 0.55rem; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.55; }
+              .plan-detail-card li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--aa-gold); font-size: 0.78rem; }
+              @media (max-width: 900px) { .plan-details { grid-template-columns: 1fr; } }
               @media (max-width: 640px) {
                 .cta-cell { padding: 1rem !important; }
                 .cta-price .amt { font-size: 2rem; }
