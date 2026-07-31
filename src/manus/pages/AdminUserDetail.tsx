@@ -176,7 +176,7 @@ export default function AdminUserDetail() {
       setDeleteEmail("");
       setDeleteReason("");
       queryClient.invalidateQueries({ queryKey: ["admin"] });
-      navigate("/admin/people?tab=students");
+      navigate("/admin/students");
     } catch (e) {
       toast.error(`Delete failed: ${(e as Error).message}`);
     } finally {
