@@ -1,11 +1,20 @@
 import { createRoot } from "react-dom/client";
-import CertificateArtwork from "./manus/components/certificates/CertificateArtwork";
+import { pdf } from "@react-pdf/renderer";
+import { CertificatePdfDoc } from "./manus/components/certificates/CertificatePdf";
 
-createRoot(document.getElementById("root")!).render(
-  <CertificateArtwork
-    studentName="Alex Alchemist"
-    courseTitle="The path to a COLOURFUL life"
-    certificateNumber="AA-PREVIEW-0000"
-    issuedAt={new Date("2026-07-30")}
-  />,
-);
+const root = document.getElementById("root")!;
+createRoot(root).render(<div id="status">rendering…</div>);
+void (async () => {
+  const blob = await pdf(
+    <CertificatePdfDoc
+      studentName="Alex Alchemist"
+      courseTitle="The path to a COLOURFUL life"
+      certificateNumber="AA-PREVIEW-0000"
+    />,
+  ).toBlob();
+  const buf = new Uint8Array(await blob.arrayBuffer());
+  let s = "";
+  buf.forEach((b) => (s += String.fromCharCode(b)));
+  (window as unknown as { __pdf: string }).__pdf = btoa(s);
+  document.title = "pdf-ready";
+})();
