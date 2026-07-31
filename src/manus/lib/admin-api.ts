@@ -25,6 +25,34 @@ export interface UserAccessPayload {
   confirmation_email?: string;
 }
 
+const ERROR_MESSAGES: Record<string, string> = {
+  unauthorized: "Sessão expirada — entre novamente para continuar.",
+  forbidden: "Apenas administradores podem executar esta ação.",
+  designated_admin_protected: "O administrador principal da plataforma não pode ser removido.",
+  cannot_delete_self: "Você não pode excluir a sua própria conta.",
+  confirmation_email_mismatch: "O e-mail digitado não confere com o do usuário.",
+  target_not_found: "Usuário não encontrado (talvez já tenha sido excluído).",
+  delete_failed: "A exclusão falhou no servidor. Tente novamente.",
+  invalid_payload: "Dados inválidos enviados para a exclusão.",
+};
+
+/** Extracts the JSON error body that `functions.invoke` hides behind a generic error. */
+async function readInvokeError(error: unknown): Promise<string> {
+  const ctx = (error as { context?: unknown })?.context;
+  if (ctx && typeof (ctx as Response).json === "function") {
+    try {
+      const body = await (ctx as Response).clone().json();
+      const code = (body as { error?: string })?.error;
+      const message = (body as { message?: string })?.message;
+      if (code) return ERROR_MESSAGES[code] ?? (message ? `${code}: ${message}` : code);
+      if (message) return message;
+    } catch {
+      /* body was not JSON */
+    }
+  }
+  return (error as Error)?.message ?? "Erro desconhecido";
+}
+
 export async function deleteUserAccount(targetUserId: string, confirmationEmail: string, reason?: string) {
   return manageUserAccess({
     action: "delete_user",
@@ -39,9 +67,10 @@ export async function manageUserAccess(payload: UserAccessPayload) {
     "admin-manage-user-access",
     { body: payload },
   );
-  if (error) throw error;
+  if (error) throw new Error(await readInvokeError(error));
   if ((data as { error?: string })?.error) {
-    throw new Error((data as { error: string }).error);
+    const code = (data as { error: string }).error;
+    throw new Error(ERROR_MESSAGES[code] ?? code);
   }
   return data;
 }
