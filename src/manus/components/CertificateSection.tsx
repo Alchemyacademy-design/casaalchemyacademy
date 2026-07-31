@@ -39,20 +39,6 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
   const autoIssuedRef = useRef<number | null>(null);
   const [isAutoIssuing, setIsAutoIssuing] = useState(false);
 
-  if (!enabled) {
-    return (
-      <div className="space-y-2">
-        <div className="flex items-center gap-3">
-          <Award size={20} className="text-primary" />
-          <h2 className="text-xl font-serif text-foreground">Your Certificate</h2>
-        </div>
-        <p className="text-sm text-foreground/65">
-          Select a course to view its certificate progress.
-        </p>
-      </div>
-    );
-  }
-
   const completion = (completionQuery.data as number | undefined) ?? 0;
   const report = reportQuery.data as
     | { eligible: boolean; missing: string[]; totalLessons: number }
@@ -81,6 +67,20 @@ export function CertificateSection({ courseId, courseTitle }: Props) {
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled, isEligible, certificateQuery.isLoading, certificateQuery.data, courseId]);
+
+  if (!enabled) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center gap-3">
+          <Award size={20} className="text-primary" />
+          <h2 className="text-xl font-serif text-foreground">Your Certificate</h2>
+        </div>
+        <p className="text-sm text-foreground/65">
+          Select a course to view its certificate progress.
+        </p>
+      </div>
+    );
+  }
 
   const handleIssueCertificate = async () => {
     try {
