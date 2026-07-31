@@ -209,6 +209,7 @@ export default function CourseDetail() {
   const hasStarted = completedCount > 0;
   const visibleLessons = accessible ? allLessons : allLessons.filter((lesson) => lesson.is_preview === true);
   const aggregatedMaterials = visibleLessons.filter((lesson) => Boolean(lesson.external_resource_url)).slice(0, 6);
+  const heroImage = course.banner_url || course.cover_image_path;
 
   return (
     <MemberLayout>
