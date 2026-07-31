@@ -470,6 +470,40 @@ export default function AdminUserDetail() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog
+        open={confirmDialog === "delete_user"}
+        onOpenChange={(o) => { if (!o) { setConfirmDialog(null); setDeleteEmail(""); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete user permanently?</DialogTitle>
+            <DialogDescription>
+              This removes the login, the profile and every access record for this person.
+              Stripe history is kept for accounting. Type the user&apos;s email to confirm:
+              <br /><span className="font-mono text-xs">{profile?.email}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)} placeholder={profile?.email ?? ""} />
+            <div>
+              <Label className="text-xs">Reason (optional)</Label>
+              <Input value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} placeholder="e.g. test account cleanup" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setConfirmDialog(null); setDeleteEmail(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteUser}
+              disabled={!!busy || deleteEmail.trim().toLowerCase() !== (profile?.email ?? "").trim().toLowerCase()}
+            >
+              {busy === "Delete user" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
