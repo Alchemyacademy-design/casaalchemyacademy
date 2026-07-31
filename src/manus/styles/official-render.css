@@ -408,6 +408,15 @@
   color: hsl(var(--primary-foreground));
 }
 
+/* Soft text shadows keep the hero copy crisp over photos without a heavy box. */
+.aa-course-hero-title {
+  text-shadow: 0 2px 18px hsl(var(--foreground) / 0.55), 0 1px 2px hsl(var(--foreground) / 0.45);
+}
+
+.aa-course-hero-subtitle {
+  text-shadow: 0 1px 12px hsl(var(--foreground) / 0.5);
+}
+
 .aa-course-meta {
   display: flex;
   flex-wrap: wrap;
