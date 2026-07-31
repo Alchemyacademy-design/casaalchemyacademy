@@ -221,11 +221,17 @@ export default function CourseDetail() {
 
         <section
           className="aa-course-hero mb-8"
-          style={
-            course.cover_image_path
-              ? { backgroundImage: `url(${course.cover_image_path})`, backgroundSize: "cover", backgroundPosition: "center" }
-              : undefined
-          }
+          style={(() => {
+            const heroImage = course.banner_url || course.cover_image_path;
+            return heroImage
+              ? {
+                  backgroundImage: `url(${heroImage})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center",
+                  backgroundRepeat: "no-repeat",
+                }
+              : undefined;
+          })()}
         >
           <div className="aa-course-hero-content">
             <div className="mb-4 flex flex-wrap gap-2">
