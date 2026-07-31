@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Check, Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import QuizCard from "@/manus/components/learning/QuizCard";
+import QuizImportPanel from "@/manus/components/admin/QuizImportPanel";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   isQuestionPublishable,
@@ -33,6 +35,7 @@ type CourseLessonOption = { id: number; title: string; module_title: string; sor
 
 export default function AdminQuizEditor({ courseId }: Props) {
   const qc = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<"all" | QuizStatus>("all");
 
   const listQuery = useQuery({
     queryKey: ["admin-quizzes", courseId],
