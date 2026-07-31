@@ -206,6 +206,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
           <QuizEditor
             quizId={editing.quizId}
             courseId={editing.courseId}
+            initialTool={editing.tool}
             onClose={() => setEditing(null)}
           />
         </div>
