@@ -32,7 +32,7 @@ function errMsg(e: unknown) {
   return e instanceof Error ? e.message : String(e);
 }
 
-type CourseLessonOption = { id: number; title: string; module_title: string; sort_order: number };
+type CourseLessonOption = { id: number; title: string; module_id: number; module_title: string; sort_order: number };
 
 export default function AdminQuizEditor({ courseId }: Props) {
   const qc = useQueryClient();
@@ -72,7 +72,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         lessons: Array<{ id: number; title: string; sort_order: number }> | null;
       }>) {
         for (const l of (m.lessons ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)) {
-          out.push({ id: l.id, title: l.title, module_title: m.title, sort_order: l.sort_order });
+          out.push({ id: l.id, title: l.title, module_id: m.id, module_title: m.title, sort_order: l.sort_order });
         }
       }
       return out;
@@ -140,7 +140,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         <QuizCreateWizard
           courses={[{ id: courseId, title: "This course" }]}
           modules={(modulesQuery.data ?? []).map((m) => ({ id: m.id, title: m.title, course_id: courseId }))}
-          lessons={(lessonsQuery.data ?? []).map((l) => ({ id: l.id, title: `${l.module_title} · ${l.title}`, module_id: 0 }))}
+          lessons={(lessonsQuery.data ?? []).map((l) => ({ id: l.id, title: l.title, module_id: l.module_id }))}
           fixedCourseId={courseId}
           onCancel={() => setCreating(false)}
           onCreated={({ quizId, method }) => {
@@ -248,7 +248,14 @@ export default function AdminQuizEditor({ courseId }: Props) {
                 <Eye className="w-3 h-3 mr-1" />
                 {previewQuizId === q.id ? "Hide preview" : "Preview"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setActiveQuizId(q.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveTool("manual");
+                  setActiveQuizId(q.id);
+                }}
+              >
                 {activeQuizId === q.id ? "Editing" : "Edit"}
               </Button>
             </div>
