@@ -507,19 +507,32 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
               rows={2}
             />
             <div className="space-y-1 pl-4">
-              {q.options.map((o) => (
+              <p className="text-[11px] text-foreground/55">
+                Click the circle to set the correct answer. Green = the answer used for grading.
+              </p>
+              {q.options.map((o, oi) => (
                 <div key={o.id} className="flex items-center gap-2">
-                  <input
-                    type="radio"
-                    name={`correct-${q.id}`}
-                    checked={o.is_correct}
-                    onChange={() => setSoleCorrect(q.id, o.id, q.options)}
-                    aria-label="Correct option"
-                  />
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={o.is_correct}
+                    aria-label={`Mark option ${String.fromCharCode(65 + oi)} as the correct answer`}
+                    onClick={() => setSoleCorrect(q.id, o.id, q.options)}
+                    className={`shrink-0 h-6 w-6 rounded-full border flex items-center justify-center transition ${
+                      o.is_correct
+                        ? "bg-emerald-500 border-emerald-500 text-white"
+                        : "border-border text-transparent hover:border-emerald-400"
+                    }`}
+                  >
+                    <Check className="w-3 h-3" />
+                  </button>
+                  <span className="text-[11px] font-mono text-foreground/50 w-4">
+                    {String.fromCharCode(65 + oi)}
+                  </span>
                   <Input
                     defaultValue={o.option_text}
                     onBlur={(e) => patchOption(o.id, { option_text: e.target.value })}
-                    className="flex-1"
+                    className={`flex-1 ${o.is_correct ? "border-emerald-500/60 bg-emerald-500/5" : ""}`}
                   />
                   <button
                     onClick={() => removeOption(o.id)}
