@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Check, Eye, Plus, Trash2, Sparkles, Loader2, FileUp, PencilLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -275,8 +275,21 @@ export default function AdminQuizEditor({ courseId }: Props) {
   );
 }
 
-export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: number; onClose: () => void }) {
+export type QuizEditorTool = "ai" | "import" | "manual";
+
+export function QuizEditor({
+  quizId,
+  courseId,
+  onClose,
+  initialTool = "manual",
+}: {
+  quizId: number;
+  courseId: number;
+  onClose: () => void;
+  initialTool?: QuizEditorTool;
+}) {
   const qc = useQueryClient();
+  const [tool, setTool] = useState<QuizEditorTool>(initialTool);
   const quizQuery = useQuery({
     queryKey: ["admin-quiz", quizId],
     queryFn: () => loadAdminQuiz(quizId),
@@ -381,24 +394,47 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
         <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
       </div>
 
-      <QuizAssistantPanel
-        quiz={quiz}
-        courseId={courseId}
-        existingQuestionCount={questions.length}
-        onApplied={invalidate}
-      />
+      <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+        {([
+          ["ai", "Create with AI", Sparkles],
+          ["import", "Import a ready quiz", FileUp],
+          ["manual", "Write manually", PencilLine],
+        ] as Array<[QuizEditorTool, string, typeof Sparkles]>).map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTool(value)}
+            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition ${
+              tool === value ? "bg-background shadow-sm font-medium" : "text-foreground/60 hover:text-foreground"
+            }`}
+          >
+            <Icon className="w-3 h-3" /> {label}
+          </button>
+        ))}
+      </div>
 
-      <QuizImportPanel
-        quizId={quiz.id}
-        quizTitle={quiz.title}
-        existingQuestionCount={questions.length}
-        onSaved={({ title }) => {
-          if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
-            patchQuiz({ title }).catch(() => undefined);
-          }
-          invalidate();
-        }}
-      />
+      {tool === "ai" && (
+        <QuizAssistantPanel
+          quiz={quiz}
+          courseId={courseId}
+          existingQuestionCount={questions.length}
+          onApplied={invalidate}
+        />
+      )}
+
+      {tool === "import" && (
+        <QuizImportPanel
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          existingQuestionCount={questions.length}
+          onSaved={({ title }) => {
+            if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
+              patchQuiz({ title }).catch(() => undefined);
+            }
+            invalidate();
+          }}
+        />
+      )}
 
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
