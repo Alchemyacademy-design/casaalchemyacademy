@@ -91,11 +91,12 @@ const styles = StyleSheet.create({
   },
   metaValue: { fontSize: 9, color: "#2E2A1E", marginTop: 4 },
   metaCol: { flex: 1 },
-  logo: {
+  sealLogo: {
     position: "absolute",
-    left: 110,
-    bottom: 42,
-    height: 34,
+    top: 18,
+    left: 18,
+    width: 60,
+    height: 60,
     objectFit: "contain",
   },
   rail: {
@@ -118,7 +119,7 @@ const styles = StyleSheet.create({
   },
 });
 
-function Seal() {
+function Seal({ logoSrc }: { logoSrc: string }) {
   const ticks = Array.from({ length: 24 }).map((_, i) => {
     const a = (i / 24) * Math.PI * 2;
     return (
@@ -134,16 +135,14 @@ function Seal() {
     );
   });
   return (
-    <View style={{ position: "absolute", top: 60, right: 60, width: 90, height: 90 }}>
-      <Svg viewBox="0 0 100 100" style={{ width: 90, height: 90 }}>
+    <View style={{ position: "absolute", top: 56, right: 56, width: 96, height: 96 }}>
+      <Svg viewBox="0 0 100 100" style={{ position: "absolute", top: 0, left: 0, width: 96, height: 96 }}>
         <Circle cx="50" cy="50" r="46" fill="none" stroke="#B08A3E" strokeWidth={0.6} />
         <Circle cx="50" cy="50" r="40" fill="none" stroke="#B08A3E" strokeWidth={0.3} />
-        <Circle cx="50" cy="50" r="28" fill="#B08A3E" fillOpacity={0.08} />
-        <PdfText x={50} y={50} style={{ fontFamily: "Times-Roman", fontSize: 22, fill: "#B08A3E", textAnchor: "middle" }}>
-          A
-        </PdfText>
+        <Circle cx="50" cy="50" r="34" fill="#B08A3E" fillOpacity={0.06} />
         {ticks}
       </Svg>
+      <PdfImage src={logoSrc} style={styles.sealLogo} />
     </View>
   );
 }
@@ -166,8 +165,7 @@ export function CertificatePdfDoc({
       <Page size="A4" orientation="landscape" style={styles.page}>
         <View style={styles.outerBorder} />
         <View style={styles.innerBorder} />
-        <Seal />
-        <PdfImage src={logoSrc} style={styles.logo} />
+        <Seal logoSrc={logoSrc} />
         <View style={styles.rail}>
           <PdfText style={styles.railText}>
             CASA ALCHEMY STUDIO   ·   CERTIFICATE №  {certificateNumber}
