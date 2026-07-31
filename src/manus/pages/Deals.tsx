@@ -108,6 +108,7 @@ export default function Deals() {
                     Redeem offer <ExternalLink size={12} />
                   </a>
                 )}
+                </div>
               </div>
             ))}
           </div>
