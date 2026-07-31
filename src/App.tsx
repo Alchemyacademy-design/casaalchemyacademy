@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import ErrorBoundary from "@/manus/components/ErrorBoundary";
@@ -56,7 +56,12 @@ const AdminDeals = lazyWithRetry(() => import("@/manus/pages/admin/AdminDeals"),
 const EventsHub = lazyWithRetry(() => import("@/manus/pages/admin/EventsHub"), "EventsHub");
 const PeopleHub = lazyWithRetry(() => import("@/manus/pages/admin/PeopleHub"), "PeopleHub");
 const CourseManagement = lazyWithRetry(() => import("@/manus/pages/admin/CourseManagement"), "CourseManagement");
-const CourseBuilder = lazyWithRetry(() => import("@/manus/pages/admin/CourseBuilder"), "CourseBuilder");
+// The generic course builder was merged into the full course editor
+// (/admin/courses/:id), which supports covers, banners, modules and lessons.
+function LegacyCourseBuilderRedirect() {
+  const { id } = useParams();
+  return <Navigate to={`/admin/courses/${id ?? ""}`} replace />;
+}
 const AdminLinkScanner = lazyWithRetry(() => import("@/manus/pages/admin/AdminLinkScanner"), "AdminLinkScanner");
 const AdminModeration = lazyWithRetry(() => import("@/manus/pages/admin/AdminModeration"), "AdminModeration");
 const NotificationsInbox = lazyWithRetry(() => import("@/manus/pages/NotificationsInbox"), "NotificationsInbox");
@@ -141,7 +146,7 @@ export default function App() {
             <Route path="/admin/certificates" element={<Navigate to="/admin/course-management?tab=certificates" replace />} />
             <Route path="/admin/quizzes" element={<Navigate to="/admin/course-management?tab=quizzes" replace />} />
             <Route path="/admin/course-management" element={<AdminGuard><CourseManagement /></AdminGuard>} />
-            <Route path="/admin/course-management/:id" element={<AdminGuard><CourseBuilder /></AdminGuard>} />
+            <Route path="/admin/course-management/:id" element={<LegacyCourseBuilderRedirect />} />
             <Route path="/admin/tools/link-scanner" element={<AdminGuard><AdminLinkScanner /></AdminGuard>} />
             <Route path="/admin/community" element={<AdminGuard><AdminModeration /></AdminGuard>} />
             <Route path="/admin/moderation" element={<Navigate to="/admin/community" replace />} />
