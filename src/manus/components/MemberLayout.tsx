@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
-import { BookOpen, Calendar, ChevronLeft, ChevronRight, Gift, LayoutDashboard, LogOut, Menu, Settings, Shield, Sparkles, Users, X } from "lucide-react";
+import { BookOpen, Calendar, ChevronLeft, ChevronRight, Gift, LayoutDashboard, LogOut, Menu, Paperclip, Settings, Shield, Sparkles, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -22,6 +22,7 @@ type NavItem = { label: string; href: string; icon: typeof BookOpen };
 const primaryNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Courses", href: "/mycourses", icon: BookOpen },
+  { label: "Materials", href: "/materials", icon: Paperclip },
   { label: "Live Workshops", href: "/live-workshops", icon: Calendar },
   { label: "Community", href: "/community", icon: Users },
 ];
