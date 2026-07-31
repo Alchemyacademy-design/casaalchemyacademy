@@ -298,6 +298,67 @@ Deno.serve(async (req) => {
         return json({ ok: true, data });
       }
 
+      case "delete_user": {
+        if (isDesignated) return json({ error: "designated_admin_protected" }, 403);
+        if (body.target_user_id === actorId) {
+          return json({ error: "cannot_delete_self" }, 400);
+        }
+        const typed = (body.confirmation_email ?? "").trim().toLowerCase();
+        if (!typed || typed !== targetEmail) {
+          return json({ error: "confirmation_email_mismatch" }, 400);
+        }
+
+        const { data: beforeProfile } = await admin
+          .from("profiles")
+          .select("*")
+          .eq("id", body.target_user_id)
+          .maybeSingle();
+
+        // Audit first — the row must survive the user deletion.
+        await audit(
+          "delete_user",
+          "auth.users",
+          body.target_user_id,
+          { profile: beforeProfile, email: targetEmail },
+          null,
+        );
+
+        // Best-effort cleanup of app-owned data. Tables with ON DELETE CASCADE
+        // are handled by Postgres; these deletes cover the rest.
+        const userScoped: [string, string][] = [
+          ["memberships", "user_id"],
+          ["course_entitlements", "user_id"],
+          ["user_roles", "user_id"],
+          ["notifications", "user_id"],
+          ["lesson_progress", "user_id"],
+          ["lesson_notes", "user_id"],
+          ["lesson_ratings", "user_id"],
+          ["lesson_comments", "user_id"],
+          ["quiz_attempts", "user_id"],
+          ["registrations", "user_id"],
+          ["channel_follows", "user_id"],
+          ["community_reads", "user_id"],
+          ["community_reactions", "user_id"],
+          ["supplier_favorites", "user_id"],
+          ["user_favorites", "user_id"],
+          ["stripe_customers", "user_id"],
+        ];
+        const cleanupErrors: string[] = [];
+        for (const [table, column] of userScoped) {
+          const { error } = await admin.from(table).delete().eq(column, body.target_user_id);
+          if (error) cleanupErrors.push(`${table}: ${error.message}`);
+        }
+        await admin.from("community_replies").delete().eq("author_id", body.target_user_id);
+        await admin.from("community_posts").delete().eq("author_id", body.target_user_id);
+        await admin.from("profiles").delete().eq("id", body.target_user_id);
+
+        const { error: delErr } = await admin.auth.admin.deleteUser(body.target_user_id);
+        if (delErr) {
+          return json({ error: "delete_failed", message: delErr.message, cleanupErrors }, 500);
+        }
+        return json({ ok: true, deleted: body.target_user_id, cleanupErrors });
+      }
+
       default:
         return json({ error: "unknown_action" }, 400);
     }
