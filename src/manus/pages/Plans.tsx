@@ -95,11 +95,19 @@ export default function Plans() {
                       <li key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />{f}</li>
                     ))}
                   </ul>
-                  <Button className="w-full" disabled={isAdmin || !choice} onClick={() => choice && setSelectedPlan(choice)}>
+                  <Button
+                    className="w-full"
+                    disabled={isAdmin || !choice}
+                    onClick={() => {
+                      if (!choice) return;
+                      if (choice === "guide") { navigate("/choose-course"); return; }
+                      setSelectedPlan(choice);
+                    }}
+                  >
                     {isAdmin
                       ? "Not required for admin"
                       : choice === "guide"
-                        ? "Buy this course"
+                        ? "Choose your course"
                         : choice
                           ? `Choose ${choice}`
                           : "Contact us"}
