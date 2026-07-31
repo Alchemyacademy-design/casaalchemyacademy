@@ -377,6 +377,13 @@
   background: linear-gradient(90deg, hsl(var(--foreground) / 0.78), hsl(var(--foreground) / 0.18));
 }
 
+/* When an uploaded hero image is used, add a vertical scrim so the title stays legible. */
+.aa-course-hero--image::after {
+  background:
+    linear-gradient(0deg, hsl(var(--foreground) / 0.86), hsl(var(--foreground) / 0.25) 62%, hsl(var(--foreground) / 0.12)),
+    linear-gradient(90deg, hsl(var(--foreground) / 0.6), hsl(var(--foreground) / 0.05));
+}
+
 .aa-course-hero-content {
   position: relative;
   z-index: 1;

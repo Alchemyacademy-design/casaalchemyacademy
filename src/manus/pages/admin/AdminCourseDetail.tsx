@@ -723,7 +723,10 @@ function CourseHeader({
             />
           </div>
           <div className="space-y-2">
-            <Label className="text-xs">Banner image</Label>
+            <Label className="text-xs">Hero background image</Label>
+            <p className="text-[11px] leading-4 text-foreground/50">
+              Shown behind the course title on the course page. Falls back to the cover image, then to the brown gradient.
+            </p>
             <div className="h-24 rounded overflow-hidden border bg-muted">
               {course.banner_url ? (
                 <img
@@ -734,7 +737,7 @@ function CourseHeader({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-xs text-foreground/40">
-                  No banner
+                  No hero image
                 </div>
               )}
             </div>
@@ -746,7 +749,7 @@ function CourseHeader({
                 disabled={uploadingBanner}
                 onClick={() => bannerRef.current?.click()}
               >
-                <Upload className="w-3 h-3 mr-1" /> {uploadingBanner ? "Uploading…" : "Upload banner"}
+                <Upload className="w-3 h-3 mr-1" /> {uploadingBanner ? "Uploading…" : "Upload hero image"}
               </Button>
               {course.banner_url && (
                 <Button
@@ -774,7 +777,7 @@ function CourseHeader({
               value={course.banner_url}
               onSave={(v) => updateCourse(course.id, { banner_url: v.trim() || null }).then(onChanged)}
               className="font-mono text-xs"
-              placeholder="Banner image URL"
+              placeholder="Hero image URL"
             />
           </div>
           <div>
