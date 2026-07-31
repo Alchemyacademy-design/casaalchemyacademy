@@ -375,6 +375,12 @@ export default function CourseCheckout() {
               <p className="text-[11px] mt-5 flex items-start gap-1.5" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
                 <Lock size={12} style={{ marginTop: 1, flexShrink: 0 }} /> Secure payment handled by Stripe. We never see your card details.
               </p>
+              {selectedCharity && (
+                <p className="text-[11px] mt-2 flex items-start gap-1.5" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                  <Heart size={12} style={{ marginTop: 1, flexShrink: 0, color: "var(--aa-gold)" }} />
+                  $1 of your payment goes to {CHARITIES.find((c) => c.id === selectedCharity)?.name}. You pay nothing more.
+                </p>
+              )}
               {isAuthenticated && user?.email && (
                 <p className="text-[11px] mt-3" style={{ color: "var(--aa-text-light)" }}>Signed in as {user.email}</p>
               )}
