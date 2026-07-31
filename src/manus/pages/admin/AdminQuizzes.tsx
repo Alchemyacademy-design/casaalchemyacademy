@@ -163,7 +163,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
                     variant="outline"
                     onClick={() =>
                       setEditing((cur) =>
-                        cur?.quizId === r.id ? null : { quizId: r.id, courseId: r.course_id },
+                        cur?.quizId === r.id ? null : { quizId: r.id, courseId: r.course_id, tool: "manual" },
                       )
                     }
                   >
