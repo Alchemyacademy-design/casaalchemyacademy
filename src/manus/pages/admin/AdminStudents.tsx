@@ -1,14 +1,23 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowRight, Search } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowRight, Search, Trash2, Loader2 } from "lucide-react";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { deleteUserAccount, isDesignatedAdminEmail } from "@/manus/lib/admin-api";
 import { useUrlFilters } from "@/manus/hooks/useUrlFilters";
 import { useSelection } from "@/manus/hooks/useSelection";
 import BulkActionBar from "@/manus/components/admin/BulkActionBar";
@@ -27,8 +36,29 @@ interface StudentRow {
 
 export function AdminStudentsInner({ embedded = false }: { embedded?: boolean }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { values, set, reset } = useUrlFilters({ q: "", segment: "all" });
   const { q: search, segment } = values;
+  const [target, setTarget] = useState<StudentRow | null>(null);
+  const [typedEmail, setTypedEmail] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  const closeDelete = () => { setTarget(null); setTypedEmail(""); };
+
+  async function confirmDelete() {
+    if (!target) return;
+    setDeleting(true);
+    try {
+      await deleteUserAccount(target.id, typedEmail.trim());
+      toast.success(`${target.email ?? target.id} deleted`);
+      queryClient.invalidateQueries({ queryKey: ["admin", "students"] });
+      closeDelete();
+    } catch (e) {
+      toast.error(`Delete failed: ${(e as Error).message}`);
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   const { data: rows = [], isLoading } = useQuery<StudentRow[]>({
     queryKey: ["admin", "students"],
@@ -205,9 +235,21 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
                   </td>
                   <td className="px-4 py-3 text-foreground/70">{new Date(u.created_at).toLocaleDateString()}</td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/users/${u.id}`)}>
-                      Manage <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => navigate(`/admin/users/${u.id}`)}>
+                        Manage <ArrowRight className="w-4 h-4 ml-1" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive"
+                        title={isDesignatedAdminEmail(u.email) ? "Designated admin cannot be deleted" : "Delete user"}
+                        disabled={isDesignatedAdminEmail(u.email)}
+                        onClick={() => { setTarget(u); setTypedEmail(""); }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -228,6 +270,31 @@ export function AdminStudentsInner({ embedded = false }: { embedded?: boolean })
           Open in People Hub
         </Button>
       </BulkActionBar>
+
+      <Dialog open={!!target} onOpenChange={(o) => { if (!o) closeDelete(); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete user permanently?</DialogTitle>
+            <DialogDescription>
+              This removes the login and every access record (memberships, course access, roles,
+              progress, community activity) for this person. It cannot be undone. Type the email to confirm:
+              <br /><span className="font-mono text-xs">{target?.email}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <Input value={typedEmail} onChange={(e) => setTypedEmail(e.target.value)} placeholder={target?.email ?? ""} />
+          <DialogFooter>
+            <Button variant="ghost" onClick={closeDelete}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting || typedEmail.trim().toLowerCase() !== (target?.email ?? "").trim().toLowerCase()}
+            >
+              {deleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
   if (embedded) return body;

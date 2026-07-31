@@ -3,9 +3,12 @@ import { trpc } from "@/manus/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
-import { Loader2 } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 export default function AdminAnalytics() {
+  const navigate = useNavigate();
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
   // Analytics queries
@@ -35,6 +38,14 @@ export default function AdminAnalytics() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mb-3 -ml-2 text-slate-600 hover:text-slate-900"
+            onClick={() => navigate("/admin")}
+          >
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to admin
+          </Button>
           <h1 className="text-4xl font-bold text-slate-900 mb-2">Admin Analytics Dashboard</h1>
           <p className="text-slate-600">Real-time platform metrics and user analytics</p>
         </div>

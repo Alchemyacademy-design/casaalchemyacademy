@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, ShieldCheck, ShieldOff, Loader2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, ShieldOff, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/manus/hooks/useAuth";
 import {
   DESIGNATED_ADMIN_EMAIL,
@@ -24,6 +24,7 @@ import {
   maskStripeId,
   manageStripeSubscription,
   manageUserAccess,
+  deleteUserAccount,
 } from "@/manus/lib/admin-api";
 import { toast } from "sonner";
 
@@ -78,8 +79,10 @@ export default function AdminUserDetail() {
   const [grantReason, setGrantReason] = useState("");
   const [grantCourseId, setGrantCourseId] = useState<string>("");
   const [grantCourseDays, setGrantCourseDays] = useState("90");
-  const [confirmDialog, setConfirmDialog] = useState<null | "cancel_period" | "cancel_now" | "demote">(null);
+  const [confirmDialog, setConfirmDialog] = useState<null | "cancel_period" | "cancel_now" | "demote" | "delete_user">(null);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
   if (!isAdmin) { navigate("/"); return null; }
@@ -163,6 +166,23 @@ export default function AdminUserDetail() {
 
   const cancelAtPeriodEnd = () => setConfirmDialog("cancel_period");
   const cancelImmediately = () => setConfirmDialog("cancel_now");
+
+  const confirmDeleteUser = async () => {
+    setBusy("Delete user");
+    try {
+      await deleteUserAccount(userId, deleteEmail.trim(), deleteReason || undefined);
+      toast.success("User deleted permanently");
+      setConfirmDialog(null);
+      setDeleteEmail("");
+      setDeleteReason("");
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      navigate("/admin/students");
+    } catch (e) {
+      toast.error(`Delete failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const runStripe = (action: "cancel_at_period_end" | "cancel_immediately" | "resync_subscription") => {
     const subId = data?.subscription?.stripe_subscription_id;
@@ -375,6 +395,29 @@ export default function AdminUserDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Danger zone — permanent account removal */}
+        <Card className="p-6 mt-8 border-destructive/40">
+          <h3 className="font-medium text-destructive flex items-center gap-2 mb-2">
+            <Trash2 className="w-4 h-4" /> Danger zone
+          </h3>
+          <p className="text-sm text-foreground/70 mb-4">
+            Permanently delete this account and all of its access (memberships, course entitlements,
+            roles, progress, community activity). This cannot be undone.
+          </p>
+          <Button
+            variant="destructive"
+            disabled={isDesignated || !!busy || userId === actor?.id}
+            onClick={() => setConfirmDialog("delete_user")}
+          >
+            <Trash2 className="w-4 h-4 mr-2" /> Delete user permanently
+          </Button>
+          {(isDesignated || userId === actor?.id) && (
+            <p className="text-xs text-foreground/60 mt-2">
+              {isDesignated ? "Designated platform admin cannot be deleted." : "You cannot delete your own account."}
+            </p>
+          )}
+        </Card>
       </main>
 
       {/* Confirmation dialogs */}
@@ -424,6 +467,40 @@ export default function AdminUserDetail() {
           <DialogFooter>
             <Button variant="ghost" onClick={() => setConfirmDialog(null)}>Cancel</Button>
             <Button variant="destructive" onClick={confirmDemote} disabled={!!busy || isDesignated}>Confirm</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={confirmDialog === "delete_user"}
+        onOpenChange={(o) => { if (!o) { setConfirmDialog(null); setDeleteEmail(""); } }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-destructive">Delete user permanently?</DialogTitle>
+            <DialogDescription>
+              This removes the login, the profile and every access record for this person.
+              Stripe history is kept for accounting. Type the user&apos;s email to confirm:
+              <br /><span className="font-mono text-xs">{profile?.email}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)} placeholder={profile?.email ?? ""} />
+            <div>
+              <Label className="text-xs">Reason (optional)</Label>
+              <Input value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} placeholder="e.g. test account cleanup" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => { setConfirmDialog(null); setDeleteEmail(""); }}>Cancel</Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteUser}
+              disabled={!!busy || deleteEmail.trim().toLowerCase() !== (profile?.email ?? "").trim().toLowerCase()}
+            >
+              {busy === "Delete user" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Delete permanently
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

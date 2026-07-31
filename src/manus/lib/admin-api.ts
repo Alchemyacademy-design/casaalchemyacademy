@@ -9,7 +9,8 @@ type UserAccessAction =
   | "grant_course_entitlement"
   | "revoke_course_entitlement"
   | "promote_admin"
-  | "demote_admin";
+  | "demote_admin"
+  | "delete_user";
 
 export interface UserAccessPayload {
   action: UserAccessAction;
@@ -21,6 +22,16 @@ export interface UserAccessPayload {
   reason?: string;
   membership_id?: number;
   entitlement_id?: number;
+  confirmation_email?: string;
+}
+
+export async function deleteUserAccount(targetUserId: string, confirmationEmail: string, reason?: string) {
+  return manageUserAccess({
+    action: "delete_user",
+    target_user_id: targetUserId,
+    confirmation_email: confirmationEmail,
+    reason,
+  });
 }
 
 export async function manageUserAccess(payload: UserAccessPayload) {
