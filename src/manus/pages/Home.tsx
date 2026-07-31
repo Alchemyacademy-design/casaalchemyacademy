@@ -500,6 +500,66 @@ export default function Home() {
               </tbody>
             </table>
             <p className="currency-note">All prices are in Australian Dollars (AUD).</p>
+            <div className="plan-details">
+              {[
+                {
+                  name: "Annual Member",
+                  price: "AUD 708 billed once a year (AUD 59/month)",
+                  intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
+                  items: [
+                    "Unlimited access to every course in the library for 12 months, including all courses released during your year",
+                    "All video lessons, written guides and downloadable support materials",
+                    "Quizzes and a completion certificate for every course you finish",
+                    "The A Tribe private community forum",
+                    "Live Workshops with Lorena",
+                    "Members-only events and invitations",
+                    "Every digital magazine issue",
+                    "Suppliers directory and exclusive supplier deals",
+                    "Save AUD 480 compared with paying monthly",
+                  ],
+                },
+                {
+                  name: "Monthly Member",
+                  price: "AUD 99 per month, no lock-in",
+                  intro: "Full library access, month by month. Cancel whenever you want.",
+                  items: [
+                    "Unlimited access to every course while your subscription is active",
+                    "All video lessons, written guides and downloadable support materials",
+                    "Quizzes and completion certificates",
+                    "The A Tribe private community forum",
+                    "Live Workshops with Lorena",
+                    "Digital magazine issues and the suppliers directory",
+                    "Does not include members-only events or exclusive supplier deals",
+                    "Cancel anytime — access runs to the end of the paid month",
+                  ],
+                },
+                {
+                  name: "Individual Course",
+                  price: "AUD 159 one-time, per course",
+                  intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
+                  items: [
+                    "Full access to the one course you select, for 3 months",
+                    "All lessons of that course: videos, written guides and worksheets",
+                    "Downloadable support materials for that course",
+                    "Quiz and completion certificate in your name",
+                    "Your own member account with progress tracking",
+                    "Does not include the community, live workshops, events, magazine or deals",
+                    "You can upgrade to a membership at any time",
+                  ],
+                },
+              ].map((plan) => (
+                <div key={plan.name} className="plan-detail-card">
+                  <p className="plan-detail-name">{plan.name}</p>
+                  <p className="plan-detail-price">{plan.price}</p>
+                  <p className="plan-detail-intro">{plan.intro}</p>
+                  <ul>
+                    {plan.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         </div>
