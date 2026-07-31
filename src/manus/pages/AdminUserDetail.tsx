@@ -395,6 +395,29 @@ export default function AdminUserDetail() {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Danger zone — permanent account removal */}
+        <Card className="p-6 mt-8 border-destructive/40">
+          <h3 className="font-medium text-destructive flex items-center gap-2 mb-2">
+            <Trash2 className="w-4 h-4" /> Danger zone
+          </h3>
+          <p className="text-sm text-foreground/70 mb-4">
+            Permanently delete this account and all of its access (memberships, course entitlements,
+            roles, progress, community activity). This cannot be undone.
+          </p>
+          <Button
+            variant="destructive"
+            disabled={isDesignated || !!busy || userId === actor?.id}
+            onClick={() => setConfirmDialog("delete_user")}
+          >
+            <Trash2 className="w-4 h-4 mr-2" /> Delete user permanently
+          </Button>
+          {(isDesignated || userId === actor?.id) && (
+            <p className="text-xs text-foreground/60 mt-2">
+              {isDesignated ? "Designated platform admin cannot be deleted." : "You cannot delete your own account."}
+            </p>
+          )}
+        </Card>
       </main>
 
       {/* Confirmation dialogs */}
