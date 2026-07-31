@@ -220,18 +220,17 @@ export default function CourseDetail() {
         </div>
 
         <section
-          className="aa-course-hero mb-8"
-          style={(() => {
-            const heroImage = course.banner_url || course.cover_image_path;
-            return heroImage
+          className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}`}
+          style={
+            heroImage
               ? {
                   backgroundImage: `url(${heroImage})`,
                   backgroundSize: "cover",
                   backgroundPosition: "center",
                   backgroundRepeat: "no-repeat",
                 }
-              : undefined;
-          })()}
+              : undefined
+          }
         >
           <div className="aa-course-hero-content">
             <div className="mb-4 flex flex-wrap gap-2">
