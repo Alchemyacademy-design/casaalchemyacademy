@@ -38,6 +38,7 @@ const UpdatePassword = lazyWithRetry(() => import("@/manus/pages/UpdatePassword"
 const PaymentSuccess = lazyWithRetry(() => import("@/manus/pages/PaymentSuccess"), "PaymentSuccess");
 const PaymentCancel = lazyWithRetry(() => import("@/manus/pages/PaymentCancel"), "PaymentCancel");
 const Plans = lazyWithRetry(() => import("@/manus/pages/Plans"), "Plans");
+const CourseCheckout = lazyWithRetry(() => import("@/manus/pages/CourseCheckout"), "CourseCheckout");
 const FreeLesson = lazyWithRetry(() => import("@/manus/pages/FreeLesson"), "FreeLesson");
 const CourseQuiz = lazyWithRetry(() => import("@/manus/pages/CourseQuiz"), "CourseQuiz");
 
