@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // admin-quiz-import: admin-only. Takes raw quiz text (pasted, or extracted in
 // the browser from a .txt/.md/.pdf file) and returns a STRUCTURED DRAFT
 // (questions + options + which option is correct + explanation).

@@ -33,10 +33,10 @@ const OPTION_RE = /^\s{0,6}(?:([*✓✔])\s*)?\(?([a-hA-H])\)?\s*[.)\-:]\s+(.*)$
 const BULLET_RE = /^\s{0,6}(?:([*✓✔])\s*)?[-•]\s+(.*)$/;
 const CHECKBOX_RE = /^\s{0,6}\[([ xX])\]\s*(.*)$/;
 const ANSWER_RE =
-  /^\s*(?:answer|correct(?:\s*answer)?|resposta(?:\s*correta)?|correta|gabarito|respuesta)\s*[:\-]\s*(.+)$/i;
+  /^\s*(?:answer|correct(?:\s*answer)?|resposta(?:\s*correta)?|correta|gabarito|respuesta)\s*[:-]\s*(.+)$/i;
 const EXPLANATION_RE =
-  /^\s*(?:explanation|rationale|why|explica[çc][ãa]o|justificativa|explicaci[óo]n)\s*[:\-]\s*(.+)$/i;
-const TITLE_RE = /^\s*(?:title|t[íi]tulo)\s*[:\-]\s*(.+)$/i;
+  /^\s*(?:explanation|rationale|why|explica[çc][ãa]o|justificativa|explicaci[óo]n)\s*[:-]\s*(.+)$/i;
+const TITLE_RE = /^\s*(?:title|t[íi]tulo)\s*[:-]\s*(.+)$/i;
 const INLINE_CORRECT_RE =
   /\s*[([{]?\s*(?:correct(?:\s*answer)?|correta?|resposta\s*correta|right|verdadeira?)\s*[)\]}]?\s*$/i;
 
