@@ -171,14 +171,15 @@ export default function AdminUserDetail() {
     setBusy("Delete user");
     try {
       await deleteUserAccount(userId, deleteEmail.trim(), deleteReason || undefined);
-      toast.success("User deleted permanently");
+      toast.success("Usuário excluído permanentemente");
       setConfirmDialog(null);
       setDeleteEmail("");
       setDeleteReason("");
-      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      queryClient.removeQueries({ queryKey: ["admin", "user", userId] });
+      await queryClient.invalidateQueries({ queryKey: ["admin"] });
       navigate("/admin/students");
     } catch (e) {
-      toast.error(`Delete failed: ${(e as Error).message}`);
+      toast.error((e as Error).message || "Falha ao excluir o usuário");
     } finally {
       setBusy(null);
     }
