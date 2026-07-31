@@ -48,6 +48,7 @@ type Course = {
   subtitle: string | null;
   description: string | null;
   cover_image_path: string | null;
+  banner_url: string | null;
   status: "draft" | "published" | "archived";
   access_plan_keys: string[] | null;
   course_modules: Module[];
@@ -57,7 +58,7 @@ async function fetchCourseTree(id: number): Promise<Course | null> {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id,title,slug,subtitle,description,cover_image_path,status,access_plan_keys," +
+      "id,title,slug,subtitle,description,cover_image_path,banner_url,status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
         "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
     )
