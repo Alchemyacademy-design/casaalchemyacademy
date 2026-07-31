@@ -89,8 +89,21 @@ Deno.serve(async (req) => {
 
   // Resolve target user email to enforce designated-admin protections.
   const { data: targetUser } = await admin.auth.admin.getUserById(body.target_user_id);
-  if (!targetUser?.user) return json({ error: "target_not_found" }, 404);
-  const targetEmail = (targetUser.user.email ?? "").trim().toLowerCase();
+  // The auth user may already be gone while an orphan profile row survives.
+  // Deletion must still be able to clean that up, so we fall back to the
+  // profile email instead of hard-failing for the delete_user action.
+  let targetEmail = (targetUser?.user?.email ?? "").trim().toLowerCase();
+  const authUserExists = Boolean(targetUser?.user);
+  if (!authUserExists) {
+    const { data: orphanProfile } = await admin
+      .from("profiles")
+      .select("id,email")
+      .eq("id", body.target_user_id)
+      .maybeSingle();
+    if (!orphanProfile) return json({ error: "target_not_found" }, 404);
+    if (body.action !== "delete_user") return json({ error: "target_not_found" }, 404);
+    targetEmail = (orphanProfile.email ?? "").trim().toLowerCase();
+  }
   const isDesignated = targetEmail === DESIGNATED_ADMIN_EMAIL;
 
   const audit = async (
@@ -100,7 +113,7 @@ Deno.serve(async (req) => {
     before_state: unknown,
     after_state: unknown,
   ) => {
-    await admin.from("admin_access_audit_log").insert({
+    const { error } = await admin.from("admin_access_audit_log").insert({
       actor_user_id: actorId,
       target_user_id: body.target_user_id,
       action,
@@ -110,6 +123,7 @@ Deno.serve(async (req) => {
       before_state: before_state ?? null,
       after_state: after_state ?? null,
     });
+    if (error) console.error("[admin-manage-user-access] audit insert failed:", error.message);
   };
 
   try {
@@ -304,8 +318,14 @@ Deno.serve(async (req) => {
           return json({ error: "cannot_delete_self" }, 400);
         }
         const typed = (body.confirmation_email ?? "").trim().toLowerCase();
-        if (!typed || typed !== targetEmail) {
-          return json({ error: "confirmation_email_mismatch" }, 400);
+        // Accounts without an email on file (rare, e.g. orphan rows) are
+        // confirmed by typing the user id instead.
+        const expectedConfirmation = targetEmail || body.target_user_id.toLowerCase();
+        if (!typed || typed !== expectedConfirmation) {
+          return json(
+            { error: "confirmation_email_mismatch", expected: expectedConfirmation },
+            400,
+          );
         }
 
         const { data: beforeProfile } = await admin
@@ -323,39 +343,87 @@ Deno.serve(async (req) => {
           null,
         );
 
-        // Best-effort cleanup of app-owned data. Tables with ON DELETE CASCADE
-        // are handled by Postgres; these deletes cover the rest.
-        const userScoped: [string, string][] = [
-          ["memberships", "user_id"],
-          ["course_entitlements", "user_id"],
-          ["user_roles", "user_id"],
-          ["notifications", "user_id"],
-          ["lesson_progress", "user_id"],
-          ["lesson_notes", "user_id"],
-          ["lesson_ratings", "user_id"],
-          ["lesson_comments", "user_id"],
-          ["quiz_attempts", "user_id"],
-          ["registrations", "user_id"],
-          ["channel_follows", "user_id"],
-          ["community_reads", "user_id"],
-          ["community_reactions", "user_id"],
-          ["supplier_favorites", "user_id"],
-          ["user_favorites", "user_id"],
-          ["stripe_customers", "user_id"],
-        ];
+        // Full cleanup of app-owned data. Some tables cascade from auth.users,
+        // but several (notifications, notes, favourites, deal clicks, reports…)
+        // have no FK at all, so they must be removed explicitly or the account
+        // leaves orphan rows behind. Order matters: children before parents.
         const cleanupErrors: string[] = [];
-        for (const [table, column] of userScoped) {
+        const purge = async (table: string, column: string) => {
           const { error } = await admin.from(table).delete().eq(column, body.target_user_id);
-          if (error) cleanupErrors.push(`${table}: ${error.message}`);
-        }
-        await admin.from("community_replies").delete().eq("author_id", body.target_user_id);
-        await admin.from("community_posts").delete().eq("author_id", body.target_user_id);
-        await admin.from("profiles").delete().eq("id", body.target_user_id);
+          if (error) cleanupErrors.push(`${table}.${column}: ${error.message}`);
+        };
 
-        const { error: delErr } = await admin.auth.admin.deleteUser(body.target_user_id);
-        if (delErr) {
-          return json({ error: "delete_failed", message: delErr.message, cleanupErrors }, 500);
+        // Community content first (replies before posts so cascades stay clean).
+        await purge("community_reactions", "user_id");
+        await purge("community_replies", "author_id");
+        await purge("post_reports", "reporter_id");
+        await purge("community_posts", "author_id");
+        await purge("community_reads", "user_id");
+        await purge("channel_follows", "user_id");
+
+        // Learning data.
+        for (const table of [
+          "lesson_progress",
+          "lesson_notes",
+          "lesson_ratings",
+          "lesson_comments",
+          "module_ratings",
+          "quiz_attempts",
+          "certificates",
+          "registrations",
+        ]) {
+          await purge(table, "user_id");
         }
+
+        // Access + engagement.
+        for (const table of [
+          "memberships",
+          "course_entitlements",
+          "notifications",
+          "supplier_favorites",
+          "user_favorites",
+          "deal_clicks",
+          "checkout_rate_limits",
+        ]) {
+          await purge(table, "user_id");
+        }
+
+        // Roles last so the designated-admin guard trigger never fires early.
+        await purge("user_roles", "user_id");
+
+        // Stripe: keep financial history (those FKs are ON DELETE SET NULL) but
+        // drop the customer mapping so a future signup starts clean.
+        await purge("stripe_customers", "user_id");
+
+        await purge("profiles", "id");
+
+        if (authUserExists) {
+          const { error: delErr } = await admin.auth.admin.deleteUser(body.target_user_id);
+          if (delErr) {
+            return json(
+              { error: "delete_failed", message: delErr.message, cleanupErrors },
+              500,
+            );
+          }
+        }
+
+        // Verify the account is really gone before reporting success.
+        const { data: stillThere } = await admin.auth.admin.getUserById(body.target_user_id);
+        if (stillThere?.user) {
+          return json(
+            { error: "delete_failed", message: "auth user still present after deletion", cleanupErrors },
+            500,
+          );
+        }
+
+        await audit(
+          "delete_user_completed",
+          "auth.users",
+          body.target_user_id,
+          null,
+          { cleanup_errors: cleanupErrors },
+        );
+
         return json({ ok: true, deleted: body.target_user_id, cleanupErrors });
       }
 
