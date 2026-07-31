@@ -430,6 +430,15 @@ export default function Home() {
               .cta-btn:focus-visible { outline: 3px solid var(--aa-gold-light); outline-offset: 3px; }
               .cta-btn-primary { font-size: 0.9rem; letter-spacing: 0.18em; min-height: 58px; box-shadow: 0 10px 26px -8px rgba(145,69,33,0.7), inset 0 1px 0 rgba(255,255,255,0.2); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
+              .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
+              .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; }
+              .plan-detail-name { font-family: 'Manrope', sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aa-gold); margin-bottom: 0.5rem; }
+              .plan-detail-price { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--aa-olive-dark); margin-bottom: 0.75rem; }
+              .plan-detail-intro { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.6; margin-bottom: 1rem; }
+              .plan-detail-card ul { list-style: none; margin: 0; padding: 0; }
+              .plan-detail-card li { position: relative; padding-left: 1.1rem; margin-bottom: 0.55rem; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.55; }
+              .plan-detail-card li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--aa-gold); font-size: 0.78rem; }
+              @media (max-width: 900px) { .plan-details { grid-template-columns: 1fr; } }
               @media (max-width: 640px) {
                 .cta-cell { padding: 1rem !important; }
                 .cta-price .amt { font-size: 2rem; }
@@ -448,13 +457,19 @@ export default function Home() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Access to all courses available", annual: "check", monthly: "check", selected: "access to selected content" },
-                  { feature: "Access to your account", annual: "1 year", monthly: "1 month", selected: "3 months" },
-                  { feature: "New content added regularly", annual: "check", monthly: "check", selected: "" },
-                  { feature: "The A Tribe - Community Forum", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Live Workshops", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Events", annual: "check", monthly: "", selected: "" },
-                  { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
+                  { feature: "Full course library — every course, every lesson", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
+                  { feature: "Length of access", annual: "12 months", monthly: "Renews monthly", selected: "3 months" },
+                  { feature: "Video lessons + written guides", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Downloadable support materials", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
+                  { feature: "New courses & lessons added regularly", annual: "check", monthly: "check", selected: "" },
+                  { feature: "The A Tribe — private community forum", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Live Workshops with Lorena", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Members-only events", annual: "check", monthly: "", selected: "" },
+                  { feature: "Digital magazine issues", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Exclusive supplier deals & discounts", annual: "check", monthly: "", selected: "" },
+                  { feature: "Cancel anytime", annual: "Renews yearly", monthly: "check", selected: "One-time payment" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
                     <td style={{ padding: "1.25rem 1.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{row.feature}</td>
@@ -488,12 +503,72 @@ export default function Home() {
                       <span className="sub">One-time payment</span>
                       <span className="save">No commitment</span>
                     </div>
-                    <button onClick={() => setSubscribeModal("guide")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
+                    <button onClick={() => navigate("/choose-course")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
                   </td>
                 </tr>
               </tbody>
             </table>
             <p className="currency-note">All prices are in Australian Dollars (AUD).</p>
+            <div className="plan-details">
+              {[
+                {
+                  name: "Annual Member",
+                  price: "AUD 708 billed once a year (AUD 59/month)",
+                  intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
+                  items: [
+                    "Unlimited access to every course in the library for 12 months, including all courses released during your year",
+                    "All video lessons, written guides and downloadable support materials",
+                    "Quizzes and a completion certificate for every course you finish",
+                    "The A Tribe private community forum",
+                    "Live Workshops with Lorena",
+                    "Members-only events and invitations",
+                    "Every digital magazine issue",
+                    "Suppliers directory and exclusive supplier deals",
+                    "Save AUD 480 compared with paying monthly",
+                  ],
+                },
+                {
+                  name: "Monthly Member",
+                  price: "AUD 99 per month, no lock-in",
+                  intro: "Full library access, month by month. Cancel whenever you want.",
+                  items: [
+                    "Unlimited access to every course while your subscription is active",
+                    "All video lessons, written guides and downloadable support materials",
+                    "Quizzes and completion certificates",
+                    "The A Tribe private community forum",
+                    "Live Workshops with Lorena",
+                    "Digital magazine issues and the suppliers directory",
+                    "Does not include members-only events or exclusive supplier deals",
+                    "Cancel anytime — access runs to the end of the paid month",
+                  ],
+                },
+                {
+                  name: "Individual Course",
+                  price: "AUD 159 one-time, per course",
+                  intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
+                  items: [
+                    "Full access to the one course you select, for 3 months",
+                    "All lessons of that course: videos, written guides and worksheets",
+                    "Downloadable support materials for that course",
+                    "Quiz and completion certificate in your name",
+                    "Your own member account with progress tracking",
+                    "Does not include the community, live workshops, events, magazine or deals",
+                    "You can upgrade to a membership at any time",
+                  ],
+                },
+              ].map((plan) => (
+                <div key={plan.name} className="plan-detail-card">
+                  <p className="plan-detail-name">{plan.name}</p>
+                  <p className="plan-detail-price">{plan.price}</p>
+                  <p className="plan-detail-intro">{plan.intro}</p>
+                  <ul>
+                    {plan.items.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         </div>
