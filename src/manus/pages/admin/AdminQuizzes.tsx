@@ -83,7 +83,8 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
   const catalog = useQuery({ queryKey: ["admin-quiz-catalog"], queryFn: fetchCatalog });
   const listQuery = useQuery({ queryKey: ["admin-quiz-list"], queryFn: fetchQuizList });
   const [previewId, setPreviewId] = useState<number | null>(null);
-  const [editing, setEditing] = useState<{ quizId: number; courseId: number } | null>(null);
+  const [editing, setEditing] = useState<{ quizId: number; courseId: number; tool: QuizEditorTool } | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: async (quizId: number) => {
@@ -101,26 +102,25 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
 
   const body = (
     <>
-      <NewQuizForm
-        courses={catalog.data?.courses ?? []}
-        modules={catalog.data?.modules ?? []}
-        lessons={catalog.data?.lessons ?? []}
-        onCreated={(id) => {
-          const row = (listQuery.data ?? []).find((r) => r.id === id);
-          // The just-created quiz may not be in listQuery yet; refetch will bring it.
-          // We still need courseId — the form captured it, but we don't have it here.
-          // Fall back: open editor once list refreshes by remembering id.
-          if (row) setEditing({ quizId: row.id, courseId: row.course_id });
-          else {
-            // Optimistic: fetch this quiz's course_id directly.
-            db.from("quizzes").select("course_id").eq("id", id).single().then(
-              ({ data }: { data: { course_id: number } | null }) => {
-                if (data) setEditing({ quizId: id, courseId: data.course_id });
-              },
-            );
-          }
-        }}
-      />
+      {creating ? (
+        <QuizCreateWizard
+          courses={catalog.data?.courses ?? []}
+          modules={catalog.data?.modules ?? []}
+          lessons={catalog.data?.lessons ?? []}
+          onCancel={() => setCreating(false)}
+          onCreated={({ quizId, courseId, method }) => {
+            setCreating(false);
+            setPreviewId(null);
+            setEditing({ quizId, courseId, tool: method });
+          }}
+        />
+      ) : (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="w-3 h-3 mr-1" /> New quiz
+          </Button>
+        </div>
+      )}
 
       <Card className="p-0 overflow-hidden mt-4">
         <table className="w-full text-sm">
