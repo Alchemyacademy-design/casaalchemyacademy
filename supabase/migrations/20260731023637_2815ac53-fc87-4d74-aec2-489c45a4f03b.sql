@@ -1,0 +1,1 @@
+ALTER TABLE public.exclusive_deals ADD COLUMN IF NOT EXISTS cover_image_path text;
