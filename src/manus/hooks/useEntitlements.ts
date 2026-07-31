@@ -59,6 +59,21 @@ export function useEntitlements(): Entitlements {
     },
   });
 
+  // Plan capability matrix — the admin owns these switches in People Hub →
+  // Membership plans. Access is derived from them, so toggling a perk there
+  // immediately changes what members can reach.
+  const plansQ = useQuery({
+    queryKey: ["entitlements", "membership_plans"],
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("membership_plans")
+        .select("key, all_courses, community_access, live_workshops_access, events_access, exclusive_deals_access, individual_course_access, active");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
   return useMemo<Entitlements>(() => {
     // Admin "view as member" override — only applies to admins.
     if (isAdmin && previewPlan) {
@@ -79,23 +94,28 @@ export function useEntitlements(): Entitlements {
     const activeMembership = (memberships.data ?? [])[0] as { plan_key?: string | null } | undefined;
     const isMember = isAdmin || !!activeMembership;
     const planKey = activeMembership?.plan_key ?? null;
-    // Live workshops are gated to the annual tier (and admins). This matches
-    // the sold plan structure until the code is wired to read plan_permissions
-    // dynamically. Keep other feature flags aligned with the flat isMember
-    // check — this scoped fix only touches workshops.
-    const hasWorkshops = isAdmin || planKey === "annual_member";
+    const plan = planKey
+      ? (plansQ.data ?? []).find((p) => p.key === planKey) ?? null
+      : null;
+    // When the plan row is not loaded yet (or was deleted) fall back to the
+    // historical tier rules so nobody is locked out by a transient fetch.
+    const fallbackWorkshops = planKey === "annual_member";
+    const hasWorkshops = isAdmin || (plan ? !!plan.live_workshops_access : isMember && fallbackWorkshops);
+    const hasCommunity = isAdmin || (plan ? !!plan.community_access : isMember);
+    const hasEvents = isAdmin || (plan ? !!plan.events_access : isMember);
+    const hasDeals = isAdmin || (plan ? !!plan.exclusive_deals_access : isMember);
     return {
       isAuthenticated,
       isAdmin,
       isMember,
-      hasCommunity: isMember,
-      hasEvents: isMember,
+      hasCommunity,
+      hasEvents,
       hasWorkshops,
       hasMagazine: isMember,
-      hasDeals: isMember,
+      hasDeals,
       planKey,
       courseIds: (entitlementsQ.data ?? []).map((r) => Number(r.course_id)).filter(Boolean),
       loading: !!uid && (memberships.isLoading || entitlementsQ.isLoading),
     };
-  }, [isAuthenticated, isAdmin, uid, previewPlan, memberships.data, memberships.isLoading, entitlementsQ.data, entitlementsQ.isLoading]);
+  }, [isAuthenticated, isAdmin, uid, previewPlan, memberships.data, memberships.isLoading, entitlementsQ.data, entitlementsQ.isLoading, plansQ.data]);
 }
