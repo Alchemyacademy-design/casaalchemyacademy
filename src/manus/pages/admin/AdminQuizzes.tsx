@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -7,18 +7,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import AdminShell from "@/manus/components/admin/AdminShell";
 import QuizCard from "@/manus/components/learning/QuizCard";
-import { QuizEditor } from "@/manus/components/admin/AdminQuizEditor";
+import { QuizEditor, type QuizEditorTool } from "@/manus/components/admin/AdminQuizEditor";
+import QuizCreateWizard from "@/manus/components/admin/QuizCreateWizard";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db: any = supabase;
-
-type Scope = "lesson" | "module" | "course";
 
 type QuizListRow = {
   id: number;
@@ -83,171 +78,13 @@ async function fetchQuizList(): Promise<QuizListRow[]> {
   }));
 }
 
-function NewQuizForm({ courses, modules, lessons, onCreated }: {
-  courses: Course[];
-  modules: Module[];
-  lessons: Lesson[];
-  onCreated: (quizId: number) => void;
-}) {
-  const qc = useQueryClient();
-  const [courseId, setCourseId] = useState<number | null>(null);
-  const [scope, setScope] = useState<Scope>("lesson");
-  const [moduleId, setModuleId] = useState<number | null>(null);
-  const [lessonId, setLessonId] = useState<number | null>(null);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [passing, setPassing] = useState(70);
-  const [maxAttempts, setMaxAttempts] = useState<string>("");
-
-  const filteredModules = useMemo(
-    () => modules.filter((m) => m.course_id === courseId),
-    [modules, courseId],
-  );
-  const courseLessons = useMemo(() => {
-    const modIds = new Set(filteredModules.map((m) => m.id));
-    return lessons.filter((l) => modIds.has(l.module_id));
-  }, [lessons, filteredModules]);
-
-  const create = useMutation({
-    mutationFn: async () => {
-      if (!courseId) throw new Error("Choose a course");
-      if (!title.trim()) throw new Error("Give the quiz a title");
-      if (scope === "lesson" && !lessonId) throw new Error("Choose a lesson");
-      if (scope === "module" && !moduleId) throw new Error("Choose a module");
-      const payload = {
-        course_id: courseId,
-        lesson_id: scope === "lesson" ? lessonId : null,
-        module_id: scope === "module" ? moduleId : null,
-        title: title.trim(),
-        description: description.trim() || null,
-        passing_score: Math.min(100, Math.max(0, passing)),
-        max_attempts: maxAttempts ? Math.max(1, Number(maxAttempts)) : null,
-        status: "draft",
-      };
-      const { data, error } = await db.from("quizzes").insert(payload).select("id").single();
-      if (error) throw error;
-      return data.id as number;
-    },
-    onSuccess: (id) => {
-      toast.success("Quiz created — now add questions.");
-      setTitle("");
-      setDescription("");
-      qc.invalidateQueries({ queryKey: ["admin-quiz-list"] });
-      onCreated(id);
-    },
-    onError: (e) => toast.error(e instanceof Error ? e.message : String(e)),
-  });
-
-  return (
-    <Card className="p-5 space-y-4">
-      <h2 className="font-semibold">New quiz</h2>
-      <div className="grid sm:grid-cols-2 gap-3">
-        <div>
-          <Label className="text-xs">Course</Label>
-          <select
-            className="h-9 w-full rounded border bg-background px-2 text-sm"
-            value={courseId ?? ""}
-            onChange={(e) => {
-              const v = e.currentTarget.value;
-              setCourseId(v ? Number(v) : null);
-              setModuleId(null);
-              setLessonId(null);
-            }}
-          >
-            <option value="">— select —</option>
-            {courses.map((c) => (
-              <option key={c.id} value={c.id}>{c.title}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <Label className="text-xs">Title</Label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Knowledge check title" />
-        </div>
-      </div>
-
-      <div>
-        <Label className="text-xs">Scope</Label>
-        <RadioGroup value={scope} onValueChange={(v) => setScope(v as Scope)} className="grid sm:grid-cols-3 gap-2 mt-1">
-          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
-            <RadioGroupItem value="lesson" /> Lesson quiz
-          </label>
-          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
-            <RadioGroupItem value="module" /> Module exam
-          </label>
-          <label className="flex items-center gap-2 border rounded p-2 text-sm cursor-pointer">
-            <RadioGroupItem value="course" /> Course final exam
-          </label>
-        </RadioGroup>
-      </div>
-
-      {scope === "lesson" && (
-        <div>
-          <Label className="text-xs">Lesson</Label>
-          <select
-            className="h-9 w-full rounded border bg-background px-2 text-sm"
-            value={lessonId ?? ""}
-            onChange={(e) => setLessonId(e.currentTarget.value ? Number(e.currentTarget.value) : null)}
-            disabled={!courseId}
-          >
-            <option value="">— select —</option>
-            {courseLessons.map((l) => {
-              const mod = filteredModules.find((m) => m.id === l.module_id);
-              return (
-                <option key={l.id} value={l.id}>
-                  {mod?.title} · {l.title}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-      )}
-      {scope === "module" && (
-        <div>
-          <Label className="text-xs">Module</Label>
-          <select
-            className="h-9 w-full rounded border bg-background px-2 text-sm"
-            value={moduleId ?? ""}
-            onChange={(e) => setModuleId(e.currentTarget.value ? Number(e.currentTarget.value) : null)}
-            disabled={!courseId}
-          >
-            <option value="">— select —</option>
-            {filteredModules.map((m) => (
-              <option key={m.id} value={m.id}>{m.title}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      <div className="grid sm:grid-cols-3 gap-3">
-        <div>
-          <Label className="text-xs">Passing score (%)</Label>
-          <Input type="number" min={0} max={100} value={passing} onChange={(e) => setPassing(Number(e.target.value) || 0)} />
-        </div>
-        <div>
-          <Label className="text-xs">Max attempts (blank = unlimited)</Label>
-          <Input type="number" min={1} value={maxAttempts} onChange={(e) => setMaxAttempts(e.target.value)} />
-        </div>
-      </div>
-
-      <div>
-        <Label className="text-xs">Description</Label>
-        <Textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
-      </div>
-
-      <Button size="sm" onClick={() => create.mutate()} disabled={create.isPending}>
-        <Plus className="w-3 h-3 mr-1" /> Create quiz
-      </Button>
-    </Card>
-  );
-}
-
 export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) {
   const qc = useQueryClient();
   const catalog = useQuery({ queryKey: ["admin-quiz-catalog"], queryFn: fetchCatalog });
   const listQuery = useQuery({ queryKey: ["admin-quiz-list"], queryFn: fetchQuizList });
   const [previewId, setPreviewId] = useState<number | null>(null);
-  const [editing, setEditing] = useState<{ quizId: number; courseId: number } | null>(null);
+  const [editing, setEditing] = useState<{ quizId: number; courseId: number; tool: QuizEditorTool } | null>(null);
+  const [creating, setCreating] = useState(false);
 
   const deleteMutation = useMutation({
     mutationFn: async (quizId: number) => {
@@ -265,26 +102,25 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
 
   const body = (
     <>
-      <NewQuizForm
-        courses={catalog.data?.courses ?? []}
-        modules={catalog.data?.modules ?? []}
-        lessons={catalog.data?.lessons ?? []}
-        onCreated={(id) => {
-          const row = (listQuery.data ?? []).find((r) => r.id === id);
-          // The just-created quiz may not be in listQuery yet; refetch will bring it.
-          // We still need courseId — the form captured it, but we don't have it here.
-          // Fall back: open editor once list refreshes by remembering id.
-          if (row) setEditing({ quizId: row.id, courseId: row.course_id });
-          else {
-            // Optimistic: fetch this quiz's course_id directly.
-            db.from("quizzes").select("course_id").eq("id", id).single().then(
-              ({ data }: { data: { course_id: number } | null }) => {
-                if (data) setEditing({ quizId: id, courseId: data.course_id });
-              },
-            );
-          }
-        }}
-      />
+      {creating ? (
+        <QuizCreateWizard
+          courses={catalog.data?.courses ?? []}
+          modules={catalog.data?.modules ?? []}
+          lessons={catalog.data?.lessons ?? []}
+          onCancel={() => setCreating(false)}
+          onCreated={({ quizId, courseId, method }) => {
+            setCreating(false);
+            setPreviewId(null);
+            setEditing({ quizId, courseId, tool: method });
+          }}
+        />
+      ) : (
+        <div className="flex justify-end">
+          <Button size="sm" onClick={() => setCreating(true)}>
+            <Plus className="w-3 h-3 mr-1" /> New quiz
+          </Button>
+        </div>
+      )}
 
       <Card className="p-0 overflow-hidden mt-4">
         <table className="w-full text-sm">
@@ -327,7 +163,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
                     variant="outline"
                     onClick={() =>
                       setEditing((cur) =>
-                        cur?.quizId === r.id ? null : { quizId: r.id, courseId: r.course_id },
+                        cur?.quizId === r.id ? null : { quizId: r.id, courseId: r.course_id, tool: "manual" },
                       )
                     }
                   >
@@ -370,6 +206,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
           <QuizEditor
             quizId={editing.quizId}
             courseId={editing.courseId}
+            initialTool={editing.tool}
             onClose={() => setEditing(null)}
           />
         </div>

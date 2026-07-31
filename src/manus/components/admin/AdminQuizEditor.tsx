@@ -2,7 +2,7 @@ import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Check, Eye, Plus, Trash2, Sparkles, Loader2 } from "lucide-react";
+import { Check, Eye, Plus, Trash2, Sparkles, Loader2, FileUp, PencilLine } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import QuizImportPanel from "@/manus/components/admin/QuizImportPanel";
+import QuizCreateWizard from "@/manus/components/admin/QuizCreateWizard";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -31,7 +32,7 @@ function errMsg(e: unknown) {
   return e instanceof Error ? e.message : String(e);
 }
 
-type CourseLessonOption = { id: number; title: string; module_title: string; sort_order: number };
+type CourseLessonOption = { id: number; title: string; module_id: number; module_title: string; sort_order: number };
 
 export default function AdminQuizEditor({ courseId }: Props) {
   const qc = useQueryClient();
@@ -71,7 +72,7 @@ export default function AdminQuizEditor({ courseId }: Props) {
         lessons: Array<{ id: number; title: string; sort_order: number }> | null;
       }>) {
         for (const l of (m.lessons ?? []).slice().sort((a, b) => a.sort_order - b.sort_order)) {
-          out.push({ id: l.id, title: l.title, module_title: m.title, sort_order: l.sort_order });
+          out.push({ id: l.id, title: l.title, module_id: m.id, module_title: m.title, sort_order: l.sort_order });
         }
       }
       return out;
@@ -94,24 +95,8 @@ export default function AdminQuizEditor({ courseId }: Props) {
 
   const [activeQuizId, setActiveQuizId] = useState<number | null>(null);
   const [previewQuizId, setPreviewQuizId] = useState<number | null>(null);
-
-  const createQuiz = useMutation({
-    mutationFn: async () => {
-      const { data, error } = await db
-        .from("quizzes")
-        .insert({ course_id: courseId, title: "Untitled quiz", passing_score: 70, status: "draft" })
-        .select()
-        .single();
-      if (error) throw error;
-      return data as QuizRow;
-    },
-    onSuccess: (q) => {
-      toast.success("Quiz created");
-      setActiveQuizId(q.id);
-      qc.invalidateQueries({ queryKey: ["admin-quizzes", courseId] });
-    },
-    onError: (e) => toast.error(errMsg(e)),
-  });
+  const [creating, setCreating] = useState(false);
+  const [activeTool, setActiveTool] = useState<QuizEditorTool>("manual");
 
   const setScope = useMutation({
     mutationFn: async ({
@@ -146,10 +131,25 @@ export default function AdminQuizEditor({ courseId }: Props) {
             only published quizzes appear on the matching lesson, module or course page.
           </p>
         </div>
-        <Button size="sm" onClick={() => createQuiz.mutate()} disabled={createQuiz.isPending}>
+        <Button size="sm" onClick={() => setCreating((v) => !v)}>
           <Plus className="w-3 h-3 mr-1" /> New quiz
         </Button>
       </div>
+
+      {creating && (
+        <QuizCreateWizard
+          courses={[{ id: courseId, title: "This course" }]}
+          modules={(modulesQuery.data ?? []).map((m) => ({ id: m.id, title: m.title, course_id: courseId }))}
+          lessons={(lessonsQuery.data ?? []).map((l) => ({ id: l.id, title: l.title, module_id: l.module_id }))}
+          fixedCourseId={courseId}
+          onCancel={() => setCreating(false)}
+          onCreated={({ quizId, method }) => {
+            setCreating(false);
+            setActiveTool(method);
+            setActiveQuizId(quizId);
+          }}
+        />
+      )}
 
       <div className="flex flex-wrap items-center gap-1">
         {(["all", "draft", "published", "archived"] as const).map((s) => {
@@ -248,7 +248,14 @@ export default function AdminQuizEditor({ courseId }: Props) {
                 <Eye className="w-3 h-3 mr-1" />
                 {previewQuizId === q.id ? "Hide preview" : "Preview"}
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setActiveQuizId(q.id)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setActiveTool("manual");
+                  setActiveQuizId(q.id);
+                }}
+              >
                 {activeQuizId === q.id ? "Editing" : "Edit"}
               </Button>
             </div>
@@ -269,14 +276,32 @@ export default function AdminQuizEditor({ courseId }: Props) {
       )}
 
       {activeQuizId != null && (
-        <QuizEditor quizId={activeQuizId} courseId={courseId} onClose={() => setActiveQuizId(null)} />
+        <QuizEditor
+          quizId={activeQuizId}
+          courseId={courseId}
+          initialTool={activeTool}
+          onClose={() => setActiveQuizId(null)}
+        />
       )}
     </Card>
   );
 }
 
-export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; courseId: number; onClose: () => void }) {
+export type QuizEditorTool = "ai" | "import" | "manual";
+
+export function QuizEditor({
+  quizId,
+  courseId,
+  onClose,
+  initialTool = "manual",
+}: {
+  quizId: number;
+  courseId: number;
+  onClose: () => void;
+  initialTool?: QuizEditorTool;
+}) {
   const qc = useQueryClient();
+  const [tool, setTool] = useState<QuizEditorTool>(initialTool);
   const quizQuery = useQuery({
     queryKey: ["admin-quiz", quizId],
     queryFn: () => loadAdminQuiz(quizId),
@@ -381,24 +406,47 @@ export function QuizEditor({ quizId, courseId, onClose }: { quizId: number; cour
         <Button size="sm" variant="ghost" onClick={onClose}>Close</Button>
       </div>
 
-      <QuizAssistantPanel
-        quiz={quiz}
-        courseId={courseId}
-        existingQuestionCount={questions.length}
-        onApplied={invalidate}
-      />
+      <div className="inline-flex rounded-md border p-0.5 bg-muted/40">
+        {([
+          ["ai", "Create with AI", Sparkles],
+          ["import", "Import a ready quiz", FileUp],
+          ["manual", "Write manually", PencilLine],
+        ] as Array<[QuizEditorTool, string, typeof Sparkles]>).map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => setTool(value)}
+            className={`inline-flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition ${
+              tool === value ? "bg-background shadow-sm font-medium" : "text-foreground/60 hover:text-foreground"
+            }`}
+          >
+            <Icon className="w-3 h-3" /> {label}
+          </button>
+        ))}
+      </div>
 
-      <QuizImportPanel
-        quizId={quiz.id}
-        quizTitle={quiz.title}
-        existingQuestionCount={questions.length}
-        onSaved={({ title }) => {
-          if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
-            patchQuiz({ title }).catch(() => undefined);
-          }
-          invalidate();
-        }}
-      />
+      {tool === "ai" && (
+        <QuizAssistantPanel
+          quiz={quiz}
+          courseId={courseId}
+          existingQuestionCount={questions.length}
+          onApplied={invalidate}
+        />
+      )}
+
+      {tool === "import" && (
+        <QuizImportPanel
+          quizId={quiz.id}
+          quizTitle={quiz.title}
+          existingQuestionCount={questions.length}
+          onSaved={({ title }) => {
+            if (title && (!quiz.title || quiz.title === "Untitled quiz")) {
+              patchQuiz({ title }).catch(() => undefined);
+            }
+            invalidate();
+          }}
+        />
+      )}
 
       <div className="grid sm:grid-cols-2 gap-3">
         <div>
