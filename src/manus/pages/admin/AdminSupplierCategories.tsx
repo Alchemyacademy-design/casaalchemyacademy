@@ -10,9 +10,10 @@ export function AdminSupplierCategoriesInner({ embedded = false }: { embedded?: 
       orderBy={{ column: "sort_order", ascending: true }}
       searchFields={["name", "slug"]}
       publicInvalidateKeys={[["public", "supplier_categories"]]}
+      deletionMode="hard"
       fields={[
         { name: "name", label: "Name", type: "text", required: true },
-        { name: "slug", label: "Slug", type: "text", required: true },
+        { name: "slug", label: "Slug", type: "text", required: true, deriveSlugFrom: "name", placeholder: "Auto-generated from name" },
         { name: "description", label: "Description", type: "textarea", hideInTable: true },
         { name: "sort_order", label: "Order", type: "number", defaultValue: 0 },
       ]}
