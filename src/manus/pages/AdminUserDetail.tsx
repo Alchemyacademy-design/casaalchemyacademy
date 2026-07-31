@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ArrowLeft, ShieldCheck, ShieldOff, Loader2 } from "lucide-react";
+import { ArrowLeft, ShieldCheck, ShieldOff, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/manus/hooks/useAuth";
 import {
   DESIGNATED_ADMIN_EMAIL,
@@ -24,6 +24,7 @@ import {
   maskStripeId,
   manageStripeSubscription,
   manageUserAccess,
+  deleteUserAccount,
 } from "@/manus/lib/admin-api";
 import { toast } from "sonner";
 
@@ -78,8 +79,10 @@ export default function AdminUserDetail() {
   const [grantReason, setGrantReason] = useState("");
   const [grantCourseId, setGrantCourseId] = useState<string>("");
   const [grantCourseDays, setGrantCourseDays] = useState("90");
-  const [confirmDialog, setConfirmDialog] = useState<null | "cancel_period" | "cancel_now" | "demote">(null);
+  const [confirmDialog, setConfirmDialog] = useState<null | "cancel_period" | "cancel_now" | "demote" | "delete_user">(null);
   const [confirmEmail, setConfirmEmail] = useState("");
+  const [deleteEmail, setDeleteEmail] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
   if (!isAdmin) { navigate("/"); return null; }
@@ -163,6 +166,23 @@ export default function AdminUserDetail() {
 
   const cancelAtPeriodEnd = () => setConfirmDialog("cancel_period");
   const cancelImmediately = () => setConfirmDialog("cancel_now");
+
+  const confirmDeleteUser = async () => {
+    setBusy("Delete user");
+    try {
+      await deleteUserAccount(userId, deleteEmail.trim(), deleteReason || undefined);
+      toast.success("User deleted permanently");
+      setConfirmDialog(null);
+      setDeleteEmail("");
+      setDeleteReason("");
+      queryClient.invalidateQueries({ queryKey: ["admin"] });
+      navigate("/admin/people?tab=students");
+    } catch (e) {
+      toast.error(`Delete failed: ${(e as Error).message}`);
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const runStripe = (action: "cancel_at_period_end" | "cancel_immediately" | "resync_subscription") => {
     const subId = data?.subscription?.stripe_subscription_id;
