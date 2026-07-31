@@ -749,13 +749,16 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                 const isNewRecord = !editing[primaryKey];
                 const set = (v: unknown) => {
                   const next: Record<string, unknown> = { ...editing, [f.name]: v };
-                  // Auto-derive dependent slug fields (only for new records, and
-                  // only while the admin hasn't manually edited the slug).
-                  if (isNewRecord && typeof v === "string") {
+                  // Auto-derive dependent slug fields. Always for new records;
+                  // for existing rows only when the slug is still empty, so we
+                  // never silently break public URLs of published content.
+                  if (typeof v === "string") {
                     for (const other of fields) {
-                      if (other.deriveSlugFrom === f.name && !touchedFields[other.name]) {
-                        next[other.name] = slugify(v);
-                      }
+                      if (other.deriveSlugFrom !== f.name) continue;
+                      if (touchedFields[other.name]) continue;
+                      const current = editing[other.name];
+                      const canDerive = isNewRecord || !current || String(current).trim() === "";
+                      if (canDerive) next[other.name] = slugify(v);
                     }
                   }
                   setEditing(next);
@@ -767,6 +770,11 @@ export default function AdminTablePage<T extends PublicTableName>(props: AdminTa
                 return (
                   <div key={f.name}>
                     <Label className="text-xs">{f.label}{f.required && " *"}</Label>
+                    {f.deriveSlugFrom && (
+                      <p className="text-[11px] text-foreground/50 mb-1">
+                        Generated automatically — edit only if you need a custom URL.
+                      </p>
+                    )}
                     {f.type === "textarea" ? (
                       <Textarea value={(value as string) ?? ""} onChange={(e) => set(e.target.value)} rows={4} />
                     ) : f.type === "boolean" ? (

@@ -10,6 +10,7 @@ export function AdminCertificatesInner({ embedded = false }: { embedded?: boolea
       orderBy={{ column: "issued_at", ascending: false }}
       searchFields={["certificate_number"]}
       publicInvalidateKeys={[["public", "certificates"]]}
+      deletionMode="hard"
       fields={[
         { name: "certificate_number", label: "Number", type: "text", required: true },
         { name: "user_id", label: "User ID", type: "text", required: true },

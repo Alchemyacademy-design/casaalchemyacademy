@@ -87,7 +87,7 @@ export default function CourseManagement() {
 
   const dup = useMutation({
     mutationFn: (id: number) => duplicateCourse(id),
-    onSuccess: (c) => { toast.success("Course duplicated"); navigate(`/admin/course-management/${c.id}`); invalidate(); },
+    onSuccess: (c) => { toast.success("Course duplicated"); navigate(`/admin/courses/${c.id}`); invalidate(); },
     onError: (e: Error) => toast.error("Duplicate failed", { description: e.message }),
   });
   const setStatusM = useMutation({
@@ -234,7 +234,7 @@ export default function CourseManagement() {
               {rows.map((c) => (
                 <tr key={c.id} className="border-t border-border">
                   <td className="px-3 py-2">
-                    <Link to={`/admin/course-management/${c.id}`} className="hover:underline font-medium">{c.title}</Link>
+                    <Link to={`/admin/courses/${c.id}`} className="hover:underline font-medium">{c.title}</Link>
                   </td>
                   <td className="px-3 py-2"><StatusBadge status={c.status} /></td>
                   <td className="px-3 py-2">{c.instructor_display ?? "—"}</td>
@@ -275,7 +275,7 @@ export default function CourseManagement() {
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Create new course</DialogTitle></DialogHeader>
           <CreateCourseWizard
-            onCreated={(id) => { setWizardOpen(false); invalidate(); navigate(`/admin/course-management/${id}`); }}
+            onCreated={(id) => { setWizardOpen(false); invalidate(); navigate(`/admin/courses/${id}`); }}
             onCancel={() => setWizardOpen(false)}
           />
         </DialogContent>
@@ -332,7 +332,7 @@ function CourseCard({ course, onDuplicate, onArchive, onDelete, onPublish, onUnp
         </div>
       </div>
       <div className="p-4 flex-1 flex flex-col gap-1">
-        <Link to={`/admin/course-management/${course.id}`} className="font-medium hover:underline">{course.title}</Link>
+        <Link to={`/admin/courses/${course.id}`} className="font-medium hover:underline">{course.title}</Link>
         <p className="text-xs text-foreground/60">{course.category?.name ?? "Uncategorized"} · {course.instructor_display ?? "No instructor"}</p>
         <div className="mt-auto pt-3 flex items-center justify-between text-xs text-foreground/60">
           <span>{course.lessons_count} lessons</span>
@@ -359,7 +359,7 @@ function RowMenu({ course, onDuplicate, onArchive, onDelete, onPublish, onUnpubl
         <Button size="icon" variant="ghost" className="h-8 w-8 bg-background/70 hover:bg-background"><MoreVertical className="h-4 w-4" /></Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem asChild><Link to={`/admin/course-management/${course.id}`}><Pencil className="w-4 h-4 mr-2" /> Edit</Link></DropdownMenuItem>
+        <DropdownMenuItem asChild><Link to={`/admin/courses/${course.id}`}><Pencil className="w-4 h-4 mr-2" /> Edit</Link></DropdownMenuItem>
         <DropdownMenuSub>
           <DropdownMenuSubTrigger><Eye className="w-4 h-4 mr-2" /> View as member…</DropdownMenuSubTrigger>
           <DropdownMenuSubContent>

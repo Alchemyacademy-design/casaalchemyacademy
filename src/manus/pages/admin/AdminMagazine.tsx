@@ -18,7 +18,7 @@ export default function AdminMagazine() {
       deletionMode="hard"
       fields={[
         { name: "title", label: "Title", type: "text", required: true },
-        { name: "slug", label: "Slug", type: "text", required: true },
+        { name: "slug", label: "Slug", type: "text", required: true, deriveSlugFrom: "title", placeholder: "Auto-generated from title" },
         { name: "description", label: "Description", type: "textarea", hideInTable: true },
         {
           name: "external_file_url",

@@ -169,7 +169,7 @@ export default function AdminLinkScanner() {
                   <td className="px-4 py-3 text-right">
                     {r.course_id && (
                       <Button size="sm" variant="ghost" asChild>
-                        <Link to={`/admin/course-management/${r.course_id}`}>Fix</Link>
+                        <Link to={`/admin/courses/${r.course_id}`}>Fix</Link>
                       </Button>
                     )}
                   </td>
