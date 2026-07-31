@@ -157,48 +157,41 @@ export default function CertificateArtwork({
     fontWeight: 500,
   };
 
-  // Gold seal — pure SVG, printable
+  // Gold seal with the Alchemy Academy mark locked inside it (top-right medallion).
   const seal = (
-    <svg
-      viewBox="0 0 100 100"
-      style={{ position: "absolute", right: "8%", top: "10%", width: "13%", height: "auto" }}
+    <div
+      style={{ position: "absolute", right: "7.5%", top: "9%", width: "14%", aspectRatio: "1 / 1" }}
       aria-hidden="true"
     >
-      <circle cx="50" cy="50" r="46" fill="none" stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.6" />
-      <circle cx="50" cy="50" r="40" fill="none" stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.3" />
-      <circle cx="50" cy="50" r="28" fill="var(--aa-gold, #B08A3E)" opacity="0.08" />
-      <text
-        x="50"
-        y="47"
-        textAnchor="middle"
-        fontFamily="Instrument Serif, Georgia, serif"
-        fontSize="22"
-        fill="var(--aa-gold, #B08A3E)"
-      >
-        A
-      </text>
-      <text
-        x="50"
-        y="60"
-        textAnchor="middle"
-        fontFamily="Manrope, sans-serif"
-        fontSize="4"
-        letterSpacing="1.5"
-        fill="var(--aa-olive-dark, #2E2A1E)"
-      >
-        CASA · ALCHEMY
-      </text>
-      {Array.from({ length: 24 }).map((_, i) => {
-        const a = (i / 24) * Math.PI * 2;
-        const x1 = 50 + Math.cos(a) * 42;
-        const y1 = 50 + Math.sin(a) * 42;
-        const x2 = 50 + Math.cos(a) * 45;
-        const y2 = 50 + Math.sin(a) * 45;
-        return (
-          <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.5" />
-        );
-      })}
-    </svg>
+      <svg viewBox="0 0 100 100" style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.6" />
+        <circle cx="50" cy="50" r="40" fill="none" stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.3" />
+        <circle cx="50" cy="50" r="34" fill="var(--aa-gold, #B08A3E)" opacity="0.06" />
+        {Array.from({ length: 24 }).map((_, i) => {
+          const a = (i / 24) * Math.PI * 2;
+          const x1 = 50 + Math.cos(a) * 42;
+          const y1 = 50 + Math.sin(a) * 42;
+          const x2 = 50 + Math.cos(a) * 45;
+          const y2 = 50 + Math.sin(a) * 45;
+          return (
+            <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--aa-gold, #B08A3E)" strokeWidth="0.5" />
+          );
+        })}
+      </svg>
+      <img
+        src="/img/logo.png"
+        alt=""
+        style={{
+          position: "absolute",
+          left: "50%",
+          top: "50%",
+          transform: "translate(-50%, -50%)",
+          width: "62%",
+          height: "62%",
+          objectFit: "contain",
+        }}
+      />
+    </div>
   );
 
   return (
@@ -207,18 +200,6 @@ export default function CertificateArtwork({
       <div style={outerBorder} aria-hidden="true" />
       <div style={innerBorder} aria-hidden="true" />
       {seal}
-      <img
-        src="/img/logo.png"
-        alt="Casa Alchemy Academy"
-        style={{
-          position: "absolute",
-          left: "13.5%",
-          bottom: "7%",
-          height: "9%",
-          width: "auto",
-          objectFit: "contain",
-        }}
-      />
       <div style={leftRail} aria-hidden="true">
         <span style={railText}>
           Casa Alchemy Studio · Certificate № {certificateNumber}
