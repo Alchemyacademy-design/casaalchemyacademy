@@ -481,12 +481,18 @@ export default function AdminUserDetail() {
             <DialogTitle className="text-destructive">Delete user permanently?</DialogTitle>
             <DialogDescription>
               This removes the login, the profile and every access record for this person.
-              Stripe history is kept for accounting. Type the user&apos;s email to confirm:
-              <br /><span className="font-mono text-xs">{profile?.email}</span>
+              Stripe history is kept for accounting. Type the user&apos;s{" "}
+              {profile?.email ? "email" : "id"} to confirm:
+              <br /><span className="font-mono text-xs">{profile?.email ?? userId}</span>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Input value={deleteEmail} onChange={(e) => setDeleteEmail(e.target.value)} placeholder={profile?.email ?? ""} />
+            <Input
+              value={deleteEmail}
+              onChange={(e) => setDeleteEmail(e.target.value)}
+              placeholder={profile?.email ?? userId}
+              autoComplete="off"
+            />
             <div>
               <Label className="text-xs">Reason (optional)</Label>
               <Input value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)} placeholder="e.g. test account cleanup" />
@@ -497,7 +503,11 @@ export default function AdminUserDetail() {
             <Button
               variant="destructive"
               onClick={confirmDeleteUser}
-              disabled={!!busy || deleteEmail.trim().toLowerCase() !== (profile?.email ?? "").trim().toLowerCase()}
+              disabled={
+                !!busy ||
+                deleteEmail.trim().toLowerCase() !==
+                  (profile?.email ?? userId).trim().toLowerCase()
+              }
             >
               {busy === "Delete user" ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
               Delete permanently
