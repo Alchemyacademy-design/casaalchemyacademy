@@ -142,12 +142,33 @@ export default function AdminQuizEditor({ courseId }: Props) {
         <div>
           <h2 className="font-semibold">Quizzes</h2>
           <p className="text-xs text-foreground/60">
-            Create lesson-scoped knowledge checks. Members see published quizzes inline on the matching lesson page.
+            Create lesson-scoped knowledge checks. Drafts are saved automatically and stay hidden from students —
+            only published quizzes appear on the matching lesson, module or course page.
           </p>
         </div>
         <Button size="sm" onClick={() => createQuiz.mutate()} disabled={createQuiz.isPending}>
           <Plus className="w-3 h-3 mr-1" /> New quiz
         </Button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1">
+        {(["all", "draft", "published", "archived"] as const).map((s) => {
+          const count =
+            s === "all"
+              ? (listQuery.data ?? []).length
+              : (listQuery.data ?? []).filter((q) => q.status === s).length;
+          return (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`text-[11px] rounded-full border px-3 py-1 capitalize transition ${
+                statusFilter === s ? "border-primary bg-primary/10 text-foreground" : "text-foreground/60"
+              }`}
+            >
+              {s === "all" ? "All" : s} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {listQuery.isLoading && <p className="text-xs text-foreground/60">Loading…</p>}
@@ -156,7 +177,9 @@ export default function AdminQuizEditor({ courseId }: Props) {
       )}
 
       <div className="space-y-2">
-        {(listQuery.data ?? []).map((q) => (
+        {(listQuery.data ?? [])
+          .filter((q) => statusFilter === "all" || q.status === statusFilter)
+          .map((q) => (
           <div
             key={q.id}
             className={`border rounded-md p-3 flex items-center justify-between gap-3 ${
@@ -164,9 +187,17 @@ export default function AdminQuizEditor({ courseId }: Props) {
             }`}
           >
             <div className="min-w-0 flex-1">
-              <p className="font-medium truncate">{q.title || "Untitled"}</p>
+              <p className="font-medium truncate flex items-center gap-2">
+                <span className="truncate">{q.title || "Untitled"}</span>
+                <Badge
+                  variant={q.status === "published" ? "default" : "secondary"}
+                  className="text-[10px] shrink-0 capitalize"
+                >
+                  {q.status}
+                </Badge>
+              </p>
               <p className="text-[11px] text-foreground/60">
-                {q.status} · passing {q.passing_score}% ·{" "}
+                passing {q.passing_score}% ·{" "}
                 {q.max_attempts ? `${q.max_attempts} attempts` : "unlimited attempts"} ·{" "}
                 {q.lesson_id
                   ? `lesson #${q.lesson_id}`
