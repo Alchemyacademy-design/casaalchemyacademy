@@ -2820,6 +2820,10 @@ export type Database = {
       can_access_course: { Args: { _course_id: number }; Returns: boolean }
       can_access_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       can_access_module: { Args: { _module_id: number }; Returns: boolean }
+      certificate_eligibility_for: {
+        Args: { _course_id: number; _user_id: string }
+        Returns: Json
+      }
       cleanup_old_data: { Args: { retention_days?: number }; Returns: Json }
       community_notify_mentions: {
         Args: {
@@ -2997,6 +3001,7 @@ export type Database = {
           score: number
         }[]
       }
+      issue_my_certificate: { Args: { p_course_id: number }; Returns: Json }
       lesson_rating_summary: {
         Args: { p_lesson_id: number }
         Returns: {
@@ -3013,6 +3018,8 @@ export type Database = {
           user_rating: number
         }[]
       }
+      my_certificate_status: { Args: { p_course_id: number }; Returns: Json }
+      my_certificates_overview: { Args: never; Returns: Json }
       owns_course: { Args: { _course_id: number }; Returns: boolean }
       owns_lesson: { Args: { _lesson_id: number }; Returns: boolean }
       record_certificate_view: {

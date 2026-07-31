@@ -1,66 +1,86 @@
 /**
- * Course-specific certificate logic.
+ * Course-specific certificate logic — server-authoritative.
  *
- * Replaces the prior global "first published course" approach. All functions
- * scope progress, eligibility, and issuance to a single course_id.
+ * All eligibility checks and issuance happen inside Postgres SECURITY DEFINER
+ * functions (`my_certificate_status`, `issue_my_certificate`). The client can
+ * never insert into `public.certificates`: there is no student INSERT policy.
  *
- * Eligibility rules (pre-launch):
- *  - 100% of the course's published, non-archived lessons completed by user;
- *  - all published required quizzes for the course must be passed;
- *  - one active (non-revoked) certificate per user_id + course_id.
+ * Issuance is idempotent and race-safe: `issue_my_certificate` takes a
+ * transaction advisory lock on (user, course) and relies on the
+ * `certificates_user_id_course_id_key` unique index, so concurrent calls always
+ * converge on a single row.
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { passedQuizIdsForCourse, listPublishedQuizzesForCourse } from "@/manus/services/quiz";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db: any = supabase;
 
 export type CertificateRecord = {
   id: number;
-  user_id: string;
-  course_id: number;
   certificate_number: string;
   issued_at: string;
-  certificate_url: string | null;
-  metadata: Record<string, unknown>;
+  issuedAt?: string;
   public_slug?: string | null;
   verification_hash?: string | null;
+  certificate_type?: string;
+  metadata?: Record<string, unknown>;
 };
 
-/** Published, non-archived lesson ids for the given course. */
-async function publishedLessonIdsForCourse(courseId: number): Promise<number[]> {
-  const { data: modules, error } = await db
-    .from("course_modules")
-    .select("id,status,archived_at,lessons(id,status,archived_at)")
-    .eq("course_id", courseId)
-    .eq("status", "published")
-    .is("archived_at", null);
+export type CertificateStatus = {
+  course_id: number;
+  course_title?: string;
+  cover_image_path?: string | null;
+  status: "pending" | "issued";
+  eligible: boolean;
+  completion: number;
+  total_lessons: number;
+  completed_lessons: number;
+  total_quizzes: number;
+  passed_quizzes: number;
+  missing: string[];
+  certificate: CertificateRecord | null;
+};
+
+function normalize(raw: unknown): CertificateStatus | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as Record<string, unknown>;
+  const cert = (r.certificate ?? null) as CertificateRecord | null;
+  return {
+    course_id: Number(r.course_id ?? 0),
+    course_title: (r.course_title as string | undefined) ?? undefined,
+    cover_image_path: (r.cover_image_path as string | null | undefined) ?? null,
+    status: r.status === "issued" ? "issued" : "pending",
+    eligible: Boolean(r.eligible),
+    completion: Number(r.completion ?? 0),
+    total_lessons: Number(r.total_lessons ?? 0),
+    completed_lessons: Number(r.completed_lessons ?? 0),
+    total_quizzes: Number(r.total_quizzes ?? 0),
+    passed_quizzes: Number(r.passed_quizzes ?? 0),
+    missing: Array.isArray(r.missing) ? (r.missing as string[]) : [],
+    certificate: cert ? { ...cert, issuedAt: cert.issued_at } : null,
+  };
+}
+
+export async function certificateStatusForCourse(
+  courseId: number,
+): Promise<CertificateStatus | null> {
+  if (!Number.isFinite(courseId) || courseId <= 0) return null;
+  const { data, error } = await db.rpc("my_certificate_status", { p_course_id: courseId });
   if (error) throw error;
-  const rows = (modules ?? []) as Array<{
-    id: number;
-    lessons: Array<{ id: number; status: string; archived_at: string | null }>;
-  }>;
-  return rows.flatMap((m) =>
-    (m.lessons ?? [])
-      .filter((l) => l.status === "published" && l.archived_at == null)
-      .map((l) => l.id),
-  );
+  return normalize(data);
+}
+
+export async function myCertificatesOverview(): Promise<CertificateStatus[]> {
+  const { data, error } = await db.rpc("my_certificates_overview");
+  if (error) throw error;
+  const rows = Array.isArray(data) ? data : [];
+  return rows.map(normalize).filter((r): r is CertificateStatus => r !== null);
 }
 
 export async function completionPercentageForCourse(courseId: number): Promise<number> {
-  if (!Number.isFinite(courseId) || courseId <= 0) return 0;
-  const lessonIds = await publishedLessonIdsForCourse(courseId);
-  if (!lessonIds.length) return 0;
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return 0;
-  const { count } = await db
-    .from("lesson_progress")
-    .select("lesson_id", { count: "exact", head: true })
-    .eq("user_id", user.id)
-    .not("completed_at", "is", null)
-    .in("lesson_id", lessonIds);
-  return Math.min(100, Math.round((((count as number | null) ?? 0) / lessonIds.length) * 100));
+  const status = await certificateStatusForCourse(courseId);
+  return status?.completion ?? 0;
 }
 
 export type EligibilityReport = {
@@ -73,102 +93,62 @@ export type EligibilityReport = {
 };
 
 export async function eligibilityForCourse(courseId: number): Promise<EligibilityReport> {
-  const lessonIds = await publishedLessonIdsForCourse(courseId);
-  const totalLessons = lessonIds.length;
-  const completion = await completionPercentageForCourse(courseId);
-  const quizzes = await listPublishedQuizzesForCourse(courseId);
-  const passed = await passedQuizIdsForCourse(courseId);
-  const passedQuizCount = quizzes.filter((q) => passed.has(q.id)).length;
-  const missing: string[] = [];
-  if (totalLessons === 0) missing.push("This course has no published lessons yet.");
-  if (completion < 100) missing.push(`Complete all lessons (currently ${completion}%).`);
-  if (quizzes.length > 0 && passedQuizCount < quizzes.length) {
-    missing.push(`Pass all required quizzes (${passedQuizCount}/${quizzes.length}).`);
+  const s = await certificateStatusForCourse(courseId);
+  if (!s) {
+    return {
+      eligible: false,
+      completion: 0,
+      totalLessons: 0,
+      totalPublishedQuizzes: 0,
+      passedQuizCount: 0,
+      missing: ["This course has no published lessons yet."],
+    };
   }
   return {
-    eligible: totalLessons > 0 && completion === 100 && passedQuizCount === quizzes.length,
-    completion,
-    totalLessons,
-    totalPublishedQuizzes: quizzes.length,
-    passedQuizCount,
-    missing,
+    eligible: s.eligible,
+    completion: s.completion,
+    totalLessons: s.total_lessons,
+    totalPublishedQuizzes: s.total_quizzes,
+    passedQuizCount: s.passed_quizzes,
+    missing: s.missing,
   };
 }
 
 export async function myCertificateForCourse(courseId: number): Promise<CertificateRecord | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data, error } = await db
-    .from("certificates")
-    .select("*")
-    .eq("user_id", user.id)
-    .eq("course_id", courseId)
-    .is("revoked_at", null)
-    .order("issued_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  return (data as CertificateRecord | null) ?? null;
+  const s = await certificateStatusForCourse(courseId);
+  return s?.certificate ?? null;
 }
 
+/** Idempotent server-side issuance. Throws when the learner is not eligible. */
 export async function issueCertificateForCourse(courseId: number): Promise<CertificateRecord> {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error("Authentication required");
-  const report = await eligibilityForCourse(courseId);
-  if (!report.eligible) {
-    throw new Error(report.missing[0] ?? "Not eligible for this certificate yet.");
+  if (!Number.isFinite(courseId) || courseId <= 0) throw new Error("Invalid course");
+  const { data, error } = await db.rpc("issue_my_certificate", { p_course_id: courseId });
+  if (error) {
+    const msg = String(error.message ?? "");
+    if (msg.includes("not_eligible")) throw new Error("Not eligible for this certificate yet.");
+    if (msg.includes("unauthorized")) throw new Error("Authentication required");
+    throw error;
   }
-  const existing = await myCertificateForCourse(courseId);
-  if (existing) return existing;
-  const { data: course, error: cErr } = await db
-    .from("courses")
-    .select("id,title")
-    .eq("id", courseId)
-    .maybeSingle();
-  if (cErr) throw cErr;
-  if (!course) throw new Error("Course not found");
-
-  const certificate_number = `AA-${new Date().getUTCFullYear()}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
-  const issued_at = new Date().toISOString();
-  const { data, error } = await db
-    .from("certificates")
-    .insert({
-      user_id: user.id,
-      course_id: courseId,
-      certificate_number,
-      issued_at,
-      metadata: {
-        course_title: course.title,
-        completion_percentage: report.completion,
-        quiz_requirements: {
-          published: report.totalPublishedQuizzes,
-          passed: report.passedQuizCount,
-        },
-        issued_rule_version: "phase2.course_specific.v1",
-      },
-    })
-    .select()
-    .single();
-  if (error) throw error;
-  return data as CertificateRecord;
+  const status = normalize(data);
+  if (!status?.certificate) throw new Error("Certificate could not be issued.");
+  return status.certificate;
 }
 
 /**
- * Silent auto-issuance. Returns the existing certificate, issues a new one when
- * the learner just became eligible, or returns null when not eligible yet.
- * Never throws — it is called from background/fire-and-forget paths.
+ * Silent auto-issuance used by background paths (finishing a lesson/quiz).
+ * Never throws; safe to call repeatedly thanks to server-side idempotency.
  */
 export async function ensureCertificateForCourse(
   courseId: number,
 ): Promise<{ certificate: CertificateRecord; justIssued: boolean } | null> {
   try {
     if (!Number.isFinite(courseId) || courseId <= 0) return null;
-    const existing = await myCertificateForCourse(courseId);
-    if (existing) return { certificate: existing, justIssued: false };
-    const report = await eligibilityForCourse(courseId);
-    if (!report.eligible) return null;
-    const created = await issueCertificateForCourse(courseId);
-    return { certificate: created, justIssued: true };
+    const { data, error } = await db.rpc("issue_my_certificate", { p_course_id: courseId });
+    if (error) return null;
+    const status = normalize(data);
+    if (!status?.certificate) return null;
+    const justIssued = Boolean((data as Record<string, unknown>)?.just_issued);
+    return { certificate: status.certificate, justIssued };
   } catch (err) {
     console.warn("[certificates] auto-issue skipped:", err);
     return null;
