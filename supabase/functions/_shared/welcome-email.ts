@@ -12,6 +12,7 @@
 
 import type { SupabaseAdmin } from "./billing-core.ts";
 import { buildGmailRawMessage } from "./gmail-message.ts";
+import { PUBLIC_SITE_URL } from "./site-url.ts";
 
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
