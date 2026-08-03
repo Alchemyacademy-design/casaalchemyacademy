@@ -39,9 +39,9 @@ const OFFER_KEYS = {
 } as const;
 
 const PAYMENT_LINKS: Record<"annual" | "monthly" | "guide", string> = {
-  guide: "https://buy.stripe.com/8x2cN64Bj74z6A56H0aZi03",
-  monthly: "https://buy.stripe.com/9B66oI4BjbkP0bHghAaZi01",
-  annual: "https://buy.stripe.com/4gMbJ27Nv0Gb2jP1mGaZi02",
+  guide: "https://buy.stripe.com/fZu4gA5Fn4Wr6A53uOaZi05",
+  monthly: "https://buy.stripe.com/8x2fZi1p760v8Id5CWaZi07",
+  annual: "https://buy.stripe.com/cNi4gAaZH2OjbUpe9saZi06",
 };
 
 export default function SubscribeModal({ type, courseId, onClose }: SubscribeModalProps) {
