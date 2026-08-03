@@ -225,9 +225,6 @@ export default function Home() {
               <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
                 See our plans
               </a>
-              <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
-                Find your course
-              </a>
             </div>
           </div>
         </div>
@@ -261,9 +258,6 @@ export default function Home() {
           <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
             <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
               See our plans
-            </a>
-            <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
-              Take the course quiz
             </a>
           </div>
         </div>
