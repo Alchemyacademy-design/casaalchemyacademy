@@ -95,9 +95,9 @@ export default function App() {
             <Route path="/exclusao-de-dados" element={<Navigate to="/data-deletion" replace />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/choose-course" element={<CourseCheckout />} />
-            <Route path="/magazine-download" element={<FreeLesson />} />
-            <Route path="/magazine-thanks" element={<Navigate to="/magazine-download" replace />} />
-            <Route path="/free-lesson" element={<Navigate to="/magazine-download" replace />} />
+            <Route path="/free-lesson" element={<FreeLesson />} />
+            <Route path="/magazine-thanks" element={<Navigate to="/free-lesson" replace />} />
+            <Route path="/magazine-download" element={<Navigate to="/free-lesson" replace />} />
             <Route path="/c/:slug" element={<PublicCertificate />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/auth/continue" element={<PostAuthRedirect />} />

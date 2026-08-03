@@ -7,6 +7,7 @@ import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
+import freeLessonBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 
@@ -477,15 +478,15 @@ export default function Home() {
                   <td className="cta-cell cta-annual-highlight">
                     <span className="cta-best-badge">Best Value</span>
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">59</span><span className="per">/ month</span>
-                      <span className="sub">AUD 708 billed annually</span>
-                      <span className="save">Save AUD 480</span>
+                      <span className="cur">USD</span><span className="amt">59</span><span className="per">/ month</span>
+                      <span className="sub">USD 708 billed annually</span>
+                      <span className="save">Save USD 480</span>
                     </div>
                     <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Subscribe to annual plan">Subscribe Now</button>
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">99</span><span className="per">/ month</span>
+                      <span className="cur">USD</span><span className="amt">99</span><span className="per">/ month</span>
                       <span className="sub">Billed monthly</span>
                       <span className="save">No commitment</span>
                     </div>
@@ -493,7 +494,7 @@ export default function Home() {
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">159</span>
+                      <span className="cur">USD</span><span className="amt">159</span>
                       <span className="sub">One-time payment</span>
                       <span className="save">No commitment</span>
                     </div>
@@ -502,12 +503,12 @@ export default function Home() {
                 </tr>
               </tbody>
             </table>
-            <p className="currency-note">All prices are in Australian Dollars (AUD).</p>
+            <p className="currency-note">All prices are in US Dollars (USD).</p>
             <div className="plan-details">
               {[
                 {
                   name: "Annual Member",
-                  price: "AUD 708 billed once a year (AUD 59/month)",
+                  price: "USD 708 billed once a year (USD 59/month)",
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -518,12 +519,12 @@ export default function Home() {
                     "Members-only events and invitations",
                     "Every digital magazine issue",
                     "Suppliers directory and exclusive supplier deals",
-                    "Save AUD 480 compared with paying monthly",
+                    "Save USD 480 compared with paying monthly",
                   ],
                 },
                 {
                   name: "Monthly Member",
-                  price: "AUD 99 per month, no lock-in",
+                  price: "USD 99 per month, no lock-in",
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -538,7 +539,7 @@ export default function Home() {
                 },
                 {
                   name: "Individual Course",
-                  price: "AUD 159 one-time, per course",
+                  price: "USD 159 one-time, per course",
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
@@ -691,25 +692,33 @@ export default function Home() {
       </section>
 
       {!isAuthenticated && (
-        <section id="magazine-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
+            <div className="max-w-5xl mx-auto mb-8 md:mb-10 overflow-hidden" style={{ border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
+              <img
+                src={freeLessonBanner.url}
+                alt="Free lesson: How to Mix Prints, with Lorena Couto — Casa Alchemy"
+                loading="lazy"
+                className="w-full h-auto block"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center max-w-5xl mx-auto">
               <div>
                 <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
-                  Get the magazine
+                  Get the free lesson
                 </p>
                 <h2 className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "1rem", fontWeight: 400 }}>
-                  Get our latest issue, free.
+                  Get our latest lesson, free.
                 </h2>
                 <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "1rem" }}>
-                  Subscribe and download our latest magazine issue straight away — real projects, real principles, and the professional knowledge you need to design your own home with confidence.
+                  Subscribe and watch <em>How to Mix Prints</em> straight away — a full lesson with Lorena Couto: real projects, real principles, and the professional knowledge you need to design your own home with confidence.
                 </p>
                 <p style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
-                  No waiting. The PDF is ready the moment you subscribe.
+                  No waiting. The lesson starts playing the moment you subscribe.
                 </p>
               </div>
               <div style={{ background: "var(--aa-white)", padding: "2rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
-                <LeadMagnetForm source="popup" placement="footer" ctaLabel="Get the Magazine" />
+                <LeadMagnetForm source="popup" placement="footer" ctaLabel="Watch the Free Lesson" />
               </div>
             </div>
           </div>

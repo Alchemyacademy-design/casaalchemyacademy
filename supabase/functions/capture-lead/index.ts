@@ -34,12 +34,12 @@ const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 const GOOGLE_MAIL_API_KEY = Deno.env.get("GOOGLE_MAIL_API_KEY");
 const MAGAZINE_URL_ENV =
   Deno.env.get("MAGAZINE_PUBLIC_URL") ?? Deno.env.get("FREE_LESSON_PUBLIC_URL");
-const MAGAZINE_PDF_URL_ENV = Deno.env.get("MAGAZINE_PDF_URL");
+const LESSON_VIDEO_URL_ENV = Deno.env.get("FREE_LESSON_VIDEO_URL") ?? Deno.env.get("MAGAZINE_PDF_URL");
 // Default asset paths (uploaded via lovable-assets, served from the app origin).
-const DEFAULT_MAGAZINE_PDF_PATH =
-  "/__l5e/assets-v1/52520714-f907-4744-9aba-d0c9f9db237c/casa-alchemy-autumn-26.pdf";
-const DEFAULT_MAGAZINE_COVER_PATH =
-  "/__l5e/assets-v1/9cd1be74-97d5-4d02-8704-d1b4075151fe/magazine-cover-autumn26.png";
+const DEFAULT_LESSON_VIDEO_URL =
+  "https://www.dropbox.com/scl/fi/sqlkz21s0kfeq37neolat/how-to-mix-prints.mp4?rlkey=xytd5hqcruap575dftwk3fc1h&raw=1";
+const DEFAULT_LESSON_COVER_PATH =
+  "/__l5e/assets-v1/96d5c4a8-449b-43cc-837d-3ec6ac081833/how-to-mix-prints-banner.png";
 // The `from` address must belong to a domain verified in Resend.
 // Uses onboarding@resend.dev when nothing is configured — that only delivers
 // to the Resend account owner, so verify a domain and set FROM_EMAIL for real
@@ -55,11 +55,11 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
 function labelForLead(source: "popup" | "quiz", placement?: string): string {
   const p = (placement ?? "").toLowerCase();
-  if (p === "footer") return "Homepage Footer — Magazine";
-  if (p === "popup") return "Website Pop-up — Magazine";
-  if (p === "quiz_gate") return "Course Quiz — Magazine";
+  if (p === "footer") return "Homepage Footer — Free Lesson";
+  if (p === "popup") return "Website Pop-up — Free Lesson";
+  if (p === "quiz_gate") return "Course Quiz — Free Lesson";
   // Fallbacks based on source enum when placement is missing.
-  return source === "popup" ? "Website Pop-up — Magazine" : "Course Quiz — Magazine";
+  return source === "popup" ? "Website Pop-up — Free Lesson" : "Course Quiz — Free Lesson";
 }
 
 function splitName(full: string): { firstname: string; lastname: string } {
@@ -180,39 +180,39 @@ async function addToStaticList(contactId: string): Promise<void> {
 async function sendConfirmationEmail(input: {
   to: string;
   name: string;
-  magazineUrl: string;
-  downloadUrl: string;
+  lessonPageUrl: string;
+  lessonVideoUrl: string;
   coverUrl: string;
 }): Promise<"gmail" | "resend" | "failed"> {
   const firstName = input.name.trim().split(/\s+/)[0] ?? "";
-  const subject = "Your free issue — CA MAG Autumn 26";
+  const subject = "Your free lesson — How to Mix Prints";
   let offersUrl: string;
   try {
-    offersUrl = new URL("/#offers", input.magazineUrl).toString();
+    offersUrl = new URL("/#offers", input.lessonPageUrl).toString();
   } catch {
-    offersUrl = `${input.magazineUrl}#offers`;
+    offersUrl = `${input.lessonPageUrl}#offers`;
   }
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
-      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Consider this your first experiment.</h1>
-      <p style="font-size:15px;line-height:1.6;">Thanks for subscribing, ${firstName}. Your free copy of <strong>CA MAG — Autumn 26</strong> is ready. Inside: the ArchDaily-awarded Casa Byron, a 4-day budget flip, and our latest suppliers list.</p>
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">Your first lesson is on us.</h1>
+      <p style="font-size:15px;line-height:1.6;">Thanks for subscribing, ${firstName}. Your free lesson <strong>How to Mix Prints</strong>, with Lorena Couto, is ready to watch. Inside: how to combine patterns, scale and colour so a room feels layered instead of loud.</p>
       <p style="margin:20px 0;text-align:center;">
-        <a href="${input.downloadUrl}"><img src="${input.coverUrl}" alt="CA MAG — Autumn 26 cover" width="320" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></a>
+        <a href="${input.lessonPageUrl}"><img src="${input.coverUrl}" alt="How to Mix Prints — free lesson" width="440" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></a>
       </p>
       <p style="margin:24px 0;">
-        <a href="${input.downloadUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Download the magazine</a>
+        <a href="${input.lessonPageUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Watch the free lesson</a>
       </p>
-      <p style="font-size:14px;line-height:1.6;color:#666;">If the button doesn't work, paste this into your browser:<br/><a href="${input.downloadUrl}">${input.downloadUrl}</a></p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">If the button doesn't work, paste this into your browser:<br/><a href="${input.lessonPageUrl}">${input.lessonPageUrl}</a><br/><br/>Direct video link: <a href="${input.lessonVideoUrl}">${input.lessonVideoUrl}</a></p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">Ready for the full toolkit?</h2>
-      <p style="font-size:15px;line-height:1.6;">The magazine is a preview of how we think. Inside the Alchemy Academy you get the full method — courses, live workshops, and a community designing their own homes with intention.</p>
+      <p style="font-size:15px;line-height:1.6;">This lesson is a preview of how we teach. Inside the Alchemy Academy you get the full method — courses, live workshops, and a community designing their own homes with intention.</p>
       <p style="margin:20px 0 28px;">
         <a href="${offersUrl}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Explore the Academy plans</a>
       </p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
-  const plaintext = `Consider this your first experiment.\n\nThanks for subscribing, ${firstName}. Your free copy of CA MAG — Autumn 26 is ready.\n\nInside: the ArchDaily-awarded Casa Byron, a 4-day budget flip, and our latest suppliers list.\n\nDownload: ${input.downloadUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
+  const plaintext = `Your first lesson is on us.\n\nThanks for subscribing, ${firstName}. Your free lesson "How to Mix Prints", with Lorena Couto, is ready to watch.\n\nInside: how to combine patterns, scale and colour so a room feels layered instead of loud.\n\nWatch: ${input.lessonPageUrl}\nDirect video: ${input.lessonVideoUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
 
   // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
@@ -305,7 +305,7 @@ Deno.serve(async (req) => {
   const { name, email, phone, source, metadata, website } = parsed.data;
   if (website && website.length > 0) {
     // Silently accept honeypot hits but do nothing else.
-    return new Response(JSON.stringify({ ok: true, redirect: "/magazine-download" }), {
+    return new Response(JSON.stringify({ ok: true, redirect: "/free-lesson" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -313,9 +313,9 @@ Deno.serve(async (req) => {
 
   const url = new URL(req.url);
   const origin = req.headers.get("origin") ?? `${url.protocol}//${url.host}`;
-  const magazineUrl = MAGAZINE_URL_ENV || `${origin}/magazine-download`;
-  const downloadUrl = MAGAZINE_PDF_URL_ENV || `${origin}${DEFAULT_MAGAZINE_PDF_PATH}`;
-  const coverUrl = `${origin}${DEFAULT_MAGAZINE_COVER_PATH}`;
+  const lessonPageUrl = MAGAZINE_URL_ENV || `${origin}/free-lesson`;
+  const lessonVideoUrl = LESSON_VIDEO_URL_ENV || DEFAULT_LESSON_VIDEO_URL;
+  const coverUrl = `${origin}${DEFAULT_LESSON_COVER_PATH}`;
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
@@ -432,7 +432,7 @@ Deno.serve(async (req) => {
   // Confirmation email (also non-blocking).
   let emailProvider: "gmail" | "resend" | "failed" = "failed";
   try {
-    emailProvider = await sendConfirmationEmail({ to: email, name, magazineUrl, downloadUrl, coverUrl });
+    emailProvider = await sendConfirmationEmail({ to: email, name, lessonPageUrl, lessonVideoUrl, coverUrl });
   } catch (e) {
     console.error("confirmation email error:", e);
   }
@@ -445,7 +445,7 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, redirect: "/magazine-download", leadId: leadRow.id }),
+    JSON.stringify({ ok: true, redirect: "/free-lesson", leadId: leadRow.id }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });

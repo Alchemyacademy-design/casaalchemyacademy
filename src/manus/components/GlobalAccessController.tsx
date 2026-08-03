@@ -19,6 +19,7 @@ const publicPaths = new Set([
   "/suporte",
   "/exclusao-de-dados",
   "/magazine-download",
+  "/free-lesson",
   "/choose-course",
 ]);
 
