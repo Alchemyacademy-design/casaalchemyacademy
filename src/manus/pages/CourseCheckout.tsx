@@ -198,7 +198,7 @@ export default function CourseCheckout() {
 
       <div className="container py-12 md:py-16 max-w-5xl">
         <div className="max-w-3xl mb-10">
-          <p className="section-label mb-3">One course · AUD 159 · One-time payment</p>
+          <p className="section-label mb-3">One course · USD 159 · One-time payment</p>
           <h1 className="font-serif text-3xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1.15 }}>
             Choose the room you want to get right — and stop guessing.
           </h1>
@@ -301,7 +301,7 @@ export default function CourseCheckout() {
               </button>
               <p className="text-xs mt-3" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
                 Prefer everything? The Annual Membership unlocks all courses, the community, live workshops, events and
-                exclusive deals for AUD 59/month billed annually.{" "}
+                exclusive deals for USD 59/month billed annually.{" "}
                 <Link to="/" style={{ color: "var(--aa-gold)" }}>Compare plans</Link>
               </p>
             </div>
@@ -362,7 +362,7 @@ export default function CourseCheckout() {
                 {(selected as { short_description?: string | null }).short_description ?? selected.subtitle ?? ""}
               </p>
               <div className="font-serif mb-5" style={{ fontSize: "2.25rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>
-                AUD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one-time</span>
+                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one-time</span>
               </div>
               <ul className="space-y-2">
                 {INCLUDED.map((item) => (

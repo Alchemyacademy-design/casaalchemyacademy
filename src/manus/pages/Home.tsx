@@ -477,15 +477,15 @@ export default function Home() {
                   <td className="cta-cell cta-annual-highlight">
                     <span className="cta-best-badge">Best Value</span>
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">59</span><span className="per">/ month</span>
-                      <span className="sub">AUD 708 billed annually</span>
-                      <span className="save">Save AUD 480</span>
+                      <span className="cur">USD</span><span className="amt">59</span><span className="per">/ month</span>
+                      <span className="sub">USD 708 billed annually</span>
+                      <span className="save">Save USD 480</span>
                     </div>
                     <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Subscribe to annual plan">Subscribe Now</button>
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">99</span><span className="per">/ month</span>
+                      <span className="cur">USD</span><span className="amt">99</span><span className="per">/ month</span>
                       <span className="sub">Billed monthly</span>
                       <span className="save">No commitment</span>
                     </div>
@@ -493,7 +493,7 @@ export default function Home() {
                   </td>
                   <td className="cta-cell">
                     <div className="cta-price">
-                      <span className="cur">AUD</span><span className="amt">159</span>
+                      <span className="cur">USD</span><span className="amt">159</span>
                       <span className="sub">One-time payment</span>
                       <span className="save">No commitment</span>
                     </div>
@@ -502,12 +502,12 @@ export default function Home() {
                 </tr>
               </tbody>
             </table>
-            <p className="currency-note">All prices are in Australian Dollars (AUD).</p>
+            <p className="currency-note">All prices are in US Dollars (USD).</p>
             <div className="plan-details">
               {[
                 {
                   name: "Annual Member",
-                  price: "AUD 708 billed once a year (AUD 59/month)",
+                  price: "USD 708 billed once a year (USD 59/month)",
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -518,12 +518,12 @@ export default function Home() {
                     "Members-only events and invitations",
                     "Every digital magazine issue",
                     "Suppliers directory and exclusive supplier deals",
-                    "Save AUD 480 compared with paying monthly",
+                    "Save USD 480 compared with paying monthly",
                   ],
                 },
                 {
                   name: "Monthly Member",
-                  price: "AUD 99 per month, no lock-in",
+                  price: "USD 99 per month, no lock-in",
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -538,7 +538,7 @@ export default function Home() {
                 },
                 {
                   name: "Individual Course",
-                  price: "AUD 159 one-time, per course",
+                  price: "USD 159 one-time, per course",
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
