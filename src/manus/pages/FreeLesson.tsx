@@ -40,14 +40,12 @@ export default function FreeLesson() {
               In this lesson: how to combine patterns, scale and colour without the room fighting itself — the same professional lens we teach inside the Academy.
             </p>
 
-            <a
-              href={LESSON_VIDEO_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              to="/#offers"
               className="inline-flex items-center justify-center rounded px-6 py-3 bg-foreground text-background font-medium"
             >
-              Open the lesson in a new tab
-            </a>
+              See the Academy plans
+            </Link>
           </div>
 
           <div>
