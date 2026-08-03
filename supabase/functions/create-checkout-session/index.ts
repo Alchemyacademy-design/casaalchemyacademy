@@ -8,7 +8,7 @@ import { buildCorsHeaders } from "../_shared/cors.ts";
 type OfferKey = "individual_course" | "monthly_member" | "annual_member";
 
 type ExpectedTerms = {
-  currency: "aud";
+  currency: "usd";
   unit_amount: number;
   interval: "month" | null;
   interval_count: number | null;
@@ -22,12 +22,12 @@ function assertOfferKey(value: unknown): OfferKey {
 
 function expectedTerms(offerKey: OfferKey): ExpectedTerms {
   if (offerKey === "individual_course") {
-    return { currency: "aud", unit_amount: 15900, interval: "month", interval_count: 3, mode: "subscription" };
+    return { currency: "usd", unit_amount: 15900, interval: "month", interval_count: 3, mode: "subscription" };
   }
   if (offerKey === "monthly_member") {
-    return { currency: "aud", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
+    return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
   }
-  return { currency: "aud", unit_amount: 70800, interval: null, interval_count: null, mode: "payment" };
+  return { currency: "usd", unit_amount: 70800, interval: null, interval_count: null, mode: "payment" };
 }
 
 function safeMetadataValue(value: unknown): string | null {

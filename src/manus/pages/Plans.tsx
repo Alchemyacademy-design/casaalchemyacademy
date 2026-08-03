@@ -11,9 +11,9 @@ import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } fr
 type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
 
 const FALLBACK_PRICE_LABEL: Record<string, string> = {
-  monthly_member: "A$99 / month",
-  annual_member: "A$708 / year",
-  individual_course: "A$159 one-time",
+  monthly_member: "US$99 / month",
+  annual_member: "US$708 / year",
+  individual_course: "US$159 one-time",
 };
 
 function planFeatures(p: { all_courses: boolean; community_access: boolean; events_access: boolean; live_workshops_access: boolean; exclusive_deals_access: boolean; individual_course_access: boolean; }) {

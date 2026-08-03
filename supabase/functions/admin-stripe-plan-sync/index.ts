@@ -79,7 +79,7 @@ Deno.serve(async (req) => {
       const name = String(body.name ?? "").trim() || plan_key;
       const description = body.description ? String(body.description) : undefined;
       const unit_amount = Number(body.unit_amount);
-      const currency = String(body.currency ?? "aud").toLowerCase();
+      const currency = String(body.currency ?? "usd").toLowerCase();
       const interval = String(body.interval ?? "month");
       const interval_count = Math.max(1, Number(body.interval_count ?? 1));
 

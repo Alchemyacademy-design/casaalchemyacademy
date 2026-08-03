@@ -11,7 +11,7 @@ export type EnvGetter = (name: string) => string | undefined;
 
 export const ANNUAL_MEMBER_EXPECTED = {
   plan_key: "annual_member" as const,
-  currency: "aud" as const,
+  currency: "usd" as const,
   unit_amount: 70800,
   recurring_interval: null as null,
   recurring_interval_count: null as null,

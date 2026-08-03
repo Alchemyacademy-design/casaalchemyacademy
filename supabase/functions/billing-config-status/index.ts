@@ -90,9 +90,9 @@ function resolveMode(): "test" | "live" {
 }
 
 const CANONICAL = {
-  monthly_member:    { currency: "aud", unit_amount: 9900,  recurring_interval: "month", recurring_interval_count: 1,    course_id: null as null },
-  annual_member:     { currency: "aud", unit_amount: 70800, recurring_interval: null,    recurring_interval_count: null, course_id: null as null },
-  individual_course: { currency: "aud", unit_amount: 15900, recurring_interval: "month", recurring_interval_count: 3,    course_id: null as null },
+  monthly_member:    { currency: "usd", unit_amount: 9900,  recurring_interval: "month", recurring_interval_count: 1,    course_id: null as null },
+  annual_member:     { currency: "usd", unit_amount: 70800, recurring_interval: null,    recurring_interval_count: null, course_id: null as null },
+  individual_course: { currency: "usd", unit_amount: 15900, recurring_interval: "month", recurring_interval_count: 3,    course_id: null as null },
 } as const;
 
 type PlanKey = keyof typeof CANONICAL;
