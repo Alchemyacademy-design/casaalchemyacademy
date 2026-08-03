@@ -225,9 +225,6 @@ export default function Home() {
               <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
                 See our plans
               </a>
-              <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
-                Find your course
-              </a>
             </div>
           </div>
         </div>
@@ -261,9 +258,6 @@ export default function Home() {
           <div className="mt-12 flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4">
             <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
               See our plans
-            </a>
-            <a href="/quiz" className="btn-outline-light w-full sm:w-auto justify-center">
-              Take the course quiz
             </a>
           </div>
         </div>
@@ -695,28 +689,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-
-      {/* ── Lead magnet — fixed homepage section ── */}
-      {!isAuthenticated && (
-        <section id="find-your-course" style={{ backgroundColor: "var(--aa-cream)", padding: "clamp(3rem, 8vw, 5rem) 0", borderTop: "1px solid var(--aa-cream-dark)" }}>
-          <div className="container">
-            <div className="max-w-3xl mx-auto text-center">
-              <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
-                Find your course
-              </p>
-              <h2 className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "clamp(2rem, 4vw, 2.75rem)", lineHeight: 1.15, marginBottom: "1rem", fontWeight: 400 }}>
-                Not sure where to begin?
-              </h2>
-              <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "2rem", maxWidth: "36rem", marginLeft: "auto", marginRight: "auto" }}>
-                Take a two-minute quiz to uncover what's really holding your space back — and the exact place to start inside the Academy.
-              </p>
-              <a href="/quiz" className="btn-gold inline-flex items-center justify-center">
-                Take the quiz
-              </a>
-            </div>
-          </div>
-        </section>
-      )}
 
       {!isAuthenticated && (
         <section id="magazine-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>

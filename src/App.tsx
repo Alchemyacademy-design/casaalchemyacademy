@@ -41,7 +41,6 @@ const PaymentCancel = lazyWithRetry(() => import("@/manus/pages/PaymentCancel"),
 const Plans = lazyWithRetry(() => import("@/manus/pages/Plans"), "Plans");
 const CourseCheckout = lazyWithRetry(() => import("@/manus/pages/CourseCheckout"), "CourseCheckout");
 const FreeLesson = lazyWithRetry(() => import("@/manus/pages/FreeLesson"), "FreeLesson");
-const CourseQuiz = lazyWithRetry(() => import("@/manus/pages/CourseQuiz"), "CourseQuiz");
 
 const AdminPanel = lazyWithRetry(() => import("@/manus/pages/AdminPanel"), "AdminPanel");
 const AdminAnalytics = lazyWithRetry(() => import("@/manus/pages/AdminAnalytics"), "AdminAnalytics");
@@ -99,7 +98,6 @@ export default function App() {
             <Route path="/magazine-download" element={<FreeLesson />} />
             <Route path="/magazine-thanks" element={<Navigate to="/magazine-download" replace />} />
             <Route path="/free-lesson" element={<Navigate to="/magazine-download" replace />} />
-            <Route path="/quiz" element={<CourseQuiz />} />
             <Route path="/c/:slug" element={<PublicCertificate />} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/auth/continue" element={<PostAuthRedirect />} />
