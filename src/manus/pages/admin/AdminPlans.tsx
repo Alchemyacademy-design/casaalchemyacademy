@@ -519,7 +519,7 @@ function PlanOverviewCards() {
   const { data: payments = [] } = useRecentRevenue();
 
   const revenue30d = payments.reduce((sum, p) => sum + (p.amount ?? 0), 0);
-  const currency = payments[0]?.currency ?? "aud";
+  const currency = payments[0]?.currency ?? "usd";
   const revenueLabel = (revenue30d / 100).toLocaleString(undefined, {
     style: "currency", currency: currency.toUpperCase(), maximumFractionDigits: 0,
   });
@@ -850,7 +850,7 @@ function PlanDiagnosticsTable() {
     return c;
   }, [plans, priceMap]);
 
-  const currencyGuess = (Object.values(priceMap)[0]?.currency ?? "aud").toUpperCase();
+  const currencyGuess = (Object.values(priceMap)[0]?.currency ?? "usd").toUpperCase();
   const fmtCents = (cents: number) =>
     (cents / 100).toLocaleString(undefined, { style: "currency", currency: currencyGuess, maximumFractionDigits: 0 });
 
@@ -1018,7 +1018,7 @@ function AutoReconcileDialog({
   const outOfSync = plans.filter((p) => !priceMap[p.key]);
 
   const [amountMap, setAmountMap] = useState<Record<string, string>>({});
-  const [currency, setCurrency] = useState("aud");
+  const [currency, setCurrency] = useState("usd");
   const [interval, setIntervalValue] = useState<"month" | "year" | "week">("month");
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [running, setRunning] = useState(false);

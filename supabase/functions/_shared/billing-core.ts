@@ -7,12 +7,12 @@ import { sendPostPaymentWelcomeEmail } from "./welcome-email.ts";
 export const STRIPE_API_VERSION = "2026-05-27.dahlia" as const;
 export const MAX_RECOVERY_BATCH_SIZE = 25;
 
-// Canonical attributes for the AUD 708 annual-member one-time Price.
+// Canonical attributes for the USD 708 annual-member one-time Price.
 // Source of truth = public.stripe_prices. No Stripe Price ID is hardcoded;
 // optional cross-validation against STRIPE_LIVE_ANNUAL_PRICE_ID is advisory.
 export const ANNUAL_MEMBER_CANONICAL = {
   plan_key: "annual_member" as const,
-  currency: "aud" as const,
+  currency: "usd" as const,
   unit_amount: 70800,
   recurring_interval: null as null,
   recurring_interval_count: null as null,
