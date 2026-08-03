@@ -21,11 +21,7 @@ const FROM_EMAIL =
   Deno.env.get("WELCOME_EMAIL_FROM")
   ?? Deno.env.get("LEAD_MAGNET_FROM_EMAIL")
   ?? "Casa Alchemy Academy <onboarding@resend.dev>";
-const SITE_URL = (
-  Deno.env.get("APP_FRONTEND_URL")
-  ?? Deno.env.get("PUBLIC_SITE_URL")
-  ?? "https://casaalchemyacademy.com"
-).replace(/\/$/, "");
+const SITE_URL = PUBLIC_SITE_URL;
 
 export type WelcomeProvider = "gmail" | "resend" | "failed" | "skipped";
 
