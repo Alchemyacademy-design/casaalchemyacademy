@@ -12,6 +12,7 @@
 
 import type { SupabaseAdmin } from "./billing-core.ts";
 import { buildGmailRawMessage } from "./gmail-message.ts";
+import { PUBLIC_SITE_URL } from "./site-url.ts";
 
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -21,11 +22,7 @@ const FROM_EMAIL =
   Deno.env.get("WELCOME_EMAIL_FROM")
   ?? Deno.env.get("LEAD_MAGNET_FROM_EMAIL")
   ?? "Casa Alchemy Academy <onboarding@resend.dev>";
-const SITE_URL = (
-  Deno.env.get("APP_FRONTEND_URL")
-  ?? Deno.env.get("PUBLIC_SITE_URL")
-  ?? "https://casaalchemyacademy.com"
-).replace(/\/$/, "");
+const SITE_URL = PUBLIC_SITE_URL;
 
 export type WelcomeProvider = "gmail" | "resend" | "failed" | "skipped";
 

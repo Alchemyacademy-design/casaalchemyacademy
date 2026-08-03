@@ -25,6 +25,8 @@ const BodySchema = z.object({
   website: z.string().max(0).optional().or(z.literal("")),
 });
 
+import { publicUrl } from "../_shared/site-url.ts";
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const HUBSPOT_TOKEN = Deno.env.get("HUBSPOT_PRIVATE_APP_TOKEN");
@@ -311,11 +313,11 @@ Deno.serve(async (req) => {
     });
   }
 
-  const url = new URL(req.url);
-  const origin = req.headers.get("origin") ?? `${url.protocol}//${url.host}`;
-  const lessonPageUrl = MAGAZINE_URL_ENV || `${origin}/free-lesson`;
+  // Email links must always point at the public site, never at the
+  // preview/sandbox origin the request happened to come from.
+  const lessonPageUrl = MAGAZINE_URL_ENV || publicUrl("/free-lesson");
   const lessonVideoUrl = LESSON_VIDEO_URL_ENV || DEFAULT_LESSON_VIDEO_URL;
-  const coverUrl = `${origin}${DEFAULT_LESSON_COVER_PATH}`;
+  const coverUrl = publicUrl(DEFAULT_LESSON_COVER_PATH);
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { persistSession: false },
