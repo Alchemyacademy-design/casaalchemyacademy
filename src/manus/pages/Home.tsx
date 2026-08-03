@@ -737,7 +737,7 @@ export default function Home() {
               <ul className="space-y-2">
                 {[
                   { label: "Home", href: "/" },
-                  { label: "Join the Academy", href: "https://buy.stripe.com/4gMbJ27Nv0Gb2jP1mGaZi02" },
+                  { label: "Join the Academy", href: "https://buy.stripe.com/cNi4gAaZH2OjbUpe9saZi06" },
                   { label: "Explore Academy", href: "#modules" },
                 ].map((item) => (
                   <li key={item.label}>

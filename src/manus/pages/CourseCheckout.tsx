@@ -7,7 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
-const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/8x2cN64Bj74z6A56H0aZi03";
+const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/fZu4gA5Fn4Wr6A53uOaZi05";
 
 const CHARITIES = [
   { id: "lighthouse", name: "The Lighthouse for the Community" },
