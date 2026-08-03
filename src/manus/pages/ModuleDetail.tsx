@@ -469,6 +469,26 @@ export default function ModuleDetail() {
 
                   <LessonPlayer videoUrl={activeLesson.videoUrl} title={activeLesson.title} isAdmin={false} />
 
+                  <Card className="space-y-5 p-5 sm:p-6">
+                    <div>
+                      <p className="text-xs uppercase tracking-wider text-accent">Materials for this lesson</p>
+                      <p className="text-xs text-foreground/60">
+                        Open any file right here while you watch — no need to leave the lesson.
+                      </p>
+                    </div>
+                    <SupportMaterialsList scope={{ lessonId: activeLesson.id }} title="Lesson materials" emptyHidden={false} />
+                    <LessonMaterial
+                      url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
+                    />
+                    {isValidModuleId ? (
+                      <SupportMaterialsList scope={{ moduleId }} title="Module materials" />
+                    ) : null}
+                    {currentCourseId ? (
+                      <SupportMaterialsList scope={{ courseId: currentCourseId }} title="Course materials" />
+                    ) : null}
+                    <SupportMaterialsList scope={{ bonus: true }} title="Bonus materials" />
+                  </Card>
+
                   <LessonNotes lessonId={Number(activeLesson.id)} />
 
                   {activeLessonQuiz ? (
@@ -490,24 +510,6 @@ export default function ModuleDetail() {
                       <div className="whitespace-pre-wrap leading-relaxed">{activeLesson.content}</div>
                     </Card>
                   )}
-
-                  <div>
-                    <p className="text-xs uppercase tracking-wider text-foreground/60 mb-2">Material</p>
-                    <LessonMaterial
-                      url={(activeLesson as { external_resource_url?: string | null }).external_resource_url ?? null}
-                    />
-                  </div>
-
-                  <Card className="p-6">
-                    <SupportMaterialsList scope={{ lessonId: activeLesson.id }} emptyHidden={false} />
-                  </Card>
-                  {currentCourseId ? (
-                    <SupportMaterialsList scope={{ courseId: currentCourseId }} title="Course materials" />
-                  ) : null}
-                  {isValidModuleId ? (
-                    <SupportMaterialsList scope={{ moduleId }} title="Module materials" />
-                  ) : null}
-                  <SupportMaterialsList scope={{ bonus: true }} title="Bonus materials" />
 
                   <div className="space-y-4">
                     <p className="text-xs uppercase tracking-wider text-foreground/60">
