@@ -14,7 +14,6 @@ import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
-import ModuleCard from "@/manus/components/learning/ModuleCard";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
@@ -270,31 +269,8 @@ export default function CourseDetail() {
               </Card>
             ) : null}
 
-            {accessible && course.course_modules.length > 0 ? (
-              <section className="mb-10">
-                <SectionHeader title="Modules overview" description="A clear view of the complete course before you begin." />
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  {course.course_modules.map((module) => {
-                    const moduleCompleted = module.lessons.filter((lesson) => completedIds.has(lesson.id)).length;
-                    return (
-                      <ModuleCard
-                        key={module.id}
-                        id={module.id}
-                        title={module.title}
-                        description={module.description}
-                        lessonCount={module.lessons.length}
-                        completedCount={moduleCompleted}
-                        href={`/modules/${module.id}`}
-                        badge={module.status !== "published" ? module.status : undefined}
-                      />
-                    );
-                  })}
-                </div>
-              </section>
-            ) : null}
-
             <section className="mb-10">
-              <SectionHeader title="Learning path" description="Follow the course in sequence or return directly to a previous lesson." />
+              <SectionHeader title="Learning path" description="Every module and lesson in sequence. Jump back to any lesson at any time." />
               <div className="aa-panel overflow-hidden p-3 sm:p-5">
                 <LearningPath
                   modules={course.course_modules.map((module) => ({
