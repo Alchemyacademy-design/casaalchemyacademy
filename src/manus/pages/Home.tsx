@@ -7,6 +7,7 @@ import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
+import freeLessonBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
 

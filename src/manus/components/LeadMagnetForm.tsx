@@ -27,7 +27,7 @@ export default function LeadMagnetForm({
   source,
   placement,
   metadata,
-  ctaLabel = "Get the Magazine",
+  ctaLabel = "Watch the Free Lesson",
   redirectTo,
   onSubmitted,
   variant = "light",
@@ -56,7 +56,7 @@ export default function LeadMagnetForm({
         metadata: { ...(metadata ?? {}), ...(placement ? { placement } : {}) },
         website,
       });
-      toast.success("You're in. Your issue is ready.");
+      toast.success("You're in. Your free lesson is ready.");
       onSubmitted?.();
       navigate(redirectTo ?? result.redirect ?? "/magazine-download");
     } catch (err) {
