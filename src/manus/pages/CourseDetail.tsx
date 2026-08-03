@@ -14,7 +14,6 @@ import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
-import ModuleCard from "@/manus/components/learning/ModuleCard";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
