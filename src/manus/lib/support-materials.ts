@@ -238,3 +238,27 @@ export async function getMaterialUrl(material: SupportMaterial): Promise<string>
   if (error) throw error;
   return data.signedUrl;
 }
+
+/** Signed URL meant for inline viewing (never forces a download). */
+export async function getMaterialPreviewUrl(material: SupportMaterial): Promise<string> {
+  if (material.external_url) return material.external_url;
+  if (!material.storage_path) throw new Error("Material has no file.");
+  const { data, error } = await supabase.storage
+    .from(material.storage_bucket || "course-assets")
+    .createSignedUrl(material.storage_path, 60 * 10);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+export type MaterialPreviewKind = "pdf" | "image" | "audio" | "text" | "none";
+
+/** What can be rendered inline, straight inside the lesson page. */
+export function previewKindOf(material: SupportMaterial): MaterialPreviewKind {
+  if (material.external_url) return "none";
+  const hint = `${material.file_type ?? ""} ${material.file_name ?? ""}`.toLowerCase();
+  if (/pdf/.test(hint)) return "pdf";
+  if (/(image|png|jpe?g|webp|gif|svg)/.test(hint)) return "image";
+  if (/(audio|mp3|wav)/.test(hint)) return "audio";
+  if (/(text\/plain|\.txt|\.csv)/.test(hint)) return "text";
+  return "none";
+}
