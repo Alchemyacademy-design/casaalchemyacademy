@@ -35,7 +35,7 @@ const FROM_EMAIL =
   Deno.env.get("EVENT_REMINDER_FROM_EMAIL") ??
   Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ??
   "Casa Alchemy <onboarding@resend.dev>";
-const APP_URL = Deno.env.get("APP_FRONTEND_URL") ?? "https://casaalchemyacademy.com";
+const APP_URL = PUBLIC_SITE_URL;
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 function maskEmail(email: string): string {
