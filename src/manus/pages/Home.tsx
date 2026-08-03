@@ -691,25 +691,33 @@ export default function Home() {
       </section>
 
       {!isAuthenticated && (
-        <section id="magazine-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
+        <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
+            <div className="max-w-5xl mx-auto mb-8 md:mb-10 overflow-hidden" style={{ border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
+              <img
+                src={freeLessonBanner.url}
+                alt="Free lesson: How to Mix Prints, with Lorena Couto — Casa Alchemy"
+                loading="lazy"
+                className="w-full h-auto block"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-10 items-center max-w-5xl mx-auto">
               <div>
                 <p style={{ textTransform: "uppercase", letterSpacing: "0.2em", fontSize: "0.75rem", color: "var(--aa-olive-mid)", marginBottom: "0.75rem", fontFamily: "'DM Sans', sans-serif" }}>
-                  Get the magazine
+                  Get the free lesson
                 </p>
                 <h2 className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.5rem", lineHeight: 1.15, marginBottom: "1rem", fontWeight: 400 }}>
-                  Get our latest issue, free.
+                  Get our latest lesson, free.
                 </h2>
                 <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "1rem" }}>
-                  Subscribe and download our latest magazine issue straight away — real projects, real principles, and the professional knowledge you need to design your own home with confidence.
+                  Subscribe and watch <em>How to Mix Prints</em> straight away — a full lesson with Lorena Couto: real projects, real principles, and the professional knowledge you need to design your own home with confidence.
                 </p>
                 <p style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
-                  No waiting. The PDF is ready the moment you subscribe.
+                  No waiting. The lesson starts playing the moment you subscribe.
                 </p>
               </div>
               <div style={{ background: "var(--aa-white)", padding: "2rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
-                <LeadMagnetForm source="popup" placement="footer" ctaLabel="Get the Magazine" />
+                <LeadMagnetForm source="popup" placement="footer" ctaLabel="Watch the Free Lesson" />
               </div>
             </div>
           </div>
