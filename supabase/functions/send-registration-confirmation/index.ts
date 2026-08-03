@@ -11,6 +11,7 @@
 
 import { createClient } from "npm:@supabase/supabase-js@2.45.0";
 import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
+import { PUBLIC_SITE_URL } from "../_shared/site-url.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
