@@ -2,7 +2,50 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 
-export type AlchemistTier = "Novice" | "Apprentice" | "Alchemist" | "Master" | "Luminary";
+export type AlchemistTier =
+  | "Prima Materia"
+  | "Awakening"
+  | "Refinement"
+  | "Mastery"
+  | "Philosopher's Stone";
+
+export const ALCHEMIST_TIERS: {
+  name: AlchemistTier;
+  short: string;
+  from: number;
+  blurb: string;
+}[] = [
+  {
+    name: "Prima Materia",
+    short: "PM",
+    from: 0,
+    blurb: "The raw material. You are starting the work — first lessons, first steps.",
+  },
+  {
+    name: "Awakening",
+    short: "AW",
+    from: 100,
+    blurb: "The eye opens. You start seeing colour, light and proportion with intention.",
+  },
+  {
+    name: "Refinement",
+    short: "RF",
+    from: 500,
+    blurb: "The true alchemy: refining the raw into the considered. Choosing better, not more.",
+  },
+  {
+    name: "Mastery",
+    short: "MA",
+    from: 1500,
+    blurb: "The craft is yours. You design with confidence and teach others in the community.",
+  },
+  {
+    name: "Philosopher's Stone",
+    short: "PS",
+    from: 4000,
+    blurb: "The final stage. You transform any space — and everyone around you feels it.",
+  },
+];
 
 export interface AlchemistStats {
   xp: number;
