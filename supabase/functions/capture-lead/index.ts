@@ -49,6 +49,12 @@ const DEFAULT_LESSON_COVER_PATH =
 const FROM_EMAIL = Deno.env.get("LEAD_MAGNET_FROM_EMAIL") ?? "Casa Alchemy <onboarding@resend.dev>";
 
 const HUBSPOT_BASE = "https://api.hubapi.com";
+// HubSpot Forms submission (public endpoint — no token required).
+// Casa Alchemy portal + the "subscribers" form Lorena shared.
+const HUBSPOT_PORTAL_ID = Deno.env.get("HUBSPOT_PORTAL_ID") ?? "442909568";
+const HUBSPOT_FORM_GUID =
+  Deno.env.get("HUBSPOT_FORM_GUID") ?? "3305b4c1-94e1-4576-a0b6-c2ef4dba3fb5";
+const HUBSPOT_FORMS_BASE = "https://api.hsforms.com/submissions/v3/integration/submit";
 const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v1";
 
 // Rate-limit config: max submissions per hashed IP per window.
@@ -155,6 +161,59 @@ async function upsertHubspotContact(input: {
   }
   const data = await post.json();
   return { id: (data?.id as string) ?? null, error: null };
+}
+
+// Pushes the lead into the HubSpot form so it lands in the same submissions
+// list Lorena watches. Public endpoint, no auth. Never throws.
+async function submitHubspotForm(input: {
+  email: string;
+  firstname: string;
+  lastname: string;
+  phone: string;
+  source: "popup" | "quiz";
+  placement?: string;
+  pageUri: string;
+  pageName: string;
+  hutk?: string | null;
+}): Promise<string | null> {
+  if (!HUBSPOT_PORTAL_ID || !HUBSPOT_FORM_GUID) return "hubspot form not configured";
+  const fields = [
+    { name: "email", value: input.email },
+    { name: "firstname", value: input.firstname },
+    { name: "lastname", value: input.lastname },
+    { name: "phone", value: input.phone },
+    { name: "lead_source", value: labelForLead(input.source, input.placement) },
+  ].filter((f) => typeof f.value === "string" && f.value.trim().length > 0);
+
+  const payload: Record<string, unknown> = {
+    fields,
+    context: {
+      pageUri: input.pageUri,
+      pageName: input.pageName,
+      ...(input.hutk ? { hutk: input.hutk } : {}),
+    },
+  };
+
+  try {
+    const res = await fetch(
+      `${HUBSPOT_FORMS_BASE}/${HUBSPOT_PORTAL_ID}/${HUBSPOT_FORM_GUID}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      },
+    );
+    const body = await res.text();
+    if (!res.ok) {
+      console.warn(`hubspot form submit [${res.status}]: ${body}`);
+      return `hubspot form submit failed [${res.status}]: ${body}`;
+    }
+    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("hubspot form submit threw:", msg);
+    return msg;
+  }
 }
 
 async function addToStaticList(contactId: string): Promise<void> {
@@ -408,6 +467,7 @@ Deno.serve(async (req) => {
   // HubSpot sync — non-blocking (log on failure, still return success so the
   // visitor gets the free lesson).
   const { firstname, lastname } = splitName(name);
+  const hubspotCookie = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)hubspotutk=([^;]+)/)?.[1] ?? null;
   let hubspotContactId: string | null = null;
   let hubspotError: string | null = null;
   try {
@@ -417,6 +477,18 @@ Deno.serve(async (req) => {
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
+    const formErr = await submitHubspotForm({
+      email,
+      firstname,
+      lastname,
+      phone,
+      source,
+      placement,
+      pageUri: typeof metadata?.page_uri === "string" ? metadata.page_uri : lessonPageUrl,
+      pageName: labelForLead(source, placement),
+      hutk: hubspotCookie,
+    });
+    if (formErr) hubspotError = hubspotError ? `${hubspotError}; ${formErr}` : formErr;
   } catch (e) {
     hubspotError = (e as Error).message;
     console.error("hubspot sync error:", e);
