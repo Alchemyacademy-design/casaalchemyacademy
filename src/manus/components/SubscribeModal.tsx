@@ -17,17 +17,17 @@ const CHARITIES = [
 const PLAN_LABELS: Record<string, { label: string; price: string; sub: string }> = {
   annual: {
     label: "Annual Membership",
-    price: "A$708 / year",
-    sub: "Billed annually (equivalent to A$59/month). Full access for 12 months: every course, community, members events, magazine, exclusive deals and Live Classes with Lorena. Save A$480 vs monthly.",
+    price: "US$708 / year",
+    sub: "Billed annually (equivalent to US$59/month). Full access for 12 months: every course, community, members events, magazine, exclusive deals and Live Classes with Lorena. Save US$480 vs monthly.",
   },
   monthly: {
     label: "Monthly Membership",
-    price: "A$99 / month",
+    price: "US$99 / month",
     sub: "Billed monthly, no lock-in. Cancel anytime. Includes all courses, community, members events, magazine, suppliers directory and exclusive deals.",
   },
   guide: {
     label: "Single Course",
-    price: "A$159 one-time",
+    price: "US$159 one-time",
     sub: "One-time payment for lifetime access to a single course, billed individually. Includes all lesson materials, quizzes and completion certificate.",
   },
 };
