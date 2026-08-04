@@ -123,7 +123,8 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
       )}
 
       <Card className="p-0 overflow-hidden mt-4">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-sm">
           <thead className="bg-muted/50 text-xs uppercase tracking-wider text-foreground/60">
             <tr>
               <th className="text-left p-3">Quiz</th>
@@ -190,6 +191,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
             ))}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {previewId != null && (

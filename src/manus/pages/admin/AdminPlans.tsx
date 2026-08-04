@@ -1085,7 +1085,7 @@ function AutoReconcileDialog({
           <p className="text-sm text-emerald-600 flex items-center gap-1"><Check className="w-4 h-4" /> All plans already have a mapped Stripe price.</p>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs">Currency</Label>
                 <Input className="mt-1 uppercase" value={currency} onChange={(e) => setCurrency(e.target.value.toLowerCase())} maxLength={3} />
