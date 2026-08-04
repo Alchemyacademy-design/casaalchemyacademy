@@ -21,6 +21,11 @@ const publicPaths = new Set([
   "/magazine-download",
   "/free-lesson",
   "/choose-course",
+  // Stripe post-checkout landings must stay public: guest checkout users pay
+  // before they have an account/session, and bouncing them to /login would
+  // hide the confirmation (and the "set your password" instructions).
+  "/payment/success",
+  "/payment/cancel",
 ]);
 
 const unpaidAllowedPaths = new Set([
