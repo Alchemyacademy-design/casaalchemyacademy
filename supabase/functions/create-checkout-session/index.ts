@@ -10,7 +10,7 @@ type OfferKey = "individual_course" | "monthly_member" | "annual_member";
 type ExpectedTerms = {
   currency: "usd";
   unit_amount: number;
-  interval: "month" | null;
+  interval: "month" | "year" | null;
   interval_count: number | null;
   mode: "subscription" | "payment";
 };
