@@ -191,6 +191,18 @@ function metadataUserId(metadata: Stripe.Metadata | null | undefined): string | 
   return isUuid(metadata?.supabase_user_id) ? metadata.supabase_user_id : null;
 }
 
+// Payment Links can only forward `client_reference_id`. For the single-course
+// offer the frontend encodes it as `<user-uuid>__c<course-id>`; plain UUIDs
+// (all other flows) keep working unchanged.
+function parseClientReference(raw: string | null | undefined): { userId: string | null; courseId: number | null } {
+  if (typeof raw !== "string" || raw.length === 0) return { userId: null, courseId: null };
+  const match = raw.match(/^([0-9a-f-]{36})(?:__c(\d+))?$/i);
+  if (!match) return { userId: isUuid(raw) ? raw : null, courseId: null };
+  const userId = isUuid(match[1]) ? match[1] : null;
+  const parsed = match[2] ? Number.parseInt(match[2], 10) : NaN;
+  return { userId, courseId: Number.isInteger(parsed) && parsed > 0 ? parsed : null };
+}
+
 // Guest-checkout fallback: resolve a Supabase auth user by email, and if it
 // doesn't exist yet, provision one and trigger the password-setup email flow.
 // Idempotent — safe to call from webhook retries. Returns null only when we
