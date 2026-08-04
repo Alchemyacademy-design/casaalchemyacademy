@@ -191,6 +191,7 @@ export function AdminQuizzesInner({ embedded = false }: { embedded?: boolean }) 
             ))}
           </tbody>
         </table>
+        </div>
       </Card>
 
       {previewId != null && (
