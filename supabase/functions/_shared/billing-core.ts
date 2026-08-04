@@ -525,6 +525,9 @@ async function applyAnnualCheckoutPayment(
   if ((data as { result?: string } | null)?.result === "processed_ignored_stale") {
     throw new IgnoredEvent("stale_annual_checkout_event", true);
   }
+  if ((data as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+    throw new IgnoredEvent("duplicate_annual_checkout_event");
+  }
 
   // Welcome email — annual (one-time). Guard lives on
   // stripe_checkout_sessions.metadata.welcome_email; safe against webhook
@@ -546,7 +549,7 @@ async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Eve
   const userId = metadataUserId(subscription.metadata)
     ?? await resolveUserIdForSubscription(supabase, subscription, stripe);
   if (!userId) throw new BillingError(`Subscription ${subscription.id} missing supabase_user_id`);
-  const { error } = await supabase.rpc("internal_apply_stripe_subscription_state", {
+  const { data, error } = await supabase.rpc("internal_apply_stripe_subscription_state", {
     p_stripe_event_id: event.id,
     p_stripe_event_created_at: eventCreatedAt(event),
     p_user_id: userId,
@@ -555,6 +558,9 @@ async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Eve
     p_metadata: { source_event_type: event.type, stripe_status: subscription.status },
   });
   if (error) throw error;
+  if ((data as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+    throw new IgnoredEvent("duplicate_subscription_state_event");
+  }
 }
 
 async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: Stripe.Event, invoice: Stripe.Invoice) {
@@ -611,6 +617,9 @@ async function applyInvoicePaid(supabase: SupabaseAdmin, stripe: Stripe, event: 
   });
   if (error) throw error;
   if ((data as { result?: string } | null)?.result === "processed_ignored_stale") throw new IgnoredEvent("stale_event", true);
+  if ((data as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+    throw new IgnoredEvent("duplicate_invoice_paid_event");
+  }
 
   // Welcome email — monthly / individual course subscriptions. Only fires on
   // the first paid invoice of the subscription lifecycle. Guard lives on
