@@ -55,7 +55,10 @@ Deno.serve((request) => {
     const returnUrl = (() => {
       const origin = req.headers.get("origin");
       if (origin) return `${origin}/profile`;
-      return env("CHECKOUT_SUCCESS_URL");
+      // No origin header (server-to-server): return to the canonical profile
+      // page rather than the payment-success screen, which would show a
+      // misleading "payment received" message.
+      return publicUrl("/profile");
     })();
 
     const session = await stripe.billingPortal.sessions.create({
