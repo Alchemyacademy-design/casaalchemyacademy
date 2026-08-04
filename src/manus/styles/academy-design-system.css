@@ -562,9 +562,14 @@ svg {
     white-space: pre-wrap;
   }
 
-  /* Any table stays readable by scrolling its own container */
-  table {
+  /* Data tables stay readable by scrolling their own container.
+     The landing pricing table is designed to fit the viewport. */
+  table:not(.pricing-table) {
     min-width: 560px;
+  }
+
+  table.pricing-table {
+    min-width: 0;
   }
 
   .overflow-x-auto,
