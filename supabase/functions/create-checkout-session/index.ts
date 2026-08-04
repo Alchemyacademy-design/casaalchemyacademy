@@ -4,8 +4,33 @@ import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
 import { env, evaluateCheckoutGate, expectedLivemode, stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { publicUrl } from "../_shared/site-url.ts";
 
 type OfferKey = "individual_course" | "monthly_member" | "annual_member";
+
+// Resolves the post-checkout redirect targets. Falls back to the canonical
+// public site when the secret is missing/invalid, and always guarantees the
+// success URL carries Stripe's {CHECKOUT_SESSION_ID} placeholder so
+// /payment/success can poll the real session status instead of rendering the
+// generic "no session" fallback.
+function resolveRedirectUrl(secretName: string, path: string, withSessionId: boolean): string {
+  const raw = (() => {
+    try { return env(secretName); } catch { return ""; }
+  })();
+  let url: URL;
+  try {
+    url = new URL((raw ?? "").trim());
+    if (url.protocol !== "https:") throw new Error("insecure");
+  } catch {
+    url = new URL(publicUrl(path));
+  }
+  if (!url.pathname.endsWith(path)) url.pathname = path;
+  if (withSessionId && !url.searchParams.has("session_id")) {
+    url.searchParams.set("session_id", "__CHECKOUT_SESSION_ID__");
+  }
+  // Stripe requires the raw {CHECKOUT_SESSION_ID} token (URL-encoding breaks it).
+  return url.toString().replace("__CHECKOUT_SESSION_ID__", "{CHECKOUT_SESSION_ID}");
+}
 
 type ExpectedTerms = {
   currency: "usd";
