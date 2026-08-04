@@ -1,8 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { withSupabase } from "npm:@supabase/server@1.1.0";
 import type { Database } from "../../../shared/supabase.types.ts";
-import { env, stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
+import { stripeClient, supabaseAdmin } from "../_shared/billing-core.ts";
 import { buildCorsHeaders } from "../_shared/cors.ts";
+import { publicUrl } from "../_shared/site-url.ts";
 
 Deno.serve((request) => {
   const corsHeaders = buildCorsHeaders(request.headers.get("origin"));
