@@ -10,7 +10,7 @@ type OfferKey = "individual_course" | "monthly_member" | "annual_member";
 type ExpectedTerms = {
   currency: "usd";
   unit_amount: number;
-  interval: "month" | null;
+  interval: "month" | "year" | null;
   interval_count: number | null;
   mode: "subscription" | "payment";
 };
@@ -22,12 +22,12 @@ function assertOfferKey(value: unknown): OfferKey {
 
 function expectedTerms(offerKey: OfferKey): ExpectedTerms {
   if (offerKey === "individual_course") {
-    return { currency: "usd", unit_amount: 15900, interval: "month", interval_count: 3, mode: "subscription" };
+    return { currency: "usd", unit_amount: 15900, interval: "month", interval_count: 1, mode: "subscription" };
   }
   if (offerKey === "monthly_member") {
     return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
   }
-  return { currency: "usd", unit_amount: 70800, interval: null, interval_count: null, mode: "payment" };
+  return { currency: "usd", unit_amount: 70800, interval: "year", interval_count: 1, mode: "subscription" };
 }
 
 function safeMetadataValue(value: unknown): string | null {

@@ -191,6 +191,18 @@ function metadataUserId(metadata: Stripe.Metadata | null | undefined): string | 
   return isUuid(metadata?.supabase_user_id) ? metadata.supabase_user_id : null;
 }
 
+// Payment Links can only forward `client_reference_id`. For the single-course
+// offer the frontend encodes it as `<user-uuid>__c<course-id>`; plain UUIDs
+// (all other flows) keep working unchanged.
+function parseClientReference(raw: string | null | undefined): { userId: string | null; courseId: number | null } {
+  if (typeof raw !== "string" || raw.length === 0) return { userId: null, courseId: null };
+  const match = raw.match(/^([0-9a-f-]{36})(?:__c(\d+))?$/i);
+  if (!match) return { userId: isUuid(raw) ? raw : null, courseId: null };
+  const userId = isUuid(match[1]) ? match[1] : null;
+  const parsed = match[2] ? Number.parseInt(match[2], 10) : NaN;
+  return { userId, courseId: Number.isInteger(parsed) && parsed > 0 ? parsed : null };
+}
+
 // Guest-checkout fallback: resolve a Supabase auth user by email, and if it
 // doesn't exist yet, provision one and trigger the password-setup email flow.
 // Idempotent — safe to call from webhook retries. Returns null only when we
@@ -376,7 +388,8 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
 }
 
 async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, session: Stripe.Checkout.Session, event: Stripe.Event) {
-  let userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  const clientRef = parseClientReference(session.client_reference_id);
+  let userId = metadataUserId(session.metadata) ?? clientRef.userId;
   if (!userId) {
     // Guest checkout: resolve (or provision) the Supabase user from the
     // email Stripe collected at checkout, then trigger the password-setup
@@ -413,7 +426,7 @@ async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, se
       const needsUser = !isUuid(sub.metadata?.supabase_user_id);
       const priceId = sub.items?.data?.[0]?.price?.id ?? lineItems.data[0]?.price?.id ?? null;
       let planKey: string | null = sub.metadata?.plan_key ?? null;
-      let courseId: number | null = metadataCourseId(sub.metadata);
+      let courseId: number | null = metadataCourseId(sub.metadata, session.metadata) ?? clientRef.courseId;
       if (priceId && (!planKey || (planKey === "individual_course" && !courseId))) {
         try {
           const mapping = await priceMapping(supabase, priceId, event.livemode);
@@ -447,7 +460,7 @@ async function applyAnnualCheckoutPayment(
   // Payment Links carry the user via `client_reference_id`; fall back to it
   // when metadata.supabase_user_id is absent.
   let userId = metadataUserId(session.metadata)
-    ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+    ?? parseClientReference(session.client_reference_id).userId;
   if (!userId) {
     userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
   }

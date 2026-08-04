@@ -184,7 +184,7 @@ describe("billing-runtime", () => {
     it("documents canonical annual price attributes without referencing any Stripe ID", () => {
       expect(ANNUAL_MEMBER_EXPECTED).toEqual({
         plan_key: "annual_member",
-        currency: "aud",
+        currency: "usd",
         unit_amount: 70800,
         recurring_interval: null,
         recurring_interval_count: null,
