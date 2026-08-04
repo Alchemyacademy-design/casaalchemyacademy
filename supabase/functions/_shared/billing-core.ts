@@ -388,7 +388,8 @@ async function priceMapping(supabase: SupabaseAdmin, priceId: string, livemode: 
 }
 
 async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, session: Stripe.Checkout.Session, event: Stripe.Event) {
-  let userId = metadataUserId(session.metadata) ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+  const clientRef = parseClientReference(session.client_reference_id);
+  let userId = metadataUserId(session.metadata) ?? clientRef.userId;
   if (!userId) {
     // Guest checkout: resolve (or provision) the Supabase user from the
     // email Stripe collected at checkout, then trigger the password-setup
@@ -425,7 +426,7 @@ async function recordCheckoutSession(supabase: SupabaseAdmin, stripe: Stripe, se
       const needsUser = !isUuid(sub.metadata?.supabase_user_id);
       const priceId = sub.items?.data?.[0]?.price?.id ?? lineItems.data[0]?.price?.id ?? null;
       let planKey: string | null = sub.metadata?.plan_key ?? null;
-      let courseId: number | null = metadataCourseId(sub.metadata);
+      let courseId: number | null = metadataCourseId(sub.metadata, session.metadata) ?? clientRef.courseId;
       if (priceId && (!planKey || (planKey === "individual_course" && !courseId))) {
         try {
           const mapping = await priceMapping(supabase, priceId, event.livemode);
@@ -459,7 +460,7 @@ async function applyAnnualCheckoutPayment(
   // Payment Links carry the user via `client_reference_id`; fall back to it
   // when metadata.supabase_user_id is absent.
   let userId = metadataUserId(session.metadata)
-    ?? (isUuid(session.client_reference_id) ? session.client_reference_id : null);
+    ?? parseClientReference(session.client_reference_id).userId;
   if (!userId) {
     userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
   }
