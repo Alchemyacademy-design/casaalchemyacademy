@@ -666,7 +666,7 @@ async function revokeByCharge(supabase: SupabaseAdmin, stripe: Stripe, event: St
   const { charge, payment, paymentIntentId } = await paymentForCharge(supabase, stripe, chargeId);
   const subscriptionId = payment?.stripe_subscription_id ?? null;
   if (!subscriptionId) throw new IgnoredEvent(`${reason}_without_subscription`);
-  const { error } = await supabase.rpc("internal_apply_stripe_access_revocation", {
+  const { data, error } = await supabase.rpc("internal_apply_stripe_access_revocation", {
     p_stripe_event_id: event.id,
     p_stripe_event_created_at: eventCreatedAt(event),
     p_stripe_subscription_id: subscriptionId,
@@ -679,6 +679,9 @@ async function revokeByCharge(supabase: SupabaseAdmin, stripe: Stripe, event: St
     },
   });
   if (error) throw error;
+  if ((data as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+    throw new IgnoredEvent("duplicate_revocation_event");
+  }
 }
 
 export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Stripe, event: Stripe.Event) {
