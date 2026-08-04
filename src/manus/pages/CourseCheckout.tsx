@@ -95,7 +95,9 @@ export default function CourseCheckout() {
     const current = sessionData.session?.user;
     if (current?.email) {
       link.searchParams.set("prefilled_email", current.email);
-      link.searchParams.set("client_reference_id", current.id);
+      // Payment Links only forward `client_reference_id`, so the chosen course
+      // is encoded alongside the user id and decoded by the Stripe webhook.
+      link.searchParams.set("client_reference_id", `${current.id}__c${courseId}`);
     } else if (email) {
       link.searchParams.set("prefilled_email", email.trim().toLowerCase());
     }
