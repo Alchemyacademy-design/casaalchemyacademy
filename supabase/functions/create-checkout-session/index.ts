@@ -226,8 +226,8 @@ Deno.serve((request) => {
     customer: stripeCustomerId,
     client_reference_id: user.id,
     line_items: [{ price: price.stripe_price_id, quantity: 1 }],
-    success_url: env("CHECKOUT_SUCCESS_URL"),
-    cancel_url: env("CHECKOUT_CANCEL_URL"),
+    success_url: resolveRedirectUrl("CHECKOUT_SUCCESS_URL", "/payment/success", true),
+    cancel_url: resolveRedirectUrl("CHECKOUT_CANCEL_URL", "/payment/cancel", false),
     metadata,
   };
 
