@@ -516,3 +516,93 @@ body:has(a[href="/admin"]) tbody tr:hover {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* ------------------------------------------------------------------
+ * Mobile hardening (presentation only)
+ * ------------------------------------------------------------------ */
+html,
+body {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
+img,
+video,
+iframe,
+canvas,
+svg {
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  /* No element may push the page sideways */
+  #root {
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  /* Long words / URLs must wrap instead of stretching the layout */
+  p,
+  li,
+  h1,
+  h2,
+  h3,
+  h4,
+  a,
+  span,
+  td,
+  th,
+  code,
+  pre {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  pre {
+    white-space: pre-wrap;
+  }
+
+  /* Any table stays readable by scrolling its own container */
+  table {
+    min-width: 560px;
+  }
+
+  .overflow-x-auto,
+  .overflow-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Dialogs and popovers fit inside the viewport */
+  [role="dialog"] {
+    max-width: calc(100vw - 1.5rem) !important;
+  }
+
+  [role="dialog"] .grid.grid-cols-2,
+  [role="dialog"] .grid.grid-cols-3 {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  /* Comfortable tap targets */
+  button,
+  [role="button"],
+  a.btn,
+  .btn,
+  .btn-gold,
+  [role="tab"] {
+    min-height: 40px;
+  }
+
+  /* Inputs never trigger iOS zoom */
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+
+  /* Tab bars scroll horizontally instead of squashing */
+  [role="tablist"] {
+    max-width: 100%;
+    overflow-x: auto;
+    flex-wrap: wrap;
+  }
+}
