@@ -715,6 +715,17 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "customer.subscription.deleted":
       await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription, "canceled", stripe);
       return;
+    case "customer.subscription.paused":
+      // Pausing in the Stripe dashboard must suspend access immediately.
+      await applySubscriptionState(supabase, event, event.data.object as Stripe.Subscription, "paused", stripe);
+      return;
+    case "customer.subscription.resumed": {
+      // Resuming only records the Stripe state; access is (re)granted by the
+      // next paid invoice, never by a lifecycle event alone.
+      const subscription = event.data.object as Stripe.Subscription;
+      await applySubscriptionState(supabase, event, subscription, undefined, stripe);
+      return;
+    }
     case "invoice.paid":
       await applyInvoicePaid(supabase, stripe, event, event.data.object as Stripe.Invoice);
       return;
@@ -729,6 +740,14 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "charge.refunded":
       await revokeByCharge(supabase, stripe, event, (event.data.object as Stripe.Charge).id, "refund");
       return;
+    case "charge.refund.updated": {
+      // Async refunds (bank-backed) only settle here; `charge.refunded` alone
+      // would miss them.
+      const refund = event.data.object as Stripe.Refund;
+      if (refund.status !== "succeeded") throw new IgnoredEvent(`refund_${refund.status ?? "unknown"}`);
+      await revokeByCharge(supabase, stripe, event, objectId(refund.charge), "refund");
+      return;
+    }
     case "charge.dispute.created":
       await revokeByCharge(supabase, stripe, event, objectId((event.data.object as Stripe.Dispute).charge), "dispute");
       return;
