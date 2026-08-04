@@ -376,7 +376,7 @@ function LessonEditor({ lesson, onSaved }: { lesson: Lesson; onSaved: () => void
         <SaveStatus status={status} />
       </div>
       <div><Label>Title</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <Label>Type</Label>
           <Select value={form.lesson_type} onValueChange={(v) => setForm({ ...form, lesson_type: v as Lesson["lesson_type"] })}>
