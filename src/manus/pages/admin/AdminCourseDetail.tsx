@@ -296,7 +296,7 @@ function LessonRow({
                 onSave={(v) => save({ description: v.trim() || null })}
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
                 <Label className="text-xs">Duration seconds</Label>
                 <AutoSaveInput value={String(lesson.duration_seconds ?? "")} onSave={(v) => save({ duration_seconds: v.trim() ? Number(v) : null })} />
