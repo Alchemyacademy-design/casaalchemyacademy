@@ -101,7 +101,7 @@ export default function AdminAnalytics() {
 
         {/* Tabs for different analytics views */}
         <Tabs defaultValue="revenue" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="mb-8 flex w-full flex-wrap gap-1 sm:grid sm:grid-cols-3 lg:grid-cols-5">
             <TabsTrigger value="revenue">Revenue Analytics</TabsTrigger>
             <TabsTrigger value="access">Access Analytics</TabsTrigger>
             <TabsTrigger value="users">User Analytics</TabsTrigger>
