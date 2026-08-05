@@ -736,6 +736,11 @@ export type Database = {
           estimated_duration: number | null
           external_landing_url: string | null
           has_certificate: boolean
+          hero_overlay_opacity: number | null
+          hero_text_hidden: boolean
+          hero_title_color: string | null
+          hero_title_font: string | null
+          hero_title_size: string | null
           id: number
           instructor_id: string | null
           instructor_name: string | null
@@ -769,6 +774,11 @@ export type Database = {
           estimated_duration?: number | null
           external_landing_url?: string | null
           has_certificate?: boolean
+          hero_overlay_opacity?: number | null
+          hero_text_hidden?: boolean
+          hero_title_color?: string | null
+          hero_title_font?: string | null
+          hero_title_size?: string | null
           id?: never
           instructor_id?: string | null
           instructor_name?: string | null
@@ -802,6 +812,11 @@ export type Database = {
           estimated_duration?: number | null
           external_landing_url?: string | null
           has_certificate?: boolean
+          hero_overlay_opacity?: number | null
+          hero_text_hidden?: boolean
+          hero_title_color?: string | null
+          hero_title_font?: string | null
+          hero_title_size?: string | null
           id?: never
           instructor_id?: string | null
           instructor_name?: string | null

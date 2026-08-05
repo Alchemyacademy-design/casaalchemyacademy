@@ -34,6 +34,7 @@ import LessonVideoUpload from "@/manus/components/admin/LessonVideoUpload";
 import PublishChecklist, { canPublish, type ChecklistItem } from "@/manus/components/admin/PublishChecklist";
 import AdminQuizEditor from "@/manus/components/admin/AdminQuizEditor";
 import SupportMaterialsPanel from "@/manus/components/admin/SupportMaterialsPanel";
+import CourseHeroStylePanel from "@/manus/components/admin/CourseHeroStylePanel";
 import CertificatePreview from "@/manus/components/learning/CertificatePreview";
 import LessonPlayer from "@/manus/components/learning/LessonPlayer";
 import { parseVideoUrl, stripQueryForDisplay, normalizeVideoUrl } from "@/manus/lib/video-url";
@@ -779,6 +780,10 @@ function CourseHeader({
               onSave={(v) => updateCourse(course.id, { banner_url: v.trim() || null }).then(onChanged)}
               className="font-mono text-xs"
               placeholder="Hero image URL"
+            />
+            <CourseHeroStylePanel
+              course={course}
+              onPatch={(patch) => void updateCourse(course.id, patch).then(onChanged)}
             />
           </div>
           <div>
