@@ -440,6 +440,19 @@ export default function Home() {
                 .cta-btn { font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.9rem 0.85rem; }
                 .cta-btn-primary { font-size: 0.82rem; letter-spacing: 0.14em; }
               }
+              .plan-detail-cta { display: none; }
+              .plan-detail-badge { display: none; }
+              @media (max-width: 767px) {
+                .pricing-table { display: none; }
+                .currency-note { margin-top: 0; order: 2; }
+                .plan-details { margin-top: 0; gap: 1rem; }
+                .plan-detail-card { padding: 1.25rem; border-radius: 12px; position: relative; }
+                .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
+                .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
+                .plan-detail-price { font-size: 1rem; }
+                .plan-detail-cta { display: block; margin-top: 1.1rem; }
+                .plan-detail-cta .cta-btn { min-height: 50px; }
+              }
             `}</style>
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
@@ -509,6 +522,9 @@ export default function Home() {
                 {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
+                  best: true,
+                  cta: "Subscribe Now",
+                  action: () => setSubscribeModal("annual"),
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -525,6 +541,9 @@ export default function Home() {
                 {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
+                  best: false,
+                  cta: "Subscribe Now",
+                  action: () => setSubscribeModal("monthly"),
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -540,6 +559,9 @@ export default function Home() {
                 {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
+                  best: false,
+                  cta: "Choose Course",
+                  action: () => navigate("/choose-course"),
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
@@ -552,7 +574,8 @@ export default function Home() {
                   ],
                 },
               ].map((plan) => (
-                <div key={plan.name} className="plan-detail-card">
+                <div key={plan.name} className={`plan-detail-card${plan.best ? " is-best" : ""}`}>
+                  {plan.best && <span className="plan-detail-badge">Best value</span>}
                   <p className="plan-detail-name">{plan.name}</p>
                   <p className="plan-detail-price">{plan.price}</p>
                   <p className="plan-detail-intro">{plan.intro}</p>
@@ -561,6 +584,9 @@ export default function Home() {
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
+                  <div className="plan-detail-cta">
+                    <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>{plan.cta}</button>
+                  </div>
                 </div>
               ))}
             </div>
