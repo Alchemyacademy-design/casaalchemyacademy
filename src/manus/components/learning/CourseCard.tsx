@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, StatusPill } from "@/manus/components/member/MemberUI";
+import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 export type CourseCardData = {
   id: number;
@@ -39,6 +40,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   } = course;
 
   const percent = Math.max(0, Math.min(100, progressPercent ?? 0));
+  const thumbnailUrl = resolveAssetUrl(thumbnail);
   const numberLabel =
     number == null ? null : typeof number === "number" ? String(number).padStart(2, "0") : number;
   const completed = percent === 100;
@@ -54,10 +56,10 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
       }`}
     >
       <div className="relative min-h-[170px] overflow-hidden bg-primary">
-        {thumbnail ? (
+        {thumbnailUrl ? (
           <div
             className="absolute inset-0 scale-[1.01] bg-cover bg-center transition duration-500 group-hover:scale-[1.045]"
-            style={{ backgroundImage: `url(${thumbnail})` }}
+            style={{ backgroundImage: `url(${thumbnailUrl})` }}
             aria-hidden="true"
           />
         ) : (
