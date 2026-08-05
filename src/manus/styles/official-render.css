@@ -384,6 +384,7 @@
  * and a light overall tint to tame highlights.
  */
 .aa-course-hero--image::after {
+  opacity: var(--aa-hero-scrim, 1);
   background:
     linear-gradient(
       0deg,
@@ -394,6 +395,14 @@
     ),
     linear-gradient(90deg, hsl(var(--foreground) / 0.45), hsl(var(--foreground) / 0.04) 65%),
     hsl(var(--foreground) / 0.05);
+}
+
+/*
+ * "Image already contains the title" mode: no scrim and no copy, so the
+ * uploaded artwork is shown exactly as designed.
+ */
+.aa-course-hero--plain::after {
+  display: none;
 }
 
 .aa-course-hero-content {
