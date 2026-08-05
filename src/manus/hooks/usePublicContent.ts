@@ -240,7 +240,7 @@ export function usePublishedCourses(limit?: number) {
  * remains the security authority — admins must already have read
  * access; non-admins always get the published-only list.
  */
-export type HomeCourse = Partial<CourseRow> & {
+export type HomeCourse = {
   id: number;
   title: string;
   status: string;
