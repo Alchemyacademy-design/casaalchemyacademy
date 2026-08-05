@@ -240,33 +240,62 @@ export function usePublishedCourses(limit?: number) {
  * remains the security authority — admins must already have read
  * access; non-admins always get the published-only list.
  */
-export type HomeCourse = CourseRow & { lesson_count: number };
+export type HomeCourse = {
+  id: number;
+  title: string;
+  status: string;
+  sort_order: number | null;
+  subtitle: string | null;
+  short_description: string | null;
+  description: string | null;
+  cover_image_path: string | null;
+  banner_url: string | null;
+  lesson_count: number;
+};
 
 export function useHomeCourses({ includeDrafts }: { includeDrafts: boolean } = { includeDrafts: false }) {
   return useQuery({
     queryKey: ["public", "courses", "home", includeDrafts ? "with-drafts" : "published"],
     queryFn: async (): Promise<HomeCourse[]> => {
-      let q = supabase
+      // Public catalogue: SECURITY DEFINER RPC so signed-out visitors always
+      // see the real, published courses (RLS on `courses` is auth-only).
+      const { data, error } = await supabase.rpc("get_public_course_catalog");
+      if (error) throw error;
+      const published: HomeCourse[] = ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+        id: Number(r.id),
+        title: String(r.title ?? "Untitled"),
+        status: "published",
+        sort_order: (r.sort_order as number | null) ?? null,
+        subtitle: (r.subtitle as string | null) ?? null,
+        short_description: (r.short_description as string | null) ?? null,
+        description: (r.description as string | null) ?? null,
+        cover_image_path: (r.cover_image_path as string | null) ?? null,
+        banner_url: (r.banner_url as string | null) ?? null,
+        lesson_count: Number(r.lesson_count ?? 0),
+      }));
+      if (!includeDrafts) return published;
+
+      // Admins additionally preview drafts straight from the table (RLS grants
+      // them read access); published rows still come from the RPC.
+      const { data: rows, error: draftError } = await supabase
         .from("courses")
         .select("*, course_modules(id, status, archived_at, lessons(id, status, archived_at))")
         .is("archived_at", null)
+        .neq("status", "published")
         .order("sort_order", { ascending: true });
-      if (!includeDrafts) q = q.eq("status", "published");
-      const { data, error } = await q;
-      if (error) throw error;
-      type NestedModule = { status?: string | null; archived_at?: string | null; lessons?: { status?: string | null; archived_at?: string | null }[] | null };
-      return (data ?? []).map((row) => {
-        const modules = ((row as unknown as { course_modules?: NestedModule[] | null }).course_modules ?? []) as NestedModule[];
+      if (draftError) return published;
+      type NestedModule = { archived_at?: string | null; lessons?: { archived_at?: string | null }[] | null };
+      const drafts: HomeCourse[] = ((rows ?? []) as unknown as (CourseRow & { course_modules?: NestedModule[] | null })[]).map((row) => {
         let lessons = 0;
-        for (const m of modules) {
+        for (const m of row.course_modules ?? []) {
           if (m.archived_at) continue;
-          for (const l of m.lessons ?? []) {
-            if (l.archived_at) continue;
-            if (includeDrafts || l.status === "published") lessons += 1;
-          }
+          for (const l of m.lessons ?? []) if (!l.archived_at) lessons += 1;
         }
-        return { ...(row as unknown as CourseRow), lesson_count: lessons };
+        return { ...(row as CourseRow), status: String(row.status), lesson_count: lessons } as HomeCourse;
       });
+      return [...published, ...drafts].sort(
+        (a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999) || a.id - b.id,
+      );
     },
   });
 }
