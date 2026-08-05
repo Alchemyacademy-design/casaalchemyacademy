@@ -446,28 +446,30 @@ export default function Home() {
               .cta-btn:hover { letter-spacing: 0.19em; }
               .plan-detail-card { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
               .plan-detail-card:hover { transform: translateY(-4px); box-shadow: 0 16px 34px -18px rgba(145,69,33,0.55); }
-              .plan-detail-cta { display: none; }
-              .plan-detail-badge { display: none; }
-              .pricing-table-scroll { width: 100%; }
-              .mobile-table-note { display: none; }
+              .plan-detail-cta { display: block; margin-top: 1.25rem; }
+              .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
+              .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
+              .plan-card-price { margin: 0 0 1rem; text-align: left; }
+              .plan-card-price .cur { font-size: 0.7rem; letter-spacing: 0.14em; font-weight: 700; color: var(--aa-gold); display: inline-block; margin-right: 0.3rem; vertical-align: 0.35em; }
+              .plan-card-price .amt { font-family: 'Instrument Serif', serif; font-size: 2.3rem; font-weight: 400; color: var(--aa-olive-dark); letter-spacing: -0.01em; }
+              .plan-card-price .per { font-size: 0.72rem; font-weight: 500; color: var(--aa-text-mid); text-transform: uppercase; letter-spacing: 0.12em; margin-left: 0.25rem; }
+              .plan-card-price .sub { display: block; font-size: 0.76rem; font-weight: 300; color: var(--aa-text-mid); margin-top: 0.35rem; }
+              .plan-card-price .save { display: inline-block; font-size: 0.68rem; font-weight: 700; color: var(--aa-gold); letter-spacing: 0.08em; margin-top: 0.35rem; text-transform: uppercase; }
+              .pricing-shell { display: flex; flex-direction: column; }
+              .plan-details { order: 1; margin-top: 0; }
+              .mobile-table-note { order: 2; display: block; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .75rem; letter-spacing: .06em; margin: 2.5rem 0 .75rem; }
+              .pricing-table-scroll { order: 3; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+              .currency-note { order: 4; }
               @media (max-width: 767px) {
-                .pricing-shell { display: flex; flex-direction: column; }
-                .plan-details { order: 1; margin-top: 0; gap: 1rem; }
-                .mobile-table-note { display: block; order: 2; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .72rem; letter-spacing: .06em; margin: 2rem 0 .5rem; }
-                .pricing-table-scroll { order: 3; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+                .plan-details { gap: 1rem; }
                 .pricing-table { display: table; min-width: 640px; }
                 .pricing-table th, .pricing-table td { padding: .85rem .75rem !important; font-size: .78rem; }
-                .pricing-table .cta-cell { padding: 1rem .75rem !important; }
                 .currency-note { order: 4; margin-top: 1rem; }
                 .plan-detail-card { padding: 1.25rem; border-radius: 12px; position: relative; }
-                .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
-                .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
                 .plan-detail-price { font-size: 1rem; }
-                .plan-detail-cta { display: block; margin-top: 1.1rem; }
                 .plan-detail-cta .cta-btn { min-height: 50px; }
               }
             `}</style>
-            <p className="mobile-table-note">Compare all plans side by side — swipe the table</p>
             <div className="pricing-table-scroll">
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
