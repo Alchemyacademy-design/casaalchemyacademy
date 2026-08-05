@@ -375,7 +375,7 @@ export default function Home() {
               Access the knowledge, at the depth that suits you now.
             </h2>
           </div>
-          <div className="overflow-x-auto max-w-5xl mx-auto">
+          <div className="overflow-x-auto max-w-5xl mx-auto pricing-shell">
             <style>{`
               @keyframes slideInUp {
                 from {
@@ -440,12 +440,25 @@ export default function Home() {
                 .cta-btn { font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.9rem 0.85rem; }
                 .cta-btn-primary { font-size: 0.82rem; letter-spacing: 0.14em; }
               }
+              .cta-btn { position: relative; overflow: hidden; }
+              .cta-btn::after { content: ""; position: absolute; top: 0; left: -120%; width: 60%; height: 100%; background: linear-gradient(100deg, transparent, rgba(255,255,255,0.45), transparent); transform: skewX(-18deg); transition: left .55s ease; pointer-events: none; }
+              .cta-btn:hover::after { left: 130%; }
+              .cta-btn:hover { letter-spacing: 0.19em; }
+              .plan-detail-card { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+              .plan-detail-card:hover { transform: translateY(-4px); box-shadow: 0 16px 34px -18px rgba(145,69,33,0.55); }
               .plan-detail-cta { display: none; }
               .plan-detail-badge { display: none; }
+              .pricing-table-scroll { width: 100%; }
+              .mobile-table-note { display: none; }
               @media (max-width: 767px) {
-                .pricing-table { display: none; }
-                .currency-note { margin-top: 0; order: 2; }
-                .plan-details { margin-top: 0; gap: 1rem; }
+                .pricing-shell { display: flex; flex-direction: column; }
+                .plan-details { order: 1; margin-top: 0; gap: 1rem; }
+                .mobile-table-note { display: block; order: 2; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .72rem; letter-spacing: .06em; margin: 2rem 0 .5rem; }
+                .pricing-table-scroll { order: 3; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
+                .pricing-table { display: table; min-width: 640px; }
+                .pricing-table th, .pricing-table td { padding: .85rem .75rem !important; font-size: .78rem; }
+                .pricing-table .cta-cell { padding: 1rem .75rem !important; }
+                .currency-note { order: 4; margin-top: 1rem; }
                 .plan-detail-card { padding: 1.25rem; border-radius: 12px; position: relative; }
                 .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
                 .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
@@ -454,6 +467,8 @@ export default function Home() {
                 .plan-detail-cta .cta-btn { min-height: 50px; }
               }
             `}</style>
+            <p className="mobile-table-note">Compare all plans side by side — swipe the table</p>
+            <div className="pricing-table-scroll">
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
                 <tr style={{ backgroundColor: "var(--aa-olive-dark)" }}>
@@ -516,6 +531,7 @@ export default function Home() {
                 </tr>
               </tbody>
             </table>
+            </div>
             <p className="currency-note">All prices are in US Dollars (USD).</p>
             <div className="plan-details">
               {[
