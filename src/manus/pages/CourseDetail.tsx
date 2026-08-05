@@ -17,6 +17,7 @@ import LessonMaterial from "@/manus/components/learning/LessonMaterial";
 import { MemberPage, SectionHeader, StatusPill } from "@/manus/components/member/MemberUI";
 import QuizCard from "@/manus/components/learning/QuizCard";
 import SupportMaterialsList from "@/manus/components/learning/SupportMaterialsList";
+import { HERO_FONT_CLASS, HERO_TITLE_CLASS, resolveHeroSettings } from "@/manus/lib/course-hero";
 
 type Lesson = {
   id: number;
