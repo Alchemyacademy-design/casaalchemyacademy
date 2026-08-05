@@ -49,6 +49,11 @@ type Course = {
   description: string | null;
   cover_image_path: string | null;
   banner_url: string | null;
+  hero_text_hidden: boolean | null;
+  hero_title_color: string | null;
+  hero_title_size: string | null;
+  hero_title_font: string | null;
+  hero_overlay_opacity: number | null;
   status: "draft" | "published" | "archived";
   access_plan_keys: string[] | null;
   course_modules: Module[];
@@ -58,7 +63,9 @@ async function fetchCourseTree(id: number): Promise<Course | null> {
   const { data, error } = await supabase
     .from("courses")
     .select(
-      "id,title,slug,subtitle,description,cover_image_path,banner_url,status,access_plan_keys," +
+      "id,title,slug,subtitle,description,cover_image_path,banner_url," +
+        "hero_text_hidden,hero_title_color,hero_title_size,hero_title_font,hero_overlay_opacity," +
+        "status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
         "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
     )
@@ -212,6 +219,9 @@ export default function CourseDetail() {
   // Admins may paste either a full URL or a bare storage key; resolve both.
   const rawHeroImage = course.banner_url || course.cover_image_path;
   const heroImage = resolveAssetUrl(rawHeroImage);
+  const hero = resolveHeroSettings(course);
+  // The copy can only be hidden when there is actually an image carrying it.
+  const heroTextHidden = hero.hidden && Boolean(heroImage);
 
   return (
     <MemberLayout>
@@ -223,26 +233,44 @@ export default function CourseDetail() {
         </div>
 
         <section
-          className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}`}
+          className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}${heroTextHidden ? " aa-course-hero--plain" : ""}`}
           style={
             heroImage
               ? ({
                   // Consumed by `.aa-course-hero--image`, which needs !important to
                   // beat the palette gradient override in academy-design-system.css.
                   "--aa-hero-image": `url("${heroImage}")`,
+                  "--aa-hero-scrim": hero.overlay,
                 } as CSSProperties)
               : undefined
           }
         >
-          <div className="aa-course-hero-content">
-            <div className="mb-4 flex flex-wrap gap-2">
-              <StatusPill tone="accent">Course</StatusPill>
-              {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
-              {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
+          {heroTextHidden ? (
+            // The uploaded artwork already carries the title/description.
+            <h1 className="sr-only">{course.title}</h1>
+          ) : (
+            <div className="aa-course-hero-content">
+              <div className="mb-4 flex flex-wrap gap-2">
+                <StatusPill tone="accent">Course</StatusPill>
+                {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
+                {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
+              </div>
+              <h1
+                className={`aa-course-hero-title leading-none ${HERO_FONT_CLASS[hero.font]} ${HERO_TITLE_CLASS[hero.size]}${hero.color ? "" : " text-white"}`}
+                style={hero.color ? { color: hero.color } : undefined}
+              >
+                {course.title}
+              </h1>
+              {course.subtitle ? (
+                <p
+                  className={`aa-course-hero-subtitle mt-4 max-w-2xl text-sm leading-7 sm:text-base${hero.color ? "" : " text-white"}`}
+                  style={hero.color ? { color: hero.color } : undefined}
+                >
+                  {course.subtitle}
+                </p>
+              ) : null}
             </div>
-            <h1 className="aa-course-hero-title font-serif text-4xl leading-none text-white sm:text-5xl lg:text-6xl">{course.title}</h1>
-            {course.subtitle ? <p className="aa-course-hero-subtitle mt-4 max-w-2xl text-sm leading-7 text-white sm:text-base">{course.subtitle}</p> : null}
-          </div>
+          )}
         </section>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
