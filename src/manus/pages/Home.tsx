@@ -446,7 +446,9 @@ export default function Home() {
               .cta-btn:hover { letter-spacing: 0.19em; }
               .plan-detail-card { transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
               .plan-detail-card:hover { transform: translateY(-4px); box-shadow: 0 16px 34px -18px rgba(145,69,33,0.55); }
-              .plan-detail-cta { display: block; margin-top: 1.25rem; }
+              .plan-detail-card { display: flex; flex-direction: column; }
+              .plan-detail-card ul { flex: 1; }
+              .plan-detail-cta { display: block; margin-top: auto; padding-top: 1.25rem; }
               .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
               .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
               .plan-card-price { margin: 0 0 1rem; text-align: left; }
