@@ -514,6 +514,10 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
+                  amount: "59",
+                  per: "/ month",
+                  sub: "USD 708 billed annually",
+                  save: "Save USD 480",
                   cta: "Subscribe Now",
                   action: () => setSubscribeModal("annual"),
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
@@ -533,6 +537,10 @@ export default function Home() {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
                   best: false,
+                  amount: "99",
+                  per: "/ month",
+                  sub: "Billed monthly",
+                  save: "No commitment",
                   cta: "Subscribe Now",
                   action: () => setSubscribeModal("monthly"),
                   intro: "Full library access, month by month. Cancel whenever you want.",
@@ -551,6 +559,10 @@ export default function Home() {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
                   best: false,
+                  amount: "159",
+                  per: "",
+                  sub: "One-time payment",
+                  save: "No commitment",
                   cta: "Choose Course",
                   action: () => navigate("/choose-course"),
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
@@ -568,7 +580,12 @@ export default function Home() {
                 <div key={plan.name} className={`plan-detail-card${plan.best ? " is-best" : ""}`}>
                   {plan.best && <span className="plan-detail-badge">Best value</span>}
                   <p className="plan-detail-name">{plan.name}</p>
-                  <p className="plan-detail-price">{plan.price}</p>
+                  <p className="plan-card-price">
+                    <span className="cur">USD</span><span className="amt">{plan.amount}</span>
+                    {plan.per && <span className="per">{plan.per}</span>}
+                    <span className="sub">{plan.sub}</span>
+                    <span className="save">{plan.save}</span>
+                  </p>
                   <p className="plan-detail-intro">{plan.intro}</p>
                   <ul>
                     {plan.items.map((item) => (
