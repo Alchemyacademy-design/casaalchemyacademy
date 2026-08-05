@@ -94,8 +94,19 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
             </div>
           </div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
-            {locked ? "Membership access" : completed ? "Course complete" : percent > 0 ? "Continue learning" : "Your next course"}
+            {isLanding
+              ? comingSoon
+                ? "Coming soon"
+                : "Course preview"
+              : locked
+              ? "Membership access"
+              : completed
+              ? "Course complete"
+              : percent > 0
+              ? "Continue learning"
+              : "Your next course"}
           </p>
+
         </div>
       </div>
 
