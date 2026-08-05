@@ -116,13 +116,14 @@ export default function Home() {
     id: number;
     title: string;
     tagline: string;
-    lessons: string[];
+    lessonCount?: number;
     available: boolean;
     thumbnail: string | null;
     href?: string;
     comingSoon?: boolean;
     isDraft?: boolean;
     isAdminPreview?: boolean;
+    number: number | string;
   };
   // Prefer DB courses; fall back to the static curriculum copy when DB is
   // empty OR the query failed.
@@ -131,33 +132,49 @@ export default function Home() {
         const row = (c ?? {}) as {
           id?: number;
           title?: string | null;
+          subtitle?: string | null;
+          short_description?: string | null;
           tagline?: string | null;
           description?: string | null;
           status?: string | null;
+          sort_order?: number | null;
+          lesson_count?: number;
           cover_image_path?: string | null;
           cover_image_url?: string | null;
           thumbnail_url?: string | null;
         };
         const isPublished = row.status === "published";
         const isDraft = !isPublished;
-        // Fallback to static MODULES thumbnail (by id, then by index) when the
-        // DB row has no cover uploaded yet — keeps the landing visually rich.
+        // Only fall back to a static thumbnail when the exact same course
+        // (matched by title) exists in the legacy copy — never by index, which
+        // used to attach the wrong artwork to newly created courses.
+        const normalized = (row.title ?? "").trim().toLowerCase();
         const fallback =
-          MODULES.find((m) => m.id === row.id)?.thumbnail ?? MODULES[i]?.thumbnail ?? null;
+          MODULES.find((m) => m.title.trim().toLowerCase() === normalized)?.thumbnail ?? null;
         return {
           id: row.id ?? i + 1,
           title: row.title ?? "Untitled",
-          tagline: row.tagline ?? row.description ?? "",
-          lessons: [],
+          tagline: row.subtitle ?? row.tagline ?? row.short_description ?? row.description ?? "",
+          lessonCount: typeof row.lesson_count === "number" ? row.lesson_count : undefined,
           available: isPublished || isAdmin,
           thumbnail: row.cover_image_path ?? row.cover_image_url ?? row.thumbnail_url ?? fallback,
           href: `/courses/${row.id}`,
           isDraft,
           isAdminPreview: isAdmin && isDraft,
+          number: row.sort_order ?? i + 1,
         };
       })
-    : MODULES.map((m): DisplayModule => ({ ...m, href: undefined }))
-  ).filter((m) => m.id !== 9);
+    : MODULES.map((m, i): DisplayModule => ({
+        id: m.id,
+        title: m.title,
+        tagline: m.tagline,
+        lessonCount: m.lessons.length,
+        available: m.available,
+        thumbnail: m.thumbnail,
+        href: undefined,
+        number: i + 1,
+      }))
+  );
 
 
 
@@ -288,9 +305,9 @@ export default function Home() {
                 id: typeof mod.id === "number" ? mod.id : idx + 1,
                 title: mod.title,
                 subtitle: mod.tagline,
-                number: typeof mod.id === "number" ? mod.id : idx + 1,
+                number: mod.number ?? idx + 1,
                 thumbnail: mod.thumbnail,
-                lessonCount: mod.lessons.length || undefined,
+                lessonCount: mod.lessonCount,
                 published: !mod.isDraft,
                 adminPreview: !!mod.isAdminPreview,
                 // While Stripe is deferred (pré-lançamento), every course

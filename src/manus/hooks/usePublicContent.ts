@@ -240,19 +240,33 @@ export function usePublishedCourses(limit?: number) {
  * remains the security authority — admins must already have read
  * access; non-admins always get the published-only list.
  */
+export type HomeCourse = CourseRow & { lesson_count: number };
+
 export function useHomeCourses({ includeDrafts }: { includeDrafts: boolean } = { includeDrafts: false }) {
   return useQuery({
     queryKey: ["public", "courses", "home", includeDrafts ? "with-drafts" : "published"],
-    queryFn: async (): Promise<CourseRow[]> => {
+    queryFn: async (): Promise<HomeCourse[]> => {
       let q = supabase
         .from("courses")
-        .select("*")
+        .select("*, course_modules(id, status, archived_at, lessons(id, status, archived_at))")
         .is("archived_at", null)
         .order("sort_order", { ascending: true });
       if (!includeDrafts) q = q.eq("status", "published");
       const { data, error } = await q;
       if (error) throw error;
-      return data ?? [];
+      type NestedModule = { status?: string | null; archived_at?: string | null; lessons?: { status?: string | null; archived_at?: string | null }[] | null };
+      return (data ?? []).map((row) => {
+        const modules = ((row as unknown as { course_modules?: NestedModule[] | null }).course_modules ?? []) as NestedModule[];
+        let lessons = 0;
+        for (const m of modules) {
+          if (m.archived_at) continue;
+          for (const l of m.lessons ?? []) {
+            if (l.archived_at) continue;
+            if (includeDrafts || l.status === "published") lessons += 1;
+          }
+        }
+        return { ...(row as unknown as CourseRow), lesson_count: lessons };
+      });
     },
   });
 }
