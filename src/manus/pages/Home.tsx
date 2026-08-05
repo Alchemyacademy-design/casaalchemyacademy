@@ -440,6 +440,19 @@ export default function Home() {
                 .cta-btn { font-size: 0.78rem; letter-spacing: 0.12em; padding: 0.9rem 0.85rem; }
                 .cta-btn-primary { font-size: 0.82rem; letter-spacing: 0.14em; }
               }
+              .plan-detail-cta { display: none; }
+              .plan-detail-badge { display: none; }
+              @media (max-width: 767px) {
+                .pricing-table { display: none; }
+                .currency-note { margin-top: 0; order: 2; }
+                .plan-details { margin-top: 0; gap: 1rem; }
+                .plan-detail-card { padding: 1.25rem; border-radius: 12px; position: relative; }
+                .plan-detail-card.is-best { border-top-width: 4px; box-shadow: 0 10px 26px -14px rgba(145,69,33,0.55); }
+                .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; margin-bottom: 0.6rem; }
+                .plan-detail-price { font-size: 1rem; }
+                .plan-detail-cta { display: block; margin-top: 1.1rem; }
+                .plan-detail-cta .cta-btn { min-height: 50px; }
+              }
             `}</style>
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
