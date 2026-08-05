@@ -602,7 +602,10 @@ export default function Home() {
                     ))}
                   </ul>
                   <div className="plan-detail-cta">
-                    <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>{plan.cta}</button>
+                    <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                      {plan.cta}
+                      <span className="arrow" aria-hidden="true">→</span>
+                    </button>
                   </div>
                 </div>
               ))}
