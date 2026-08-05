@@ -462,8 +462,8 @@ export default function Home() {
               .currency-note { order: 4; }
               @media (max-width: 767px) {
                 .plan-details { gap: 1rem; }
-                .pricing-table { display: table; min-width: 640px; }
-                .pricing-table th, .pricing-table td { padding: .85rem .75rem !important; font-size: .78rem; }
+                table.pricing-table { display: table; min-width: 660px; }
+                table.pricing-table th, table.pricing-table td { padding: .85rem .7rem !important; font-size: .76rem; }
                 .currency-note { order: 4; margin-top: 1rem; }
                 .plan-detail-card { padding: 1.25rem; border-radius: 12px; position: relative; }
                 .plan-detail-price { font-size: 1rem; }
