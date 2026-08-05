@@ -522,6 +522,9 @@ export default function Home() {
                 {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
+                  best: true,
+                  cta: "Subscribe Now",
+                  action: () => setSubscribeModal("annual"),
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -538,6 +541,9 @@ export default function Home() {
                 {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
+                  best: false,
+                  cta: "Subscribe Now",
+                  action: () => setSubscribeModal("monthly"),
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -553,6 +559,9 @@ export default function Home() {
                 {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
+                  best: false,
+                  cta: "Choose Course",
+                  action: () => navigate("/choose-course"),
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
@@ -565,7 +574,8 @@ export default function Home() {
                   ],
                 },
               ].map((plan) => (
-                <div key={plan.name} className="plan-detail-card">
+                <div key={plan.name} className={`plan-detail-card${plan.best ? " is-best" : ""}`}>
+                  {plan.best && <span className="plan-detail-badge">Best value</span>}
                   <p className="plan-detail-name">{plan.name}</p>
                   <p className="plan-detail-price">{plan.price}</p>
                   <p className="plan-detail-intro">{plan.intro}</p>
@@ -574,6 +584,9 @@ export default function Home() {
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
+                  <div className="plan-detail-cta">
+                    <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>{plan.cta}</button>
+                  </div>
                 </div>
               ))}
             </div>
