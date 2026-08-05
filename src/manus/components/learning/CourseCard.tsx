@@ -104,23 +104,43 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
         {subtitle ? <p className="mt-3 line-clamp-3 text-sm leading-6 text-muted-foreground">{subtitle}</p> : null}
 
         <div className="mt-auto pt-6">
-          {!locked && !comingSoon && typeof lessonCount === "number" ? (
+          {!isLanding && !locked && !comingSoon && typeof lessonCount === "number" ? (
             <ProgressBar value={percent} label={`${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`} />
           ) : (
             <div className="mb-4 text-xs text-muted-foreground">
-              {typeof lessonCount === "number" ? `${lessonCount} lesson${lessonCount === 1 ? "" : "s"}` : "Course details"}
+              {!isLanding && typeof lessonCount === "number"
+                ? `${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`
+                : isLanding
+                ? "Included in membership"
+                : "Course details"}
             </div>
           )}
 
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-              {comingSoon ? "Coming soon" : locked ? "Locked" : completed ? "Completed" : percent > 0 ? `${percent}% done` : "Ready to begin"}
+              {isLanding
+                ? comingSoon
+                  ? "Coming soon"
+                  : "Available with subscription"
+                : comingSoon
+                ? "Coming soon"
+                : locked
+                ? "Locked"
+                : completed
+                ? "Completed"
+                : percent > 0
+                ? `${percent}% done`
+                : "Ready to begin"}
             </span>
-            {comingSoon ? (
+            {isLanding ? (
+              <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {comingSoon ? "Coming soon" : "Preview"}
+              </span>
+            ) : comingSoon ? (
               <span className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Coming soon</span>
             ) : canVisit ? (
               <span className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] text-accent">
-                {locked ? "View plans" : variant === "landing" ? "View Course" : completed ? "Review" : percent > 0 ? "Continue" : "Start"}
+                {locked ? "View plans" : completed ? "Review" : percent > 0 ? "Continue" : "Start"}
                 <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
               </span>
             ) : (
@@ -130,6 +150,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
             )}
           </div>
         </div>
+
       </div>
     </article>
   );
