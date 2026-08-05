@@ -470,6 +470,7 @@ export default function Home() {
                 .plan-detail-cta .cta-btn { min-height: 50px; }
               }
             `}</style>
+            <p className="mobile-table-note">Visual comparison — swipe to see all plans</p>
             <div className="pricing-table-scroll">
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
@@ -503,34 +504,6 @@ export default function Home() {
                     <td style={{ padding: "1.25rem 1.5rem", textAlign: "center", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif" }}>{row.selected === "check" ? "✓" : row.selected}</td>
                   </tr>
                 ))}
-                <tr style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)", fontWeight: 500 }}>
-                  <td style={{ padding: "1.5rem" }}></td>
-                  <td className="cta-cell cta-annual-highlight">
-                    <span className="cta-best-badge">Best Value</span>
-                    <div className="cta-price">
-                      <span className="cur">USD</span><span className="amt">59</span><span className="per">/ month</span>
-                      <span className="sub">USD 708 billed annually</span>
-                      <span className="save">Save USD 480</span>
-                    </div>
-                    <button onClick={() => setSubscribeModal("annual")} className="cta-btn cta-btn-primary" aria-label="Subscribe to annual plan">Subscribe Now</button>
-                  </td>
-                  <td className="cta-cell">
-                    <div className="cta-price">
-                      <span className="cur">USD</span><span className="amt">99</span><span className="per">/ month</span>
-                      <span className="sub">Billed monthly</span>
-                      <span className="save">No commitment</span>
-                    </div>
-                    <button onClick={() => setSubscribeModal("monthly")} className="cta-btn" aria-label="Subscribe to monthly plan">Subscribe Now</button>
-                  </td>
-                  <td className="cta-cell">
-                    <div className="cta-price">
-                      <span className="cur">USD</span><span className="amt">159</span>
-                      <span className="sub">One-time payment</span>
-                      <span className="save">No commitment</span>
-                    </div>
-                    <button onClick={() => navigate("/choose-course")} className="cta-btn" aria-label="Choose an individual course">Choose Course</button>
-                  </td>
-                </tr>
               </tbody>
             </table>
             </div>
