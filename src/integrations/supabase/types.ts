@@ -2935,6 +2935,20 @@ export type Database = {
           verification_hash: string
         }[]
       }
+      get_public_course_catalog: {
+        Args: never
+        Returns: {
+          banner_url: string
+          cover_image_path: string
+          description: string
+          id: number
+          lesson_count: number
+          short_description: string
+          sort_order: number
+          subtitle: string
+          title: string
+        }[]
+      }
       get_public_profiles: {
         Args: { _ids: string[] }
         Returns: {
