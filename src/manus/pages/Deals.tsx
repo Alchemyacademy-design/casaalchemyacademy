@@ -1,6 +1,6 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ExternalLink, Sparkles, Clock } from "lucide-react";
+import { ExternalLink, Sparkles, Clock, ArrowRight } from "lucide-react";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 
@@ -96,7 +96,15 @@ export default function Deals() {
                     <Clock size={11} /> Ends {new Date(deal.ends_at).toLocaleDateString()}
                   </p>
                 )}
-                {deal.external_url && (
+                {deal.slug ? (
+                  <Link
+                    to={`/deals/${deal.slug}`}
+                    className="flex items-center gap-2 text-xs"
+                    style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
+                  >
+                    View product <ArrowRight size={12} />
+                  </Link>
+                ) : deal.external_url ? (
                   <a
                     href={deal.external_url}
                     target="_blank"
@@ -107,7 +115,7 @@ export default function Deals() {
                   >
                     Redeem offer <ExternalLink size={12} />
                   </a>
-                )}
+                ) : null}
                 </div>
               </div>
             ))}
