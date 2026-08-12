@@ -1,6 +1,6 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ExternalLink, Sparkles, Clock } from "lucide-react";
+import { ExternalLink, Sparkles, Clock, ArrowRight } from "lucide-react";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 
