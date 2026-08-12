@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import LeadMagnetForm from "./LeadMagnetForm";
 import { markLeadPopupDismissed, shouldShowLeadPopup } from "@/manus/lib/lead-magnet";
 import { useAuth } from "@/manus/hooks/useAuth";
+import hotToMixPrints from "@/assets/hot-to-mix-prints.png";
 
 /**
  * Timed lead-magnet pop-up. Appears once per visitor per 7-day window.
@@ -36,14 +37,21 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
         if (!next) markLeadPopupDismissed();
       }}
     >
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-serif text-2xl font-normal">Your first lesson is on us.</DialogTitle>
-          <DialogDescription>
-            Subscribe and watch <em>How to Mix Prints</em> with Lorena Couto, free. Real projects, real principles — the professional knowledge you need to design your own home, with confidence.
-          </DialogDescription>
-        </DialogHeader>
-        <LeadMagnetForm source="popup" placement="popup" ctaLabel="Watch the Free Lesson" />
+      <DialogContent className="sm:max-w-md overflow-hidden p-0">
+        <img
+          src={hotToMixPrints}
+          alt="How to Mix Prints lesson preview"
+          className="aspect-video w-full object-cover"
+        />
+        <div className="p-6">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-2xl font-normal">Your first lesson is on us.</DialogTitle>
+            <DialogDescription>
+              Subscribe and watch <em>How to Mix Prints</em> with Lorena Couto, free. Real projects, real principles — the professional knowledge you need to design your own home, with confidence.
+            </DialogDescription>
+          </DialogHeader>
+          <LeadMagnetForm source="popup" placement="popup" ctaLabel="Watch the Free Lesson" />
+        </div>
       </DialogContent>
     </Dialog>
   );
