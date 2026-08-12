@@ -438,6 +438,7 @@ export type Database = {
       community_spaces: {
         Row: {
           access_plan_keys: Database["public"]["Enums"]["membership_plan_key"][]
+          course_id: number | null
           created_at: string
           description: string | null
           id: number
@@ -448,6 +449,7 @@ export type Database = {
         }
         Insert: {
           access_plan_keys?: Database["public"]["Enums"]["membership_plan_key"][]
+          course_id?: number | null
           created_at?: string
           description?: string | null
           id?: never
@@ -458,6 +460,7 @@ export type Database = {
         }
         Update: {
           access_plan_keys?: Database["public"]["Enums"]["membership_plan_key"][]
+          course_id?: number | null
           created_at?: string
           description?: string | null
           id?: never
@@ -466,7 +469,15 @@ export type Database = {
           status?: Database["public"]["Enums"]["content_status"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "community_spaces_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       course_audit_logs: {
         Row: {
@@ -963,6 +974,7 @@ export type Database = {
           ends_at: string | null
           external_url: string | null
           id: number
+          price_label: string | null
           slug: string
           starts_at: string | null
           status: Database["public"]["Enums"]["content_status"]
@@ -978,6 +990,7 @@ export type Database = {
           ends_at?: string | null
           external_url?: string | null
           id?: never
+          price_label?: string | null
           slug: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["content_status"]
@@ -993,6 +1006,7 @@ export type Database = {
           ends_at?: string | null
           external_url?: string | null
           id?: never
+          price_label?: string | null
           slug?: string
           starts_at?: string | null
           status?: Database["public"]["Enums"]["content_status"]
@@ -1485,6 +1499,7 @@ export type Database = {
           release_type: Database["public"]["Enums"]["course_release_type"]
           sort_order: number
           status: Database["public"]["Enums"]["content_status"]
+          thumbnail_path: string | null
           title: string
           updated_at: string
           updated_by: string | null
@@ -1511,6 +1526,7 @@ export type Database = {
           release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
+          thumbnail_path?: string | null
           title: string
           updated_at?: string
           updated_by?: string | null
@@ -1537,6 +1553,7 @@ export type Database = {
           release_type?: Database["public"]["Enums"]["course_release_type"]
           sort_order?: number
           status?: Database["public"]["Enums"]["content_status"]
+          thumbnail_path?: string | null
           title?: string
           updated_at?: string
           updated_by?: string | null
@@ -2866,6 +2883,38 @@ export type Database = {
         }
         Relationships: []
       }
+      workshop_reminders_sent: {
+        Row: {
+          id: number
+          live_workshop_id: number
+          recipient_email: string
+          sent_at: string
+          wave: string
+        }
+        Insert: {
+          id?: never
+          live_workshop_id: number
+          recipient_email: string
+          sent_at?: string
+          wave: string
+        }
+        Update: {
+          id?: never
+          live_workshop_id?: number
+          recipient_email?: string
+          sent_at?: string
+          wave?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workshop_reminders_sent_live_workshop_id_fkey"
+            columns: ["live_workshop_id"]
+            isOneToOne: false
+            referencedRelation: "live_workshops"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -3173,7 +3222,7 @@ export type Database = {
         | "manual"
         | "per_cohort"
       course_visibility: "public" | "unlisted" | "private"
-      lead_source: "popup" | "quiz"
+      lead_source: "popup" | "quiz" | "live_workshop"
       lesson_kind:
         | "video"
         | "text"
@@ -3378,7 +3427,7 @@ export const Constants = {
         "per_cohort",
       ],
       course_visibility: ["public", "unlisted", "private"],
-      lead_source: ["popup", "quiz"],
+      lead_source: ["popup", "quiz", "live_workshop"],
       lesson_kind: [
         "video",
         "text",

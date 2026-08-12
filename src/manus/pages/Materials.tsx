@@ -146,7 +146,7 @@ export default function Materials() {
         <div className="mb-8">
           <p className="section-label mb-2">Your library</p>
           <h1 className="font-serif text-3xl md:text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-            Materials
+            Master Guides
           </h1>
           <p className="max-w-xl text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
             Every workbook, template and resource unlocked by your membership and the courses you have access to.

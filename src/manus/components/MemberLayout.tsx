@@ -22,14 +22,14 @@ type NavItem = { label: string; href: string; icon: typeof BookOpen };
 const primaryNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Courses", href: "/mycourses", icon: BookOpen },
-  { label: "Materials", href: "/materials", icon: Paperclip },
+  { label: "Master Guides", href: "/materials", icon: Paperclip },
   { label: "Certificates", href: "/certificates", icon: Award },
-  { label: "Live Workshops", href: "/live-workshops", icon: Calendar },
+  { label: "Expert Masterclasses", href: "/live-workshops", icon: Calendar },
   { label: "Community", href: "/community", icon: Users },
 ];
 
 const discoveryNav: NavItem[] = [
-  { label: "Magazine", href: "/magazine", icon: BookOpen },
+  { label: "The Reading Room", href: "/magazine", icon: BookOpen },
   { label: "Events", href: "/events", icon: Calendar },
   { label: "Supplier List", href: "/suppliers", icon: Gift },
   { label: "Exclusive Deals", href: "/deals", icon: Sparkles },

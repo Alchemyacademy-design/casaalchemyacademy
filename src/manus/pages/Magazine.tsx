@@ -58,7 +58,7 @@ export default function Magazine() {
 
           <header className="mb-12 border-b border-[var(--aa-cream-dark)] pb-8">
             <p className="section-label mb-3">The Alchemy Edit</p>
-            <h1 className="font-serif text-5xl font-normal text-[var(--aa-olive-dark)] md:text-7xl">Magazine</h1>
+            <h1 className="font-serif text-5xl font-normal text-[var(--aa-olive-dark)] md:text-7xl">The Reading Room</h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-[var(--aa-text-mid)]">
               Seasonal interior-design knowledge, thoughtful inspiration and practical guidance for members.
             </p>

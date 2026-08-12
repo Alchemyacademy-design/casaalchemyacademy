@@ -107,7 +107,7 @@ export default function Events() {
         {/* Summary cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
           <SummaryCard label="Upcoming events" value={summary.upcomingEvents} />
-          <SummaryCard label="Live workshops" value={summary.upcomingWorkshops} />
+          <SummaryCard label="Expert Masterclasses" value={summary.upcomingWorkshops} />
           <SummaryCard label="Registered" value={summary.registered} />
           <SummaryCard label="This month" value={countThisMonth(calendarEntries)} />
         </div>
@@ -119,7 +119,7 @@ export default function Events() {
           aria-label="Events Hub sections"
         >
           {(["events","workshops","calendar"] as TabKey[]).map(key => {
-            const label = key === "events" ? "Events" : key === "workshops" ? "Live workshops" : "Calendar";
+            const label = key === "events" ? "Events" : key === "workshops" ? "Expert Masterclasses" : "Calendar";
             const selected = tab === key;
             return (
               <button
@@ -171,7 +171,7 @@ export default function Events() {
 
         {tab === "workshops" && (
           <section aria-labelledby="tab-workshops">
-            <h2 id="tab-workshops" className="sr-only">Live workshops</h2>
+            <h2 id="tab-workshops" className="sr-only">Expert Masterclasses</h2>
             <SectionBlock title="Coming up" loading={loadingUW} empty={upcomingWorkshops.length === 0} emptyText="No workshops scheduled yet.">
               <CardGrid two>
                 {upcomingWorkshops.map((w) => (
