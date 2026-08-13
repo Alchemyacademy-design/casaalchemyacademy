@@ -37,6 +37,37 @@ export default function DealDetail() {
     return saved >= 1 && saved <= 3 ? saved : 1;
   });
   const [accepted, setAccepted] = useState(false);
+  const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (step !== 3 || !calendlyContainerRef.current) return;
+
+    const container = calendlyContainerRef.current;
+    const existing = document.querySelector('script[data-calendly-widget]') as HTMLScriptElement | null;
+
+    const init = () => {
+      if (window.Calendly) {
+        container.innerHTML = "";
+        window.Calendly.initInlineWidget({ url: SCHEDULING_URL, parentElement: container });
+      }
+    };
+
+    if (existing) {
+      init();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://assets.calendly.com/assets/external/widget.js";
+    script.async = true;
+    script.dataset.calendlyWidget = "true";
+    script.onload = init;
+    document.body.appendChild(script);
+
+    return () => {
+      container.innerHTML = "";
+    };
+  }, [step]);
 
   const goTo = (next: number) => {
     setStep(next);
