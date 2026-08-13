@@ -204,14 +204,6 @@ export default function DealDetail() {
                       Pay securely <ExternalLink size={12} />
                     </a>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => goTo(3)}
-                    className="px-6 py-3 text-xs uppercase tracking-widest"
-                    style={{ border: "1px solid var(--aa-cream-dark)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    I've completed payment
-                  </button>
                 </div>
                 <button
                   type="button"
