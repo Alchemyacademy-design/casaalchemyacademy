@@ -19,7 +19,7 @@ const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40),
-  source: z.enum(["popup", "quiz"]),
+  source: z.enum(["popup", "quiz", "live_workshop"]),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
   website: z.string().max(0).optional().or(z.literal("")),
@@ -61,7 +61,14 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-function labelForLead(source: "popup" | "quiz", placement?: string): string {
+type LeadSource = "popup" | "quiz" | "live_workshop";
+
+function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
+  if (source === "live_workshop") {
+    return workshopTitle
+      ? `Ask the Expert LIVE — ${workshopTitle}`
+      : "Ask the Expert LIVE";
+  }
   const p = (placement ?? "").toLowerCase();
   if (p === "footer") return "Homepage Footer — Free Lesson";
   if (p === "popup") return "Website Pop-up — Free Lesson";
@@ -113,8 +120,9 @@ async function upsertHubspotContact(input: {
   firstname: string;
   lastname: string;
   phone: string;
-  source: "popup" | "quiz";
+  source: LeadSource;
   placement?: string;
+  workshopTitle?: string | null;
 }): Promise<{ id: string | null; error: string | null }> {
   if (!HUBSPOT_TOKEN) return { id: null, error: "HUBSPOT_PRIVATE_APP_TOKEN not configured" };
 
@@ -123,7 +131,7 @@ async function upsertHubspotContact(input: {
     firstname: input.firstname,
     lastname: input.lastname,
     phone: input.phone,
-    lead_source: labelForLead(input.source, input.placement),
+    lead_source: labelForLead(input.source, input.placement, input.workshopTitle),
   };
 
   // Try PATCH by email idProperty first. If contact does not exist, POST.
@@ -170,8 +178,9 @@ async function submitHubspotForm(input: {
   firstname: string;
   lastname: string;
   phone: string;
-  source: "popup" | "quiz";
+  source: LeadSource;
   placement?: string;
+  workshopTitle?: string | null;
   pageUri: string;
   pageName: string;
   hutk?: string | null;
@@ -182,7 +191,7 @@ async function submitHubspotForm(input: {
     { name: "firstname", value: input.firstname },
     { name: "lastname", value: input.lastname },
     { name: "phone", value: input.phone },
-    { name: "lead_source", value: labelForLead(input.source, input.placement) },
+    { name: "lead_source", value: labelForLead(input.source, input.placement, input.workshopTitle) },
   ].filter((f) => typeof f.value === "string" && f.value.trim().length > 0);
 
   const payload: Record<string, unknown> = {
