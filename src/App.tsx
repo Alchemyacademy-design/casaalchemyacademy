@@ -42,6 +42,7 @@ const PaymentCancel = lazyWithRetry(() => import("@/manus/pages/PaymentCancel"),
 const Plans = lazyWithRetry(() => import("@/manus/pages/Plans"), "Plans");
 const CourseCheckout = lazyWithRetry(() => import("@/manus/pages/CourseCheckout"), "CourseCheckout");
 const FreeLesson = lazyWithRetry(() => import("@/manus/pages/FreeLesson"), "FreeLesson");
+const AskTheExpertLanding = lazyWithRetry(() => import("@/manus/pages/AskTheExpertLanding"), "AskTheExpertLanding");
 
 const AdminPanel = lazyWithRetry(() => import("@/manus/pages/AdminPanel"), "AdminPanel");
 const AdminAnalytics = lazyWithRetry(() => import("@/manus/pages/AdminAnalytics"), "AdminAnalytics");
