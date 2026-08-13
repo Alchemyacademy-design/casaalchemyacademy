@@ -4,6 +4,7 @@ import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide
 import MemberLayout from "@/manus/components/MemberLayout";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
+import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
 
