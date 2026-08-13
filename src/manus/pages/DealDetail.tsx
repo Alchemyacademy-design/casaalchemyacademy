@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
@@ -7,6 +7,14 @@ import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
+
+declare global {
+  interface Window {
+    Calendly?: {
+      initInlineWidget: (options: { url: string; parentElement: HTMLElement }) => void;
+    };
+  }
+}
 
 const TERMS = [
   "This is a paid one-to-one consultation delivered online by Lorena Couto via Casa Alchemy Studio.",
