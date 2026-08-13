@@ -53,7 +53,13 @@ export default function GlobalAccessController() {
     // The public certificate verification page is always public — anyone
     // with the link (recruiters, LinkedIn, etc.) must be able to open it
     // without an account.
-    if (loading || publicPaths.has(location) || location.startsWith("/c/")) return;
+    if (
+      loading ||
+      publicPaths.has(location) ||
+      location.startsWith("/c/") ||
+      // Public lead-capture landing for "Ask the Expert LIVE" workshops.
+      location.startsWith("/ask-the-expert/")
+    ) return;
 
     if (!isAuthenticated) {
       navigate("/login");
