@@ -346,7 +346,7 @@ export default function Home() {
                     {[
                       "Access to all courses available",
                       "The A Tribe - Community Forum",
-                      "Live Workshops",
+                      "Expert Masterclasses",
                     ].map((perk) => (
                       <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
@@ -357,7 +357,7 @@ export default function Home() {
                     {[
                       "Events",
                       "Exclusive Deals",
-                      "Access to cheat sheets and special suppliers",
+                      "Access to The Reading Room and suppliers directory",
                     ].map((perk) => (
                       <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
