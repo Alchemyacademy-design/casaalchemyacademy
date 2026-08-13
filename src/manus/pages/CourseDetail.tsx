@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from "react";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, BookOpen, Clock3, Layers3, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, BookOpen, Clock3, Layers3, Lock } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
 import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
+import { passedQuizIdsForCourse } from "@/manus/services/quiz";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
@@ -29,6 +30,7 @@ type Lesson = {
   external_resource_url: string | null;
   duration_seconds: number | null;
   is_preview: boolean | null;
+  thumbnail_path: string | null;
   status: "draft" | "published" | "archived";
   sort_order: number;
 };
@@ -68,7 +70,7 @@ async function fetchCourseTree(id: number): Promise<Course | null> {
         "hero_text_hidden,hero_title_color,hero_title_size,hero_title_font,hero_overlay_opacity," +
         "status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
-        "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
+        "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,thumbnail_path,status,sort_order))",
     )
     .eq("id", id)
     .eq("status", "published")
@@ -147,6 +149,11 @@ export default function CourseDetail() {
     [progress],
   );
 
+  const { data: passedQuizIds } = useQuery({
+    queryKey: ["course-passed-quizzes", courseId],
+    enabled: Number.isFinite(courseId) && !authLoading && (isMember || isAdmin),
+    queryFn: () => passedQuizIdsForCourse(courseId),
+  });
   if (!Number.isFinite(courseId)) {
     return (
       <MemberLayout>
@@ -204,6 +211,7 @@ export default function CourseDetail() {
   }
 
   const totalModules = course.course_modules.length;
+  const passedFinalExam = Boolean(finalExam && passedQuizIds?.has(finalExam.id));
   const totalLessons = allLessons.length;
   const completedCount = allLessons.filter((lesson) => completedIds.has(lesson.id)).length;
   const totalDurationSeconds = allLessons.reduce((sum, lesson) => sum + (lesson.duration_seconds ?? 0), 0);
@@ -234,7 +242,7 @@ export default function CourseDetail() {
         </div>
 
         <section
-          className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}${heroTextHidden ? " aa-course-hero--plain" : ""}`}
+          className={`aa-course-hero relative mb-8${heroImage ? " aa-course-hero--image" : ""}${heroTextHidden ? " aa-course-hero--plain" : ""}`}
           style={
             heroImage
               ? ({
@@ -251,11 +259,11 @@ export default function CourseDetail() {
             <h1 className="sr-only">{course.title}</h1>
           ) : (
             <div className="aa-course-hero-content">
-              <div className="mb-4 flex flex-wrap gap-2">
-                <StatusPill tone="accent">Course</StatusPill>
-                {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
-                {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
-              </div>
+              {course.status !== "published" ? (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <StatusPill tone="warning">{course.status}</StatusPill>
+                </div>
+              ) : null}
               <h1
                 className={`aa-course-hero-title leading-none ${HERO_FONT_CLASS[hero.font]} ${HERO_TITLE_CLASS[hero.size]}${hero.color ? "" : " text-white"}`}
                 style={hero.color ? { color: hero.color } : undefined}
@@ -272,6 +280,11 @@ export default function CourseDetail() {
               ) : null}
             </div>
           )}
+          {isAdmin ? (
+            <div className="pointer-events-none absolute bottom-2 right-3 z-10 text-[10px] uppercase tracking-[0.14em] opacity-80">
+              <StatusPill tone="accent">Student View</StatusPill>
+            </div>
+          ) : null}
         </section>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -311,6 +324,7 @@ export default function CourseDetail() {
                       title: lesson.title,
                       completed: completedIds.has(lesson.id),
                       locked: !accessible && !lesson.is_preview,
+                      thumbnailPath: lesson.thumbnail_path,
                     })),
                   }))}
                   activeLessonId={resumeLesson?.id ?? null}
@@ -345,7 +359,7 @@ export default function CourseDetail() {
             </section>
 
             {accessible && finalExam ? (
-              <section className="mb-10">
+              <section id="course-final-exam" className="mb-10 scroll-mt-24">
                 <SectionHeader title="Course final exam" description="Pass this exam to complete the course." />
                 <QuizCard quizId={finalExam.id} previewAsAdmin={false} />
               </section>
@@ -374,6 +388,32 @@ export default function CourseDetail() {
                 {hasStarted && resumeLesson ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Resume from: {resumeLesson.title}</p> : null}
               </div>
             </div>
+            {accessible && finalExam ? (
+              <div className="aa-panel p-5">
+                {passedFinalExam ? (
+                  <>
+                    <p className="flex items-center gap-2 text-sm leading-6 text-foreground/80">
+                      <Award className="h-4 w-4 text-accent" /> You passed the final exam.
+                    </p>
+                    <Link to="/certificates" className="mt-4 block">
+                      <Button variant="outline" className="w-full">View your certificate</Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm leading-6 text-foreground/80">
+                      Take your quiz to generate your certificate of completion.
+                    </p>
+                    <a href="#course-final-exam" className="mt-4 block">
+                      <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                        Take your quiz
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </a>
+                  </>
+                )}
+              </div>
+            ) : null}
           </aside>
         </div>
       </MemberPage>
