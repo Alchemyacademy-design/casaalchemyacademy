@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from "react";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, BookOpen, Clock3, Layers3, Lock } from "lucide-react";
+import { ArrowLeft, ArrowRight, Award, BookOpen, Clock3, Layers3, Lock } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import QueryStateView from "@/manus/components/QueryStateView";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { trpc } from "@/manus/lib/trpc";
 import { canAccessCourse, pickResumeLessonId } from "@/manus/services/learning";
+import { passedQuizIdsForCourse } from "@/manus/services/quiz";
 import CourseProgress from "@/manus/components/learning/CourseProgress";
 import LearningPath from "@/manus/components/learning/LearningPath";
 import LessonMaterial from "@/manus/components/learning/LessonMaterial";
@@ -29,6 +30,7 @@ type Lesson = {
   external_resource_url: string | null;
   duration_seconds: number | null;
   is_preview: boolean | null;
+  thumbnail_path: string | null;
   status: "draft" | "published" | "archived";
   sort_order: number;
 };
@@ -68,7 +70,7 @@ async function fetchCourseTree(id: number): Promise<Course | null> {
         "hero_text_hidden,hero_title_color,hero_title_size,hero_title_font,hero_overlay_opacity," +
         "status,access_plan_keys," +
         "course_modules(id,title,description,status,sort_order," +
-        "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,status,sort_order))",
+        "lessons(id,module_id,title,description,content_text,external_video_url,external_resource_url,duration_seconds,is_preview,thumbnail_path,status,sort_order))",
     )
     .eq("id", id)
     .eq("status", "published")
@@ -138,6 +140,21 @@ export default function CourseDetail() {
     },
   });
   const completedIds = useMemo(
+    () =>
+      new Set<number>(
+        progress
+          .filter((item: { completed: boolean; lessonId: number }) => item.completed)
+          .map((item) => Number(item.lessonId)),
+      ),
+    [progress],
+  );
+
+  const { data: passedQuizIds } = useQuery({
+    queryKey: ["course-passed-quizzes", courseId],
+    enabled: Number.isFinite(courseId) && !authLoading && (isMember || isAdmin),
+    queryFn: () => passedQuizIdsForCourse(courseId),
+  });
+  const unusedCompleted = useMemo(
     () =>
       new Set<number>(
         progress
