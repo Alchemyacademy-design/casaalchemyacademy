@@ -284,7 +284,17 @@ async function sendConfirmationEmail(input: {
     </div>`;
   const plaintext = `Your first lesson is on us.\n\nThanks for subscribing, ${firstName}. Your free lesson "How to Mix Prints", with Lorena Couto, is ready to watch.\n\nInside: how to combine patterns, scale and colour so a room feels layered instead of loud.\n\nWatch: ${input.lessonPageUrl}\nDirect video: ${input.lessonVideoUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
 
-  // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
+  return deliverEmail({ to: input.to, subject, html, plaintext });
+}
+
+// Shared transport: Gmail via the Lovable connector gateway, Resend fallback.
+async function deliverEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  plaintext: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const { subject, html, plaintext } = input;
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
     try {
       const raw = buildGmailRawMessage({
@@ -342,6 +352,60 @@ async function sendConfirmationEmail(input: {
   }
   await res.text();
   return "resend";
+}
+
+function formatWorkshopWhen(startsAt: string, endsAt: string | null): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "UTC",
+  };
+  const start = new Date(startsAt).toLocaleString("en-AU", opts);
+  if (!endsAt) return start;
+  const end = new Date(endsAt).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
+  return `${start} – ${end}`;
+}
+
+async function sendWorkshopConfirmationEmail(input: {
+  to: string;
+  name: string;
+  workshopTitle: string;
+  when: string;
+  coverUrl: string | null;
+  pageUrl: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const firstName = input.name.trim().split(/\s+/)[0] ?? "";
+  const subject = `You're confirmed — ${input.workshopTitle}`;
+  const offersUrl = publicUrl("/#offers");
+  const html = `
+    <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">You're in, ${firstName}.</h1>
+      <p style="font-size:15px;line-height:1.6;">Your seat is confirmed for <strong>${input.workshopTitle}</strong>.</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 20px;"><strong>When:</strong> ${input.when}</p>
+      ${input.coverUrl ? `<p style="margin:20px 0;text-align:center;"><img src="${input.coverUrl}" alt="${input.workshopTitle}" width="440" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></p>` : ""}
+      <p style="font-size:15px;line-height:1.6;">The private class link is not published anywhere — we'll email it to you closer to the session, so keep an eye on this inbox.</p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">Need the details again? <a href="${input.pageUrl}">${input.pageUrl}</a></p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">While you wait</h2>
+      <p style="font-size:15px;line-height:1.6;">Inside the Alchemy Academy you get the full method — courses, expert masterclasses, and a community designing their own homes with intention.</p>
+      <p style="margin:20px 0 28px;">
+        <a href="${offersUrl}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Explore the Academy plans</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
+    </div>`;
+  const plaintext = `You're in, ${firstName}.\n\nYour seat is confirmed for "${input.workshopTitle}".\n\nWhen: ${input.when}\n\nThe private class link is not published anywhere — we'll email it to you closer to the session.\n\nDetails: ${input.pageUrl}\n\nExplore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
+  return deliverEmail({ to: input.to, subject, html, plaintext });
 }
 
 Deno.serve(async (req) => {
