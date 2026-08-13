@@ -492,19 +492,19 @@ export default function Home() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Full course library — every course, every lesson", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
+                  { feature: "Courses available", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
                   { feature: "Length of access", annual: "12 months", monthly: "Renews monthly", selected: "3 months" },
-                  { feature: "Video lessons + written guides", annual: "check", monthly: "check", selected: "For the chosen course" },
-                  { feature: "Downloadable support materials", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Video lessons", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Master Guides", annual: "check", monthly: "check", selected: "For the chosen course" },
                   { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
-                  { feature: "New courses & lessons added regularly", annual: "check", monthly: "check", selected: "" },
-                  { feature: "The A Tribe — private community forum", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Live Workshops with Lorena", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Members-only events", annual: "check", monthly: "", selected: "" },
-                  { feature: "Digital magazine issues", annual: "check", monthly: "check", selected: "" },
+                  { feature: "New content added regularly", annual: "check", monthly: "check", selected: "" },
+                  { feature: "The A Tribe Community Forum", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Expert Masterclasses", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Private events", annual: "check", monthly: "", selected: "" },
+                  { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Exclusive supplier deals & discounts", annual: "check", monthly: "", selected: "" },
-                  { feature: "Cancel anytime", annual: "Renews yearly", monthly: "check", selected: "One-time payment" },
+                  { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
+                  { feature: "Cancel anytime", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
                     <td style={{ padding: "1.25rem 1.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{row.feature}</td>
@@ -517,6 +517,7 @@ export default function Home() {
             </table>
             </div>
             <p className="currency-note">All prices are in US Dollars (USD).</p>
+            <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
             <div className="plan-details">
               {[
                 {
