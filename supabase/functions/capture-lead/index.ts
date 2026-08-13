@@ -540,13 +540,34 @@ Deno.serve(async (req) => {
   // HubSpot sync — non-blocking (log on failure, still return success so the
   // visitor gets the free lesson).
   const { firstname, lastname } = splitName(name);
+  // Workshop context (public "Ask the Expert LIVE" landing page).
+  const workshopId = typeof metadata?.workshop_id === "number"
+    ? metadata.workshop_id
+    : typeof metadata?.workshop_id === "string" && /^\d+$/.test(metadata.workshop_id)
+      ? Number(metadata.workshop_id)
+      : null;
+  const workshopSlug = typeof metadata?.workshop_slug === "string" ? metadata.workshop_slug : null;
+  let workshop: {
+    id: number; slug: string; title: string; starts_at: string; ends_at: string | null; cover_image_path: string | null;
+  } | null = null;
+  if (source === "live_workshop" && (workshopId || workshopSlug)) {
+    let q = supabase
+      .from("live_workshops")
+      .select("id,slug,title,starts_at,ends_at,cover_image_path")
+      .limit(1);
+    q = workshopId ? q.eq("id", workshopId) : q.eq("slug", workshopSlug as string);
+    const { data: wRow, error: wErr } = await q.maybeSingle();
+    if (wErr) console.warn("workshop lookup failed:", wErr);
+    workshop = wRow ?? null;
+  }
+  const workshopTitle = workshop?.title ?? null;
   const hubspotCookie = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)hubspotutk=([^;]+)/)?.[1] ?? null;
   let hubspotContactId: string | null = null;
   let hubspotError: string | null = null;
   try {
     await ensureHubspotLeadSourceProperty();
     const placement = typeof metadata?.placement === "string" ? metadata.placement : undefined;
-    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source, placement });
+    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source, placement, workshopTitle });
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
@@ -557,8 +578,9 @@ Deno.serve(async (req) => {
       phone,
       source,
       placement,
+      workshopTitle,
       pageUri: typeof metadata?.page_uri === "string" ? metadata.page_uri : lessonPageUrl,
-      pageName: labelForLead(source, placement),
+      pageName: labelForLead(source, placement, workshopTitle),
       hutk: hubspotCookie,
     });
     if (formErr) hubspotError = hubspotError ? `${hubspotError}; ${formErr}` : formErr;
@@ -579,7 +601,18 @@ Deno.serve(async (req) => {
   // Confirmation email (also non-blocking).
   let emailProvider: "gmail" | "resend" | "failed" = "failed";
   try {
-    emailProvider = await sendConfirmationEmail({ to: email, name, lessonPageUrl, lessonVideoUrl, coverUrl });
+    if (source === "live_workshop" && workshop) {
+      emailProvider = await sendWorkshopConfirmationEmail({
+        to: email,
+        name,
+        workshopTitle: workshop.title,
+        when: formatWorkshopWhen(workshop.starts_at, workshop.ends_at),
+        coverUrl: workshop.cover_image_path,
+        pageUrl: publicUrl(`/ask-the-expert/${workshop.slug}`),
+      });
+    } else {
+      emailProvider = await sendConfirmationEmail({ to: email, name, lessonPageUrl, lessonVideoUrl, coverUrl });
+    }
   } catch (e) {
     console.error("confirmation email error:", e);
   }
@@ -592,7 +625,13 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, redirect: "/free-lesson", leadId: leadRow.id }),
+    JSON.stringify({
+      ok: true,
+      redirect: source === "live_workshop" && workshop
+        ? `/ask-the-expert/${workshop.slug}`
+        : "/free-lesson",
+      leadId: leadRow.id,
+    }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });
