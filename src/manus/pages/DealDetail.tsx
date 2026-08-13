@@ -255,14 +255,12 @@ export default function DealDetail() {
                 <p className="text-xs mb-5 leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                   Pick the time that suits you best. You will receive a confirmation email with the meeting link.
                 </p>
-                <div style={{ border: "1px solid var(--aa-cream-dark)" }}>
-                  <iframe
-                    title="Schedule your Casa Consult"
-                    src={`${SCHEDULING_URL}?hide_gdpr_banner=1`}
-                    className="w-full"
-                    style={{ height: 760, border: 0 }}
-                  />
-                </div>
+                <div
+                  ref={calendlyContainerRef}
+                  className="w-full min-h-[760px]"
+                  style={{ border: "1px solid var(--aa-cream-dark)" }}
+                  aria-label="Calendly scheduling widget"
+                />
                 <a
                   href={SCHEDULING_URL}
                   target="_blank"
