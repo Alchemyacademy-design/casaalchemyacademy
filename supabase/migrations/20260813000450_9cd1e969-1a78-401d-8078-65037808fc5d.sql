@@ -1,0 +1,1 @@
+UPDATE public.exclusive_deals SET cover_image_path = '/__l5e/assets-v1/14689fdf-e43a-4487-a130-f2a2c0b7996a/casa-consult.jpg' WHERE slug = 'casa-consult';

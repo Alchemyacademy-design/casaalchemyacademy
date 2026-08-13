@@ -641,58 +641,69 @@ export default function CommunityPremium({
       <aside className="aa-community-spaces" aria-label="Community spaces">
         <p className="aa-community-rail-label">Spaces</p>
         {spaces.map((space) => (
-          <div key={space.id} style={{ position: "relative" }}>
+          <div key={space.id} className="aa-community-space-row">
             <button
               type="button"
-              className={space.id === spaceId ? "is-active" : ""}
+              className={`aa-community-space-btn ${space.id === spaceId ? "is-active" : ""}`}
               onClick={() => { setSpaceId(space.id); }}
               title={space.name}
             >
-              {space.name.slice(0, 2).toUpperCase()}
+              <span className="aa-community-space-name">{space.name}</span>
             </button>
             {isAdmin && (
-              <div style={{ display: "flex", gap: 4, justifyContent: "center", marginTop: 2 }}>
-                <button
-                  type="button"
-                  title="Rename space"
-                  aria-label={`Rename ${space.name}`}
-                  onClick={async () => {
-                    const name = window.prompt("Rename space", space.name);
-                    if (!name || !name.trim() || name.trim() === space.name) return;
-                    try {
-                      await updateSpace.mutateAsync({ id: space.id, patch: { name: name.trim() } });
-                      toast.success("Space updated");
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Failed to update space");
-                    }
-                  }}
-                  style={{ padding: 2, opacity: 0.7 }}
-                >
-                  <Pencil size={11} />
-                </button>
-                <button
-                  type="button"
-                  title="Delete space"
-                  aria-label={`Delete ${space.name}`}
-                  onClick={async () => {
-                    if (!window.confirm(`Delete space "${space.name}"? All its channels and posts will be removed.`)) return;
-                    try {
-                      await deleteSpace.mutateAsync(space.id);
-                      if (spaceId === space.id) setSpaceId(null);
-                      toast.success("Space deleted");
-                    } catch (err) {
-                      toast.error(err instanceof Error ? err.message : "Failed to delete space");
-                    }
-                  }}
-                  style={{ padding: 2, opacity: 0.7, color: "var(--destructive, #b91c1c)" }}
-                >
-                  <Trash2 size={11} />
-                </button>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="aa-community-channel-more"
+                    aria-label={`More actions for ${space.name}`}
+                    title={`More actions for ${space.name}`}
+                  >
+                    <MoreHorizontal size={14} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[12rem]">
+                  <DropdownMenuLabel>{space.name}</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onSelect={async () => {
+                      const name = window.prompt("Rename space", space.name);
+                      if (!name || !name.trim() || name.trim() === space.name) return;
+                      try {
+                        await updateSpace.mutateAsync({ id: space.id, patch: { name: name.trim() } });
+                        toast.success("Space updated");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to update space");
+                      }
+                    }}
+                  >
+                    <Pencil size={14} /> Rename space
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-destructive focus:text-destructive"
+                    onSelect={async () => {
+                      if (!window.confirm(`Delete space "${space.name}"? All its channels and posts will be removed.`)) return;
+                      try {
+                        await deleteSpace.mutateAsync(space.id);
+                        if (spaceId === space.id) setSpaceId(null);
+                        toast.success("Space deleted");
+                      } catch (err) {
+                        toast.error(err instanceof Error ? err.message : "Failed to delete space");
+                      }
+                    }}
+                  >
+                    <Trash2 size={14} /> Delete space
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         ))}
-        {isAdmin && <button type="button" onClick={() => setSpaceDialogOpen(true)} title="New space"><Plus size={16} /></button>}
+        {isAdmin && (
+          <button type="button" className="aa-community-space-new" onClick={() => setSpaceDialogOpen(true)} title="New space">
+            <Plus size={14} /> New space
+          </button>
+        )}
       </aside>
 
       <aside className="aa-community-channels">

@@ -4,6 +4,7 @@ import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide
 import MemberLayout from "@/manus/components/MemberLayout";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
+import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
 
@@ -57,7 +58,8 @@ export default function DealDetail() {
     );
   }
 
-  const cover = (deal as { cover_image_path?: string | null }).cover_image_path;
+  const cover = resolveAssetUrl((deal as { cover_image_path?: string | null }).cover_image_path);
+  const priceLabel = (deal as { price_label?: string | null }).price_label;
 
   const steps = [
     { n: 1, label: "Terms & conditions", icon: FileText },
@@ -85,8 +87,25 @@ export default function DealDetail() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-8 items-start">
-          <div style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-            {cover && <img src={cover} alt={deal.title} className="w-full aspect-[4/3] object-cover" loading="lazy" />}
+          <div
+            className="group overflow-hidden rounded-xl border transition duration-300 hover:-translate-y-1 hover:shadow-float"
+            style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}
+          >
+            {cover && (
+              <div className="relative min-h-[190px] overflow-hidden bg-primary">
+                <div
+                  className="absolute inset-0 scale-[1.01] bg-cover bg-center transition duration-500 group-hover:scale-[1.045]"
+                  style={{ backgroundImage: `url(${cover})` }}
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/15 to-transparent" aria-hidden="true" />
+                <div className="relative z-10 flex min-h-[190px] items-end p-5">
+                  {priceLabel ? (
+                    <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/90">{priceLabel}</span>
+                  ) : null}
+                </div>
+              </div>
+            )}
             <div className="p-5 space-y-3">
               {steps.map((s) => {
                 const done = step > s.n;
