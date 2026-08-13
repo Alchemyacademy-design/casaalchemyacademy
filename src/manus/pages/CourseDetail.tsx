@@ -154,16 +154,6 @@ export default function CourseDetail() {
     enabled: Number.isFinite(courseId) && !authLoading && (isMember || isAdmin),
     queryFn: () => passedQuizIdsForCourse(courseId),
   });
-  const unusedCompleted = useMemo(
-    () =>
-      new Set<number>(
-        progress
-          .filter((item: { completed: boolean; lessonId: number }) => item.completed)
-          .map((item) => Number(item.lessonId)),
-      ),
-    [progress],
-  );
-
   if (!Number.isFinite(courseId)) {
     return (
       <MemberLayout>
