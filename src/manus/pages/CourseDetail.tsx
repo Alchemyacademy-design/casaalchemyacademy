@@ -241,7 +241,7 @@ export default function CourseDetail() {
         </div>
 
         <section
-          className={`aa-course-hero mb-8${heroImage ? " aa-course-hero--image" : ""}${heroTextHidden ? " aa-course-hero--plain" : ""}`}
+          className={`aa-course-hero relative mb-8${heroImage ? " aa-course-hero--image" : ""}${heroTextHidden ? " aa-course-hero--plain" : ""}`}
           style={
             heroImage
               ? ({
@@ -323,6 +323,7 @@ export default function CourseDetail() {
                       title: lesson.title,
                       completed: completedIds.has(lesson.id),
                       locked: !accessible && !lesson.is_preview,
+                      thumbnailPath: lesson.thumbnail_path,
                     })),
                   }))}
                   activeLessonId={resumeLesson?.id ?? null}
@@ -357,7 +358,7 @@ export default function CourseDetail() {
             </section>
 
             {accessible && finalExam ? (
-              <section className="mb-10">
+              <section id="course-final-exam" className="mb-10 scroll-mt-24">
                 <SectionHeader title="Course final exam" description="Pass this exam to complete the course." />
                 <QuizCard quizId={finalExam.id} previewAsAdmin={false} />
               </section>
@@ -386,6 +387,32 @@ export default function CourseDetail() {
                 {hasStarted && resumeLesson ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Resume from: {resumeLesson.title}</p> : null}
               </div>
             </div>
+            {accessible && finalExam ? (
+              <div className="aa-panel p-5">
+                {passedFinalExam ? (
+                  <>
+                    <p className="flex items-center gap-2 text-sm leading-6 text-foreground/80">
+                      <Award className="h-4 w-4 text-accent" /> You passed the final exam.
+                    </p>
+                    <Link to="/certificates" className="mt-4 block">
+                      <Button variant="outline" className="w-full">View your certificate</Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm leading-6 text-foreground/80">
+                      Take your quiz to generate your certificate of completion.
+                    </p>
+                    <a href="#course-final-exam" className="mt-4 block">
+                      <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
+                        Take your quiz
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </a>
+                  </>
+                )}
+              </div>
+            ) : null}
           </aside>
         </div>
       </MemberPage>
