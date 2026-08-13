@@ -435,7 +435,7 @@ export default function Home() {
               .cta-btn .arrow { transition: transform .25s ease; }
               .cta-btn:hover .arrow { transform: translateX(4px); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
-              .cooling-off-note { text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
+              .cooling-off-note { order: 5; text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
               .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
               .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; display: flex; flex-direction: column; }
               .plan-detail-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -18px rgba(145,69,33,0.55); }
@@ -500,12 +500,12 @@ export default function Home() {
                   { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
                   { feature: "New content added regularly", annual: "check", monthly: "check", selected: "" },
                   { feature: "The A Tribe Community Forum", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Expert Masterclasses", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Expert Masterclasses — Live and interactive", annual: "check", monthly: "check", selected: "" },
                   { feature: "Private events", annual: "check", monthly: "", selected: "" },
                   { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
                   { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
-                  { feature: "Cancel anytime", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
+                  { feature: "Cancel policy", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
                     <td style={{ padding: "1.25rem 1.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{row.feature}</td>
