@@ -258,11 +258,11 @@ export default function CourseDetail() {
             <h1 className="sr-only">{course.title}</h1>
           ) : (
             <div className="aa-course-hero-content">
-              <div className="mb-4 flex flex-wrap gap-2">
-                <StatusPill tone="accent">Course</StatusPill>
-                {course.status !== "published" ? <StatusPill tone="warning">{course.status}</StatusPill> : null}
-                {isAdmin ? <StatusPill tone="accent">Student View</StatusPill> : null}
-              </div>
+              {course.status !== "published" ? (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <StatusPill tone="warning">{course.status}</StatusPill>
+                </div>
+              ) : null}
               <h1
                 className={`aa-course-hero-title leading-none ${HERO_FONT_CLASS[hero.font]} ${HERO_TITLE_CLASS[hero.size]}${hero.color ? "" : " text-white"}`}
                 style={hero.color ? { color: hero.color } : undefined}
@@ -279,6 +279,11 @@ export default function CourseDetail() {
               ) : null}
             </div>
           )}
+          {isAdmin ? (
+            <div className="pointer-events-none absolute bottom-2 right-3 z-10 text-[10px] uppercase tracking-[0.14em] opacity-80">
+              <StatusPill tone="accent">Student View</StatusPill>
+            </div>
+          ) : null}
         </section>
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
