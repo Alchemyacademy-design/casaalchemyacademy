@@ -19,7 +19,7 @@ const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40),
-  source: z.enum(["popup", "quiz"]),
+  source: z.enum(["popup", "quiz", "live_workshop"]),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
   website: z.string().max(0).optional().or(z.literal("")),
@@ -61,7 +61,14 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-function labelForLead(source: "popup" | "quiz", placement?: string): string {
+type LeadSource = "popup" | "quiz" | "live_workshop";
+
+function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
+  if (source === "live_workshop") {
+    return workshopTitle
+      ? `Ask the Expert LIVE — ${workshopTitle}`
+      : "Ask the Expert LIVE";
+  }
   const p = (placement ?? "").toLowerCase();
   if (p === "footer") return "Homepage Footer — Free Lesson";
   if (p === "popup") return "Website Pop-up — Free Lesson";
@@ -113,8 +120,9 @@ async function upsertHubspotContact(input: {
   firstname: string;
   lastname: string;
   phone: string;
-  source: "popup" | "quiz";
+  source: LeadSource;
   placement?: string;
+  workshopTitle?: string | null;
 }): Promise<{ id: string | null; error: string | null }> {
   if (!HUBSPOT_TOKEN) return { id: null, error: "HUBSPOT_PRIVATE_APP_TOKEN not configured" };
 
@@ -123,7 +131,7 @@ async function upsertHubspotContact(input: {
     firstname: input.firstname,
     lastname: input.lastname,
     phone: input.phone,
-    lead_source: labelForLead(input.source, input.placement),
+    lead_source: labelForLead(input.source, input.placement, input.workshopTitle),
   };
 
   // Try PATCH by email idProperty first. If contact does not exist, POST.
@@ -170,8 +178,9 @@ async function submitHubspotForm(input: {
   firstname: string;
   lastname: string;
   phone: string;
-  source: "popup" | "quiz";
+  source: LeadSource;
   placement?: string;
+  workshopTitle?: string | null;
   pageUri: string;
   pageName: string;
   hutk?: string | null;
@@ -182,7 +191,7 @@ async function submitHubspotForm(input: {
     { name: "firstname", value: input.firstname },
     { name: "lastname", value: input.lastname },
     { name: "phone", value: input.phone },
-    { name: "lead_source", value: labelForLead(input.source, input.placement) },
+    { name: "lead_source", value: labelForLead(input.source, input.placement, input.workshopTitle) },
   ].filter((f) => typeof f.value === "string" && f.value.trim().length > 0);
 
   const payload: Record<string, unknown> = {
@@ -275,7 +284,17 @@ async function sendConfirmationEmail(input: {
     </div>`;
   const plaintext = `Your first lesson is on us.\n\nThanks for subscribing, ${firstName}. Your free lesson "How to Mix Prints", with Lorena Couto, is ready to watch.\n\nInside: how to combine patterns, scale and colour so a room feels layered instead of loud.\n\nWatch: ${input.lessonPageUrl}\nDirect video: ${input.lessonVideoUrl}\n\nReady for the full toolkit? Explore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
 
-  // Gmail first (via Lovable connector gateway — sends from Lorena's inbox).
+  return deliverEmail({ to: input.to, subject, html, plaintext });
+}
+
+// Shared transport: Gmail via the Lovable connector gateway, Resend fallback.
+async function deliverEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  plaintext: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const { subject, html, plaintext } = input;
   if (LOVABLE_API_KEY && GOOGLE_MAIL_API_KEY) {
     try {
       const raw = buildGmailRawMessage({
@@ -333,6 +352,60 @@ async function sendConfirmationEmail(input: {
   }
   await res.text();
   return "resend";
+}
+
+function formatWorkshopWhen(startsAt: string, endsAt: string | null): string {
+  const opts: Intl.DateTimeFormatOptions = {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZoneName: "short",
+    timeZone: "UTC",
+  };
+  const start = new Date(startsAt).toLocaleString("en-AU", opts);
+  if (!endsAt) return start;
+  const end = new Date(endsAt).toLocaleTimeString("en-AU", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  });
+  return `${start} – ${end}`;
+}
+
+async function sendWorkshopConfirmationEmail(input: {
+  to: string;
+  name: string;
+  workshopTitle: string;
+  when: string;
+  coverUrl: string | null;
+  pageUrl: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const firstName = input.name.trim().split(/\s+/)[0] ?? "";
+  const subject = `You're confirmed — ${input.workshopTitle}`;
+  const offersUrl = publicUrl("/#offers");
+  const html = `
+    <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">You're in, ${firstName}.</h1>
+      <p style="font-size:15px;line-height:1.6;">Your seat is confirmed for <strong>${input.workshopTitle}</strong>.</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 20px;"><strong>When:</strong> ${input.when}</p>
+      ${input.coverUrl ? `<p style="margin:20px 0;text-align:center;"><img src="${input.coverUrl}" alt="${input.workshopTitle}" width="440" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></p>` : ""}
+      <p style="font-size:15px;line-height:1.6;">The private class link is not published anywhere — we'll email it to you closer to the session, so keep an eye on this inbox.</p>
+      <p style="font-size:14px;line-height:1.6;color:#666;">Need the details again? <a href="${input.pageUrl}">${input.pageUrl}</a></p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">While you wait</h2>
+      <p style="font-size:15px;line-height:1.6;">Inside the Alchemy Academy you get the full method — courses, expert masterclasses, and a community designing their own homes with intention.</p>
+      <p style="margin:20px 0 28px;">
+        <a href="${offersUrl}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Explore the Academy plans</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
+    </div>`;
+  const plaintext = `You're in, ${firstName}.\n\nYour seat is confirmed for "${input.workshopTitle}".\n\nWhen: ${input.when}\n\nThe private class link is not published anywhere — we'll email it to you closer to the session.\n\nDetails: ${input.pageUrl}\n\nExplore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
+  return deliverEmail({ to: input.to, subject, html, plaintext });
 }
 
 Deno.serve(async (req) => {
@@ -467,13 +540,34 @@ Deno.serve(async (req) => {
   // HubSpot sync — non-blocking (log on failure, still return success so the
   // visitor gets the free lesson).
   const { firstname, lastname } = splitName(name);
+  // Workshop context (public "Ask the Expert LIVE" landing page).
+  const workshopId = typeof metadata?.workshop_id === "number"
+    ? metadata.workshop_id
+    : typeof metadata?.workshop_id === "string" && /^\d+$/.test(metadata.workshop_id)
+      ? Number(metadata.workshop_id)
+      : null;
+  const workshopSlug = typeof metadata?.workshop_slug === "string" ? metadata.workshop_slug : null;
+  let workshop: {
+    id: number; slug: string; title: string; starts_at: string; ends_at: string | null; cover_image_path: string | null;
+  } | null = null;
+  if (source === "live_workshop" && (workshopId || workshopSlug)) {
+    let q = supabase
+      .from("live_workshops")
+      .select("id,slug,title,starts_at,ends_at,cover_image_path")
+      .limit(1);
+    q = workshopId ? q.eq("id", workshopId) : q.eq("slug", workshopSlug as string);
+    const { data: wRow, error: wErr } = await q.maybeSingle();
+    if (wErr) console.warn("workshop lookup failed:", wErr);
+    workshop = wRow ?? null;
+  }
+  const workshopTitle = workshop?.title ?? null;
   const hubspotCookie = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)hubspotutk=([^;]+)/)?.[1] ?? null;
   let hubspotContactId: string | null = null;
   let hubspotError: string | null = null;
   try {
     await ensureHubspotLeadSourceProperty();
     const placement = typeof metadata?.placement === "string" ? metadata.placement : undefined;
-    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source, placement });
+    const upserted = await upsertHubspotContact({ email, firstname, lastname, phone, source, placement, workshopTitle });
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
@@ -484,8 +578,9 @@ Deno.serve(async (req) => {
       phone,
       source,
       placement,
+      workshopTitle,
       pageUri: typeof metadata?.page_uri === "string" ? metadata.page_uri : lessonPageUrl,
-      pageName: labelForLead(source, placement),
+      pageName: labelForLead(source, placement, workshopTitle),
       hutk: hubspotCookie,
     });
     if (formErr) hubspotError = hubspotError ? `${hubspotError}; ${formErr}` : formErr;
@@ -506,7 +601,18 @@ Deno.serve(async (req) => {
   // Confirmation email (also non-blocking).
   let emailProvider: "gmail" | "resend" | "failed" = "failed";
   try {
-    emailProvider = await sendConfirmationEmail({ to: email, name, lessonPageUrl, lessonVideoUrl, coverUrl });
+    if (source === "live_workshop" && workshop) {
+      emailProvider = await sendWorkshopConfirmationEmail({
+        to: email,
+        name,
+        workshopTitle: workshop.title,
+        when: formatWorkshopWhen(workshop.starts_at, workshop.ends_at),
+        coverUrl: workshop.cover_image_path,
+        pageUrl: publicUrl(`/ask-the-expert/${workshop.slug}`),
+      });
+    } else {
+      emailProvider = await sendConfirmationEmail({ to: email, name, lessonPageUrl, lessonVideoUrl, coverUrl });
+    }
   } catch (e) {
     console.error("confirmation email error:", e);
   }
@@ -519,7 +625,13 @@ Deno.serve(async (req) => {
   }
 
   return new Response(
-    JSON.stringify({ ok: true, redirect: "/free-lesson", leadId: leadRow.id }),
+    JSON.stringify({
+      ok: true,
+      redirect: source === "live_workshop" && workshop
+        ? `/ask-the-expert/${workshop.slug}`
+        : "/free-lesson",
+      leadId: leadRow.id,
+    }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
   );
 });

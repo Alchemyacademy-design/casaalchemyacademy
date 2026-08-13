@@ -42,6 +42,7 @@ const PaymentCancel = lazyWithRetry(() => import("@/manus/pages/PaymentCancel"),
 const Plans = lazyWithRetry(() => import("@/manus/pages/Plans"), "Plans");
 const CourseCheckout = lazyWithRetry(() => import("@/manus/pages/CourseCheckout"), "CourseCheckout");
 const FreeLesson = lazyWithRetry(() => import("@/manus/pages/FreeLesson"), "FreeLesson");
+const AskTheExpertLanding = lazyWithRetry(() => import("@/manus/pages/AskTheExpertLanding"), "AskTheExpertLanding");
 
 const AdminPanel = lazyWithRetry(() => import("@/manus/pages/AdminPanel"), "AdminPanel");
 const AdminAnalytics = lazyWithRetry(() => import("@/manus/pages/AdminAnalytics"), "AdminAnalytics");
@@ -97,6 +98,7 @@ export default function App() {
             <Route path="/plans" element={<Plans />} />
             <Route path="/choose-course" element={<CourseCheckout />} />
             <Route path="/free-lesson" element={<FreeLesson />} />
+            <Route path="/ask-the-expert/:slug" element={<AskTheExpertLanding />} />
             <Route path="/magazine-thanks" element={<Navigate to="/free-lesson" replace />} />
             <Route path="/magazine-download" element={<Navigate to="/free-lesson" replace />} />
             <Route path="/c/:slug" element={<PublicCertificate />} />
