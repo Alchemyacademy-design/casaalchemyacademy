@@ -73,7 +73,7 @@ const MODULES = [
 
 const BENEFITS = [
   { title: "THE A TRIBE", desc: "Connect with fellow Alchemists. Share projects, ask questions, and grow together." },
-  { title: "LIVE WORKSHOPS", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
+  { title: "EXPERT MASTERCLASSES", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
   { title: "EVENTS", desc: "Access exclusive events and networking opportunities with Lorena and the community." },
   { title: "EXCLUSIVE DEALS", desc: "Exclusive discounts on furniture and accessories from curated suppliers, plus a unique package deal for private consultations with Lorena C to keep your project moving in the right direction." },
   { title: "LEARN AT YOUR OWN PACE", desc: "Video lessons, live recordings, and visual aids — learn at your own pace, track your progress. Every course is accessible individually, with full support material included. The design decisions professionals make instinctively — now structured and yours to apply." },
