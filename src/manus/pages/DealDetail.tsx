@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
@@ -7,6 +7,14 @@ import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
+
+declare global {
+  interface Window {
+    Calendly?: {
+      initInlineWidget: (options: { url: string; parentElement: HTMLElement }) => void;
+    };
+  }
+}
 
 const TERMS = [
   "This is a paid one-to-one consultation delivered online by Lorena Couto via Casa Alchemy Studio.",
@@ -29,6 +37,37 @@ export default function DealDetail() {
     return saved >= 1 && saved <= 3 ? saved : 1;
   });
   const [accepted, setAccepted] = useState(false);
+  const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (step !== 3 || !calendlyContainerRef.current) return;
+
+    const container = calendlyContainerRef.current;
+    const existing = document.querySelector('script[data-calendly-widget]') as HTMLScriptElement | null;
+
+    const init = () => {
+      if (window.Calendly) {
+        container.innerHTML = "";
+        window.Calendly.initInlineWidget({ url: SCHEDULING_URL, parentElement: container });
+      }
+    };
+
+    if (existing) {
+      init();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://assets.calendly.com/assets/external/widget.js";
+    script.async = true;
+    script.dataset.calendlyWidget = "true";
+    script.onload = init;
+    document.body.appendChild(script);
+
+    return () => {
+      container.innerHTML = "";
+    };
+  }, [step]);
 
   const goTo = (next: number) => {
     setStep(next);
@@ -196,14 +235,6 @@ export default function DealDetail() {
                       Pay securely <ExternalLink size={12} />
                     </a>
                   )}
-                  <button
-                    type="button"
-                    onClick={() => goTo(3)}
-                    className="px-6 py-3 text-xs uppercase tracking-widest"
-                    style={{ border: "1px solid var(--aa-cream-dark)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif" }}
-                  >
-                    I've completed payment
-                  </button>
                 </div>
                 <button
                   type="button"
@@ -224,14 +255,12 @@ export default function DealDetail() {
                 <p className="text-xs mb-5 leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                   Pick the time that suits you best. You will receive a confirmation email with the meeting link.
                 </p>
-                <div style={{ border: "1px solid var(--aa-cream-dark)" }}>
-                  <iframe
-                    title="Schedule your Casa Consult"
-                    src={`${SCHEDULING_URL}?hide_gdpr_banner=1`}
-                    className="w-full"
-                    style={{ height: 760, border: 0 }}
-                  />
-                </div>
+                <div
+                  ref={calendlyContainerRef}
+                  className="w-full min-h-[760px]"
+                  style={{ border: "1px solid var(--aa-cream-dark)" }}
+                  aria-label="Calendly scheduling widget"
+                />
                 <a
                   href={SCHEDULING_URL}
                   target="_blank"
