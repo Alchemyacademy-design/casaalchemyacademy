@@ -211,6 +211,7 @@ export default function CourseDetail() {
   }
 
   const totalModules = course.course_modules.length;
+  const passedFinalExam = Boolean(finalExam && passedQuizIds?.has(finalExam.id));
   const totalLessons = allLessons.length;
   const completedCount = allLessons.filter((lesson) => completedIds.has(lesson.id)).length;
   const totalDurationSeconds = allLessons.reduce((sum, lesson) => sum + (lesson.duration_seconds ?? 0), 0);
