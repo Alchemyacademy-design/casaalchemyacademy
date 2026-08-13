@@ -73,7 +73,7 @@ const MODULES = [
 
 const BENEFITS = [
   { title: "THE A TRIBE", desc: "Connect with fellow Alchemists. Share projects, ask questions, and grow together." },
-  { title: "LIVE WORKSHOPS", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
+  { title: "EXPERT MASTERCLASSES", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
   { title: "EVENTS", desc: "Access exclusive events and networking opportunities with Lorena and the community." },
   { title: "EXCLUSIVE DEALS", desc: "Exclusive discounts on furniture and accessories from curated suppliers, plus a unique package deal for private consultations with Lorena C to keep your project moving in the right direction." },
   { title: "LEARN AT YOUR OWN PACE", desc: "Video lessons, live recordings, and visual aids — learn at your own pace, track your progress. Every course is accessible individually, with full support material included. The design decisions professionals make instinctively — now structured and yours to apply." },
@@ -346,7 +346,7 @@ export default function Home() {
                     {[
                       "Access to all courses available",
                       "The A Tribe - Community Forum",
-                      "Live Workshops",
+                      "Expert Masterclasses",
                     ].map((perk) => (
                       <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
@@ -357,7 +357,7 @@ export default function Home() {
                     {[
                       "Events",
                       "Exclusive Deals",
-                      "Access to cheat sheets and special suppliers",
+                      "Access to The Reading Room and suppliers directory",
                     ].map((perk) => (
                       <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
                         <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
@@ -435,6 +435,7 @@ export default function Home() {
               .cta-btn .arrow { transition: transform .25s ease; }
               .cta-btn:hover .arrow { transform: translateX(4px); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
+              .cooling-off-note { text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
               .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
               .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; display: flex; flex-direction: column; }
               .plan-detail-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -18px rgba(145,69,33,0.55); }
@@ -492,19 +493,19 @@ export default function Home() {
               </thead>
               <tbody>
                 {[
-                  { feature: "Full course library — every course, every lesson", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
+                  { feature: "Courses available", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
                   { feature: "Length of access", annual: "12 months", monthly: "Renews monthly", selected: "3 months" },
-                  { feature: "Video lessons + written guides", annual: "check", monthly: "check", selected: "For the chosen course" },
-                  { feature: "Downloadable support materials", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Video lessons", annual: "check", monthly: "check", selected: "For the chosen course" },
+                  { feature: "Master Guides", annual: "check", monthly: "check", selected: "For the chosen course" },
                   { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
-                  { feature: "New courses & lessons added regularly", annual: "check", monthly: "check", selected: "" },
-                  { feature: "The A Tribe — private community forum", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Live Workshops with Lorena", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Members-only events", annual: "check", monthly: "", selected: "" },
-                  { feature: "Digital magazine issues", annual: "check", monthly: "check", selected: "" },
+                  { feature: "New content added regularly", annual: "check", monthly: "check", selected: "" },
+                  { feature: "The A Tribe Community Forum", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Expert Masterclasses", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Private events", annual: "check", monthly: "", selected: "" },
+                  { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Exclusive supplier deals & discounts", annual: "check", monthly: "", selected: "" },
-                  { feature: "Cancel anytime", annual: "Renews yearly", monthly: "check", selected: "One-time payment" },
+                  { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
+                  { feature: "Cancel anytime", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
                     <td style={{ padding: "1.25rem 1.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>{row.feature}</td>
@@ -517,6 +518,7 @@ export default function Home() {
             </table>
             </div>
             <p className="currency-note">All prices are in US Dollars (USD).</p>
+            <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
             <div className="plan-details">
               {[
                 {
@@ -532,13 +534,13 @@ export default function Home() {
                   intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
-                    "All video lessons, written guides and downloadable support materials",
+                    "All video lessons, written guides and Master Guides",
                     "Quizzes and a completion certificate for every course you finish",
                     "The A Tribe private community forum",
-                    "Live Workshops with Lorena",
-                    "Members-only events and invitations",
-                    "Every digital magazine issue",
-                    "Suppliers directory and exclusive supplier deals",
+                    "Expert Masterclasses",
+                    "Private events and invitations",
+                    "The Reading Room",
+                    "Suppliers directory and Exclusive Deals",
                     "Save USD 480 compared with paying monthly",
                   ],
                 },
@@ -555,12 +557,12 @@ export default function Home() {
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
-                    "All video lessons, written guides and downloadable support materials",
+                    "All video lessons, written guides and Master Guides",
                     "Quizzes and completion certificates",
                     "The A Tribe private community forum",
-                    "Live Workshops with Lorena",
-                    "Digital magazine issues and the suppliers directory",
-                    "Does not include members-only events or exclusive supplier deals",
+                    "Expert Masterclasses",
+                    "The Reading Room and the suppliers directory",
+                    "Does not include private events or Exclusive Deals",
                     "Cancel anytime — access runs to the end of the paid month",
                   ],
                 },
