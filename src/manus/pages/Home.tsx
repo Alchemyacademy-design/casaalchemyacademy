@@ -580,10 +580,10 @@ export default function Home() {
                   items: [
                     "Full access to the one course you select, for 3 months",
                     "All lessons of that course: videos, written guides and worksheets",
-                    "Downloadable support materials for that course",
+                    "Master Guides for that course",
                     "Quiz and completion certificate in your name",
                     "Your own member account with progress tracking",
-                    "Does not include the community, live workshops, events, magazine or deals",
+                    "Does not include the community, Expert Masterclasses, events, The Reading Room, or Exclusive Deals",
                     "You can upgrade to a membership at any time",
                   ],
                 },
