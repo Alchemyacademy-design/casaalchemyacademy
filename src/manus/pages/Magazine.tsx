@@ -145,11 +145,12 @@ export default function Magazine() {
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
                         <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
-                          <div
-                            className="relative h-[390px] overflow-hidden bg-[var(--aa-olive-dark)]"
-                            style={{ backgroundImage: cover ? `url('${cover}')` : "none", backgroundSize: "cover", backgroundPosition: "center" }}
-                          >
-                            <div className="absolute inset-0 bg-black/15" />
+                          <div className="flex h-[390px] items-center justify-center bg-[var(--aa-cream-dark)]/35 p-6">
+                            {cover ? (
+                              <img src={cover} alt={issue.title} loading="lazy" className="max-h-[340px] w-full max-w-xs object-contain" />
+                            ) : (
+                              <div className="aspect-[3/4] w-full max-w-xs bg-[var(--aa-olive-dark)]" />
+                            )}
                           </div>
                           <div className="flex-1 p-6">
                             {issue.published_on && <p className="section-label mb-2">{fmtDate(issue.published_on)}</p>}
