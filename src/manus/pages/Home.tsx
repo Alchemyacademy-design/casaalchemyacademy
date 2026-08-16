@@ -340,28 +340,32 @@ export default function Home() {
             >
               <div className="absolute inset-0 bg-black/60" />
               <div className="relative z-10">
-                <h3 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>Membership Perks</h3>
+                <h3 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>EXCLUSIVE DEALS</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
                   <ul className="space-y-3">
                     {[
-                      "Access to all courses available",
-                      "The A Tribe - Community Forum",
-                      "Expert Masterclasses",
-                    ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
-                        <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
-                      </li>
+                      "\n",
+                      "",
+                      "\n",
+                    ].map((perk, i) => (
+                      perk !== "" ? (
+                        <li key={i} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                          {perk !== "\n" && <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span>} {perk}
+                        </li>
+                      ) : null
                     ))}
                   </ul>
                   <ul className="space-y-3">
                     {[
-                      "Events",
-                      "Exclusive Deals",
-                      "Access to The Reading Room and suppliers directory",
-                    ].map((perk) => (
-                      <li key={perk} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
-                        <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span> {perk}
-                      </li>
+                      "\n",
+                      "",
+                      "",
+                    ].map((perk, i) => (
+                      perk !== "" ? (
+                        <li key={i} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
+                          {perk !== "\n" && <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span>} {perk}
+                        </li>
+                      ) : null
                     ))}
                   </ul>
                 </div>
@@ -372,7 +376,7 @@ export default function Home() {
                   onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
                   style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.65rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none", border: 0 }}
                 >
-                  Watch a Free Lesson
+                  {"\n"}
                 </button>
               </div>
             </div>
