@@ -257,14 +257,15 @@ export function useHomeCourses({ includeDrafts }: { includeDrafts: boolean } = {
   return useQuery({
     queryKey: ["public", "courses", "home", includeDrafts ? "with-drafts" : "published"],
     queryFn: async (): Promise<HomeCourse[]> => {
-      // Public catalogue: SECURITY DEFINER RPC so signed-out visitors always
-      // see the real, published courses (RLS on `courses` is auth-only).
-      const { data, error } = await supabase.rpc("get_public_course_catalog");
+      // Public catalogue teasers: SECURITY DEFINER RPC so signed-out visitors
+      // see every non-archived course — published ones plus upcoming ones,
+      // which the landing page renders locked with a "Coming soon" label.
+      const { data, error } = await supabase.rpc("get_public_course_teasers" as never);
       if (error) throw error;
-      const published: HomeCourse[] = ((data ?? []) as Record<string, unknown>[]).map((r) => ({
+      const catalog: HomeCourse[] = ((data ?? []) as Record<string, unknown>[]).map((r) => ({
         id: Number(r.id),
         title: String(r.title ?? "Untitled"),
-        status: "published",
+        status: String(r.status ?? "published"),
         sort_order: (r.sort_order as number | null) ?? null,
         subtitle: (r.subtitle as string | null) ?? null,
         short_description: (r.short_description as string | null) ?? null,
@@ -273,27 +274,7 @@ export function useHomeCourses({ includeDrafts }: { includeDrafts: boolean } = {
         banner_url: (r.banner_url as string | null) ?? null,
         lesson_count: Number(r.lesson_count ?? 0),
       }));
-      if (!includeDrafts) return published;
-
-      // Admins additionally preview drafts straight from the table (RLS grants
-      // them read access); published rows still come from the RPC.
-      const { data: rows, error: draftError } = await supabase
-        .from("courses")
-        .select("*, course_modules(id, status, archived_at, lessons(id, status, archived_at))")
-        .is("archived_at", null)
-        .neq("status", "published")
-        .order("sort_order", { ascending: true });
-      if (draftError) return published;
-      type NestedModule = { archived_at?: string | null; lessons?: { archived_at?: string | null }[] | null };
-      const drafts: HomeCourse[] = ((rows ?? []) as unknown as (CourseRow & { course_modules?: NestedModule[] | null })[]).map((row) => {
-        let lessons = 0;
-        for (const m of row.course_modules ?? []) {
-          if (m.archived_at) continue;
-          for (const l of m.lessons ?? []) if (!l.archived_at) lessons += 1;
-        }
-        return { ...(row as CourseRow), status: String(row.status), lesson_count: lessons } as HomeCourse;
-      });
-      return [...published, ...drafts].sort(
+      return catalog.sort(
         (a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999) || a.id - b.id,
       );
     },
