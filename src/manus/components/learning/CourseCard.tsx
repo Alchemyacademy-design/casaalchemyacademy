@@ -80,7 +80,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
             <div className="flex flex-wrap justify-end gap-1.5">
               {adminPreview ? <StatusPill tone="warning">Admin Preview</StatusPill> : null}
               {!published ? <StatusPill tone="warning">Draft</StatusPill> : null}
-              {comingSoon ? <StatusPill>Coming Soon</StatusPill> : null}
+              {comingSoon && !isLanding ? <StatusPill>Coming Soon</StatusPill> : null}
               {locked || comingSoon ? (
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/25 backdrop-blur" aria-label="Locked">
                   <Lock className="h-4 w-4" />
@@ -96,7 +96,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
             {isLanding
               ? comingSoon
-                ? "Coming soon"
+                ? ""
                 : "Course preview"
               : locked
               ? "Membership access"
@@ -122,7 +122,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               {!isLanding && typeof lessonCount === "number"
                 ? `${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`
                 : isLanding
-                ? "Included in membership"
+                ? "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
                 : "Course details"}
             </div>
           )}
@@ -130,9 +130,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {isLanding
-                ? comingSoon
-                  ? "Coming soon"
-                  : "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
+                ? ""
                 : comingSoon
                 ? "Coming soon"
                 : locked
