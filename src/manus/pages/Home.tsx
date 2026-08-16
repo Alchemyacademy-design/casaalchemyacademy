@@ -315,8 +315,8 @@ export default function Home() {
                 // While Stripe is deferred (pré-lançamento), every course
                 // that is not explicitly available shows Coming Soon and
                 // never opens a financial checkout flow.
-                comingSoon: !!mod.isDraft,
-                locked: !!mod.isDraft,
+                comingSoon: mod.isDraft ?? !mod.available,
+                locked: mod.isDraft ?? !mod.available,
                 href: mod.available ? mod.href : undefined,
               };
               return <CourseCard key={mod.id} course={card} variant="landing" />;
