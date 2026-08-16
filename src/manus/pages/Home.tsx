@@ -323,7 +323,37 @@ export default function Home() {
               return <CourseCard key={mod.id} course={card} variant="landing" />;
             })}
 
-
+            {/* Free Lesson Teaser Card */}
+            <div className="col-span-1 flex min-h-[310px] flex-col overflow-hidden rounded-none border border-border/70 transition duration-300 hover:-translate-y-1 hover:shadow-editorial">
+              <div className="relative min-h-[170px] overflow-hidden">
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${freeLessonBanner.url})` }}
+                  aria-hidden="true"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" aria-hidden="true" />
+              </div>
+              <div className="flex flex-1 flex-col p-5 sm:p-6" style={{ backgroundColor: "var(--aa-olive-dark)" }}>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: "var(--aa-gold)" }}>
+                  NOT SURE YET?
+                </p>
+                <h3 className="font-serif text-[1.7rem] leading-[1.03] mt-2" style={{ color: "var(--aa-cream)" }}>
+                  Your First Class, Free
+                </h3>
+                <p className="mt-3 text-sm leading-6" style={{ color: "rgba(245,240,232,0.7)" }}>
+                  Members get every course, always. Try one first — on us, no strings attached.
+                </p>
+                <div className="mt-auto pt-6 border-t border-white/10">
+                  <a
+                    href="#free-lesson-cta"
+                    className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:opacity-80"
+                    style={{ color: "var(--aa-gold)" }}
+                  >
+                    Watch for Free →
+                  </a>
+                </div>
+              </div>
+            </div>
 
             {/* Membership Perks Card */}
             <div
