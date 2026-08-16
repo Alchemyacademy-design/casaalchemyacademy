@@ -96,7 +96,7 @@ const TESTIMONIALS = [
 ];
 
 export default function Home() {
-  const { user, isAuthenticated, isAdmin } = useAuth();
+  const { user, isAuthenticated, isAdmin, isMember } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
     // Signed-in visitors bypass the marketing landing page.
@@ -105,6 +105,7 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const [showMemberNotice, setShowMemberNotice] = useState(false);
   // Admins see drafts on the real Home (behind an Admin Preview badge); the
   // hook still filters archived rows and RLS remains the authority.
   const coursesQuery = useHomeCourses({ includeDrafts: isAdmin });
