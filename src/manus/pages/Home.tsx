@@ -811,6 +811,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ── Ready to Design CTA ── */}
+      <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
+        <div className="container">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="font-serif text-3xl md:text-4xl mb-4" style={{ color: "var(--aa-cream)", fontWeight: 300 }}>
+              Ready to design with purpose?
+            </h2>
+            <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+              Join the Academy and start transforming your home with confidence.
+            </p>
+            <a href="#offers" className="btn-cream w-full sm:w-auto justify-center">
+              See our plans
+            </a>
+          </div>
+        </div>
+      </section>
+
       {!isAuthenticated && (
         <section id="free-lesson-cta" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "clamp(3rem, 8vw, 5rem) 0" }}>
           <div className="container">
