@@ -122,7 +122,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               {!isLanding && typeof lessonCount === "number"
                 ? `${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`
                 : isLanding
-                ? "Included in membership"
+                ? "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
                 : "Course details"}
             </div>
           )}
@@ -130,9 +130,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
               {isLanding
-                ? comingSoon
-                  ? "Coming soon"
-                  : "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
+                ? ""
                 : comingSoon
                 ? "Coming soon"
                 : locked
