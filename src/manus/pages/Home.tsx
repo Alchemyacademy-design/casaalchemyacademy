@@ -351,11 +351,13 @@ export default function Home() {
                       title: "Casa Consult for Alchemy Academy Annual Members",
                       price: "AUD $295",
                       href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
+                      memberOnly: true,
                     },
                     {
                       title: "Casa Consult for non-members of Alchemy Academy",
                       price: "AUD $395",
                       href: "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
+                      memberOnly: false,
                     },
                   ].map((deal) => (
                     <div
@@ -394,15 +396,53 @@ export default function Home() {
                           </li>
                         ))}
                       </ul>
-                      <a
-                        href={deal.href}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-auto"
-                        style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}
-                      >
-                        Book a Casa Consult →
-                      </a>
+                      {deal.memberOnly ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!isAuthenticated) {
+                                navigate(getLoginUrl());
+                              } else if (!isMember) {
+                                setShowMemberNotice(true);
+                              } else {
+                                window.open(deal.href, "_blank", "noopener,noreferrer");
+                              }
+                            }}
+                            className="mt-auto"
+                            style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none", border: "none", cursor: "pointer" }}
+                          >
+                            Book a Casa Consult →
+                          </button>
+                          {showMemberNotice && (
+                            <div className="mt-3 text-xs flex items-start gap-2" style={{ color: "var(--aa-olive-dark)" }}>
+                              <span>This rate is exclusive to active Alchemy Academy members.</span>
+                              <Link to="/plans" className="underline whitespace-nowrap" style={{ color: "var(--aa-gold)" }}>
+                                View plans
+                              </Link>
+                              <button
+                                type="button"
+                                onClick={() => setShowMemberNotice(false)}
+                                className="ml-auto"
+                                style={{ color: "var(--aa-text-mid)", lineHeight: 1 }}
+                                aria-label="Dismiss notice"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <a
+                          href={deal.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-auto"
+                          style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}
+                        >
+                          Book a Casa Consult →
+                        </a>
+                      )}
                     </div>
                   ))}
                 </div>
