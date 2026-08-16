@@ -350,8 +350,8 @@ export default function Home() {
                     },
                     {
                       title: "Casa Consult for non-members of Alchemy Academy",
-                      price: "AUD $295",
-                      href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
+                      price: "AUD $395",
+                      href: "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
                     },
                   ].map((deal) => (
                     <div
