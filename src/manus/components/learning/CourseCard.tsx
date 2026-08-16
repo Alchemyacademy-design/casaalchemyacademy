@@ -132,7 +132,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               {isLanding
                 ? comingSoon
                   ? "Coming soon"
-                  : "Available with subscription"
+                  : "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
                 : comingSoon
                 ? "Coming soon"
                 : locked
