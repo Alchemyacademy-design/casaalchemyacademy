@@ -339,45 +339,69 @@ export default function Home() {
               }}
             >
               <div className="absolute inset-0 bg-black/60" />
-              <div className="relative z-10">
-                <h3 className="font-serif text-2xl mb-6" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>EXCLUSIVE DEALS</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-2xl mx-auto">
-                  <ul className="space-y-3">
-                    {[
-                      "\n",
-                      "",
-                      "\n",
-                    ].map((perk, i) => (
-                      perk !== "" ? (
-                        <li key={i} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
-                          {perk !== "\n" && <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span>} {perk}
-                        </li>
-                      ) : null
-                    ))}
-                  </ul>
-                  <ul className="space-y-3">
-                    {[
-                      "\n",
-                      "",
-                      "",
-                    ].map((perk, i) => (
-                      perk !== "" ? (
-                        <li key={i} className="flex items-start gap-2" style={{ color: "var(--aa-cream)", fontFamily: "'Manrope', sans-serif", fontSize: "0.95rem", fontWeight: 300 }}>
-                          {perk !== "\n" && <span style={{ color: "var(--aa-gold)", flexShrink: 0, marginTop: "2px" }}>✓</span>} {perk}
-                        </li>
-                      ) : null
-                    ))}
-                  </ul>
+              <div className="relative z-10 w-full">
+                <h3 className="font-serif text-2xl mb-8" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>EXCLUSIVE DEALS</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
+                  {[
+                    {
+                      title: "Casa Consult for Alchemy Academy Annual Members",
+                      price: "AUD $295",
+                      href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
+                    },
+                    {
+                      title: "Casa Consult for non-members of Alchemy Academy",
+                      price: "AUD $395",
+                      href: "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
+                    },
+                  ].map((deal) => (
+                    <div
+                      key={deal.title}
+                      style={{
+                        backgroundColor: "var(--aa-cream)",
+                        border: "1px solid var(--aa-cream-dark)",
+                        padding: "1.75rem",
+                        display: "flex",
+                        flexDirection: "column",
+                        textAlign: "left",
+                      }}
+                    >
+                      <p className="section-label mb-3" style={{ color: "var(--aa-gold)" }}>Book in your first hour here</p>
+                      <h4 className="font-serif text-2xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 400, lineHeight: 1.25 }}>
+                        {deal.title}
+                      </h4>
+                      <div style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.25rem", marginBottom: "1.25rem" }}>
+                        <p className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.25rem", fontWeight: 300, lineHeight: 1.1 }}>
+                          {deal.price}{" "}
+                          <span style={{ fontSize: "0.8rem", letterSpacing: "0.08em", color: "var(--aa-text-mid)" }}>+ GST</span>
+                        </p>
+                        <p style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontSize: "0.8rem", marginTop: "0.35rem" }}>
+                          Per 1-Hour Session
+                        </p>
+                      </div>
+                      <ul className="space-y-2 mb-6" style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.25rem" }}>
+                        {[
+                          "One-on-one video call with Lorena Couto (or site visit if within the area)",
+                          "Project Review",
+                          "Advice on colours, finishes, fixtures and fittings",
+                          "Product sourcing and purchasing list",
+                        ].map((item) => (
+                          <li key={item} style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontSize: "0.9rem", fontWeight: 300 }}>
+                            - {item}
+                          </li>
+                        ))}
+                      </ul>
+                      <a
+                        href={deal.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-auto"
+                        style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}
+                      >
+                        Book a Casa Consult →
+                      </a>
+                    </div>
+                  ))}
                 </div>
-              </div>
-              <div className="relative z-10 mt-4">
-                <button
-                  type="button"
-                  onClick={() => window.dispatchEvent(new Event("open-lead-magnet"))}
-                  style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", cursor: "pointer", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.65rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.05em", textDecoration: "none", border: 0 }}
-                >
-                  {"\n"}
-                </button>
               </div>
             </div>
           </div>
