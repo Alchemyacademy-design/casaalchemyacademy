@@ -2998,6 +2998,21 @@ export type Database = {
           title: string
         }[]
       }
+      get_public_course_teasers: {
+        Args: never
+        Returns: {
+          banner_url: string
+          cover_image_path: string
+          description: string
+          id: number
+          lesson_count: number
+          short_description: string
+          sort_order: number
+          status: string
+          subtitle: string
+          title: string
+        }[]
+      }
       get_public_profiles: {
         Args: { _ids: string[] }
         Returns: {

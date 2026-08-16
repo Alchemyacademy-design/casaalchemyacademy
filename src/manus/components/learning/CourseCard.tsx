@@ -81,7 +81,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               {adminPreview ? <StatusPill tone="warning">Admin Preview</StatusPill> : null}
               {!published ? <StatusPill tone="warning">Draft</StatusPill> : null}
               {comingSoon ? <StatusPill>Coming Soon</StatusPill> : null}
-              {locked && !comingSoon ? (
+              {locked || comingSoon ? (
                 <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/25 bg-black/25 backdrop-blur" aria-label="Locked">
                   <Lock className="h-4 w-4" />
                 </span>

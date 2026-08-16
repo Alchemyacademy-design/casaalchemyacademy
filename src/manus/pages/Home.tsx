@@ -308,12 +308,15 @@ export default function Home() {
                 number: mod.number ?? idx + 1,
                 thumbnail: mod.thumbnail,
                 lessonCount: mod.lessonCount,
-                published: !mod.isDraft,
+                // Visitors never see a "Draft" pill — upcoming courses simply
+                // show the lock + "Coming soon" treatment.
+                published: isAdmin ? !mod.isDraft : true,
                 adminPreview: !!mod.isAdminPreview,
                 // While Stripe is deferred (pré-lançamento), every course
                 // that is not explicitly available shows Coming Soon and
                 // never opens a financial checkout flow.
-                comingSoon: !mod.available,
+                comingSoon: mod.isDraft ?? !mod.available,
+                locked: mod.isDraft ?? !mod.available,
                 href: mod.available ? mod.href : undefined,
               };
               return <CourseCard key={mod.id} course={card} variant="landing" />;
