@@ -96,7 +96,7 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
           <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/70">
             {isLanding
               ? comingSoon
-                ? "Coming soon"
+                ? ""
                 : "Course preview"
               : locked
               ? "Membership access"
