@@ -18,8 +18,9 @@ import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
-  phone: z.string().trim().min(4).max(40),
-  source: z.enum(["popup", "quiz", "live_workshop"]),
+  phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
+    .transform((v) => (v && v.trim().length >= 4 ? v : null)),
+  source: z.enum(["popup", "quiz", "live_workshop", "contact"]),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
   website: z.string().max(0).optional().or(z.literal("")),
