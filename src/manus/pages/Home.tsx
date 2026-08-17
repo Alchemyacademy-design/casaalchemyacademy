@@ -589,8 +589,8 @@ export default function Home() {
               .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
               .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; display: flex; flex-direction: column; }
               .plan-detail-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -18px rgba(145,69,33,0.55); }
-              .plan-detail-card.is-best { border-top-width: 5px; box-shadow: 0 14px 34px -16px rgba(145,69,33,0.6); transform: scale(1.02); }
-              .plan-detail-card.is-best:hover { transform: scale(1.02) translateY(-5px); }
+              .plan-detail-card.is-best { border-top-width: 5px; box-shadow: 0 14px 34px -16px rgba(145,69,33,0.6); }
+              .plan-detail-card.is-best:hover { transform: translateY(-5px); }
               .plan-detail-name { font-family: 'Manrope', sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aa-gold); margin-bottom: 0.5rem; }
               .plan-detail-price { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--aa-olive-dark); margin-bottom: 0.75rem; }
               .plan-detail-intro { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.6; margin-bottom: 1rem; }
@@ -617,7 +617,7 @@ export default function Home() {
                 table.pricing-table th, table.pricing-table td { padding: .85rem .7rem !important; font-size: .76rem; }
                 .currency-note { order: 4; margin-top: 1rem; }
                 .plan-detail-card { padding: 1.5rem; border-radius: 14px; position: relative; }
-                .plan-detail-card.is-best { transform: scale(1.01); }
+                .plan-detail-card.is-best { }
                 .plan-detail-price { font-size: 1rem; }
                 .plan-card-price .amt { font-size: 2.4rem; }
                 .plan-detail-cta .cta-btn { min-height: 54px; font-size: 0.82rem; }
@@ -851,7 +851,7 @@ export default function Home() {
             </div>
             <div className="flex gap-8 justify-center text-center mt-8">
               <div>
-                <p className="font-serif text-5xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>5</p>
+                <p className="font-serif" style={{ color: "var(--aa-gold)", fontWeight: 300, fontSize: "2.7rem" }}>5</p>
                 <p style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Industry Awards</p>
               </div>
               <div>
