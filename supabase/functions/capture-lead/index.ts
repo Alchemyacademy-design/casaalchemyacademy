@@ -65,6 +65,7 @@ const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 type LeadSource = "popup" | "quiz" | "live_workshop" | "contact";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
+  if (source === "contact") return "Contact Form";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
