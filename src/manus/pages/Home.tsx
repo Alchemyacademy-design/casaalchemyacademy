@@ -476,6 +476,9 @@ export default function Home() {
                     </div>
                   ))}
                 </div>
+                <p style={{ textAlign: "center", color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", letterSpacing: "0.04em", marginTop: "1.25rem", opacity: 0.85 }}>
+                  *More exclusive deals inside the Academy
+                </p>
               </div>
             </div>
           </div>
