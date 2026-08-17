@@ -411,6 +411,73 @@ async function sendWorkshopConfirmationEmail(input: {
   return deliverEmail({ to: input.to, subject, html, plaintext });
 }
 
+const CONTACT_INBOX = "contact@casaalchemystudio.com";
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/**
+ * Contact form: acknowledgment to the submitter + internal notification to the
+ * studio inbox. Returns the provider used for the submitter acknowledgment.
+ */
+async function sendContactEmails(input: {
+  to: string;
+  name: string;
+  message: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const firstName = input.name.trim().split(/\s+/)[0] ?? "";
+  const safeName = escapeHtml(input.name);
+  const safeEmail = escapeHtml(input.to);
+  const safeMessage = escapeHtml(input.message || "(no message provided)").replace(/\n/g, "<br/>");
+
+  const ackHtml = `
+    <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">We've received your message.</h1>
+      <p style="font-size:15px;line-height:1.6;">Thanks for reaching out, ${escapeHtml(firstName)}. We've received your message. Lorena reviews these personally and will be in touch soon.</p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
+    </div>`;
+  const ackText = `We've received your message.\n\nThanks for reaching out, ${firstName}. We've received your message. Lorena reviews these personally and will be in touch soon.\n\nCasa Alchemy Studio`;
+
+  const ackProvider = await deliverEmail({
+    to: input.to,
+    subject: "We've received your message, Alchemy Academy",
+    html: ackHtml,
+    plaintext: ackText,
+  });
+
+  const internalHtml = `
+    <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:26px;margin:0 0 16px;">New contact form message</h1>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 6px;"><strong>Name:</strong> ${safeName}</p>
+      <p style="font-size:15px;line-height:1.6;margin:0 0 6px;"><strong>Email:</strong> <a href="mailto:${safeEmail}">${safeEmail}</a></p>
+      <p style="font-size:15px;line-height:1.6;margin:16px 0 6px;"><strong>Message:</strong></p>
+      <div style="font-size:15px;line-height:1.6;background:#faf8f4;border:1px solid #eee;border-radius:6px;padding:16px;">${safeMessage}</div>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <p style="font-size:13px;color:#888;">Casa Alchemy Academy · automated notification.</p>
+    </div>`;
+  const internalText = `New contact form message\n\nName: ${input.name}\nEmail: ${input.to}\n\nMessage:\n${input.message || "(no message provided)"}`;
+
+  try {
+    const internalProvider = await deliverEmail({
+      to: CONTACT_INBOX,
+      subject: `New Academy contact form message from ${input.name}`,
+      html: internalHtml,
+      plaintext: internalText,
+    });
+    console.info(`contact internal notification provider: ${internalProvider}`);
+  } catch (e) {
+    console.error("contact internal notification error:", e);
+  }
+
+  return ackProvider;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
