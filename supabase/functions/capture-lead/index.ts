@@ -179,7 +179,7 @@ async function submitHubspotForm(input: {
   email: string;
   firstname: string;
   lastname: string;
-  phone: string;
+  phone: string | null;
   source: LeadSource;
   placement?: string;
   workshopTitle?: string | null;
