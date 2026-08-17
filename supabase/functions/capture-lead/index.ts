@@ -632,9 +632,11 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
-      redirect: source === "live_workshop" && workshop
-        ? `/ask-the-expert/${workshop.slug}`
-        : "/free-lesson",
+      redirect: source === "contact"
+        ? "/"
+        : source === "live_workshop" && workshop
+          ? `/ask-the-expert/${workshop.slug}`
+          : "/free-lesson",
       leadId: leadRow.id,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
