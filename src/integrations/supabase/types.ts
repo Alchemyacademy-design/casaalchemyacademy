@@ -1113,7 +1113,7 @@ export type Database = {
           ip_hash: string | null
           metadata: Json
           name: string
-          phone: string
+          phone: string | null
           source: Database["public"]["Enums"]["lead_source"]
           updated_at: string
           user_agent: string | null
@@ -1128,7 +1128,7 @@ export type Database = {
           ip_hash?: string | null
           metadata?: Json
           name: string
-          phone: string
+          phone?: string | null
           source: Database["public"]["Enums"]["lead_source"]
           updated_at?: string
           user_agent?: string | null
@@ -1143,7 +1143,7 @@ export type Database = {
           ip_hash?: string | null
           metadata?: Json
           name?: string
-          phone?: string
+          phone?: string | null
           source?: Database["public"]["Enums"]["lead_source"]
           updated_at?: string
           user_agent?: string | null
