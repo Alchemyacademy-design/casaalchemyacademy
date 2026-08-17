@@ -506,7 +506,7 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const { name, email, phone, source, metadata, website } = parsed.data;
+  const { name, email, phone, source, metadata, website, message } = parsed.data;
   if (website && website.length > 0) {
     // Silently accept honeypot hits but do nothing else.
     return new Response(JSON.stringify({ ok: true, redirect: "/free-lesson" }), {
@@ -668,12 +668,17 @@ Deno.serve(async (req) => {
     })
     .eq("id", leadRow.id);
 
-  // Confirmation email (also non-blocking). Contact form submissions do not
-  // receive the free-lesson sequence.
-  let emailProvider: "gmail" | "resend" | "failed" | "skipped" = source === "contact" ? "skipped" : "failed";
+  // Confirmation email (also non-blocking). Contact form submissions get an
+  // acknowledgment plus an internal notification instead of the free-lesson
+  // sequence.
+  let emailProvider: "gmail" | "resend" | "failed" | "skipped" = "failed";
   try {
     if (source === "contact") {
-      // no automated follow-up email for raw contact messages
+      emailProvider = await sendContactEmails({
+        to: email,
+        name,
+        message: message ?? String((metadata as Record<string, unknown> | undefined)?.message ?? ""),
+      });
     } else if (source === "live_workshop" && workshop) {
       emailProvider = await sendWorkshopConfirmationEmail({
         to: email,
