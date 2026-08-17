@@ -21,6 +21,7 @@ const BodySchema = z.object({
   phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
     .transform((v) => (v && v.trim().length >= 4 ? v : null)),
   source: z.enum(["popup", "quiz", "live_workshop", "contact"]),
+  message: z.string().trim().max(5000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
   website: z.string().max(0).optional().or(z.literal("")),
