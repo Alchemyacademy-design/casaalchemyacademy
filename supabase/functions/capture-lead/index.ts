@@ -600,10 +600,13 @@ Deno.serve(async (req) => {
     })
     .eq("id", leadRow.id);
 
-  // Confirmation email (also non-blocking).
-  let emailProvider: "gmail" | "resend" | "failed" = "failed";
+  // Confirmation email (also non-blocking). Contact form submissions do not
+  // receive the free-lesson sequence.
+  let emailProvider: "gmail" | "resend" | "failed" | "skipped" = source === "contact" ? "skipped" : "failed";
   try {
-    if (source === "live_workshop" && workshop) {
+    if (source === "contact") {
+      // no automated follow-up email for raw contact messages
+    } else if (source === "live_workshop" && workshop) {
       emailProvider = await sendWorkshopConfirmationEmail({
         to: email,
         name,
