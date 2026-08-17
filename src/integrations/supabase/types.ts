@@ -3315,7 +3315,7 @@ export type Database = {
         | "manual"
         | "per_cohort"
       course_visibility: "public" | "unlisted" | "private"
-      lead_source: "popup" | "quiz" | "live_workshop"
+      lead_source: "popup" | "quiz" | "live_workshop" | "contact"
       lesson_kind:
         | "video"
         | "text"
@@ -3525,7 +3525,7 @@ export const Constants = {
         "per_cohort",
       ],
       course_visibility: ["public", "unlisted", "private"],
-      lead_source: ["popup", "quiz", "live_workshop"],
+      lead_source: ["popup", "quiz", "live_workshop", "contact"],
       lesson_kind: [
         "video",
         "text",
