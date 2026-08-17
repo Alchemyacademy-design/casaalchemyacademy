@@ -110,6 +110,47 @@ export default function Home() {
   const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
   const [contactError, setContactError] = useState<string | null>(null);
   const [showMemberNotice, setShowMemberNotice] = useState(false);
+
+  const submitContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setContactSubmitting(true);
+    setContactStatus("idle");
+    setContactError(null);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/capture-lead`;
+      const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${key}`,
+        },
+        body: JSON.stringify({
+          name: contactForm.name,
+          email: contactForm.email,
+          message: contactForm.message,
+          source: "contact",
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || `Request failed (${res.status})`);
+      }
+      setContactStatus("success");
+      toast.success("Message sent — we'll be in touch soon.");
+      window.setTimeout(() => {
+        setContactModal(false);
+        setContactForm({ name: "", email: "", message: "" });
+        setContactStatus("idle");
+      }, 2000);
+    } catch (err) {
+      setContactStatus("error");
+      setContactError((err as Error).message || "Something went wrong. Please try again.");
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setContactSubmitting(false);
+    }
+  };
   // Admins see drafts on the real Home (behind an Admin Preview badge); the
   // hook still filters archived rows and RLS remains the authority.
   const coursesQuery = useHomeCourses({ includeDrafts: isAdmin });
