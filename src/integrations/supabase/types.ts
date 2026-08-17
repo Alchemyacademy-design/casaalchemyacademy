@@ -2720,6 +2720,72 @@ export type Database = {
         }
         Relationships: []
       }
+      studio_lead_rate_limits: {
+        Row: {
+          attempt_count: number
+          ip_hash: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          attempt_count?: number
+          ip_hash: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          attempt_count?: number
+          ip_hash?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      studio_leads: {
+        Row: {
+          created_at: string
+          email: string
+          hubspot_contact_id: string | null
+          hubspot_error: string | null
+          hubspot_synced_at: string | null
+          id: number
+          ip_hash: string | null
+          message: string | null
+          name: string
+          phone: string | null
+          source: Database["public"]["Enums"]["studio_lead_source"]
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          hubspot_contact_id?: string | null
+          hubspot_error?: string | null
+          hubspot_synced_at?: string | null
+          id?: never
+          ip_hash?: string | null
+          message?: string | null
+          name: string
+          phone?: string | null
+          source: Database["public"]["Enums"]["studio_lead_source"]
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          hubspot_contact_id?: string | null
+          hubspot_error?: string | null
+          hubspot_synced_at?: string | null
+          id?: never
+          ip_hash?: string | null
+          message?: string | null
+          name?: string
+          phone?: string | null
+          source?: Database["public"]["Enums"]["studio_lead_source"]
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       supplier_categories: {
         Row: {
           created_at: string
@@ -3295,6 +3361,11 @@ export type Database = {
         | "auth_provider_config"
         | "frontend_env_public"
         | "external_provider_dashboard"
+      studio_lead_source:
+        | "contact"
+        | "magazine"
+        | "casa_completa"
+        | "shop_inquiry"
       target_kind: "event" | "live_workshop"
     }
     CompositeTypes: {
@@ -3505,6 +3576,12 @@ export const Constants = {
         "auth_provider_config",
         "frontend_env_public",
         "external_provider_dashboard",
+      ],
+      studio_lead_source: [
+        "contact",
+        "magazine",
+        "casa_completa",
+        "shop_inquiry",
       ],
       target_kind: ["event", "live_workshop"],
     },
