@@ -121,20 +121,20 @@ async function upsertHubspotContact(input: {
   email: string;
   firstname: string;
   lastname: string;
-  phone: string;
+  phone: string | null;
   source: LeadSource;
   placement?: string;
   workshopTitle?: string | null;
 }): Promise<{ id: string | null; error: string | null }> {
   if (!HUBSPOT_TOKEN) return { id: null, error: "HUBSPOT_PRIVATE_APP_TOKEN not configured" };
 
-  const properties = {
+  const properties: Record<string, string> = {
     email: input.email,
     firstname: input.firstname,
     lastname: input.lastname,
-    phone: input.phone,
     lead_source: labelForLead(input.source, input.placement, input.workshopTitle),
   };
+  if (input.phone) properties.phone = input.phone;
 
   // Try PATCH by email idProperty first. If contact does not exist, POST.
   const patch = await fetch(
