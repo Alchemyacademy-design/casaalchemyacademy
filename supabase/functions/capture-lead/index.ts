@@ -18,8 +18,9 @@ import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
-  phone: z.string().trim().min(4).max(40),
-  source: z.enum(["popup", "quiz", "live_workshop"]),
+  phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
+    .transform((v) => (v && v.trim().length >= 4 ? v : null)),
+  source: z.enum(["popup", "quiz", "live_workshop", "contact"]),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
   website: z.string().max(0).optional().or(z.literal("")),
@@ -61,9 +62,10 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-type LeadSource = "popup" | "quiz" | "live_workshop";
+type LeadSource = "popup" | "quiz" | "live_workshop" | "contact";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
+  if (source === "contact") return "Contact Form";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
@@ -119,20 +121,20 @@ async function upsertHubspotContact(input: {
   email: string;
   firstname: string;
   lastname: string;
-  phone: string;
+  phone: string | null;
   source: LeadSource;
   placement?: string;
   workshopTitle?: string | null;
 }): Promise<{ id: string | null; error: string | null }> {
   if (!HUBSPOT_TOKEN) return { id: null, error: "HUBSPOT_PRIVATE_APP_TOKEN not configured" };
 
-  const properties = {
+  const properties: Record<string, string> = {
     email: input.email,
     firstname: input.firstname,
     lastname: input.lastname,
-    phone: input.phone,
     lead_source: labelForLead(input.source, input.placement, input.workshopTitle),
   };
+  if (input.phone) properties.phone = input.phone;
 
   // Try PATCH by email idProperty first. If contact does not exist, POST.
   const patch = await fetch(
@@ -177,7 +179,7 @@ async function submitHubspotForm(input: {
   email: string;
   firstname: string;
   lastname: string;
-  phone: string;
+  phone: string | null;
   source: LeadSource;
   placement?: string;
   workshopTitle?: string | null;
@@ -598,10 +600,13 @@ Deno.serve(async (req) => {
     })
     .eq("id", leadRow.id);
 
-  // Confirmation email (also non-blocking).
-  let emailProvider: "gmail" | "resend" | "failed" = "failed";
+  // Confirmation email (also non-blocking). Contact form submissions do not
+  // receive the free-lesson sequence.
+  let emailProvider: "gmail" | "resend" | "failed" | "skipped" = source === "contact" ? "skipped" : "failed";
   try {
-    if (source === "live_workshop" && workshop) {
+    if (source === "contact") {
+      // no automated follow-up email for raw contact messages
+    } else if (source === "live_workshop" && workshop) {
       emailProvider = await sendWorkshopConfirmationEmail({
         to: email,
         name,
@@ -627,9 +632,11 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
-      redirect: source === "live_workshop" && workshop
-        ? `/ask-the-expert/${workshop.slug}`
-        : "/free-lesson",
+      redirect: source === "contact"
+        ? "/"
+        : source === "live_workshop" && workshop
+          ? `/ask-the-expert/${workshop.slug}`
+          : "/free-lesson",
       leadId: leadRow.id,
     }),
     { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
