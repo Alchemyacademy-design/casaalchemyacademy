@@ -617,7 +617,7 @@ export default function Home() {
                 table.pricing-table th, table.pricing-table td { padding: .85rem .7rem !important; font-size: .76rem; }
                 .currency-note { order: 4; margin-top: 1rem; }
                 .plan-detail-card { padding: 1.5rem; border-radius: 14px; position: relative; }
-                .plan-detail-card.is-best { transform: scale(1.01); }
+                .plan-detail-card.is-best { }
                 .plan-detail-price { font-size: 1rem; }
                 .plan-card-price .amt { font-size: 2.4rem; }
                 .plan-detail-cta .cta-btn { min-height: 54px; font-size: 0.82rem; }
