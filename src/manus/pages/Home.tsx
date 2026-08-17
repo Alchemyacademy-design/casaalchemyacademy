@@ -1026,39 +1026,37 @@ export default function Home() {
               <h2 className="font-serif text-2xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>Get in Touch</h2>
               <button onClick={() => setContactModal(false)} style={{ background: "none", border: "none", fontSize: "1.5rem", cursor: "pointer", color: "var(--aa-olive-dark)" }}>\u00d7</button>
             </div>
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              // Send email via tRPC or API
-              const emailData = {
-                to: "contact@casaalchemystudio.com",
-                from: contactForm.email,
-                name: contactForm.name,
-                message: contactForm.message,
-              };
-              // Log for now - would be replaced with actual API call
-              console.log("Sending email:", emailData);
-              // Show success message
-              alert("Thank you for your message! We'll get back to you soon.");
-              setContactModal(false);
-              setContactForm({ name: "", email: "", message: "" });
-            }}>
-              <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Name</label>
-                <input type="text" required value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }} />
+            {contactStatus === "success" ? (
+              <div style={{ textAlign: "center", padding: "1rem 0" }}>
+                <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>✓</div>
+                <h3 className="font-serif text-xl" style={{ color: "var(--aa-olive-dark)", marginBottom: "0.5rem" }}>Thank you!</h3>
+                <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Your message has been sent. We'll get back to you soon.</p>
               </div>
-              <div style={{ marginBottom: "1rem" }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Email</label>
-                <input type="email" required value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }} />
-              </div>
-              <div style={{ marginBottom: "1.5rem" }}>
-                <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Message</label>
-                <textarea required value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} rows={4} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", resize: "vertical" }} />
-              </div>
-              <div style={{ display: "flex", gap: "1rem" }}>
-                <button type="submit" style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", padding: "0.75rem 1.5rem", border: "none", borderRadius: "4px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, flex: 1 }}>Send</button>
-                <button type="button" onClick={() => setContactModal(false)} style={{ background: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", padding: "0.75rem 1.5rem", border: "none", borderRadius: "4px", cursor: "pointer", fontFamily: "'DM Sans', sans-serif", fontWeight: 500, flex: 1 }}>Cancel</button>
-              </div>
-            </form>
+            ) : (
+              <form onSubmit={submitContact}>
+                {contactStatus === "error" && contactError && (
+                  <div style={{ marginBottom: "1rem", padding: "0.75rem", borderRadius: "4px", backgroundColor: "rgba(220,38,38,0.08)", color: "rgb(153,27,27)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
+                    {contactError}
+                  </div>
+                )}
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Name</label>
+                  <input type="text" required disabled={contactSubmitting} value={contactForm.name} onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }} />
+                </div>
+                <div style={{ marginBottom: "1rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Email</label>
+                  <input type="email" required disabled={contactSubmitting} value={contactForm.email} onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }} />
+                </div>
+                <div style={{ marginBottom: "1.5rem" }}>
+                  <label style={{ display: "block", marginBottom: "0.5rem", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", fontWeight: 500 }}>Message</label>
+                  <textarea required disabled={contactSubmitting} value={contactForm.message} onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })} rows={4} style={{ width: "100%", padding: "0.75rem", border: "1px solid var(--aa-cream-dark)", borderRadius: "4px", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem", resize: "vertical" }} />
+                </div>
+                <div style={{ display: "flex", gap: "1rem" }}>
+                  <button type="submit" disabled={contactSubmitting} style={{ background: "var(--aa-gold)", color: "var(--aa-olive-dark)", padding: "0.75rem 1.5rem", border: "none", borderRadius: "4px", cursor: contactSubmitting ? "not-allowed" : "pointer", opacity: contactSubmitting ? 0.7 : 1, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, flex: 1 }}>{contactSubmitting ? "Sending..." : "Send"}</button>
+                  <button type="button" disabled={contactSubmitting} onClick={() => setContactModal(false)} style={{ background: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", padding: "0.75rem 1.5rem", border: "none", borderRadius: "4px", cursor: contactSubmitting ? "not-allowed" : "pointer", opacity: contactSubmitting ? 0.7 : 1, fontFamily: "'DM Sans', sans-serif", fontWeight: 500, flex: 1 }}>Cancel</button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}
