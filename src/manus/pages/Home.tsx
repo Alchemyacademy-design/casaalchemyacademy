@@ -106,6 +106,9 @@ export default function Home() {
   const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
+  const [contactError, setContactError] = useState<string | null>(null);
   const [showMemberNotice, setShowMemberNotice] = useState(false);
   // Admins see drafts on the real Home (behind an Admin Preview badge); the
   // hook still filters archived rows and RLS remains the authority.
