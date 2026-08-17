@@ -62,7 +62,7 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-type LeadSource = "popup" | "quiz" | "live_workshop";
+type LeadSource = "popup" | "quiz" | "live_workshop" | "contact";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
   if (source === "live_workshop") {
