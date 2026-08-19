@@ -851,7 +851,7 @@ export default function Home() {
             </div>
             <div className="flex gap-8 justify-center text-center mt-8">
               <div>
-                <p className="font-serif" style={{ color: "var(--aa-gold)", fontWeight: 300, fontSize: "2.7rem" }}>5</p>
+                <p className="font-serif" style={{ color: "var(--aa-gold)", fontWeight: 300, fontSize: "2.7rem", lineHeight: 1 }}>5</p>
                 <p style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Industry Awards</p>
               </div>
               <div>
