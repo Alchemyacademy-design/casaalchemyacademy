@@ -23,25 +23,25 @@ const MODULES = [
     thumbnail: "/img/course-colour.jpg",
   },
   {
-    id: 2, title: "The sacred BEDROOM", tagline: "Create a bedroom that feels intentional, not accidental — learn the overlooked techniques that designers use to bring everything together.",
+    id: 2, title: "The sacred BEDROOM", tagline: "Create a bedroom that feels intentional, not accidental, learn the overlooked techniques that designers use to bring everything together.",
     lessons: ["Bedroom Master Guide", "Bed Master Guide: Hotel Bed Revealed", "Minimalist x Maximalist", "Mixing prints", "Learning to layer", "Understanding fabrics"],
     available: false,
     thumbnail: "/img/course-bedroom.jpg",
   },
   {
-    id: 3, title: "The alchemic KITCHEN", tagline: "The most expensive space to get wrong is your kitchen — discover the intentional design choices that increase value and make everyday life easier.",
+    id: 3, title: "The alchemic KITCHEN", tagline: "The most expensive space to get wrong is your kitchen, discover the intentional design choices that increase value and make everyday life easier.",
     lessons: ["Layout styles", "Do's and Don'ts of an efficient kitchen", "Types of storage", "Style communication", "Ergonomics", "Lighting: task x atmosphere", "Special sinks", "Integrated appliances"],
     available: false,
     thumbnail: "/img/course-kitchen.jpg",
   },
   {
-    id: 4, title: "The elemental BATHROOM", tagline: "When every element is permanent, every decision matters — learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home.",
+    id: 4, title: "The elemental BATHROOM", tagline: "When every element is permanent, every decision matters, learn how to design a bathroom that feels beautiful, functions effortlessly, and adds lasting value to your home.",
     lessons: ["The poetic licence of the powder room", "Shower layouts", "Bathtub guide", "Fixtures", "Spa logic", "Materials you should know about"],
     available: false,
     thumbnail: "/img/course-bathroom.jpg",
   },
   {
-    id: 5, title: "The soulful LIVING ROOM", tagline: "Furniture is the most consequential decision in a living room — and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense.",
+    id: 5, title: "The soulful LIVING ROOM", tagline: "Furniture is the most consequential decision in a living room, and the most misunderstood. Discover how designers approach every element so the whole room finally makes sense.",
     lessons: ["Fireplaces master guide", "Rugs: materials and proportions", "Artwork and other decorative matters", "Lighting: layers and zones", "Open plan living: zoning without walls", "Sofa guide", "Weight, proportion and harmony"],
     available: false,
     thumbnail: "/img/course-living.jpg",
@@ -65,7 +65,7 @@ const MODULES = [
     thumbnail: "/img/course-outdoors.jpg",
   },
   {
-    id: 9, title: "Knowledgeable CHEAT SHEETS", tagline: "See your home the way a designer does — understanding light, proportion, styling and the invisible rules that make a space feel right.",
+    id: 9, title: "Knowledgeable CHEAT SHEETS", tagline: "See your home the way a designer does, understanding light, proportion, styling and the invisible rules that make a space feel right.",
     lessons: ["Biophilic design", "Lighting temperature", "Circadian design", "Visual weight and balance", "Negative space", "Aging with grace", "Clutter and cognitive load", "What's your style?"],
     available: false,
     thumbnail: "/img/course-design.jpg",
@@ -77,14 +77,14 @@ const BENEFITS = [
   { title: "EXPERT MASTERCLASSES", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
   { title: "EVENTS", desc: "Access exclusive events and networking opportunities with Lorena and the community." },
   { title: "EXCLUSIVE DEALS", desc: "Exclusive discounts on furniture and accessories from curated suppliers, plus a unique package deal for private consultations with Lorena C to keep your project moving in the right direction." },
-  { title: "LEARN AT YOUR OWN PACE", desc: "Video lessons, live recordings, and visual aids — learn at your own pace, track your progress. Every course is accessible individually, with full support material included. The design decisions professionals make instinctively — now structured and yours to apply." },
-  { title: "KNOWLEDGE FOR A LIFETIME", desc: "Understand the purpose of your project and be confident in your decisions — whether you want to create a life-long nest or turn the numbers up in your property value." },
+  { title: "LEARN AT YOUR OWN PACE", desc: "Video lessons, live recordings, and visual aids, learn at your own pace, track your progress. Every course is accessible individually, with full support material included. The design decisions professionals make instinctively, now structured and yours to apply." },
+  { title: "KNOWLEDGE FOR A LIFETIME", desc: "Understand the purpose of your project and be confident in your decisions, whether you want to create a life-long nest or turn the numbers up in your property value." },
 ];
 
 const TESTIMONIALS = [
   {
     name: "Maira Murray",
-    quote: "Lorena's guidance has saved me time and money — I was about to buy a sofa that didn't fit my space! She gave me a concept that reflects my taste, is easy to implement, and was within my budget.",
+    quote: "Lorena's guidance has saved me time and money, I was about to buy a sofa that didn't fit my space! She gave me a concept that reflects my taste, is easy to implement, and was within my budget.",
   },
   {
     name: "Cibeli Nunes",
@@ -137,7 +137,7 @@ export default function Home() {
         throw new Error(data?.error || `Request failed (${res.status})`);
       }
       setContactStatus("success");
-      toast.success("Message sent — we'll be in touch soon.");
+      toast.success("Message sent, we'll be in touch soon.");
       window.setTimeout(() => {
         setContactModal(false);
         setContactForm({ name: "", email: "", message: "" });
@@ -386,7 +386,7 @@ export default function Home() {
                   Your First Class, Free
                 </h3>
                 <p className="mt-3 text-sm leading-6" style={{ color: "rgba(245,240,232,0.7)" }}>
-                  Members get every course, always. Try one first — on us, no strings attached.
+                  Members get every course, always. Try one first, on us, no strings attached.
                 </p>
                 <div className="mt-auto pt-6 border-t border-white/10">
                   <a
@@ -630,7 +630,7 @@ export default function Home() {
                 .cta-btn-primary { font-size: 0.84rem; letter-spacing: 0.16em; }
               }
             `}</style>
-            <p className="mobile-table-note">Visual comparison — swipe to see all plans</p>
+            <p className="mobile-table-note">Visual comparison, swipe to see all plans</p>
             <div className="pricing-table-scroll">
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
               <thead>
@@ -650,7 +650,7 @@ export default function Home() {
                   { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
                   { feature: "New content added regularly", annual: "check", monthly: "check", selected: "" },
                   { feature: "The A Tribe Community Forum", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Expert Masterclasses — Live and interactive", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Expert Masterclasses, Live and interactive", annual: "check", monthly: "check", selected: "" },
                   { feature: "Private events", annual: "check", monthly: "", selected: "" },
                   { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
@@ -681,7 +681,7 @@ export default function Home() {
                   save: "Save USD 480",
                   cta: "Subscribe Now",
                   action: () => setSubscribeModal("annual"),
-                  intro: "The complete academy for 12 months — everything we make, plus the parts that are members-only.",
+                  intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
                     "All video lessons, written guides and Master Guides",
@@ -713,7 +713,7 @@ export default function Home() {
                     "Expert Masterclasses",
                     "The Reading Room and the suppliers directory",
                     "Does not include private events or Exclusive Deals",
-                    "Cancel anytime — access runs to the end of the paid month",
+                    "Cancel anytime, access runs to the end of the paid month",
                   ],
                 },
                 {
@@ -832,7 +832,7 @@ export default function Home() {
               With a background in Architecture, Urbanism, and Design Thinking, Lorena has over 20 years of experience in Interior Design. With a passion for history, the arts, nature, and human connection, her ethos centres around designing with purpose and respect.
             </p>
             <p className="mb-5 leading-relaxed" style={{ color: "rgba(245,240,232,0.75)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-              Casa Alchemy is a residential Interior Design Studio and Academy. We specialise in creating connections between people and the spaces they live in — transforming 100+ homes across Australia, New Zealand, USA, Dubai, Germany, Portugal, and Brazil. Winner of 5 industry awards.
+              Casa Alchemy is a residential Interior Design Studio and Academy. We specialise in creating connections between people and the spaces they live in, transforming 100+ homes across Australia, New Zealand, USA, Dubai, Germany, Portugal, and Brazil. Winner of 5 industry awards.
             </p>
             <div className="mb-8">
               <p className="text-xs mb-3" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.12em", textTransform: "uppercase" }}>What we stand for</p>
@@ -841,10 +841,10 @@ export default function Home() {
                   "No to overconsumerism, yes to understanding value",
                   "No to fitting into a style, yes to finding your unique essence",
                   "No to imposing solutions, yes to listening with kindness and offering technical advice",
-                  "No to the idea that good design is a privilege — yes to making the knowledge accessible to everyone.",
+                  "No to the idea that good design is a privilege, yes to making the knowledge accessible to everyone.",
                 ].map((item) => (
                   <li key={item} className="flex items-start gap-2 text-sm" style={{ color: "rgba(245,240,232,0.7)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                    <span style={{ color: "var(--aa-gold)", marginTop: "2px", flexShrink: 0 }}>—</span> {item}
+                    <span style={{ color: "var(--aa-gold)", marginTop: "2px", flexShrink: 0 }}>•</span> {item}
                   </li>
                 ))}
               </ul>
@@ -912,7 +912,7 @@ export default function Home() {
             <div className="max-w-5xl mx-auto mb-8 md:mb-10 overflow-hidden" style={{ border: "1px solid var(--aa-cream-dark)", borderRadius: "8px" }}>
               <img
                 src={freeLessonBanner.url}
-                alt="Free lesson: How to Mix Prints, with Lorena Couto — Casa Alchemy"
+                alt="Free lesson: How to Mix Prints, with Lorena Couto, Casa Alchemy"
                 loading="lazy"
                 className="w-full h-auto block"
               />
@@ -926,7 +926,7 @@ export default function Home() {
                   Get our latest lesson, free.
                 </h2>
                 <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", lineHeight: 1.7, marginBottom: "1rem" }}>
-                  Subscribe and watch <em>How to Mix Prints</em> straight away — a full lesson with Lorena Couto: real projects, real principles, and the professional knowledge you need to design your own home with confidence.
+                  Subscribe and watch <em>How to Mix Prints</em> straight away, a full lesson with Lorena Couto: real projects, real principles, and the professional knowledge you need to design your own home with confidence.
                 </p>
                 <p style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>
                   No waiting. The lesson starts playing the moment you subscribe.
