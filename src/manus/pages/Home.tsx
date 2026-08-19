@@ -851,15 +851,21 @@ export default function Home() {
             </div>
             <div className="flex gap-8 justify-center text-center mt-8">
               <div>
-                <p className="font-serif" style={{ color: "var(--aa-gold)", fontWeight: 300, fontSize: "2.7rem", lineHeight: 1 }}>5</p>
+                <div style={{ height: "3.4rem", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                  <p className="font-serif" style={{ color: "var(--aa-gold)", fontWeight: 300, fontSize: "2.7rem", lineHeight: 1 }}>5</p>
+                </div>
                 <p style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Industry Awards</p>
               </div>
               <div>
-                <p className="font-serif text-5xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>100+</p>
+                <div style={{ height: "3.4rem", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                  <p className="font-serif text-5xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>100+</p>
+                </div>
                 <p style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Homes Transformed</p>
               </div>
               <div>
-                <p className="font-serif text-5xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>20+</p>
+                <div style={{ height: "3.4rem", display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+                  <p className="font-serif text-5xl" style={{ color: "var(--aa-gold)", fontWeight: 300 }}>20+</p>
+                </div>
                 <p style={{ color: "rgba(245,240,232,0.6)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.875rem" }}>Years of Experience</p>
               </div>
             </div>
