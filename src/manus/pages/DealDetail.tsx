@@ -209,14 +209,25 @@ export default function DealDetail() {
                 <h2 className="font-serif text-xl mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
                   Terms & conditions
                 </h2>
-                <ul className="space-y-3 mb-6">
-                  {TERMS.map((t) => (
+                <ul className="space-y-3 mb-4">
+                  {TERMS_SUMMARY.map((t) => (
                     <li key={t} className="text-xs leading-relaxed flex gap-2" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                       <span style={{ color: "var(--aa-gold)" }}>•</span>
                       {t}
                     </li>
                   ))}
                 </ul>
+                <p className="text-xs mb-6" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <Link
+                    to={FULL_TERMS_PATH}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline inline-flex items-center gap-1"
+                    style={{ color: "var(--aa-gold)", fontWeight: 500 }}
+                  >
+                    Read the full Terms and Conditions <ExternalLink size={12} />
+                  </Link>
+                </p>
                 <label className="flex items-start gap-3 mb-6 cursor-pointer">
                   <input
                     type="checkbox"
@@ -225,18 +236,19 @@ export default function DealDetail() {
                     className="mt-[3px]"
                   />
                   <span className="text-xs" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
-                    I have read and accept the terms and conditions above.
+                    I have read and accept the Casa Consult Terms and Conditions (version {TERMS_VERSION}) in full.
                   </span>
                 </label>
                 <button
                   type="button"
-                  disabled={!accepted}
-                  onClick={() => goTo(2)}
+                  disabled={!accepted || saving}
+                  onClick={acceptTermsAndContinue}
                   className="px-6 py-3 text-xs uppercase tracking-widest btn-gold disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                 >
-                  Continue to payment
+                  {saving ? "Saving…" : "Continue to payment"}
                 </button>
+
               </>
             )}
 
