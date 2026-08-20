@@ -79,6 +79,27 @@ export default function DealDetail() {
     if (typeof window !== "undefined") window.localStorage.setItem(storageKey, String(next));
   };
 
+  const acceptTermsAndContinue = async () => {
+    if (!accepted || !slug) return;
+    setSaving(true);
+    try {
+      if (user?.id) {
+        await supabase.from("deal_terms_acceptances").insert({
+          user_id: user.id,
+          email: user.email ?? null,
+          deal_slug: slug,
+          terms_version: TERMS_VERSION,
+        });
+      }
+    } catch {
+      // Acceptance logging must never block the booking flow.
+    } finally {
+      setSaving(false);
+      goTo(2);
+    }
+  };
+
+
   if (isLoading) {
     return (
       <MemberLayout>
