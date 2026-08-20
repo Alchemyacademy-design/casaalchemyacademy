@@ -31,13 +31,34 @@ const TERMS_SUMMARY = [
   "Cancellations or reschedules require at least 24 hours' notice; less than that incurs an AUD $50 administrative fee, and no full refunds are issued once a session has commenced.",
 ];
 
+// Non-members cannot read `exclusive_deals`, so the public Casa Consult rate
+// renders from this static fallback when the DB row is not visible.
+const PUBLIC_RATE_FALLBACK: Record<string, { id: number; slug: string; title: string; description: string; price_label: string }> = {
+  "casa-consult": {
+    id: 1,
+    slug: "casa-consult",
+    title: "Casa Consult",
+    description:
+      "A one-to-one interior design consultation with Lorena Couto, delivered online, on-site, or as a hybrid of both. AUD $395 + GST per hour for non-members of Alchemy Academy.",
+    price_label: "AUD $395 + GST per hour",
+  },
+};
+
 export default function DealDetail() {
   const { slug } = useParams<{ slug: string }>();
   const [searchParams] = useSearchParams();
   const { data: deals = [], isLoading } = useActiveDeals();
   const trackClick = useTrackDealClick();
   const { user } = useAuth();
-  const deal = useMemo(() => deals.find((d) => d.slug === slug), [deals, slug]);
+  const publicRate = searchParams.get("rate") === "public";
+  const deal = useMemo(() => {
+    const found = deals.find((d) => d.slug === slug);
+    if (found) return found;
+    if (publicRate && slug && PUBLIC_RATE_FALLBACK[slug]) {
+      return PUBLIC_RATE_FALLBACK[slug] as unknown as (typeof deals)[number];
+    }
+    return undefined;
+  }, [deals, slug, publicRate]);
 
   const storageKey = `deal-flow:${slug}`;
   const [step, setStep] = useState<number>(() => {
@@ -107,7 +128,7 @@ export default function DealDetail() {
 
   // Casa Consult has two rates: the member rate (the deal's own Stripe link)
   // and the public rate reached with ?rate=public from the landing page.
-  const isPublicRate = searchParams.get("rate") === "public";
+  const isPublicRate = publicRate;
   const paymentUrl =
     isPublicRate && slug && PUBLIC_RATE_CHECKOUT_URLS[slug]
       ? PUBLIC_RATE_CHECKOUT_URLS[slug]
