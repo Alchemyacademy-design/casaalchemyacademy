@@ -118,7 +118,7 @@ export default function DealDetail() {
 
   if (isLoading) {
     return (
-      <MemberLayout>
+      <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
           <p className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>Loading…</p>
         </div>
@@ -128,7 +128,7 @@ export default function DealDetail() {
 
   if (!deal) {
     return (
-      <MemberLayout>
+      <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
           <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
             This product is no longer available.
@@ -149,7 +149,7 @@ export default function DealDetail() {
   ];
 
   return (
-    <MemberLayout>
+    <MemberLayout requireAuth={!isPublicRate}>
       <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
         <Link to="/deals" className="text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif" }}>
           ← Back to deals
