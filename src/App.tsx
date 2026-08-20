@@ -89,6 +89,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-use" element={<TermsOfUse />} />
+            <Route path="/legal/casa-consult-terms" element={<CasaConsultTerms />} />
+
             <Route path="/support" element={<SupportPage />} />
             <Route path="/data-deletion" element={<DataDeletion />} />
             <Route path="/politica-de-privacidade" element={<Navigate to="/privacy-policy" replace />} />
