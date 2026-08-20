@@ -99,6 +99,16 @@ export default function DealDetail() {
     }
   };
 
+  // Casa Consult has two rates: the member rate (the deal's own Stripe link)
+  // and the public rate reached with ?rate=public from the landing page.
+  const isPublicRate = searchParams.get("rate") === "public";
+  const paymentUrl =
+    isPublicRate && slug && PUBLIC_RATE_CHECKOUT_URLS[slug]
+      ? PUBLIC_RATE_CHECKOUT_URLS[slug]
+      : deal?.external_url;
+
+
+
 
   if (isLoading) {
     return (
