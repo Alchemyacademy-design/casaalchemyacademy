@@ -1,12 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
+const TERMS_VERSION = "1.0";
+const FULL_TERMS_PATH = "/legal/casa-consult-terms";
+
+// Public (non-member) Stripe rate, keyed by deal slug. Reached via ?rate=public.
+const PUBLIC_RATE_CHECKOUT_URLS: Record<string, string> = {
+  "casa-consult": "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
+};
 
 declare global {
   interface Window {
@@ -16,19 +25,40 @@ declare global {
   }
 }
 
-const TERMS = [
-  "This is a paid one-to-one consultation delivered online by Lorena Couto via Casa Alchemy Studio.",
-  "The member rate applies to Alchemy Academy annual members only. Bookings made on a non-eligible plan may be cancelled.",
-  "Payment is processed securely by Stripe and is required before the session can be scheduled.",
-  "Rescheduling is available up to 24 hours before the session. No-shows and late cancellations are non-refundable.",
-  "Advice provided is guidance only; final decisions and any works remain the client's responsibility.",
+const TERMS_SUMMARY = [
+  "Casa Consult is billed hourly at AUD $250 + GST, with a minimum of one (1) full hour charged per session regardless of the actual duration. Partial hours are rounded up.",
+  "Time spent reviewing, considering and responding to you about the project is billable, regardless of the channel used, including phone calls, emails, WhatsApp messages and SMS.",
+  "Cancellations or reschedules require at least 24 hours' notice; less than that incurs an AUD $50 administrative fee, and no full refunds are issued once a session has commenced.",
 ];
+
+// Non-members cannot read `exclusive_deals`, so the public Casa Consult rate
+// renders from this static fallback when the DB row is not visible.
+const PUBLIC_RATE_FALLBACK: Record<string, { id: number; slug: string; title: string; description: string; price_label: string }> = {
+  "casa-consult": {
+    id: 1,
+    slug: "casa-consult",
+    title: "Casa Consult",
+    description:
+      "A one-to-one interior design consultation with Lorena Couto, delivered online, on-site, or as a hybrid of both. AUD $395 + GST per hour for non-members of Alchemy Academy.",
+    price_label: "AUD $395 + GST per hour",
+  },
+};
 
 export default function DealDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { data: deals = [], isLoading } = useActiveDeals();
   const trackClick = useTrackDealClick();
-  const deal = useMemo(() => deals.find((d) => d.slug === slug), [deals, slug]);
+  const { user } = useAuth();
+  const publicRate = searchParams.get("rate") === "public";
+  const deal = useMemo(() => {
+    const found = deals.find((d) => d.slug === slug);
+    if (found) return found;
+    if (publicRate && slug && PUBLIC_RATE_FALLBACK[slug]) {
+      return PUBLIC_RATE_FALLBACK[slug] as unknown as (typeof deals)[number];
+    }
+    return undefined;
+  }, [deals, slug, publicRate]);
 
   const storageKey = `deal-flow:${slug}`;
   const [step, setStep] = useState<number>(() => {
@@ -37,7 +67,9 @@ export default function DealDetail() {
     return saved >= 1 && saved <= 3 ? saved : 1;
   });
   const [accepted, setAccepted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     if (step !== 3 || !calendlyContainerRef.current) return;
@@ -74,9 +106,40 @@ export default function DealDetail() {
     if (typeof window !== "undefined") window.localStorage.setItem(storageKey, String(next));
   };
 
+  const acceptTermsAndContinue = async () => {
+    if (!accepted || !slug) return;
+    setSaving(true);
+    try {
+      if (user?.id) {
+        await supabase.from("deal_terms_acceptances").insert({
+          user_id: user.id,
+          email: user.email ?? null,
+          deal_slug: slug,
+          terms_version: TERMS_VERSION,
+        });
+      }
+    } catch {
+      // Acceptance logging must never block the booking flow.
+    } finally {
+      setSaving(false);
+      goTo(2);
+    }
+  };
+
+  // Casa Consult has two rates: the member rate (the deal's own Stripe link)
+  // and the public rate reached with ?rate=public from the landing page.
+  const isPublicRate = publicRate;
+  const paymentUrl =
+    isPublicRate && slug && PUBLIC_RATE_CHECKOUT_URLS[slug]
+      ? PUBLIC_RATE_CHECKOUT_URLS[slug]
+      : deal?.external_url;
+
+
+
+
   if (isLoading) {
     return (
-      <MemberLayout>
+      <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
           <p className="text-sm" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>Loading…</p>
         </div>
@@ -86,7 +149,7 @@ export default function DealDetail() {
 
   if (!deal) {
     return (
-      <MemberLayout>
+      <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
           <p className="text-sm mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
             This product is no longer available.
@@ -107,7 +170,7 @@ export default function DealDetail() {
   ];
 
   return (
-    <MemberLayout>
+    <MemberLayout requireAuth={!isPublicRate}>
       <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
         <Link to="/deals" className="text-xs" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif" }}>
           ← Back to deals
@@ -183,14 +246,25 @@ export default function DealDetail() {
                 <h2 className="font-serif text-xl mb-4" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
                   Terms & conditions
                 </h2>
-                <ul className="space-y-3 mb-6">
-                  {TERMS.map((t) => (
+                <ul className="space-y-3 mb-4">
+                  {TERMS_SUMMARY.map((t) => (
                     <li key={t} className="text-xs leading-relaxed flex gap-2" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                       <span style={{ color: "var(--aa-gold)" }}>•</span>
                       {t}
                     </li>
                   ))}
                 </ul>
+                <p className="text-xs mb-6" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+                  <Link
+                    to={FULL_TERMS_PATH}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline inline-flex items-center gap-1"
+                    style={{ color: "var(--aa-gold)", fontWeight: 500 }}
+                  >
+                    Read the full Terms and Conditions <ExternalLink size={12} />
+                  </Link>
+                </p>
                 <label className="flex items-start gap-3 mb-6 cursor-pointer">
                   <input
                     type="checkbox"
@@ -199,18 +273,19 @@ export default function DealDetail() {
                     className="mt-[3px]"
                   />
                   <span className="text-xs" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
-                    I have read and accept the terms and conditions above.
+                    I have read and accept the Casa Consult Terms and Conditions (version {TERMS_VERSION}) in full.
                   </span>
                 </label>
                 <button
                   type="button"
-                  disabled={!accepted}
-                  onClick={() => goTo(2)}
+                  disabled={!accepted || saving}
+                  onClick={acceptTermsAndContinue}
                   className="px-6 py-3 text-xs uppercase tracking-widest btn-gold disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                 >
-                  Continue to payment
+                  {saving ? "Saving…" : "Continue to payment"}
                 </button>
+
               </>
             )}
 
@@ -223,9 +298,10 @@ export default function DealDetail() {
                   Complete your secure payment with Stripe in the new tab. When it is done, come back here to choose your session time.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {deal.external_url && (
+                  {paymentUrl && (
                     <a
-                      href={deal.external_url}
+                      href={paymentUrl}
+
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackClick.mutate(deal.id)}

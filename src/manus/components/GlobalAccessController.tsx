@@ -12,6 +12,7 @@ const publicPaths = new Set([
   "/auth/update-password",
   "/privacy-policy",
   "/terms-of-use",
+  "/legal/casa-consult-terms",
   "/support",
   "/data-deletion",
   "/politica-de-privacidade",
@@ -58,7 +59,10 @@ export default function GlobalAccessController() {
       publicPaths.has(location) ||
       location.startsWith("/c/") ||
       // Public lead-capture landing for "Ask the Expert LIVE" workshops.
-      location.startsWith("/ask-the-expert/")
+      location.startsWith("/ask-the-expert/") ||
+      // Casa Consult is sold to members and non-members alike; the terms gate
+      // on this page must be reachable before payment either way.
+      location.startsWith("/deals/casa-consult")
     ) return;
 
     if (!isAuthenticated) {

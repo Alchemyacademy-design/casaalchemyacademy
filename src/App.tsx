@@ -72,6 +72,8 @@ const PublicCertificate = lazyWithRetry(() => import("@/manus/pages/PublicCertif
 const OAuthConsent = lazyWithRetry(() => import("@/manus/pages/OAuthConsent"), "OAuthConsent");
 const PrivacyPolicy = lazyWithRetry(() => import("@/manus/pages/legal/PrivacyPolicy"), "PrivacyPolicy");
 const TermsOfUse = lazyWithRetry(() => import("@/manus/pages/legal/TermsOfUse"), "TermsOfUse");
+const CasaConsultTerms = lazyWithRetry(() => import("@/manus/pages/legal/CasaConsultTerms"), "CasaConsultTerms");
+
 const SupportPage = lazyWithRetry(() => import("@/manus/pages/legal/Support"), "SupportPage");
 const DataDeletion = lazyWithRetry(() => import("@/manus/pages/legal/DataDeletion"), "DataDeletion");
 
@@ -89,6 +91,8 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-use" element={<TermsOfUse />} />
+            <Route path="/legal/casa-consult-terms" element={<CasaConsultTerms />} />
+
             <Route path="/support" element={<SupportPage />} />
             <Route path="/data-deletion" element={<DataDeletion />} />
             <Route path="/politica-de-privacidade" element={<Navigate to="/privacy-policy" replace />} />

@@ -481,7 +481,7 @@ export default function Home() {
                               } else if (!isMember) {
                                 setShowMemberNotice(true);
                               } else {
-                                window.open(deal.href, "_blank", "noopener,noreferrer");
+                                navigate("/deals/casa-consult");
                               }
                             }}
                             className="mt-auto"
@@ -508,15 +508,13 @@ export default function Home() {
                           )}
                         </>
                       ) : (
-                        <a
-                          href={deal.href}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          to="/deals/casa-consult?rate=public"
                           className="mt-auto"
                           style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}
                         >
                           Book a Casa Consult →
-                        </a>
+                        </Link>
                       )}
                     </div>
                   ))}

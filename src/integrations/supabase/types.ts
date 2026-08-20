@@ -890,6 +890,36 @@ export type Database = {
           },
         ]
       }
+      deal_terms_acceptances: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          deal_slug: string
+          email: string | null
+          id: number
+          terms_version: string
+          user_id: string | null
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          deal_slug: string
+          email?: string | null
+          id?: number
+          terms_version?: string
+          user_id?: string | null
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          deal_slug?: string
+          email?: string | null
+          id?: number
+          terms_version?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           access_plan_keys: Database["public"]["Enums"]["membership_plan_key"][]
