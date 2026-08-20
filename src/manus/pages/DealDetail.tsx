@@ -261,9 +261,10 @@ export default function DealDetail() {
                   Complete your secure payment with Stripe in the new tab. When it is done, come back here to choose your session time.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  {deal.external_url && (
+                  {paymentUrl && (
                     <a
-                      href={deal.external_url}
+                      href={paymentUrl}
+
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() => trackClick.mutate(deal.id)}
