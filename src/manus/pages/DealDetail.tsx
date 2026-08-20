@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Check, CalendarCheck, CreditCard, FileText, ExternalLink } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
@@ -11,6 +11,11 @@ import { supabase } from "@/integrations/supabase/client";
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
 const TERMS_VERSION = "1.0";
 const FULL_TERMS_PATH = "/legal/casa-consult-terms";
+
+// Public (non-member) Stripe rate, keyed by deal slug. Reached via ?rate=public.
+const PUBLIC_RATE_CHECKOUT_URLS: Record<string, string> = {
+  "casa-consult": "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
+};
 
 declare global {
   interface Window {
@@ -28,6 +33,7 @@ const TERMS_SUMMARY = [
 
 export default function DealDetail() {
   const { slug } = useParams<{ slug: string }>();
+  const [searchParams] = useSearchParams();
   const { data: deals = [], isLoading } = useActiveDeals();
   const trackClick = useTrackDealClick();
   const { user } = useAuth();
