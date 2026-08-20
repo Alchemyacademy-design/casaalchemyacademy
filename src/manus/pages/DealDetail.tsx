@@ -5,8 +5,12 @@ import MemberLayout from "@/manus/components/MemberLayout";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import { useAuth } from "@/manus/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
+const TERMS_VERSION = "1.0";
+const FULL_TERMS_PATH = "/legal/casa-consult-terms";
 
 declare global {
   interface Window {
@@ -16,18 +20,17 @@ declare global {
   }
 }
 
-const TERMS = [
-  "This is a paid one-to-one consultation delivered online by Lorena Couto via Casa Alchemy Studio.",
-  "The member rate applies to Alchemy Academy annual members only. Bookings made on a non-eligible plan may be cancelled.",
-  "Payment is processed securely by Stripe and is required before the session can be scheduled.",
-  "Rescheduling is available up to 24 hours before the session. No-shows and late cancellations are non-refundable.",
-  "Advice provided is guidance only; final decisions and any works remain the client's responsibility.",
+const TERMS_SUMMARY = [
+  "Casa Consult is billed hourly at AUD $250 + GST, with a minimum of one (1) full hour charged per session regardless of the actual duration. Partial hours are rounded up.",
+  "Time spent reviewing, considering and responding to you about the project is billable, regardless of the channel used, including phone calls, emails, WhatsApp messages and SMS.",
+  "Cancellations or reschedules require at least 24 hours' notice; less than that incurs an AUD $50 administrative fee, and no full refunds are issued once a session has commenced.",
 ];
 
 export default function DealDetail() {
   const { slug } = useParams<{ slug: string }>();
   const { data: deals = [], isLoading } = useActiveDeals();
   const trackClick = useTrackDealClick();
+  const { user } = useAuth();
   const deal = useMemo(() => deals.find((d) => d.slug === slug), [deals, slug]);
 
   const storageKey = `deal-flow:${slug}`;
@@ -37,7 +40,9 @@ export default function DealDetail() {
     return saved >= 1 && saved <= 3 ? saved : 1;
   });
   const [accepted, setAccepted] = useState(false);
+  const [saving, setSaving] = useState(false);
   const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
+
 
   useEffect(() => {
     if (step !== 3 || !calendlyContainerRef.current) return;
