@@ -26,8 +26,10 @@ export default function CasaConsultTerms() {
 
       <h3>2.1 Standard Rate</h3>
       <p>
-        The Casa Consult rate is AUD $250 + GST per hour. All fees are invoiced in Australian Dollars and inclusive of GST
-        where applicable.
+        The Casa Consult rate is AUD $295 + GST per hour for active Alchemy Academy members, and AUD $395 + GST per hour
+        for non-members. A "member" is a Client holding an active, current membership with Alchemy Academy at the time
+        the session is booked. Membership status is determined at the time of booking and does not apply retroactively.
+        All fees are invoiced in Australian Dollars and inclusive of GST where applicable.
       </p>
 
       <h3>2.2 Minimum Charges</h3>
@@ -45,16 +47,17 @@ export default function CasaConsultTerms() {
 
       <h3>2.3 Out-of-Scope Work</h3>
       <p>
-        Any work requested by the Client that falls outside the agreed scope of the consultation will be charged at AUD
-        $250 + GST per hour. This includes client-generated changes to the design or documentation brief that result in
-        additional or abortive work. The Designer will notify the Client before proceeding with out-of-scope work.
+        Any work requested by the Client that falls outside the agreed scope of the consultation will be charged at the
+        Client's applicable hourly rate under Section 2.1. This includes client-generated changes to the design or
+        documentation brief that result in additional or abortive work. The Designer will notify the Client before
+        proceeding with out-of-scope work.
       </p>
 
       <h3>2.4 Travel</h3>
       <p>
         Travel time to and from supplier showrooms, project sites, or any location outside the Designer's home studio is
-        charged as consultation time at the standard hourly rate. All incidental travel costs (fuel, tolls, parking) are
-        included in this rate unless otherwise agreed.
+        charged as consultation time at the Client's applicable hourly rate under Section 2.1. All incidental travel costs
+        (fuel, tolls, parking) are included in this rate unless otherwise agreed.
       </p>
 
       <h3>2.5 Accommodation</h3>
@@ -294,9 +297,9 @@ export default function CasaConsultTerms() {
 
       <h3>Q: What if the Client wants the Designer to go to the site or to visit a supplier?</h3>
       <p>
-        A: The Designer charges $250 + GST per hour to go to a supplier or site. Travel time counts as consultation time.
-        All extra costs such as fuel and tolls are included in the price; however, depending on the conditions, the
-        Designer reserves the right to decline the job.
+        A: The Designer charges the Client's applicable hourly rate (see Section 2.1) to go to a supplier or site. Travel
+        time counts as consultation time. All extra costs such as fuel and tolls are included in the price; however,
+        depending on the conditions, the Designer reserves the right to decline the job.
       </p>
 
       <h3>Q: Can the Designer provide quotes or budgets for materials and furniture?</h3>

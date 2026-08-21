@@ -26,7 +26,7 @@ declare global {
 }
 
 const TERMS_SUMMARY = [
-  "Casa Consult is billed hourly at AUD $250 + GST, with a minimum of one (1) full hour charged per session regardless of the actual duration. Partial hours are rounded up.",
+  "Casa Consult is billed hourly at AUD $295 + GST for active Alchemy Academy members, and AUD $395 + GST for non-members, with a minimum of one (1) full hour charged per session regardless of the actual duration. Partial hours are rounded up.",
   "Time spent reviewing, considering and responding to you about the project is billable, regardless of the channel used, including phone calls, emails, WhatsApp messages and SMS.",
   "Cancellations or reschedules require at least 24 hours' notice; less than that incurs an AUD $50 administrative fee, and no full refunds are issued once a session has commenced.",
 ];
