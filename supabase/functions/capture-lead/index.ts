@@ -669,6 +669,30 @@ Deno.serve(async (req) => {
     workshop = wRow ?? null;
   }
   const workshopTitle = workshop?.title ?? null;
+  // Casa Consult booking gate: persist the terms acceptance server-side so the
+  // stepper can verify step 1 against a real record instead of localStorage.
+  if (source === "casa_consult") {
+    const dealSlug = typeof metadata?.deal_slug === "string" ? metadata.deal_slug : "casa-consult";
+    const termsVersion = typeof metadata?.terms_version === "string" ? metadata.terms_version : "1.0";
+    const acceptingUserId = typeof metadata?.user_id === "string" ? metadata.user_id : null;
+    const { error: acceptErr } = await supabase.from("deal_terms_acceptances").insert({
+      user_id: acceptingUserId,
+      email,
+      first_name: firstname || null,
+      last_name: lastname || null,
+      deal_slug: dealSlug,
+      terms_version: termsVersion,
+      ip_hash: ipHash,
+    });
+    if (acceptErr) {
+      console.error("deal_terms_acceptances insert failed:", acceptErr);
+      return new Response(JSON.stringify({ error: "acceptance_storage_failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const hubspotCookie = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)hubspotutk=([^;]+)/)?.[1] ?? null;
   let hubspotContactId: string | null = null;
   let hubspotError: string | null = null;
@@ -679,6 +703,15 @@ Deno.serve(async (req) => {
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
+    if (upserted.id && source === "casa_consult") {
+      const dealSlug = typeof metadata?.deal_slug === "string" ? metadata.deal_slug : "casa-consult";
+      const termsVersion = typeof metadata?.terms_version === "string" ? metadata.terms_version : "1.0";
+      const noteErr = await logHubspotNote(
+        upserted.id,
+        `Casa Consult Terms &amp; Conditions accepted.<br/>Version: ${termsVersion}<br/>Deal: ${dealSlug}<br/>Accepted at: ${new Date().toISOString()}`,
+      );
+      if (noteErr) hubspotError = hubspotError ? `${hubspotError}; ${noteErr}` : noteErr;
+    }
     const formErr = await submitHubspotForm({
       email,
       firstname,
@@ -711,7 +744,10 @@ Deno.serve(async (req) => {
   // sequence.
   let emailProvider: "gmail" | "resend" | "failed" | "skipped" = "failed";
   try {
-    if (source === "contact") {
+    if (source === "casa_consult") {
+      // Booking confirmation emails are handled by Calendly; nothing to send here.
+      emailProvider = "skipped";
+    } else if (source === "contact") {
       emailProvider = await sendContactEmails({
         to: email,
         name,
@@ -743,7 +779,9 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
-      redirect: source === "contact"
+      redirect: source === "casa_consult"
+        ? null
+        : source === "contact"
         ? "/"
         : source === "live_workshop" && workshop
           ? `/ask-the-expert/${workshop.slug}`
