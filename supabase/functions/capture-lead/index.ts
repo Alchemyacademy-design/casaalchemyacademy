@@ -20,7 +20,7 @@ const BodySchema = z.object({
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
     .transform((v) => (v && v.trim().length >= 4 ? v : null)),
-  source: z.enum(["popup", "quiz", "live_workshop", "contact"]),
+  source: z.enum(["popup", "quiz", "live_workshop", "contact", "casa_consult"]),
   message: z.string().trim().max(5000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
@@ -63,10 +63,11 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-type LeadSource = "popup" | "quiz" | "live_workshop" | "contact";
+type LeadSource = "popup" | "quiz" | "live_workshop" | "contact" | "casa_consult";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
   if (source === "contact") return "Contact Form";
+  if (source === "casa_consult") return "Casa Consult — Terms Accepted";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
@@ -247,6 +248,43 @@ async function addToStaticList(contactId: string): Promise<void> {
     console.warn(`hubspot list add [${res.status}]: ${body}`);
   } else {
     await res.text();
+  }
+}
+
+// Writes a note on the contact's HubSpot timeline (activity feed).
+async function logHubspotNote(contactId: string, body: string): Promise<string | null> {
+  if (!HUBSPOT_TOKEN) return "HUBSPOT_PRIVATE_APP_TOKEN not configured";
+  try {
+    const res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/notes`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HUBSPOT_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        properties: {
+          hs_note_body: body,
+          hs_timestamp: new Date().toISOString(),
+        },
+        associations: [
+          {
+            to: { id: contactId },
+            types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 202 }],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.warn(`hubspot note [${res.status}]: ${text}`);
+      return `hubspot note failed [${res.status}]: ${text}`;
+    }
+    await res.text();
+    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("hubspot note threw:", msg);
+    return msg;
   }
 }
 
