@@ -235,10 +235,12 @@ export default function Home() {
           </Link>
           <div className="hidden md:flex items-center gap-8">
             {[
-              { label: "Casa Alchemy Academy", href: "/" },
-              { label: "Casa Alchemy Studio", href: "#" },
+              { label: "Casa Alchemy Academy", href: "/", external: false },
+              { label: "Casa Alchemy Studio", href: "https://www.casaalchemystudio.com", external: true },
             ].map((item) => (
-              <a key={item.label} href={item.href} className="text-xs tracking-widest uppercase transition-colors"
+              <a key={item.label} href={item.href}
+                {...(item.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                className="text-xs tracking-widest uppercase transition-colors"
                 style={{ color: "var(--aa-text-mid)", letterSpacing: "0.12em", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
                 {item.label}
               </a>
