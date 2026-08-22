@@ -93,7 +93,7 @@ export default function DealDetail() {
       const probeEmail = (emailOverride ?? email ?? user?.email ?? "").trim().toLowerCase();
       const { data, error } = await supabase.rpc("deal_booking_status", {
         p_deal_slug: slug,
-        p_email: probeEmail || null,
+        p_email: probeEmail || undefined,
       });
       if (error) {
         console.warn("deal_booking_status failed:", error.message);
