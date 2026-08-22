@@ -60,71 +60,119 @@ export default function DealDetail() {
     return undefined;
   }, [deals, slug, publicRate]);
 
-  const storageKey = `deal-flow:${slug}`;
-  const [step, setStep] = useState<number>(() => {
-    if (typeof window === "undefined") return 1;
-    const saved = Number(window.localStorage.getItem(storageKey));
-    return saved >= 1 && saved <= 3 ? saved : 1;
-  });
+  // Step completion is derived exclusively from server records:
+  //   step 1 -> a real row in public.deal_terms_acceptances
+  //   step 2 -> a real paid Stripe payment tied to this booker
+  // No localStorage is involved, so nothing can be faked client-side.
+  type BookingStatus = { terms_accepted: boolean; payment_verified: boolean; accepted_at: string | null };
+  const [status, setStatus] = useState<BookingStatus>({ terms_accepted: false, payment_verified: false, accepted_at: null });
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [desiredStep, setDesiredStep] = useState<number>(1);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Drop the legacy client-side flag that used to drive the stepper.
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.removeItem(`deal-flow:${slug}`);
+  }, [slug]);
 
   useEffect(() => {
-    if (step !== 3 || !calendlyContainerRef.current) return;
+    if (user?.email) setEmail((prev) => prev || user.email!);
+  }, [user?.email]);
 
-    const container = calendlyContainerRef.current;
-    const existing = document.querySelector('script[data-calendly-widget]') as HTMLScriptElement | null;
-
-    const init = () => {
-      if (window.Calendly) {
-        container.innerHTML = "";
-        window.Calendly.initInlineWidget({ url: SCHEDULING_URL, parentElement: container });
+  const refreshStatus = useMemo(
+    () => async (emailOverride?: string) => {
+      if (!slug) return;
+      const probeEmail = (emailOverride ?? email ?? user?.email ?? "").trim().toLowerCase();
+      const { data, error } = await supabase.rpc("deal_booking_status", {
+        p_deal_slug: slug,
+        p_email: probeEmail || null,
+      });
+      if (error) {
+        console.warn("deal_booking_status failed:", error.message);
+        return;
       }
-    };
+      const next = (data ?? {}) as BookingStatus;
+      setStatus({
+        terms_accepted: Boolean(next.terms_accepted),
+        payment_verified: Boolean(next.payment_verified),
+        accepted_at: next.accepted_at ?? null,
+      });
+    },
+    [slug, email, user?.email],
+  );
 
-    if (existing) {
-      init();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://assets.calendly.com/assets/external/widget.js";
-    script.async = true;
-    script.dataset.calendlyWidget = "true";
-    script.onload = init;
-    document.body.appendChild(script);
-
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setStatusLoading(true);
+      await refreshStatus();
+      if (!cancelled) setStatusLoading(false);
+    })();
     return () => {
-      container.innerHTML = "";
+      cancelled = true;
     };
-  }, [step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, user?.id]);
 
-  const goTo = (next: number) => {
-    setStep(next);
-    if (typeof window !== "undefined") window.localStorage.setItem(storageKey, String(next));
-  };
+  const maxStep = status.payment_verified ? 3 : status.terms_accepted ? 2 : 1;
+  const step = Math.min(desiredStep, maxStep);
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const formValid = firstName.trim().length > 0 && lastName.trim().length > 0 && emailValid && accepted;
+
+  const goTo = (next: number) => setDesiredStep(Math.max(1, Math.min(next, maxStep)));
 
   const acceptTermsAndContinue = async () => {
-    if (!accepted || !slug) return;
+    if (!formValid || !slug) return;
     setSaving(true);
+    setFormError(null);
     try {
-      if (user?.id) {
-        await supabase.from("deal_terms_acceptances").insert({
-          user_id: user.id,
-          email: user.email ?? null,
-          deal_slug: slug,
-          terms_version: TERMS_VERSION,
-        });
-      }
-    } catch {
-      // Acceptance logging must never block the booking flow.
+      // Server-side: writes deal_terms_acceptances (service role) and upserts
+      // the HubSpot contact + timeline note for the acceptance.
+      const { error } = await supabase.functions.invoke("capture-lead", {
+        body: {
+          name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          email: email.trim().toLowerCase(),
+          source: "casa_consult",
+          metadata: {
+            deal_slug: slug,
+            terms_version: TERMS_VERSION,
+            user_id: user?.id ?? null,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            page_uri: typeof window !== "undefined" ? window.location.href : undefined,
+          },
+        },
+      });
+      if (error) throw error;
+      await refreshStatus(email.trim().toLowerCase());
+      setDesiredStep(2);
+    } catch (e) {
+      console.error("terms acceptance failed:", e);
+      setFormError("We could not record your acceptance. Please try again.");
     } finally {
       setSaving(false);
-      goTo(2);
     }
   };
+
+  const verifyPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      await refreshStatus();
+      setDesiredStep(3);
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
+
 
   // Casa Consult has two rates: the member rate (the deal's own Stripe link)
   // and the public rate reached with ?rate=public from the landing page.
