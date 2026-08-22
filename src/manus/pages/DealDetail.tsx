@@ -163,15 +163,25 @@ export default function DealDetail() {
     }
   };
 
-  const verifyPayment = async () => {
+  // While the client is on the payment step, poll the server-verified booking
+  // status. The step only advances when a real Stripe payment record exists.
+  useEffect(() => {
+    if (step !== 2 || status.payment_verified) return;
     setCheckingPayment(true);
-    try {
-      await refreshStatus();
-      setDesiredStep(3);
-    } finally {
+    const id = window.setInterval(() => {
+      void refreshStatus();
+    }, 5000);
+    return () => {
+      window.clearInterval(id);
       setCheckingPayment(false);
-    }
-  };
+    };
+  }, [step, status.payment_verified, refreshStatus]);
+
+  // The moment the server confirms payment, move on to scheduling.
+  useEffect(() => {
+    if (status.payment_verified && desiredStep === 2) setDesiredStep(3);
+  }, [status.payment_verified, desiredStep]);
+
 
 
   // Casa Consult has two rates: the member rate (the deal's own Stripe link)
