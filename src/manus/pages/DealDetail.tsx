@@ -313,6 +313,55 @@ export default function DealDetail() {
                     Read the full Terms and Conditions <ExternalLink size={12} />
                   </Link>
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 max-w-xl">
+                  <div>
+                    <label htmlFor="cc-first-name" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      First name
+                    </label>
+                    <input
+                      id="cc-first-name"
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      maxLength={100}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cc-last-name" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      Last name
+                    </label>
+                    <input
+                      id="cc-last-name"
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      maxLength={100}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="cc-email" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      Email
+                    </label>
+                    <input
+                      id="cc-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      maxLength={320}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                </div>
+
                 <label className="flex items-start gap-3 mb-6 cursor-pointer">
                   <input
                     type="checkbox"
@@ -321,18 +370,31 @@ export default function DealDetail() {
                     className="mt-[3px]"
                   />
                   <span className="text-xs" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
-                    I have read and accept the Casa Consult Terms and Conditions (version {TERMS_VERSION}) in full.
+                    I have read and agree to the Casa Consult{" "}
+                    <Link
+                      to={FULL_TERMS_PATH}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                      style={{ color: "var(--aa-gold)", fontWeight: 500 }}
+                    >
+                      Terms and Conditions
+                    </Link>
                   </span>
                 </label>
+                {formError && (
+                  <p className="text-xs mb-4" style={{ color: "#b3261e", fontFamily: "'DM Sans', sans-serif" }}>{formError}</p>
+                )}
                 <button
                   type="button"
-                  disabled={!accepted || saving}
+                  disabled={!formValid || saving}
                   onClick={acceptTermsAndContinue}
                   className="px-6 py-3 text-xs uppercase tracking-widest btn-gold disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                 >
                   {saving ? "Saving…" : "Continue to payment"}
                 </button>
+
 
               </>
             )}
