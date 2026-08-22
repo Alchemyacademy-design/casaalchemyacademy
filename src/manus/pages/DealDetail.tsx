@@ -163,15 +163,25 @@ export default function DealDetail() {
     }
   };
 
-  const verifyPayment = async () => {
+  // While the client is on the payment step, poll the server-verified booking
+  // status. The step only advances when a real Stripe payment record exists.
+  useEffect(() => {
+    if (step !== 2 || status.payment_verified) return;
     setCheckingPayment(true);
-    try {
-      await refreshStatus();
-      setDesiredStep(3);
-    } finally {
+    const id = window.setInterval(() => {
+      void refreshStatus();
+    }, 5000);
+    return () => {
+      window.clearInterval(id);
       setCheckingPayment(false);
-    }
-  };
+    };
+  }, [step, status.payment_verified, refreshStatus]);
+
+  // The moment the server confirms payment, move on to scheduling.
+  useEffect(() => {
+    if (status.payment_verified && desiredStep === 2) setDesiredStep(3);
+  }, [status.payment_verified, desiredStep]);
+
 
 
   // Casa Consult has two rates: the member rate (the deal's own Stripe link)
@@ -421,21 +431,14 @@ export default function DealDetail() {
                       Pay securely <ExternalLink size={12} />
                     </a>
                   )}
-                  <button
-                    type="button"
-                    onClick={verifyPayment}
-                    disabled={checkingPayment}
-                    className="inline-flex items-center gap-2 px-6 py-3 text-xs uppercase tracking-widest disabled:opacity-40"
-                    style={{ border: "1px solid var(--aa-gold)", color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
-                  >
-                    {checkingPayment ? "Checking…" : "I've paid, continue"}
-                  </button>
                 </div>
-                {!checkingPayment && !status.payment_verified && desiredStep >= 3 && (
-                  <p className="text-xs mt-4 leading-relaxed" style={{ color: "#b3261e", fontFamily: "'DM Sans', sans-serif" }}>
-                    We have not received a confirmed payment for this booking yet. Stripe can take a moment, please try again shortly, or contact us at contact@casaalchemystudio.com if it persists.
+                {!status.payment_verified && (
+                  <p className="text-xs mt-4 leading-relaxed flex items-center gap-2" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
+                    <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--aa-gold)" }} />
+                    Waiting for payment confirmation… this page will move to scheduling automatically as soon as Stripe confirms your payment. If it persists, contact us at contact@casaalchemystudio.com.
                   </p>
                 )}
+
                 <button
                   type="button"
                   onClick={() => goTo(1)}
