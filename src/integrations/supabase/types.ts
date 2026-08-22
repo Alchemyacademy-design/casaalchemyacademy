@@ -896,7 +896,10 @@ export type Database = {
           created_at: string
           deal_slug: string
           email: string | null
+          first_name: string | null
           id: number
+          ip_hash: string | null
+          last_name: string | null
           terms_version: string
           user_id: string | null
         }
@@ -905,7 +908,10 @@ export type Database = {
           created_at?: string
           deal_slug: string
           email?: string | null
+          first_name?: string | null
           id?: number
+          ip_hash?: string | null
+          last_name?: string | null
           terms_version?: string
           user_id?: string | null
         }
@@ -914,7 +920,10 @@ export type Database = {
           created_at?: string
           deal_slug?: string
           email?: string | null
+          first_name?: string | null
           id?: number
+          ip_hash?: string | null
+          last_name?: string | null
           terms_version?: string
           user_id?: string | null
         }
@@ -3044,6 +3053,10 @@ export type Database = {
           id: string
         }[]
       }
+      deal_booking_status: {
+        Args: { p_deal_slug: string; p_email?: string }
+        Returns: Json
+      }
       get_alchemist_leaderboard: {
         Args: { p_limit?: number; p_window?: string }
         Returns: {
@@ -3345,7 +3358,12 @@ export type Database = {
         | "manual"
         | "per_cohort"
       course_visibility: "public" | "unlisted" | "private"
-      lead_source: "popup" | "quiz" | "live_workshop" | "contact"
+      lead_source:
+        | "popup"
+        | "quiz"
+        | "live_workshop"
+        | "contact"
+        | "casa_consult"
       lesson_kind:
         | "video"
         | "text"
@@ -3555,7 +3573,13 @@ export const Constants = {
         "per_cohort",
       ],
       course_visibility: ["public", "unlisted", "private"],
-      lead_source: ["popup", "quiz", "live_workshop", "contact"],
+      lead_source: [
+        "popup",
+        "quiz",
+        "live_workshop",
+        "contact",
+        "casa_consult",
+      ],
       lesson_kind: [
         "video",
         "text",
