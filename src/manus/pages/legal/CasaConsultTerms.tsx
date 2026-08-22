@@ -62,7 +62,7 @@ export default function CasaConsultTerms() {
 
       <h3>2.5 Accommodation</h3>
       <p>
-        For consultations requiring travel outside of Sydney that exceed six (6) hours of work, accommodation is to be
+        For consultations requiring travel outside of Sydney that exceed three (3) hours of work, accommodation is to be
         arranged and paid by the Client at an executive-class hotel (Ibis standard or equivalent). The Designer reserves
         the right to select accommodation appropriate to the duration and location of the engagement.
       </p>
