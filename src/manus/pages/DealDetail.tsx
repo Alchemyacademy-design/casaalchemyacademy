@@ -185,7 +185,7 @@ export default function DealDetail() {
 
 
 
-  if (isLoading) {
+  if (isLoading || statusLoading) {
     return (
       <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
@@ -258,7 +258,7 @@ export default function DealDetail() {
             )}
             <div className="p-5 space-y-3">
               {steps.map((s) => {
-                const done = step > s.n;
+                const done = s.n === 1 ? status.terms_accepted : s.n === 2 ? status.payment_verified : false;
                 const active = step === s.n;
                 const Icon = s.icon;
                 return (
