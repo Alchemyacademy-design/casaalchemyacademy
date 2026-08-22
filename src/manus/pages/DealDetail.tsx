@@ -421,7 +421,21 @@ export default function DealDetail() {
                       Pay securely <ExternalLink size={12} />
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={verifyPayment}
+                    disabled={checkingPayment}
+                    className="inline-flex items-center gap-2 px-6 py-3 text-xs uppercase tracking-widest disabled:opacity-40"
+                    style={{ border: "1px solid var(--aa-gold)", color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
+                  >
+                    {checkingPayment ? "Checking…" : "I've paid, continue"}
+                  </button>
                 </div>
+                {!checkingPayment && !status.payment_verified && desiredStep >= 3 && (
+                  <p className="text-xs mt-4 leading-relaxed" style={{ color: "#b3261e", fontFamily: "'DM Sans', sans-serif" }}>
+                    We have not received a confirmed payment for this booking yet. Stripe can take a moment, please try again shortly, or contact us at contact@casaalchemystudio.com if it persists.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => goTo(1)}
@@ -430,6 +444,7 @@ export default function DealDetail() {
                 >
                   ← Back to terms
                 </button>
+
               </>
             )}
 
