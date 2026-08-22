@@ -60,71 +60,119 @@ export default function DealDetail() {
     return undefined;
   }, [deals, slug, publicRate]);
 
-  const storageKey = `deal-flow:${slug}`;
-  const [step, setStep] = useState<number>(() => {
-    if (typeof window === "undefined") return 1;
-    const saved = Number(window.localStorage.getItem(storageKey));
-    return saved >= 1 && saved <= 3 ? saved : 1;
-  });
+  // Step completion is derived exclusively from server records:
+  //   step 1 -> a real row in public.deal_terms_acceptances
+  //   step 2 -> a real paid Stripe payment tied to this booker
+  // No localStorage is involved, so nothing can be faked client-side.
+  type BookingStatus = { terms_accepted: boolean; payment_verified: boolean; accepted_at: string | null };
+  const [status, setStatus] = useState<BookingStatus>({ terms_accepted: false, payment_verified: false, accepted_at: null });
+  const [statusLoading, setStatusLoading] = useState(true);
+  const [checkingPayment, setCheckingPayment] = useState(false);
+  const [desiredStep, setDesiredStep] = useState<number>(1);
+
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
   const calendlyContainerRef = useRef<HTMLDivElement | null>(null);
 
+  // Drop the legacy client-side flag that used to drive the stepper.
+  useEffect(() => {
+    if (typeof window !== "undefined") window.localStorage.removeItem(`deal-flow:${slug}`);
+  }, [slug]);
 
   useEffect(() => {
-    if (step !== 3 || !calendlyContainerRef.current) return;
+    if (user?.email) setEmail((prev) => prev || user.email!);
+  }, [user?.email]);
 
-    const container = calendlyContainerRef.current;
-    const existing = document.querySelector('script[data-calendly-widget]') as HTMLScriptElement | null;
-
-    const init = () => {
-      if (window.Calendly) {
-        container.innerHTML = "";
-        window.Calendly.initInlineWidget({ url: SCHEDULING_URL, parentElement: container });
+  const refreshStatus = useMemo(
+    () => async (emailOverride?: string) => {
+      if (!slug) return;
+      const probeEmail = (emailOverride ?? email ?? user?.email ?? "").trim().toLowerCase();
+      const { data, error } = await supabase.rpc("deal_booking_status", {
+        p_deal_slug: slug,
+        p_email: probeEmail || undefined,
+      });
+      if (error) {
+        console.warn("deal_booking_status failed:", error.message);
+        return;
       }
-    };
+      const next = (data ?? {}) as BookingStatus;
+      setStatus({
+        terms_accepted: Boolean(next.terms_accepted),
+        payment_verified: Boolean(next.payment_verified),
+        accepted_at: next.accepted_at ?? null,
+      });
+    },
+    [slug, email, user?.email],
+  );
 
-    if (existing) {
-      init();
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = "https://assets.calendly.com/assets/external/widget.js";
-    script.async = true;
-    script.dataset.calendlyWidget = "true";
-    script.onload = init;
-    document.body.appendChild(script);
-
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setStatusLoading(true);
+      await refreshStatus();
+      if (!cancelled) setStatusLoading(false);
+    })();
     return () => {
-      container.innerHTML = "";
+      cancelled = true;
     };
-  }, [step]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, user?.id]);
 
-  const goTo = (next: number) => {
-    setStep(next);
-    if (typeof window !== "undefined") window.localStorage.setItem(storageKey, String(next));
-  };
+  const maxStep = status.payment_verified ? 3 : status.terms_accepted ? 2 : 1;
+  const step = Math.min(desiredStep, maxStep);
+
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const formValid = firstName.trim().length > 0 && lastName.trim().length > 0 && emailValid && accepted;
+
+  const goTo = (next: number) => setDesiredStep(Math.max(1, Math.min(next, maxStep)));
 
   const acceptTermsAndContinue = async () => {
-    if (!accepted || !slug) return;
+    if (!formValid || !slug) return;
     setSaving(true);
+    setFormError(null);
     try {
-      if (user?.id) {
-        await supabase.from("deal_terms_acceptances").insert({
-          user_id: user.id,
-          email: user.email ?? null,
-          deal_slug: slug,
-          terms_version: TERMS_VERSION,
-        });
-      }
-    } catch {
-      // Acceptance logging must never block the booking flow.
+      // Server-side: writes deal_terms_acceptances (service role) and upserts
+      // the HubSpot contact + timeline note for the acceptance.
+      const { error } = await supabase.functions.invoke("capture-lead", {
+        body: {
+          name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          email: email.trim().toLowerCase(),
+          source: "casa_consult",
+          metadata: {
+            deal_slug: slug,
+            terms_version: TERMS_VERSION,
+            user_id: user?.id ?? null,
+            first_name: firstName.trim(),
+            last_name: lastName.trim(),
+            page_uri: typeof window !== "undefined" ? window.location.href : undefined,
+          },
+        },
+      });
+      if (error) throw error;
+      await refreshStatus(email.trim().toLowerCase());
+      setDesiredStep(2);
+    } catch (e) {
+      console.error("terms acceptance failed:", e);
+      setFormError("We could not record your acceptance. Please try again.");
     } finally {
       setSaving(false);
-      goTo(2);
     }
   };
+
+  const verifyPayment = async () => {
+    setCheckingPayment(true);
+    try {
+      await refreshStatus();
+      setDesiredStep(3);
+    } finally {
+      setCheckingPayment(false);
+    }
+  };
+
 
   // Casa Consult has two rates: the member rate (the deal's own Stripe link)
   // and the public rate reached with ?rate=public from the landing page.
@@ -137,7 +185,7 @@ export default function DealDetail() {
 
 
 
-  if (isLoading) {
+  if (isLoading || statusLoading) {
     return (
       <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
@@ -210,7 +258,7 @@ export default function DealDetail() {
             )}
             <div className="p-5 space-y-3">
               {steps.map((s) => {
-                const done = step > s.n;
+                const done = s.n === 1 ? status.terms_accepted : s.n === 2 ? status.payment_verified : false;
                 const active = step === s.n;
                 const Icon = s.icon;
                 return (
@@ -265,6 +313,55 @@ export default function DealDetail() {
                     Read the full Terms and Conditions <ExternalLink size={12} />
                   </Link>
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4 max-w-xl">
+                  <div>
+                    <label htmlFor="cc-first-name" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      First name
+                    </label>
+                    <input
+                      id="cc-first-name"
+                      type="text"
+                      required
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      maxLength={100}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="cc-last-name" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      Last name
+                    </label>
+                    <input
+                      id="cc-last-name"
+                      type="text"
+                      required
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      maxLength={100}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label htmlFor="cc-email" className="block text-[11px] uppercase tracking-widest mb-1" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
+                      Email
+                    </label>
+                    <input
+                      id="cc-email"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      maxLength={320}
+                      className="w-full px-3 py-2 text-sm outline-none"
+                      style={{ border: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-cream)", fontFamily: "'DM Sans', sans-serif" }}
+                    />
+                  </div>
+                </div>
+
                 <label className="flex items-start gap-3 mb-6 cursor-pointer">
                   <input
                     type="checkbox"
@@ -273,18 +370,31 @@ export default function DealDetail() {
                     className="mt-[3px]"
                   />
                   <span className="text-xs" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
-                    I have read and accept the Casa Consult Terms and Conditions (version {TERMS_VERSION}) in full.
+                    I have read and agree to the Casa Consult{" "}
+                    <Link
+                      to={FULL_TERMS_PATH}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                      style={{ color: "var(--aa-gold)", fontWeight: 500 }}
+                    >
+                      Terms and Conditions
+                    </Link>
                   </span>
                 </label>
+                {formError && (
+                  <p className="text-xs mb-4" style={{ color: "#b3261e", fontFamily: "'DM Sans', sans-serif" }}>{formError}</p>
+                )}
                 <button
                   type="button"
-                  disabled={!accepted || saving}
+                  disabled={!formValid || saving}
                   onClick={acceptTermsAndContinue}
                   className="px-6 py-3 text-xs uppercase tracking-widest btn-gold disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                 >
                   {saving ? "Saving…" : "Continue to payment"}
                 </button>
+
 
               </>
             )}
@@ -311,7 +421,21 @@ export default function DealDetail() {
                       Pay securely <ExternalLink size={12} />
                     </a>
                   )}
+                  <button
+                    type="button"
+                    onClick={verifyPayment}
+                    disabled={checkingPayment}
+                    className="inline-flex items-center gap-2 px-6 py-3 text-xs uppercase tracking-widest disabled:opacity-40"
+                    style={{ border: "1px solid var(--aa-gold)", color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
+                  >
+                    {checkingPayment ? "Checking…" : "I've paid, continue"}
+                  </button>
                 </div>
+                {!checkingPayment && !status.payment_verified && desiredStep >= 3 && (
+                  <p className="text-xs mt-4 leading-relaxed" style={{ color: "#b3261e", fontFamily: "'DM Sans', sans-serif" }}>
+                    We have not received a confirmed payment for this booking yet. Stripe can take a moment, please try again shortly, or contact us at contact@casaalchemystudio.com if it persists.
+                  </p>
+                )}
                 <button
                   type="button"
                   onClick={() => goTo(1)}
@@ -320,6 +444,7 @@ export default function DealDetail() {
                 >
                   ← Back to terms
                 </button>
+
               </>
             )}
 

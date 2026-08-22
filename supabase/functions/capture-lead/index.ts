@@ -20,7 +20,7 @@ const BodySchema = z.object({
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
     .transform((v) => (v && v.trim().length >= 4 ? v : null)),
-  source: z.enum(["popup", "quiz", "live_workshop", "contact"]),
+  source: z.enum(["popup", "quiz", "live_workshop", "contact", "casa_consult"]),
   message: z.string().trim().max(5000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
@@ -63,10 +63,11 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-type LeadSource = "popup" | "quiz" | "live_workshop" | "contact";
+type LeadSource = "popup" | "quiz" | "live_workshop" | "contact" | "casa_consult";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
   if (source === "contact") return "Contact Form";
+  if (source === "casa_consult") return "Casa Consult — Terms Accepted";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
@@ -247,6 +248,43 @@ async function addToStaticList(contactId: string): Promise<void> {
     console.warn(`hubspot list add [${res.status}]: ${body}`);
   } else {
     await res.text();
+  }
+}
+
+// Writes a note on the contact's HubSpot timeline (activity feed).
+async function logHubspotNote(contactId: string, body: string): Promise<string | null> {
+  if (!HUBSPOT_TOKEN) return "HUBSPOT_PRIVATE_APP_TOKEN not configured";
+  try {
+    const res = await fetch(`${HUBSPOT_BASE}/crm/v3/objects/notes`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${HUBSPOT_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        properties: {
+          hs_note_body: body,
+          hs_timestamp: new Date().toISOString(),
+        },
+        associations: [
+          {
+            to: { id: contactId },
+            types: [{ associationCategory: "HUBSPOT_DEFINED", associationTypeId: 202 }],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) {
+      const text = await res.text();
+      console.warn(`hubspot note [${res.status}]: ${text}`);
+      return `hubspot note failed [${res.status}]: ${text}`;
+    }
+    await res.text();
+    return null;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.warn("hubspot note threw:", msg);
+    return msg;
   }
 }
 
@@ -631,6 +669,30 @@ Deno.serve(async (req) => {
     workshop = wRow ?? null;
   }
   const workshopTitle = workshop?.title ?? null;
+  // Casa Consult booking gate: persist the terms acceptance server-side so the
+  // stepper can verify step 1 against a real record instead of localStorage.
+  if (source === "casa_consult") {
+    const dealSlug = typeof metadata?.deal_slug === "string" ? metadata.deal_slug : "casa-consult";
+    const termsVersion = typeof metadata?.terms_version === "string" ? metadata.terms_version : "1.0";
+    const acceptingUserId = typeof metadata?.user_id === "string" ? metadata.user_id : null;
+    const { error: acceptErr } = await supabase.from("deal_terms_acceptances").insert({
+      user_id: acceptingUserId,
+      email,
+      first_name: firstname || null,
+      last_name: lastname || null,
+      deal_slug: dealSlug,
+      terms_version: termsVersion,
+      ip_hash: ipHash,
+    });
+    if (acceptErr) {
+      console.error("deal_terms_acceptances insert failed:", acceptErr);
+      return new Response(JSON.stringify({ error: "acceptance_storage_failed" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  }
+
   const hubspotCookie = (req.headers.get("cookie") ?? "").match(/(?:^|;\s*)hubspotutk=([^;]+)/)?.[1] ?? null;
   let hubspotContactId: string | null = null;
   let hubspotError: string | null = null;
@@ -641,6 +703,15 @@ Deno.serve(async (req) => {
     hubspotContactId = upserted.id;
     hubspotError = upserted.error;
     if (upserted.id) await addToStaticList(upserted.id);
+    if (upserted.id && source === "casa_consult") {
+      const dealSlug = typeof metadata?.deal_slug === "string" ? metadata.deal_slug : "casa-consult";
+      const termsVersion = typeof metadata?.terms_version === "string" ? metadata.terms_version : "1.0";
+      const noteErr = await logHubspotNote(
+        upserted.id,
+        `Casa Consult Terms &amp; Conditions accepted.<br/>Version: ${termsVersion}<br/>Deal: ${dealSlug}<br/>Accepted at: ${new Date().toISOString()}`,
+      );
+      if (noteErr) hubspotError = hubspotError ? `${hubspotError}; ${noteErr}` : noteErr;
+    }
     const formErr = await submitHubspotForm({
       email,
       firstname,
@@ -673,7 +744,10 @@ Deno.serve(async (req) => {
   // sequence.
   let emailProvider: "gmail" | "resend" | "failed" | "skipped" = "failed";
   try {
-    if (source === "contact") {
+    if (source === "casa_consult") {
+      // Booking confirmation emails are handled by Calendly; nothing to send here.
+      emailProvider = "skipped";
+    } else if (source === "contact") {
       emailProvider = await sendContactEmails({
         to: email,
         name,
@@ -705,7 +779,9 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
-      redirect: source === "contact"
+      redirect: source === "casa_consult"
+        ? null
+        : source === "contact"
         ? "/"
         : source === "live_workshop" && workshop
           ? `/ask-the-expert/${workshop.slug}`
