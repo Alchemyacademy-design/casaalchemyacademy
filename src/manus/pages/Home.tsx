@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import WaitlistDialog, { type WaitlistPlan } from "@/manus/components/WaitlistDialog";
+import WaitlistDialog from "@/manus/components/WaitlistDialog";
 import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -103,7 +103,7 @@ export default function Home() {
     // Signed-in visitors bypass the marketing landing page.
     if (isAuthenticated && !isAdmin) navigate("/dashboard", { replace: true });
   }, [isAuthenticated, isAdmin, navigate]);
-  const [waitlistPlan, setWaitlistPlan] = useState<WaitlistPlan | null>(null);
+  const [waitlistOpen, setWaitlistOpen] = useState(false);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [contactSubmitting, setContactSubmitting] = useState(false);
@@ -683,9 +683,8 @@ export default function Home() {
                   per: "/ month",
                   sub: "USD 708 billed annually",
                   save: "Save USD 480",
-                  cta: "Join the Waitlist",
-                  action: () => setWaitlistPlan("annual"),
-                  waitlist: true,
+                  cta: null,
+                  action: null,
                   intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -707,9 +706,8 @@ export default function Home() {
                   per: "/ month",
                   sub: "Billed monthly",
                   save: "No commitment",
-                  cta: "Join the Waitlist",
-                  action: () => setWaitlistPlan("monthly"),
-                  waitlist: true,
+                  cta: null,
+                  action: null,
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -732,7 +730,6 @@ export default function Home() {
                   save: "No commitment",
                   cta: "Choose Course",
                   action: () => navigate("/choose-course"),
-                  waitlist: false,
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
