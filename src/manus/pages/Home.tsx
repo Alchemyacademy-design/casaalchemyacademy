@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import SubscribeModal from "@/manus/components/SubscribeModal";
+import WaitlistDialog, { type WaitlistPlan } from "@/manus/components/WaitlistDialog";
 import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -103,7 +103,7 @@ export default function Home() {
     // Signed-in visitors bypass the marketing landing page.
     if (isAuthenticated && !isAdmin) navigate("/dashboard", { replace: true });
   }, [isAuthenticated, isAdmin, navigate]);
-  const [subscribeModal, setSubscribeModal] = useState<"annual" | "monthly" | "guide" | null>(null);
+  const [waitlistPlan, setWaitlistPlan] = useState<WaitlistPlan | null>(null);
   const [contactModal, setContactModal] = useState(false);
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [contactSubmitting, setContactSubmitting] = useState(false);
@@ -582,6 +582,10 @@ export default function Home() {
               .cta-btn:focus-visible { outline: 3px solid var(--aa-gold-light); outline-offset: 3px; }
               .cta-btn-primary { font-size: 0.95rem; letter-spacing: 0.2em; min-height: 64px; box-shadow: 0 12px 30px -9px rgba(145,69,33,0.75), inset 0 1px 0 rgba(255,255,255,0.25); animation: subscribePulse 2.2s infinite; }
               .cta-btn-primary:hover { animation: none; }
+              /* Pre-launch: subscription checkout is disabled, plan cards capture waitlist emails instead. Muted, non-gold styling signals subscriptions are not open yet. */
+              .cta-btn-waitlist { background: linear-gradient(180deg, #b9b3a7 0%, #9c9589 100%); opacity: 0.75; box-shadow: 0 6px 16px -8px rgba(60,52,40,0.5), inset 0 1px 0 rgba(255,255,255,0.15); animation: none; }
+              .cta-btn-waitlist:hover { transform: none; filter: none; letter-spacing: 0.18em; box-shadow: 0 6px 16px -8px rgba(60,52,40,0.5), inset 0 1px 0 rgba(255,255,255,0.15); }
+              .cta-btn-waitlist:hover::after { left: -120%; }
               .cta-btn .arrow { transition: transform .25s ease; }
               .cta-btn:hover .arrow { transform: translateX(4px); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
@@ -679,8 +683,9 @@ export default function Home() {
                   per: "/ month",
                   sub: "USD 708 billed annually",
                   save: "Save USD 480",
-                  cta: "Subscribe Now",
-                  action: () => setSubscribeModal("annual"),
+                  cta: "Join the Waitlist",
+                  action: () => setWaitlistPlan("annual"),
+                  waitlist: true,
                   intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
                   items: [
                     "Unlimited access to every course in the library for 12 months, including all courses released during your year",
@@ -702,8 +707,9 @@ export default function Home() {
                   per: "/ month",
                   sub: "Billed monthly",
                   save: "No commitment",
-                  cta: "Subscribe Now",
-                  action: () => setSubscribeModal("monthly"),
+                  cta: "Join the Waitlist",
+                  action: () => setWaitlistPlan("monthly"),
+                  waitlist: true,
                   intro: "Full library access, month by month. Cancel whenever you want.",
                   items: [
                     "Unlimited access to every course while your subscription is active",
@@ -726,6 +732,7 @@ export default function Home() {
                   save: "No commitment",
                   cta: "Choose Course",
                   action: () => navigate("/choose-course"),
+                  waitlist: false,
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
@@ -754,7 +761,7 @@ export default function Home() {
                     ))}
                   </ul>
                   <div className="plan-detail-cta">
-                    <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                    <button onClick={plan.action} className={`cta-btn${plan.waitlist ? " cta-btn-waitlist" : plan.best ? " cta-btn-primary" : ""}`}>
                       {plan.cta}
                       <span className="arrow" aria-hidden="true">→</span>
                     </button>
@@ -1008,7 +1015,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {subscribeModal && <SubscribeModal type={subscribeModal} onClose={() => setSubscribeModal(null)} />}
+      {waitlistPlan && <WaitlistDialog plan={waitlistPlan} onClose={() => setWaitlistPlan(null)} />}
 
       {contactModal && (
         <div style={{

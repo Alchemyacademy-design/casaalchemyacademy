@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.17"
   }
   public: {
     Tables: {
@@ -3364,6 +3364,7 @@ export type Database = {
         | "live_workshop"
         | "contact"
         | "casa_consult"
+        | "waitlist"
       lesson_kind:
         | "video"
         | "text"
@@ -3579,6 +3580,7 @@ export const Constants = {
         "live_workshop",
         "contact",
         "casa_consult",
+        "waitlist",
       ],
       lesson_kind: [
         "video",
