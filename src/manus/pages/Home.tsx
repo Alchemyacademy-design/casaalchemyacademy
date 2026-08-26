@@ -758,10 +758,29 @@ export default function Home() {
                     ))}
                   </ul>
                   <div className="plan-detail-cta">
-                    <button onClick={plan.action} className={`cta-btn${plan.waitlist ? " cta-btn-waitlist" : plan.best ? " cta-btn-primary" : ""}`}>
-                      {plan.cta}
-                      <span className="arrow" aria-hidden="true">→</span>
-                    </button>
+                    {plan.cta && plan.action ? (
+                      <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        {plan.cta}
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </button>
+                    ) : (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "0.7rem 1.6rem",
+                          border: "1px dashed var(--aa-cream-dark)",
+                          borderRadius: "999px",
+                          color: "var(--aa-olive-dark)",
+                          opacity: 0.65,
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: "0.72rem",
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Opens soon
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
@@ -1012,7 +1031,7 @@ export default function Home() {
         </div>
       </footer>
 
-      {waitlistPlan && <WaitlistDialog plan={waitlistPlan} onClose={() => setWaitlistPlan(null)} />}
+      {waitlistOpen && <WaitlistDialog onClose={() => setWaitlistOpen(false)} />}
 
       {contactModal && (
         <div style={{
