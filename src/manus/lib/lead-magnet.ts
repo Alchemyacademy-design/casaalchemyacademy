@@ -4,7 +4,7 @@ const DISMISS_KEY = "casa.leadPopupDismissedAt";
 const SUBMIT_KEY = "casa.leadSubmittedAt";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-export type LeadSource = "popup" | "quiz";
+export type LeadSource = "popup" | "quiz" | "waitlist";
 
 export interface LeadPayload {
   name: string;
@@ -47,7 +47,7 @@ export function markLeadSubmitted(): void {
   } catch { /* noop */ }
 }
 
-export async function submitLead(payload: LeadPayload): Promise<{ ok: true; redirect: string; leadId?: number }> {
+export async function submitLead(payload: LeadPayload): Promise<{ ok: true; redirect: string | null; leadId?: number }> {
   const { data, error } = await supabase.functions.invoke("capture-lead", {
     body: payload,
   });

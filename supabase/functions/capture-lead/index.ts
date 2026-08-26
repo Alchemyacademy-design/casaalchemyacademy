@@ -20,7 +20,7 @@ const BodySchema = z.object({
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
     .transform((v) => (v && v.trim().length >= 4 ? v : null)),
-  source: z.enum(["popup", "quiz", "live_workshop", "contact", "casa_consult"]),
+  source: z.enum(["popup", "quiz", "live_workshop", "contact", "casa_consult", "waitlist"]),
   message: z.string().trim().max(5000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   // Honeypot: legitimate clients leave this empty. Bots often fill it.
@@ -63,11 +63,12 @@ const GMAIL_GATEWAY = "https://connector-gateway.lovable.dev/google_mail/gmail/v
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000; // 1 hour
 
-type LeadSource = "popup" | "quiz" | "live_workshop" | "contact" | "casa_consult";
+type LeadSource = "popup" | "quiz" | "live_workshop" | "contact" | "casa_consult" | "waitlist";
 
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
   if (source === "contact") return "Contact Form";
   if (source === "casa_consult") return "Casa Consult — Terms Accepted";
+  if (source === "waitlist") return placement ? `Membership Waitlist — ${placement}` : "Membership Waitlist";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
@@ -393,6 +394,36 @@ async function deliverEmail(input: {
   }
   await res.text();
   return "resend";
+}
+
+// Waitlist signup acknowledgment. Sent when a landing-page visitor joins the
+// membership waitlist from the pricing section (pre-launch top-of-funnel).
+async function sendWaitlistConfirmationEmail(input: {
+  to: string;
+  name: string;
+  planLabel?: string;
+  lessonPageUrl: string;
+}): Promise<"gmail" | "resend" | "failed"> {
+  const firstName = input.name.trim().split(/\s+/)[0] ?? "";
+  const planLine = input.planLabel
+    ? `You joined from the <strong>${escapeHtml(input.planLabel)}</strong> plan, so we know exactly what you're after.`
+    : "";
+  const subject = "You're on the waitlist — Alchemy Academy";
+  const html = `
+    <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">You're on the list, ${escapeHtml(firstName)}.</h1>
+      <p style="font-size:15px;line-height:1.6;">Memberships aren't open just yet, but your spot is saved. ${planLine} You'll be the first to know the moment doors open, with early access before we announce it publicly.</p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">While you wait</h2>
+      <p style="font-size:15px;line-height:1.6;">Watch a full lesson free: <strong>How to Mix Prints</strong>, with Lorena Couto — a preview of how we teach inside the Academy.</p>
+      <p style="margin:20px 0 28px;">
+        <a href="${input.lessonPageUrl}" style="display:inline-block;background:#2a2a2a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:500;letter-spacing:0.02em;">Watch the free lesson</a>
+      </p>
+      <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
+      <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
+    </div>`;
+  const plaintext = `You're on the list, ${firstName}.\n\nMemberships aren't open just yet, but your spot is saved.${input.planLabel ? ` You joined from the ${input.planLabel} plan.` : ""} You'll be the first to know the moment doors open, with early access before we announce it publicly.\n\nWhile you wait, watch a full lesson free — How to Mix Prints, with Lorena Couto:\n${input.lessonPageUrl}\n\nCasa Alchemy Studio`;
+  return deliverEmail({ to: input.to, subject, html, plaintext });
 }
 
 function formatWorkshopWhen(startsAt: string, endsAt: string | null): string {
@@ -747,6 +778,13 @@ Deno.serve(async (req) => {
     if (source === "casa_consult") {
       // Booking confirmation emails are handled by Calendly; nothing to send here.
       emailProvider = "skipped";
+    } else if (source === "waitlist") {
+      emailProvider = await sendWaitlistConfirmationEmail({
+        to: email,
+        name,
+        planLabel: typeof metadata?.plan_label === "string" ? metadata.plan_label : undefined,
+        lessonPageUrl,
+      });
     } else if (source === "contact") {
       emailProvider = await sendContactEmails({
         to: email,
@@ -779,7 +817,7 @@ Deno.serve(async (req) => {
   return new Response(
     JSON.stringify({
       ok: true,
-      redirect: source === "casa_consult"
+      redirect: source === "casa_consult" || source === "waitlist"
         ? null
         : source === "contact"
         ? "/"
