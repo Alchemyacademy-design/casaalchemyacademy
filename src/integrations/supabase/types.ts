@@ -3364,6 +3364,7 @@ export type Database = {
         | "live_workshop"
         | "contact"
         | "casa_consult"
+        | "waitlist"
       lesson_kind:
         | "video"
         | "text"
@@ -3579,6 +3580,7 @@ export const Constants = {
         "live_workshop",
         "contact",
         "casa_consult",
+        "waitlist",
       ],
       lesson_kind: [
         "video",
