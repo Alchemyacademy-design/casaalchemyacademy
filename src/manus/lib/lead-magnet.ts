@@ -8,6 +8,10 @@ export type LeadSource = "popup" | "quiz" | "waitlist";
 
 export interface LeadPayload {
   name: string;
+  /** Optional explicit split; when present the edge function uses these for
+   *  HubSpot firstname/lastname instead of splitting `name`. */
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   source: LeadSource;

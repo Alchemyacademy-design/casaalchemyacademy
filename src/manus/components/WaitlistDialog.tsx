@@ -8,33 +8,38 @@ import { toast } from "sonner";
 import { submitLead } from "@/manus/lib/lead-magnet";
 
 const Schema = z.object({
-  name: z.string().trim().min(1, "Please enter your name").max(200),
+  firstName: z.string().trim().min(1, "Please enter your first name").max(100),
+  lastName: z.string().trim().min(1, "Please enter your last name").max(100),
   email: z.string().trim().email("Please enter a valid email").max(320),
 });
 
-export type WaitlistPlan = "annual" | "monthly";
+export type WaitlistPlan = "annual" | "monthly" | "undecided";
 
 const PLAN_LABELS: Record<WaitlistPlan, string> = {
   annual: "Annual Member",
   monthly: "Monthly Member",
+  undecided: "Not sure yet",
 };
 
 /**
- * Pre-launch waitlist capture. Opened from the landing-page pricing cards in
- * place of checkout while subscriptions are closed. Stores the email in
+ * Pre-launch waitlist capture. Opened from the single shared CTA below the
+ * landing-page pricing cards while memberships are closed. Stores the lead in
  * public.leads (source = "waitlist") via the capture-lead edge function, which
- * also syncs HubSpot and sends a confirmation email.
+ * also syncs HubSpot (firstname/lastname as separate contact properties) and
+ * sends a confirmation email.
  */
-export default function WaitlistDialog({ plan, onClose }: { plan: WaitlistPlan; onClose: () => void }) {
-  const [name, setName] = useState("");
+export default function WaitlistDialog({ onClose }: { onClose: () => void }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [plan, setPlan] = useState<WaitlistPlan>("undecided");
   const [website, setWebsite] = useState(""); // honeypot
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parse = Schema.safeParse({ name, email });
+    const parse = Schema.safeParse({ firstName, lastName, email });
     if (!parse.success) {
       toast.error(parse.error.issues[0]?.message ?? "Please review the form");
       return;
@@ -42,14 +47,18 @@ export default function WaitlistDialog({ plan, onClose }: { plan: WaitlistPlan; 
     setBusy(true);
     try {
       await submitLead({
-        name: parse.data.name,
+        name: `${parse.data.firstName} ${parse.data.lastName}`,
+        firstName: parse.data.firstName,
+        lastName: parse.data.lastName,
         email: parse.data.email,
         phone: "",
         source: "waitlist",
         metadata: {
           plan,
           plan_label: PLAN_LABELS[plan],
-          placement: `Pricing — ${PLAN_LABELS[plan]}`,
+          // Only set placement when a concrete plan was chosen, so the HubSpot
+          // lead-source label stays "Academy Waitlist" for undecided leads.
+          ...(plan !== "undecided" ? { placement: PLAN_LABELS[plan] } : {}),
           page_uri: window.location.href,
         },
         website,
@@ -61,6 +70,8 @@ export default function WaitlistDialog({ plan, onClose }: { plan: WaitlistPlan; 
       setBusy(false);
     }
   }
+
+  const planOptions: WaitlistPlan[] = ["annual", "monthly", "undecided"];
 
   return (
     <Dialog open onOpenChange={(next) => { if (!next) onClose(); }}>
@@ -81,18 +92,44 @@ export default function WaitlistDialog({ plan, onClose }: { plan: WaitlistPlan; 
             <DialogHeader>
               <DialogTitle className="font-serif text-2xl font-normal">Join the waitlist.</DialogTitle>
               <DialogDescription>
-                Memberships open soon. Leave your details and you'll be first in line for the <strong>{PLAN_LABELS[plan]}</strong> plan, with early access before the public launch.
+                Memberships open soon. Leave your details and you'll be first in line, with early access before the public launch.
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={onSubmit} className="space-y-3">
-              <div>
-                <Label htmlFor="wl-name" className="text-xs text-foreground/70">Name</Label>
-                <Input id="wl-name" required value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="wl-first-name" className="text-xs text-foreground/70">First Name</Label>
+                  <Input id="wl-first-name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} autoComplete="given-name" />
+                </div>
+                <div>
+                  <Label htmlFor="wl-last-name" className="text-xs text-foreground/70">Last Name</Label>
+                  <Input id="wl-last-name" required value={lastName} onChange={(e) => setLastName(e.target.value)} autoComplete="family-name" />
+                </div>
               </div>
               <div>
                 <Label htmlFor="wl-email" className="text-xs text-foreground/70">Email</Label>
                 <Input id="wl-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
               </div>
+              <fieldset>
+                <legend className="text-xs text-foreground/70 mb-1.5">Which plan are you interested in?</legend>
+                <div className="grid grid-cols-3 gap-2">
+                  {planOptions.map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => setPlan(option)}
+                      aria-pressed={plan === option}
+                      className={`rounded-md border px-2 py-2 text-xs transition-colors ${
+                        plan === option
+                          ? "border-foreground bg-foreground text-background"
+                          : "border-input bg-transparent text-foreground/80 hover:bg-accent"
+                      }`}
+                    >
+                      {PLAN_LABELS[option]}
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
               {/* Honeypot: hidden from users, catches bots */}
               <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}>
                 <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
