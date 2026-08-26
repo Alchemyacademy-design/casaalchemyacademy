@@ -17,6 +17,10 @@ import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
 
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
+  // Optional explicit name split (e.g. waitlist form). When present these win
+  // over splitting `name`, so HubSpot firstname/lastname are always correct.
+  firstName: z.string().trim().min(1).max(100).optional(),
+  lastName: z.string().trim().min(1).max(100).optional(),
   email: z.string().trim().email().max(320).transform((v) => v.toLowerCase()),
   phone: z.string().trim().min(4).max(40).optional().or(z.literal(""))
     .transform((v) => (v && v.trim().length >= 4 ? v : null)),
@@ -68,7 +72,7 @@ type LeadSource = "popup" | "quiz" | "live_workshop" | "contact" | "casa_consult
 function labelForLead(source: LeadSource, placement?: string, workshopTitle?: string | null): string {
   if (source === "contact") return "Contact Form";
   if (source === "casa_consult") return "Casa Consult — Terms Accepted";
-  if (source === "waitlist") return placement ? `Membership Waitlist — ${placement}` : "Membership Waitlist";
+  if (source === "waitlist") return placement ? `Academy Waitlist — ${placement}` : "Academy Waitlist";
   if (source === "live_workshop") {
     return workshopTitle
       ? `Ask the Expert LIVE — ${workshopTitle}`
@@ -575,7 +579,7 @@ Deno.serve(async (req) => {
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const { name, email, phone, source, metadata, website, message } = parsed.data;
+  const { name, firstName, lastName, email, phone, source, metadata, website, message } = parsed.data;
   if (website && website.length > 0) {
     // Silently accept honeypot hits but do nothing else.
     return new Response(JSON.stringify({ ok: true, redirect: "/free-lesson" }), {
@@ -678,7 +682,9 @@ Deno.serve(async (req) => {
 
   // HubSpot sync — non-blocking (log on failure, still return success so the
   // visitor gets the free lesson).
-  const { firstname, lastname } = splitName(name);
+  const split = splitName(name);
+  const firstname = firstName ?? split.firstname;
+  const lastname = lastName ?? split.lastname;
   // Workshop context (public "Ask the Expert LIVE" landing page).
   const workshopId = typeof metadata?.workshop_id === "number"
     ? metadata.workshop_id
