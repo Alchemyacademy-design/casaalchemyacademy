@@ -112,6 +112,17 @@ export default function Home() {
   const [contactError, setContactError] = useState<string | null>(null);
   const [showMemberNotice, setShowMemberNotice] = useState(false);
 
+  // ── Launch Week promo visibility ──
+  // AEST is UTC+10 (no daylight saving in September). Update the ISO strings
+  // below to change the promo window; the section only renders while the current
+  // time falls between start and end.
+  const isLaunchWeekActive = useMemo(() => {
+    const start = new Date("2026-09-22T08:00:00+10:00");
+    const end = new Date("2026-09-25T23:59:59+10:00");
+    const now = new Date();
+    return now >= start && now <= end;
+  }, []);
+
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
     setContactSubmitting(true);
