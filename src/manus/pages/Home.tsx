@@ -8,6 +8,7 @@ import CourseCard, { type CourseCardData } from "@/manus/components/learning/Cou
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { toast } from "sonner";
+import { Lock } from "lucide-react";
 import freeLessonBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
@@ -744,7 +745,12 @@ export default function Home() {
               ].map((plan) => (
                 <div key={plan.name} className={`plan-detail-card${plan.best ? " is-best" : ""}`}>
                   {plan.best && <span className="plan-detail-badge">Best value</span>}
-                  <p className="plan-detail-name">{plan.name}</p>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <p className="plan-detail-name" style={{ marginBottom: 0 }}>{plan.name}</p>
+                    {plan.name !== "Individual Course" && (
+                      <Lock size={18} style={{ color: "var(--aa-text-mid)", opacity: 0.55, flexShrink: 0 }} aria-label="Membership closed" />
+                    )}
+                  </div>
                   <p className="plan-card-price">
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
