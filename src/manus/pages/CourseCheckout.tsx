@@ -16,7 +16,7 @@ const CHARITIES = [
 
 const INCLUDED = [
   "Every lesson of the course you choose — videos and written guides",
-  "Downloadable support materials for that course",
+  "Access to the Master Guides for that course",
   "Quizzes and the completion certificate in your name",
   "3 months of access from the moment your payment is confirmed",
   "Your own member account, with progress tracking",
