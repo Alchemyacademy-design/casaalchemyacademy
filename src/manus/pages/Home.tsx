@@ -827,35 +827,36 @@ export default function Home() {
                 </div>
               ))}
             </div>
-            {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
-            <div style={{ textAlign: "center", marginTop: "3rem" }}>
-              <p
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  fontSize: "1.5rem",
-                  color: "var(--aa-olive-dark)",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                Memberships open soon.
-              </p>
-              <p
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 300,
-                  color: "var(--aa-olive-dark)",
-                  opacity: 0.75,
-                  maxWidth: "34rem",
-                  margin: "0 auto 1.5rem",
-                }}
-              >
-                Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch.
-              </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn cta-btn-waitlist">
-                Join the Waitlist
-                <span className="arrow" aria-hidden="true">→</span>
-              </button>
-            </div>
+          </div>
+
+          {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
+          <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "5rem" }}>
+            <p
+              style={{
+                fontFamily: "'Instrument Serif', Georgia, serif",
+                fontSize: "1.5rem",
+                color: "var(--aa-cream)",
+                marginBottom: "0.5rem",
+              }}
+            >
+              Memberships open soon.
+            </p>
+            <p
+              style={{
+                fontFamily: "'DM Sans', sans-serif",
+                fontWeight: 300,
+                color: "var(--aa-cream)",
+                opacity: 0.85,
+                maxWidth: "34rem",
+                margin: "0 auto 1.5rem",
+              }}
+            >
+              Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch.
+            </p>
+            <button onClick={() => setWaitlistOpen(true)} className="cta-btn cta-btn-waitlist">
+              Join the Waitlist
+              <span className="arrow" aria-hidden="true">→</span>
+            </button>
           </div>
         </div>
         </div>
