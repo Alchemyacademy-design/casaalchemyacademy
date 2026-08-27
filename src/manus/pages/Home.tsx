@@ -650,7 +650,7 @@ export default function Home() {
                 .plan-details { gap: 1.25rem; }
                 table.pricing-table { display: table; min-width: 660px; }
                 table.pricing-table th, table.pricing-table td { padding: .85rem .7rem !important; font-size: .76rem; }
-                .currency-note { order: 4; margin-top: 1rem; }
+                .currency-note { margin-top: 1rem; }
                 .plan-detail-card { padding: 1.5rem; border-radius: 14px; position: relative; }
                 .plan-detail-card.is-best { }
                 .plan-detail-price { font-size: 1rem; }
