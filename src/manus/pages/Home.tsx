@@ -830,7 +830,7 @@ export default function Home() {
           </div>
 
           {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
-          <div style={{ textAlign: "center", marginTop: "5rem" }}>
+          <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "5rem" }}>
             <p
               style={{
                 fontFamily: "'Instrument Serif', Georgia, serif",
