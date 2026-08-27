@@ -702,8 +702,35 @@ export default function Home() {
               </tbody>
             </table>
             </div>
-            <p className="currency-note">All prices are in US Dollars (USD).</p>
-            <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
+            {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
+            <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "2.5rem", marginBottom: "0" }}>
+              <p
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontSize: "1.5rem",
+                  color: "var(--aa-cream)",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                Memberships open soon.
+              </p>
+              <p
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 300,
+                  color: "var(--aa-cream)",
+                  opacity: 0.85,
+                  maxWidth: "34rem",
+                  margin: "0 auto 1.5rem",
+                }}
+              >
+                Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch.
+              </p>
+              <button onClick={() => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
+                Join the Waitlist
+                <span className="arrow" aria-hidden="true">→</span>
+              </button>
+            </div>
             <div className="plan-details">
               {[
                 {
