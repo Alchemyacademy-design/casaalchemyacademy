@@ -8,6 +8,7 @@ import CourseCard, { type CourseCardData } from "@/manus/components/learning/Cou
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { toast } from "sonner";
+import { Lock } from "lucide-react";
 import freeLessonBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
