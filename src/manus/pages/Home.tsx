@@ -848,8 +848,8 @@ export default function Home() {
                 </div>
               ))}
             </div>
-          <p className="currency-note">All prices are in US Dollars (USD).</p>
-          <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
+            <p className="currency-note">All prices are in US Dollars (USD).</p>
+            <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
           </div>
         </div>
         </div>
