@@ -836,31 +836,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Launch Week promo ──
-           Visible only between 8:00am AEST Tue 22 Sep 2026 and 11:59pm AEST Fri 25 Sep 2026.
-           AEST is UTC+10. Adjust the ISO strings in the date check above to change the window. */}
-      {isLaunchWeekActive && (
-        <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "4rem 0" }}>
-          <div className="container">
-            <div className="max-w-2xl mx-auto text-center">
-              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK · SEPT 22–25</p>
-              <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
-                Founding member pricing: USD 649/year
-              </h2>
-              <p className="mb-3" style={{ color: "rgba(245,240,232,0.85)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Regular price USD 708/year — save a full month, locked in for as long as you stay a member.
-              </p>
-              <p className="mb-8" style={{ color: "rgba(245,240,232,0.85)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Plus a free Mini-Casa Consult of 30 minutes for the first 10 founding members.
-              </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn">
-                Join the Waitlist
-                <span className="arrow" aria-hidden="true">→</span>
-              </button>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* ── Giving Back to Community ── */}
       <section style={{ backgroundColor: "var(--aa-cream)", padding: "4rem 0" }}>
