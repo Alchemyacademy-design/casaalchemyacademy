@@ -619,14 +619,10 @@ export default function Home() {
               .cta-btn:focus-visible { outline: 3px solid var(--aa-gold-light); outline-offset: 3px; }
               .cta-btn-primary { font-size: 0.95rem; letter-spacing: 0.2em; min-height: 64px; box-shadow: 0 12px 30px -9px rgba(145,69,33,0.75), inset 0 1px 0 rgba(255,255,255,0.25); animation: subscribePulse 2.2s infinite; }
               .cta-btn-primary:hover { animation: none; }
-              /* Pre-launch: subscription checkout is disabled, plan cards capture waitlist emails instead. Muted, non-gold styling signals subscriptions are not open yet. */
-              .cta-btn-waitlist { background: linear-gradient(180deg, #b9b3a7 0%, #9c9589 100%); opacity: 0.75; box-shadow: 0 6px 16px -8px rgba(60,52,40,0.5), inset 0 1px 0 rgba(255,255,255,0.15); animation: none; }
-              .cta-btn-waitlist:hover { transform: none; filter: none; letter-spacing: 0.18em; box-shadow: 0 6px 16px -8px rgba(60,52,40,0.5), inset 0 1px 0 rgba(255,255,255,0.15); }
-              .cta-btn-waitlist:hover::after { left: -120%; }
               .cta-btn .arrow { transition: transform .25s ease; }
               .cta-btn:hover .arrow { transform: translateX(4px); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
-              .cooling-off-note { order: 5; text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
+              .cooling-off-note { text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
               .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
               .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; display: flex; flex-direction: column; }
               .plan-detail-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -18px rgba(145,69,33,0.55); }
@@ -647,10 +643,8 @@ export default function Home() {
               .plan-card-price .sub { display: block; font-size: 0.8rem; font-weight: 300; color: var(--aa-text-mid); margin-top: 0.45rem; }
               .plan-card-price .save { display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--aa-gold); letter-spacing: 0.1em; margin-top: 0.45rem; text-transform: uppercase; background: rgba(218,180,105,0.12); padding: 3px 8px; border-radius: 6px; }
               .pricing-shell { display: flex; flex-direction: column; }
-              .plan-details { order: 1; margin-top: 0; }
-              .mobile-table-note { order: 2; display: block; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .75rem; letter-spacing: .06em; margin: 2.5rem 0 .75rem; }
-              .pricing-table-scroll { order: 3; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
-              .currency-note { order: 4; }
+              .mobile-table-note { display: block; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .75rem; letter-spacing: .06em; margin: 2.5rem 0 .75rem; }
+              .pricing-table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
               @media (max-width: 900px) { .plan-details { grid-template-columns: 1fr; } .plan-detail-card.is-best { transform: none; } .plan-detail-card.is-best:hover { transform: translateY(-5px); } }
               @media (max-width: 767px) {
                 .plan-details { gap: 1.25rem; }
