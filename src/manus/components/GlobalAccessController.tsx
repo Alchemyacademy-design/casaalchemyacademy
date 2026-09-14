@@ -36,9 +36,11 @@ const unpaidAllowedPaths = new Set([
   "/payment/cancel",
 ]);
 
+// Note: /community is intentionally NOT membership-only. Course-only students
+// reach a teaser view (space/channel names) with an "Unlock access by
+// subscribing" panel; the database still blocks them from reading any posts.
 const membershipOnlyPrefixes = [
   "/dashboard",
-  "/community",
   "/suppliers",
   "/events",
   "/magazine",

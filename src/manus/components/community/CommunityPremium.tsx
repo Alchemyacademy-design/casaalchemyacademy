@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
   Pencil,
@@ -329,7 +330,8 @@ export default function CommunityPremium({
   initialDraftTitle,
   initialDraftBody,
 }: Props) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isMember, activeEntitlements } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.id ?? null;
   const { data: spaces = [], isLoading: spacesLoading, isError: spacesError, refetch: refetchSpaces } = useSpaces();
   const [spaceId, setSpaceId] = useState<number | null>(null);
@@ -559,6 +561,15 @@ export default function CommunityPremium({
 
   const activeSpace = spaces.find((space) => space.id === spaceId) ?? null;
   const activeChannel = channels.find((channel) => channel.id === channelId) ?? null;
+
+  // Spaces and channels are listed for every signed-in user as a teaser, but
+  // only members, admins and students who own the linked course may read or
+  // post inside. The database enforces this; this flag only shapes the UI.
+  const canParticipate =
+    isAdmin ||
+    isMember ||
+    (activeSpace?.course_id != null &&
+      activeEntitlements.some((e) => e.course_id === activeSpace.course_id));
 
   async function publishPost() {
     if (!draftBody.trim()) return;
@@ -931,7 +942,7 @@ export default function CommunityPremium({
           </div>
         </header>
 
-        {activeChannel && (
+        {activeChannel && canParticipate && (
           <div className="aa-community-toolbar">
             <label>
               <Search size={15} />
@@ -963,6 +974,19 @@ export default function CommunityPremium({
           </div>
         )}
 
+        {activeChannel && !canParticipate && (
+          <div className="aa-community-state" style={{ margin: "1.5rem" }}>
+            <Lock size={20} />
+            <p style={{ fontWeight: 600 }}>This conversation is for members</p>
+            <p>
+              You can see what happens in #{activeChannel.name}, but reading and posting is part of
+              the membership.
+            </p>
+            <Button onClick={() => navigate("/plans")}>Unlock access by subscribing</Button>
+          </div>
+        )}
+
+        {canParticipate && (
         <ScrollArea className="aa-community-feed">
           <div className="aa-community-feed-inner">
             {activeChannel && CHANNEL_GUIDES[activeChannel.slug] && (() => {
@@ -1118,8 +1142,9 @@ export default function CommunityPremium({
             )}
           </div>
         </ScrollArea>
+        )}
 
-        {activeChannel && userId && (
+        {activeChannel && userId && canParticipate && (
           <footer className="aa-community-composer" ref={composerRef}>
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
