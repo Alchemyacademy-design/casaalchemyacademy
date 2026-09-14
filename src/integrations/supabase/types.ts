@@ -746,7 +746,6 @@ export type Database = {
           description: string | null
           estimated_duration: number | null
           external_landing_url: string | null
-          has_certificate: boolean
           hero_overlay_opacity: number | null
           hero_text_hidden: boolean
           hero_title_color: string | null
@@ -784,7 +783,6 @@ export type Database = {
           description?: string | null
           estimated_duration?: number | null
           external_landing_url?: string | null
-          has_certificate?: boolean
           hero_overlay_opacity?: number | null
           hero_text_hidden?: boolean
           hero_title_color?: string | null
@@ -822,7 +820,6 @@ export type Database = {
           description?: string | null
           estimated_duration?: number | null
           external_landing_url?: string | null
-          has_certificate?: boolean
           hero_overlay_opacity?: number | null
           hero_text_hidden?: boolean
           hero_title_color?: string | null
