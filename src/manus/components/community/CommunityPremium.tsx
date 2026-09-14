@@ -329,7 +329,8 @@ export default function CommunityPremium({
   initialDraftTitle,
   initialDraftBody,
 }: Props) {
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isMember, activeEntitlements } = useAuth();
+  const navigate = useNavigate();
   const userId = user?.id ?? null;
   const { data: spaces = [], isLoading: spacesLoading, isError: spacesError, refetch: refetchSpaces } = useSpaces();
   const [spaceId, setSpaceId] = useState<number | null>(null);
@@ -559,6 +560,15 @@ export default function CommunityPremium({
 
   const activeSpace = spaces.find((space) => space.id === spaceId) ?? null;
   const activeChannel = channels.find((channel) => channel.id === channelId) ?? null;
+
+  // Spaces and channels are listed for every signed-in user as a teaser, but
+  // only members, admins and students who own the linked course may read or
+  // post inside. The database enforces this; this flag only shapes the UI.
+  const canParticipate =
+    isAdmin ||
+    isMember ||
+    (activeSpace?.course_id != null &&
+      activeEntitlements.some((e) => e.course_id === activeSpace.course_id));
 
   async function publishPost() {
     if (!draftBody.trim()) return;
