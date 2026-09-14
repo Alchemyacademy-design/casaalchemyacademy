@@ -27,12 +27,11 @@ function normalizeDoc(url: string | null | undefined): string {
 }
 
 /**
- * Build a URL suitable for the "Download PDF" button. Dropbox PDFs need
- * `dl=1` on `www.dropbox.com` — the video normalizer (`raw=1` on
- * `dl.dropboxusercontent.com`) returns an inline JSON preview.
+ * Build a URL that opens the issue inline in a new tab (view-only).
+ * Never forces a file download.
  */
-function downloadUrl(url: string | null | undefined): string {
-  return url ? normalizeDropboxDownloadUrl(url) || url : "";
+function readUrl(url: string | null | undefined): string {
+  return url ? normalizeVideoUrl(url) || url : "";
 }
 
 function fmtDate(iso?: string | null) {
