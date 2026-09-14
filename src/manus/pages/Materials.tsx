@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Download, ExternalLink, FileText, Loader2, Lock, Paperclip, Search } from "lucide-react";
+import { ExternalLink, FileText, Loader2, Lock, Paperclip, Search } from "lucide-react";
 import MemberLayout from "@/manus/components/MemberLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/manus/hooks/useAuth";
@@ -99,7 +99,7 @@ function MaterialCard({ material, context }: { material: SupportMaterial; contex
       {busy ? (
         <Loader2 className="h-4 w-4 shrink-0 animate-spin text-foreground/50" />
       ) : (
-        <Download className="h-4 w-4 shrink-0 text-foreground/50" />
+        <ExternalLink className="h-4 w-4 shrink-0 text-foreground/50" aria-label="Open in a new tab" />
       )}
     </button>
   );

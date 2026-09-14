@@ -228,13 +228,17 @@ export async function deleteMaterial(material: SupportMaterial) {
   if (error) throw error;
 }
 
-/** Returns an openable URL: the external link, or a short-lived signed URL. */
+/**
+ * Returns an openable URL: the external link, or a short-lived signed URL.
+ * Materials are view-only across the platform, so this never forces a
+ * browser download — the file always opens inline in a new tab.
+ */
 export async function getMaterialUrl(material: SupportMaterial): Promise<string> {
   if (material.external_url) return material.external_url;
   if (!material.storage_path) throw new Error("Material has no file.");
   const { data, error } = await supabase.storage
     .from(material.storage_bucket || "course-assets")
-    .createSignedUrl(material.storage_path, 60 * 10, material.is_downloadable ? { download: material.file_name } : undefined);
+    .createSignedUrl(material.storage_path, 60 * 10);
   if (error) throw error;
   return data.signedUrl;
 }
