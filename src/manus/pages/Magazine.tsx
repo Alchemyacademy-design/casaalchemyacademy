@@ -139,7 +139,7 @@ export default function Magazine() {
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {archives.map((issue) => {
-                      const pdf = downloadUrl(issue.external_file_url);
+                      const pdf = readUrl(issue.external_file_url);
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
                         <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
@@ -155,8 +155,8 @@ export default function Magazine() {
                             <h3 className="font-serif text-2xl font-normal text-[var(--aa-olive-dark)]">{issue.title}</h3>
                             {pdf && (
                               <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.14em]">
-                                <a href={pdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
-                                  <Download size={12} /> Download PDF
+                                <a href={pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
+                                  <ExternalLink size={12} /> Open in new tab
                                 </a>
                               </div>
                             )}
