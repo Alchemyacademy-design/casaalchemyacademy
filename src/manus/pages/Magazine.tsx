@@ -44,7 +44,7 @@ export default function Magazine() {
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
-  const currentPdf = downloadUrl(current?.external_file_url);
+  const currentPdf = readUrl(current?.external_file_url);
   const currentCover = normalizeDoc(current?.cover_image_path);
 
   return (
@@ -122,10 +122,9 @@ export default function Magazine() {
                           href={currentPdf}
                           target="_blank"
                           rel="noreferrer"
-                          download
                           className="btn-gold inline-flex items-center gap-2 px-6 py-3"
                         >
-                          Download PDF <Download size={14} />
+                          Open in new tab <ExternalLink size={14} />
                         </a>
                       )}
                     </div>
