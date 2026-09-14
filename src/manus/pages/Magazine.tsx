@@ -1,8 +1,8 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, Loader2, PlayCircle } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, PlayCircle } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
-import { normalizeVideoUrl, normalizeDropboxDownloadUrl } from "@/manus/lib/video-url";
+import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
 const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
@@ -27,12 +27,11 @@ function normalizeDoc(url: string | null | undefined): string {
 }
 
 /**
- * Build a URL suitable for the "Download PDF" button. Dropbox PDFs need
- * `dl=1` on `www.dropbox.com` — the video normalizer (`raw=1` on
- * `dl.dropboxusercontent.com`) returns an inline JSON preview.
+ * Build a URL that opens the issue inline in a new tab (view-only).
+ * Never forces a file download.
  */
-function downloadUrl(url: string | null | undefined): string {
-  return url ? normalizeDropboxDownloadUrl(url) || url : "";
+function readUrl(url: string | null | undefined): string {
+  return url ? normalizeVideoUrl(url) || url : "";
 }
 
 function fmtDate(iso?: string | null) {
@@ -45,7 +44,7 @@ export default function Magazine() {
   const [current, ...archives] = issues;
   const currentVideo = normalizeDoc(extractVideoUrl(current?.description)) || WINTER_VIDEO_URL;
   const currentDescription = cleanDescription(current?.description);
-  const currentPdf = downloadUrl(current?.external_file_url);
+  const currentPdf = readUrl(current?.external_file_url);
   const currentCover = normalizeDoc(current?.cover_image_path);
 
   return (
@@ -123,10 +122,9 @@ export default function Magazine() {
                           href={currentPdf}
                           target="_blank"
                           rel="noreferrer"
-                          download
                           className="btn-gold inline-flex items-center gap-2 px-6 py-3"
                         >
-                          Download PDF <Download size={14} />
+                          Open in new tab <ExternalLink size={14} />
                         </a>
                       )}
                     </div>
@@ -141,7 +139,7 @@ export default function Magazine() {
                 ) : (
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {archives.map((issue) => {
-                      const pdf = downloadUrl(issue.external_file_url);
+                      const pdf = readUrl(issue.external_file_url);
                       const cover = normalizeDoc(issue.cover_image_path);
                       return (
                         <article key={issue.id} className="group flex flex-col border border-[var(--aa-cream-dark)] bg-white">
@@ -157,8 +155,8 @@ export default function Magazine() {
                             <h3 className="font-serif text-2xl font-normal text-[var(--aa-olive-dark)]">{issue.title}</h3>
                             {pdf && (
                               <div className="mt-4 flex flex-wrap gap-3 text-xs uppercase tracking-[0.14em]">
-                                <a href={pdf} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
-                                  <Download size={12} /> Download PDF
+                                <a href={pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 font-semibold text-[var(--aa-olive-dark)] underline underline-offset-4">
+                                  <ExternalLink size={12} /> Open in new tab
                                 </a>
                               </div>
                             )}

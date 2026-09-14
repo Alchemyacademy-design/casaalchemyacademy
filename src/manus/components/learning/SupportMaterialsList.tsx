@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, Download, ExternalLink, Eye, FileText, Loader2, Paperclip } from "lucide-react";
+import { ChevronDown, ExternalLink, Eye, FileText, Loader2, Paperclip } from "lucide-react";
 import {
   formatBytes,
   getMaterialPreviewUrl,
@@ -29,7 +29,11 @@ function InlinePreview({ material }: { material: SupportMaterial }) {
     );
   }
   if (error || !url) {
-    return <p className="p-4 text-xs text-foreground/60">Preview unavailable — use download instead.</p>;
+    return (
+      <p className="p-4 text-xs text-foreground/60">
+        Preview unavailable here — use “Open in new tab” to view it.
+      </p>
+    );
   }
 
   if (kind === "image") {
@@ -104,16 +108,12 @@ function MaterialItem({ material }: { material: SupportMaterial }) {
           type="button"
           onClick={openExternal}
           disabled={busy}
-          aria-label={material.external_url ? "Open link" : "Download material"}
-          className="inline-flex min-h-[36px] shrink-0 items-center rounded-md border border-border/60 px-2.5 text-foreground/70 hover:bg-muted"
+          aria-label="Open in new tab"
+          title="Open in new tab"
+          className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-md border border-border/60 px-2.5 text-xs font-medium text-foreground/70 hover:bg-muted"
         >
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : material.external_url ? (
-            <ExternalLink className="h-4 w-4" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+          <span className="hidden sm:inline">Open in new tab</span>
         </button>
       </div>
       {canPreview && open ? (
