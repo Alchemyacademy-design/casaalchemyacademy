@@ -111,44 +111,33 @@ export default function Suppliers() {
             </div>
           </div>
 
-          {/* Price Tier Filter */}
+          {/* Search */}
           <div>
             <p className="text-xs mb-3" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>
-              Filter by Price Tier
+              Search
             </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedTier(null)}
-                className="text-xs px-3 py-2 transition-all"
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "var(--aa-text-light)" }}
+              />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search suppliers..."
+                aria-label="Search suppliers"
+                className="w-full text-xs pl-9 pr-3 py-2 outline-none"
                 style={{
-                  backgroundColor: selectedTier === null ? "var(--aa-olive-dark)" : "var(--aa-white)",
-                  color: selectedTier === null ? "var(--aa-cream)" : "var(--aa-olive-dark)",
-                  border: `1px solid ${selectedTier === null ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)"}`,
+                  backgroundColor: "var(--aa-white)",
+                  color: "var(--aa-olive-dark)",
+                  border: "1px solid var(--aa-cream-dark)",
                   fontFamily: "'DM Sans', sans-serif",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  textTransform: "uppercase",
                 }}
-              >
-                All
-              </button>
-              {PRICE_TIERS.map((tier) => (
-                <button
-                  key={tier}
-                  onClick={() => setSelectedTier(tier)}
-                  className="text-xs px-3 py-2 transition-all capitalize"
-                  style={{
-                    backgroundColor: selectedTier === tier ? "var(--aa-olive-dark)" : "var(--aa-white)",
-                    color: selectedTier === tier ? "var(--aa-cream)" : "var(--aa-olive-dark)",
-                    border: `1px solid ${selectedTier === tier ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)"}`,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 500,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {tier}
-                </button>
-              ))}
+              />
             </div>
           </div>
         </div>
