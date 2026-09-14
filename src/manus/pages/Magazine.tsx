@@ -1,8 +1,8 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Download, Loader2, PlayCircle } from "lucide-react";
+import { ArrowLeft, ExternalLink, Loader2, PlayCircle } from "lucide-react";
 import { useMagazineIssues } from "@/manus/hooks/usePublicContent";
-import { normalizeVideoUrl, normalizeDropboxDownloadUrl } from "@/manus/lib/video-url";
+import { normalizeVideoUrl } from "@/manus/lib/video-url";
 
 const WINTER_VIDEO_URL = "/manus-storage/Winter26(1)_a8a1dfca.mp4";
 const VIDEO_MARKER_RE = /\s*\[\[video:([^\]]*)\]\]\s*/g;
