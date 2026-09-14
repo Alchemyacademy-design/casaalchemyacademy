@@ -1,12 +1,11 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ExternalLink, Heart, Lock } from "lucide-react";
+import { ExternalLink, Heart, Lock, Search } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMySupplierFavorites, useToggleSupplierFavorite } from "@/manus/hooks/usePublicContent";
 
-const PRICE_TIERS = ["budget", "mid", "investment"];
 const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "dining", "office", "outdoor"];
 
 type SupplierLike = {
@@ -27,7 +26,7 @@ export default function Suppliers() {
   const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
   const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFavOnly, setShowFavOnly] = useState(false);
 
@@ -39,10 +38,17 @@ export default function Suppliers() {
         .filter((c): c is string => !!c),
     ),
   ).sort();
+  const q = searchTerm.trim().toLowerCase();
   const filtered = (suppliers as SupplierLike[]).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
-    if (selectedTier && s.priceTier !== selectedTier) return false;
     if (selectedCategory && s.category !== selectedCategory) return false;
+    if (q) {
+      const haystack = [s.name, s.description, s.category]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
   });
