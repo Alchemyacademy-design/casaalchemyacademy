@@ -171,7 +171,7 @@ export async function duplicateCourse(id: number): Promise<Course> {
     cover_image_path: src.cover_image_path, banner_url: src.banner_url, trailer_url: src.trailer_url,
     category_id: src.category_id, instructor_id: src.instructor_id, instructor_name: src.instructor_name,
     level: src.level, language: src.language, estimated_duration: src.estimated_duration,
-    has_certificate: src.has_certificate, is_featured: false,
+    is_featured: false,
     access_type: src.access_type, access_plan_keys: src.access_plan_keys, release_type: src.release_type,
     external_landing_url: src.external_landing_url, visibility: src.visibility,
     status: "draft",
