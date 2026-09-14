@@ -963,6 +963,19 @@ export default function CommunityPremium({
           </div>
         )}
 
+        {activeChannel && !canParticipate && (
+          <div className="aa-community-state" style={{ margin: "1.5rem" }}>
+            <Lock size={20} />
+            <p style={{ fontWeight: 600 }}>This conversation is for members</p>
+            <p>
+              You can see what happens in #{activeChannel.name}, but reading and posting is part of
+              the membership.
+            </p>
+            <Button onClick={() => navigate("/plans")}>Unlock access by subscribing</Button>
+          </div>
+        )}
+
+        {canParticipate && (
         <ScrollArea className="aa-community-feed">
           <div className="aa-community-feed-inner">
             {activeChannel && CHANNEL_GUIDES[activeChannel.slug] && (() => {
@@ -1119,7 +1132,7 @@ export default function CommunityPremium({
           </div>
         </ScrollArea>
 
-        {activeChannel && userId && (
+        {activeChannel && userId && canParticipate && (
           <footer className="aa-community-composer" ref={composerRef}>
             <div>
               <Input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder="Post title" maxLength={140} />
