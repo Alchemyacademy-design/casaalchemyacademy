@@ -931,7 +931,7 @@ export default function CommunityPremium({
           </div>
         </header>
 
-        {activeChannel && (
+        {activeChannel && canParticipate && (
           <div className="aa-community-toolbar">
             <label>
               <Search size={15} />
@@ -1131,6 +1131,7 @@ export default function CommunityPremium({
             )}
           </div>
         </ScrollArea>
+        )}
 
         {activeChannel && userId && canParticipate && (
           <footer className="aa-community-composer" ref={composerRef}>
