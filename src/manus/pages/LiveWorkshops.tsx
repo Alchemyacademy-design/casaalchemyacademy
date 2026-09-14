@@ -12,6 +12,48 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
+/**
+ * Member-facing status pill, mirroring the shape of the admin StatusBadge but
+ * in the warm cream/gold palette used across the member area.
+ */
+function StatusPill({ status }: { status: "available" | "coming_soon" }) {
+  const available = status === "available";
+  return (
+    <span
+      className="inline-flex items-center rounded-full border px-3 py-0.5 text-[11px] font-medium tracking-wide uppercase"
+      style={{
+        backgroundColor: available ? "var(--aa-gold)" : "var(--aa-cream)",
+        borderColor: available ? "var(--aa-gold)" : "var(--aa-cream-dark)",
+        color: available ? "var(--aa-cacao, var(--aa-text-dark))" : "var(--aa-text-mid)",
+        fontFamily: "'DM Sans', sans-serif",
+      }}
+    >
+      {available ? "Available" : "Coming Soon"}
+    </span>
+  );
+}
+
+/** Thumbnail with the status pill anchored in the top-right corner. */
+function Thumb({ src, status, dim }: { src?: string | null; status: "available" | "coming_soon"; dim?: boolean }) {
+  return (
+    <div className="relative">
+      <div
+        className={`aspect-[16/9] w-full ${dim ? "opacity-80" : ""}`}
+        style={{
+          backgroundImage: src ? `url('${src}')` : undefined,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundColor: "var(--aa-cream-dark)",
+        }}
+        aria-hidden="true"
+      />
+      <div className="absolute top-3 right-3">
+        <StatusPill status={status} />
+      </div>
+    </div>
+  );
+}
+
 export default function LiveWorkshops() {
   const { isAuthenticated } = useAuth();
   // Live workshops are annual-tier only (or admin). Do not fall back to the
@@ -28,7 +70,7 @@ export default function LiveWorkshops() {
       <div className="p-6 md:p-10 min-h-screen" style={{ backgroundColor: "var(--aa-cream)" }}>
         <div className="max-w-6xl mx-auto">
           <div className="mb-12">
-            <h1 className="font-serif text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>Live Workshops</h1>
+            <h1 className="font-serif text-4xl mb-3" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>Expert Masterclasses</h1>
             <p className="text-sm" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>Join our expert-led workshops and connect with fellow Alchemists.</p>
           </div>
 
@@ -44,13 +86,8 @@ export default function LiveWorkshops() {
                   const isReg = registered.has(w.id);
                   return (
                     <div key={w.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-                      {w.cover_image_path && (
-                        <div
-                          className="aspect-[16/9] w-full"
-                          style={{ backgroundImage: `url('${w.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}
-                          aria-hidden="true"
-                        />
-                      )}
+                      {/* Upcoming sessions have not happened yet — always "Coming Soon". */}
+                      <Thumb src={w.cover_image_path} status="coming_soon" />
                       <div className="p-6">
                         <div className="mb-4">
                           <div className="flex items-center gap-2 mb-2">
@@ -93,26 +130,46 @@ export default function LiveWorkshops() {
               <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>No past workshops yet.</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {past.map((w) => (
-                  <div key={w.id} className="rounded-lg overflow-hidden" style={{ backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
-                    {w.cover_image_path && (
-                      <div
-                        className="aspect-[16/9] w-full opacity-80"
-                        style={{ backgroundImage: `url('${w.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}
-                        aria-hidden="true"
-                      />
-                    )}
-                    <div className="p-6">
-                      <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{w.title}</h3>
-                      <p className="text-xs mb-2" style={{ color: "var(--aa-text-light)" }}>{fmtDate(w.starts_at)}</p>
-                      {hasAccess && w.replay_url && (
-                        <a href={w.replay_url} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs" style={{ color: "var(--aa-accent)" }}>
-                          <ExternalLink size={12} /> Watch replay
-                        </a>
-                      )}
+                {past.map((w) => {
+                  // A past workshop is watchable only once the recording is in
+                  // place and the member's plan includes workshops.
+                  const watchable = Boolean(hasAccess && w.replay_url);
+                  const cardStyle = { backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" };
+                  const body = (
+                    <>
+                      <Thumb src={w.cover_image_path} status={watchable ? "available" : "coming_soon"} dim />
+                      <div className="p-6">
+                        <h3 className="font-serif text-lg mb-2" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>{w.title}</h3>
+                        <p className="text-xs mb-2" style={{ color: "var(--aa-text-light)" }}>{fmtDate(w.starts_at)}</p>
+                        {watchable ? (
+                          <span className="flex items-center gap-1 text-xs" style={{ color: "var(--aa-accent)" }}>
+                            <ExternalLink size={12} /> Watch replay
+                          </span>
+                        ) : (
+                          <p className="text-xs" style={{ color: "var(--aa-text-light)" }}>Recording coming soon.</p>
+                        )}
+                      </div>
+                    </>
+                  );
+
+                  // Available replays: the whole card is the link.
+                  return watchable ? (
+                    <a
+                      key={w.id}
+                      href={w.replay_url as string}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="block rounded-lg overflow-hidden transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg focus-visible:outline-none focus-visible:ring-2"
+                      style={cardStyle}
+                    >
+                      {body}
+                    </a>
+                  ) : (
+                    <div key={w.id} className="rounded-lg overflow-hidden" style={cardStyle}>
+                      {body}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
