@@ -244,11 +244,6 @@ export default function Suppliers() {
                         {supplier.room}
                       </span>
                     )}
-                    {supplier.priceTier && (
-                      <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
-                        {supplier.priceTier}
-                      </span>
-                    )}
                   </div>
                   <p className="text-xs mb-4 leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                     {supplier.description}
