@@ -1,72 +1,32 @@
-# Support Materials (Materiais de apoio)
+# Close the 4 critical security findings
 
-Hoje o "material" existe só como um único link solto (`external_resource_url`) por aula. A tabela `lesson_attachments` já existe no banco (com RLS correta), mas nunca foi usada pela interface. O plano transforma isso num recurso completo: arquivos e links de apoio, anexáveis ao **curso inteiro** ou a uma **aula específica**, gerenciáveis pelo admin e visíveis para os alunos com acesso.
+Two real problems, confirmed by inspecting the live database rules:
 
-## 1. Banco de dados (uma migração)
+1. **Community spaces and channels are visible to everyone.** Alongside the correct paid-members rule, there is a second, looser rule that lets anyone — including logged-out visitors — see the names and descriptions of every published space and channel. Because the rules are combined with "or", the loose one wins and the paywall never applies to that listing.
 
-Estender `lesson_attachments` para suportar também material de curso:
+2. **Students can set their own quiz results.** Students are currently allowed to write directly to the quiz results tables, including the score, the pass/fail flag, and whether each answer was correct. Real submissions already go through the secure server-side path (the `submit-quiz-attempt` function), so this direct write access is unnecessary and only creates a way to forge a pass — which in turn can unlock a certificate.
 
-- `lesson_id` passa a aceitar vazio (nulo) e entra a coluna `course_id` (referência ao curso, apaga em cascata).
-- Regra: cada material aponta para uma aula **ou** para um curso — nunca os dois, nunca nenhum (validado por constraint).
-- Novas colunas: `title` (nome amigável mostrado ao aluno), `description`, `external_url` (para material que é só um link, sem upload), `sort_order`.
-- `storage_path` passa a aceitar vazio quando o material for apenas um link externo.
-- Índice por `course_id`.
+## What will change
 
-Regras de acesso (RLS) atualizadas:
+- Remove the loose public-visibility rule on community spaces and on community channels, leaving only the membership/entitlement-based rule. Members and admins see exactly what they see today; non-members and logged-out visitors no longer get the listings.
+- Remove students' direct write access to quiz attempts and quiz answers. Quizzes will still be taken and submitted exactly as they are now, through the server-side submission path, which keeps full write access. Reading your own results and admin management are unaffected.
+- Mark all four findings as fixed in the Security view afterwards.
 
-- Admin e content manager: acesso total (já existe, estender para linhas de curso).
-- Instrutor: acesso total aos materiais dos próprios cursos/aulas.
-- Aluno: leitura quando `can_access_lesson(lesson_id)` for verdadeiro, ou — para material de curso — quando tiver assinatura ativa / entitlement do curso / curso gratuito (mesma lógica já usada em `can_access_lesson`, encapsulada numa nova função `can_access_course(_course_id)`).
+## Technical detail
 
-Storage: usar o bucket privado **`course-assets`** já existente. Políticas em `storage.objects` para que admin/content manager/instrutor possam subir e apagar em `course-assets/materials/...`, e leitura via URL assinada gerada no cliente para quem passa na RLS.
+Single migration:
 
-## 2. Camada de dados no app
+- `DROP POLICY community_spaces_member_select ON public.community_spaces;`
+- `DROP POLICY community_channels_member_select ON public.community_channels;`
+  (keeps `*_select_accessible`, which checks `private.is_admin()`, `has_active_plan_permission('community')` and course entitlements; `can_access_channel()` for channels)
+- `DROP POLICY quiz_attempts_insert_own`, `quiz_attempts_update_own_or_admin`, `quiz_answers_insert_own`, `quiz_answers_update_own_or_admin`; re-create admin-only `UPDATE` policies guarded by `private.is_admin()` so admins keep manual correction ability.
+- Revoke `INSERT, UPDATE` on `quiz_attempts` and `quiz_answers` from `authenticated`; keep `SELECT` for `authenticated` and `ALL` for `service_role` (the edge function uses the service role via `internal_submit_quiz_attempt`).
 
-Novo arquivo `src/manus/lib/support-materials.ts`:
+Verification after the migration:
+- Run the quiz flow in the preview as a signed-in student: start, submit, see score, and confirm module/certificate gating still reads passed attempts (`ModuleCompletionDialog`, `src/manus/services/quiz.ts`).
+- Load the community pages as a member and confirm spaces/channels still list; confirm a logged-out visitor sees nothing.
+- Re-run the security scan and mark the four findings fixed.
 
-- `listCourseMaterials(courseId)` / `listLessonMaterials(lessonId)`
-- `uploadMaterial({ file | externalUrl, title, description, courseId | lessonId, isDownloadable })` — sobe o arquivo para `course-assets/materials/<course|lesson>/<id>/<uuid>-<nome>` e grava a linha
-- `updateMaterial(id, patch)` — editar título, descrição, link, ordem, flag de download
-- `deleteMaterial(id)` — apaga a linha **e** o arquivo do storage
-- `getMaterialUrl(material)` — devolve o `external_url` ou uma URL assinada de curta duração
-- Validação no upload: máx. 50 MB, tipos permitidos (PDF, DOC/DOCX, XLS/XLSX, PPT/PPTX, ZIP, imagens, TXT, CSV, MP3), nome de arquivo sanitizado.
+## Note
 
-## 3. Admin — Course Management
-
-Componente novo `src/manus/components/admin/SupportMaterialsPanel.tsx`, reutilizado nos dois escopos (recebe `courseId` ou `lessonId`):
-
-- Área de **arrastar e soltar** (ou clicar para escolher arquivo), com barra de progresso e feedback de erro.
-- Alternador "Arquivo" / "Link externo" para cadastrar material que é só uma URL.
-- Lista dos materiais existentes com ícone por tipo, tamanho, título editável em linha, descrição, ordenação por arrastar, botão de baixar (pré-visualizar) e botão de excluir com confirmação.
-- Chave "Permitir download" por material.
-
-Onde aparece:
-
-- **`AdminCourseDetail.tsx`** — nova aba/seção "Support materials" no nível do curso, ao lado do banner e da checklist de publicação. Materiais aqui valem para o curso todo.
-- **Lesson editor** (o painel expandido de cada aula, dentro do mesmo arquivo) — a mesma seção "Support materials" dentro da aula, permitindo adicionar, editar e excluir por aula, como pedido.
-- Um contador ("3 materiais") aparece na linha fechada da aula para saber de relance quais aulas já têm material.
-
-## 4. Renderização para o aluno
-
-- **`ModuleDetail.tsx`** (player da aula): abaixo do vídeo, bloco "Support materials" listando os materiais da aula — título, tipo, tamanho e botão de baixar/abrir (URL assinada gerada na hora do clique). Some quando a aula não tem material. Mantém o link legado `external_resource_url` se existir.
-- **`CourseDetail.tsx`**: a seção "Materials" atual passa a mostrar os materiais reais — primeiro os do curso, depois os agregados das aulas (agrupados por aula), em vez de apenas os `external_resource_url`. Para quem não tem acesso, os itens aparecem bloqueados com cadeado e chamada para assinar.
-- Estilo seguindo os tokens existentes (cartões dourados/escuros da área de membros), responsivo, alvos de toque de 44 px.
-
-## 5. Ordem de execução
-
-1. Migração do banco (schema + RLS + função `can_access_course` + políticas de storage)
-2. `support-materials.ts`
-3. `SupportMaterialsPanel.tsx`
-4. Integração no `AdminCourseDetail.tsx` (curso + lesson editor)
-5. Renderização em `ModuleDetail.tsx` e `CourseDetail.tsx`
-
-## Premortem — o que poderia dar errado
-
-- **Materiais vazando para não-assinantes**: mitigado usando bucket privado + URL assinada gerada só depois da checagem de RLS; nada de URL pública.
-- **Arquivos órfãos no storage** ao excluir aula/curso: o `ON DELETE CASCADE` limpa as linhas, mas não os arquivos. Excluir material pela interface remove os dois; para exclusão em cascata, os arquivos ficam no bucket privado sem referência (inofensivos, e limpáveis depois).
-- **Upload grande travando a interface**: limite de 50 MB e progresso visível.
-- **Constraint de escopo**: garante que nenhum material fique "solto" sem curso nem aula.
-
-## Detalhes técnicos
-
-Tabela final `lesson_attachments`: `id, lesson_id (nullable), course_id (nullable), title, description, file_name, storage_bucket, storage_path (nullable), external_url, file_type, file_size, is_downloadable, is_public, sort_order, created_by, created_at, updated_at` + `CHECK (num_nonnulls(lesson_id, course_id) = 1)` + `CHECK (storage_path IS NOT NULL OR external_url IS NOT NULL)`.
+Community spaces and channels will no longer be previewable by non-members at all. If you want non-members to see a teaser list of space names as a sales hook, say so and I will add a narrow public-teaser path instead of full removal.
