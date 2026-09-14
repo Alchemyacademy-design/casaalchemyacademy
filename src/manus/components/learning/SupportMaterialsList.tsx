@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, Download, ExternalLink, Eye, FileText, Loader2, Paperclip } from "lucide-react";
+import { ChevronDown, ExternalLink, Eye, FileText, Loader2, Paperclip } from "lucide-react";
 import {
   formatBytes,
   getMaterialPreviewUrl,
@@ -29,7 +29,11 @@ function InlinePreview({ material }: { material: SupportMaterial }) {
     );
   }
   if (error || !url) {
-    return <p className="p-4 text-xs text-foreground/60">Preview unavailable — use download instead.</p>;
+    return (
+      <p className="p-4 text-xs text-foreground/60">
+        Preview unavailable here — use “Open in new tab” to view it.
+      </p>
+    );
   }
 
   if (kind === "image") {
