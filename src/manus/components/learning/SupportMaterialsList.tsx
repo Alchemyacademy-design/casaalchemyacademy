@@ -108,16 +108,12 @@ function MaterialItem({ material }: { material: SupportMaterial }) {
           type="button"
           onClick={openExternal}
           disabled={busy}
-          aria-label={material.external_url ? "Open link" : "Download material"}
-          className="inline-flex min-h-[36px] shrink-0 items-center rounded-md border border-border/60 px-2.5 text-foreground/70 hover:bg-muted"
+          aria-label="Open in new tab"
+          title="Open in new tab"
+          className="inline-flex min-h-[36px] shrink-0 items-center gap-1.5 rounded-md border border-border/60 px-2.5 text-xs font-medium text-foreground/70 hover:bg-muted"
         >
-          {busy ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : material.external_url ? (
-            <ExternalLink className="h-4 w-4" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <ExternalLink className="h-4 w-4" />}
+          <span className="hidden sm:inline">Open in new tab</span>
         </button>
       </div>
       {canPreview && open ? (
