@@ -1,12 +1,11 @@
 import MemberLayout from "@/manus/components/MemberLayout";
 import { Link } from "react-router-dom";
-import { ExternalLink, Heart, Lock } from "lucide-react";
+import { ExternalLink, Heart, Lock, Search } from "lucide-react";
 import { trpc } from "@/manus/lib/trpc";
 import { useState } from "react";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMySupplierFavorites, useToggleSupplierFavorite } from "@/manus/hooks/usePublicContent";
 
-const PRICE_TIERS = ["budget", "mid", "investment"];
 const ROOMS = ["living", "bedroom", "kitchen", "bathroom", "dining", "office", "outdoor"];
 
 type SupplierLike = {
@@ -27,7 +26,7 @@ export default function Suppliers() {
   const { data: favorites = [] } = useMySupplierFavorites(user?.id ?? null);
   const toggleFav = useToggleSupplierFavorite(user?.id ?? null);
   const [selectedRoom, setSelectedRoom] = useState<string | null>(null);
-  const [selectedTier, setSelectedTier] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showFavOnly, setShowFavOnly] = useState(false);
 
@@ -39,10 +38,17 @@ export default function Suppliers() {
         .filter((c): c is string => !!c),
     ),
   ).sort();
+  const q = searchTerm.trim().toLowerCase();
   const filtered = (suppliers as SupplierLike[]).filter((s) => {
     if (selectedRoom && s.room !== selectedRoom) return false;
-    if (selectedTier && s.priceTier !== selectedTier) return false;
     if (selectedCategory && s.category !== selectedCategory) return false;
+    if (q) {
+      const haystack = [s.name, s.description, s.category]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
     if (showFavOnly && (!s.id || !favSet.has(Number(s.id)))) return false;
     return true;
   });
@@ -105,44 +111,33 @@ export default function Suppliers() {
             </div>
           </div>
 
-          {/* Price Tier Filter */}
+          {/* Search */}
           <div>
             <p className="text-xs mb-3" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 500 }}>
-              Filter by Price Tier
+              Search
             </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSelectedTier(null)}
-                className="text-xs px-3 py-2 transition-all"
+            <div className="relative">
+              <Search
+                size={14}
+                className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                style={{ color: "var(--aa-text-light)" }}
+              />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search suppliers..."
+                aria-label="Search suppliers"
+                className="w-full text-xs pl-9 pr-3 py-2 outline-none"
                 style={{
-                  backgroundColor: selectedTier === null ? "var(--aa-olive-dark)" : "var(--aa-white)",
-                  color: selectedTier === null ? "var(--aa-cream)" : "var(--aa-olive-dark)",
-                  border: `1px solid ${selectedTier === null ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)"}`,
+                  backgroundColor: "var(--aa-white)",
+                  color: "var(--aa-olive-dark)",
+                  border: "1px solid var(--aa-cream-dark)",
                   fontFamily: "'DM Sans', sans-serif",
                   fontWeight: 500,
                   letterSpacing: "0.08em",
-                  textTransform: "uppercase",
                 }}
-              >
-                All
-              </button>
-              {PRICE_TIERS.map((tier) => (
-                <button
-                  key={tier}
-                  onClick={() => setSelectedTier(tier)}
-                  className="text-xs px-3 py-2 transition-all capitalize"
-                  style={{
-                    backgroundColor: selectedTier === tier ? "var(--aa-olive-dark)" : "var(--aa-white)",
-                    color: selectedTier === tier ? "var(--aa-cream)" : "var(--aa-olive-dark)",
-                    border: `1px solid ${selectedTier === tier ? "var(--aa-olive-dark)" : "var(--aa-cream-dark)"}`,
-                    fontFamily: "'DM Sans', sans-serif",
-                    fontWeight: 500,
-                    letterSpacing: "0.08em",
-                  }}
-                >
-                  {tier}
-                </button>
-              ))}
+              />
             </div>
           </div>
         </div>
@@ -247,11 +242,6 @@ export default function Suppliers() {
                     {supplier.room && (
                       <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-cream-dark)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
                         {supplier.room}
-                      </span>
-                    )}
-                    {supplier.priceTier && (
-                      <span className="text-xs px-2 py-1" style={{ backgroundColor: "var(--aa-gold)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.65rem", textTransform: "capitalize" }}>
-                        {supplier.priceTier}
                       </span>
                     )}
                   </div>
