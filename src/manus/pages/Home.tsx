@@ -267,13 +267,8 @@ export default function Home() {
                 <a href={getLoginUrl()} className="btn-gold text-xs py-2 px-5">Join</a>
               </div>
             ) : (
-              <>
-                <a href={getLoginUrl()} className="text-xs tracking-widest uppercase"
-                  style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}>
-                  Log In
-                </a>
-                <a href={getLoginUrl()} className="btn-gold text-xs py-2 px-5">Sign Up</a>
-              </>
+              <a href={getLoginUrl()} className="btn-gold text-xs py-2 px-5">Log in or Sign up</a>
+
             )}
           </div>
         </div>
