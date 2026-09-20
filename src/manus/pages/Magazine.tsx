@@ -34,6 +34,14 @@ function readUrl(url: string | null | undefined): string {
   return url ? normalizeVideoUrl(url) || url : "";
 }
 
+/** "SPRING 2026" -> "Spring 2026" */
+function toTitleCase(value?: string | null): string {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .replace(/\b[\p{L}\p{N}][\p{L}\p{N}'’-]*/gu, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+}
+
 function fmtDate(iso?: string | null) {
   if (!iso) return "";
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long" });
@@ -66,18 +74,18 @@ export default function Magazine() {
           <section className="mb-16 overflow-hidden border border-[var(--aa-cream-dark)] bg-[#1F0A03]">
               <div className="grid grid-cols-1 lg:grid-cols-[1.45fr_.55fr]">
                 <video
-                  className="aspect-video h-full w-full bg-black object-cover"
+                  className="aspect-video h-full w-full bg-black object-contain"
                   src={currentVideo}
                   key={currentVideo}
                   controls
                   playsInline
                   preload="metadata"
-                  poster={current?.cover_image_path ?? undefined}
+                  poster={currentCover || undefined}
                 />
                 <div className="flex flex-col justify-center p-7 text-[var(--aa-cream)] md:p-10">
                   <PlayCircle size={24} className="mb-5 text-[var(--aa-gold)]" />
                   <p className="section-label mb-3">Featured presentation</p>
-                  <h2 className="font-serif text-4xl font-normal">Winter 2026</h2>
+                  <h2 className="font-serif text-4xl font-normal text-white">{toTitleCase(current?.title) || "Current issue"}</h2>
                   <p className="mt-4 text-sm leading-7 text-white/70">
                     Watch the editorial presentation, then explore the current edition and the complete archive below.
                   </p>
