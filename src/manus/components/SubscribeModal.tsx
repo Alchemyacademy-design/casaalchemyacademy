@@ -2,6 +2,13 @@ import { useState } from "react";
 import { X, Heart, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LAUNCH_ANNUAL_PAYMENT_LINK, isLaunchPricingActive } from "@/manus/lib/feature-flags";
+
+const LAUNCH_ANNUAL_INFO = {
+  label: "Annual Membership",
+  price: "US$649 / year",
+  sub: "Launch price, locked in at US$649 for as long as you stay a member. Full access for 12 months: every course, community, Expert Masterclasses, private events, exclusive deals, magazine and suppliers directory. Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.",
+};
 
 interface SubscribeModalProps {
   type: "annual" | "monthly" | "guide";
@@ -48,7 +55,8 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
   const [selectedCharity, setSelectedCharity] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const planInfo = PLAN_LABELS[type];
+  const launchAnnual = type === "annual" && isLaunchPricingActive();
+  const planInfo = launchAnnual ? LAUNCH_ANNUAL_INFO : PLAN_LABELS[type];
 
   const handleContinue = async () => {
     if (!selectedCharity || isLoading) return;
@@ -60,7 +68,10 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
-      const baseUrl = PAYMENT_LINKS[type];
+      const baseUrl =
+        type === "annual" && isLaunchPricingActive()
+          ? LAUNCH_ANNUAL_PAYMENT_LINK
+          : PAYMENT_LINKS[type];
       const url = new URL(baseUrl);
       // Prefill email + pass client_reference_id when the visitor is already
       // signed in. Guests can pay without an account — the webhook resolves
