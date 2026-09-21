@@ -2,6 +2,13 @@ import { useState } from "react";
 import { X, Heart, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { LAUNCH_ANNUAL_PAYMENT_LINK, isLaunchPricingActive } from "@/manus/lib/feature-flags";
+
+const LAUNCH_ANNUAL_INFO = {
+  label: "Annual Membership",
+  price: "US$649 / year",
+  sub: "Launch price, locked in at US$649 for as long as you stay a member. Full access for 12 months: every course, community, Expert Masterclasses, private events, exclusive deals, magazine and suppliers directory. Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.",
+};
 
 interface SubscribeModalProps {
   type: "annual" | "monthly" | "guide";

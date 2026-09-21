@@ -768,10 +768,12 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
-                  amount: "59",
-                  per: "/ month",
-                  sub: "USD 708 billed annually",
-                  save: "Save USD 480",
+                  amount: isLaunchWeekActive ? "649" : "59",
+                  per: isLaunchWeekActive ? "/ year" : "/ month",
+                  sub: isLaunchWeekActive
+                    ? "Launch price, locked in while you stay a member. Regular price USD 708"
+                    : "USD 708 billed annually",
+                  save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
                   cta: null,
                   action: null,
                   intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
