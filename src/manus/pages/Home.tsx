@@ -794,6 +794,7 @@ export default function Home() {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
                   best: false,
+                  was: null,
                   amount: "99",
                   per: "/ month",
                   sub: "Billed monthly",
