@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 
 const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/fZu4gA5Fn4Wr6A53uOaZi05";
 
@@ -179,6 +180,41 @@ export default function CourseCheckout() {
       setBusy(false);
     }
   };
+
+  // Single-course purchases are switched off: never render the buy flow.
+  if (!INDIVIDUAL_COURSE_OPEN) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
+        <header style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
+          <div className="container flex items-center justify-between py-5">
+            <Link to="/">
+              <div className="font-serif text-xl tracking-widest" style={{ color: "var(--aa-olive-dark)", letterSpacing: "0.2em" }}>
+                ALCHEMY ACADEMY
+              </div>
+              <div className="text-xs tracking-widest mt-0.5" style={{ color: "var(--aa-text-light)", letterSpacing: "0.15em" }}>
+                by Casa Alchemy
+              </div>
+            </Link>
+            <button onClick={() => navigate("/")} className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
+              ← Back
+            </button>
+          </div>
+        </header>
+
+        <div className="container py-16 md:py-24 max-w-2xl text-center">
+          <h1 className="font-serif text-3xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1.15 }}>
+            Single courses open soon
+          </h1>
+          <p className="text-base md:text-lg leading-relaxed mb-8" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
+            For now, every course is included with an Annual or Monthly membership.
+          </p>
+          <button onClick={() => navigate("/plans")} className="btn-gold inline-flex items-center justify-center gap-2">
+            See membership plans <ArrowRight size={14} />
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
