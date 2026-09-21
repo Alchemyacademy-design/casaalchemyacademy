@@ -250,6 +250,7 @@ export async function getMaterialUrl(material: SupportMaterial): Promise<string>
 
 /** Signed URL meant for inline viewing (never forces a download). */
 export async function getMaterialPreviewUrl(material: SupportMaterial): Promise<string> {
+  if (material.coming_soon) throw new Error("This material is coming soon.");
   if (material.external_url) return material.external_url;
   if (!material.storage_path) throw new Error("Material has no file.");
   const { data, error } = await supabase.storage
