@@ -723,7 +723,7 @@ export default function Home() {
               </tbody>
             </table>
             </div>
-            {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
+            {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
             <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "2.5rem", marginBottom: "0" }}>
               <p
                 style={{
@@ -733,7 +733,7 @@ export default function Home() {
                   marginBottom: "0.5rem",
                 }}
               >
-                Memberships open soon.
+                {buyingOpen ? "Memberships are open." : "Memberships open soon."}
               </p>
               <p
                 style={{
@@ -745,11 +745,14 @@ export default function Home() {
                   margin: "0 auto 1.5rem",
                 }}
               >
-                Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch.
+                {buyingOpen
+                  ? "Choose the Annual or Monthly Member plan and join today."
+                  : "Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch."}
               </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
-                Join the Waitlist
+              <button onClick={buyingOpen ? joinAcademy : () => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
+                {buyingOpen ? "Join Alchemy Academy" : "Join the Waitlist"}
                 <span className="arrow" aria-hidden="true">→</span>
+
               </button>
             </div>
             <div className="plan-details">
