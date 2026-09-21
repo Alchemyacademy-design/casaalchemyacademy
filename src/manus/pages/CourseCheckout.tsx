@@ -164,7 +164,10 @@ export default function CourseCheckout() {
   };
 
   // Single-course purchases are switched off: never render the buy flow.
-  if (!INDIVIDUAL_COURSE_OPEN) {
+  // ?preview=courses opens it for testing without changing the global flag.
+  const courseSalesOpen = INDIVIDUAL_COURSE_OPEN
+    || (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === "courses");
+  if (!courseSalesOpen) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
         <header style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
@@ -218,18 +221,18 @@ export default function CourseCheckout() {
 
       <div className="container py-12 md:py-16 max-w-5xl">
         <div className="max-w-3xl mb-10">
-          <p className="section-label mb-3">One course · USD 159 · One-time payment</p>
+          <p className="section-label mb-3">One course · USD 159 · One time payment</p>
           <h1 className="font-serif text-3xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1.15 }}>
-            Choose the room you want to get right — and stop guessing.
+            Choose the room you want to get right, and stop guessing.
           </h1>
           <p className="text-base md:text-lg leading-relaxed mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            One wrong tile, one wrong sofa, one wrong paint colour can cost you thousands — and years of looking at
+            One wrong tile, one wrong sofa, one wrong paint colour can cost you thousands, and years of looking at
             something you never loved. For less than the price of a single design consultation, you get the exact
             method Lorena uses with private clients, for the one space that matters to you right now.
           </p>
           <p className="text-sm leading-relaxed" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
             Pick your course below. You'll create your account in the next step and your course is attached to it
-            automatically — access is released the moment Stripe confirms your payment.
+            automatically. Access is released the moment Stripe confirms your payment.
           </p>
         </div>
 
