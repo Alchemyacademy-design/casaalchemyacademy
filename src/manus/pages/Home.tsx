@@ -130,20 +130,20 @@ export default function Home() {
   );
   const isLaunchWeekActive = useMemo(() => {
     if (isPreviewOpen) return true;
-    const start = new Date("2026-09-22T08:00:00+10:00");
+    const start = new Date("2026-09-21T00:00:00+10:00");
     const end = new Date("2026-09-25T23:59:59+10:00");
     const now = new Date();
     return now >= start && now <= end;
   }, [isPreviewOpen]);
 
   // ── Buying mode ──
-  // From 8:00am Tue 22 Sep 2026 AEST onwards, memberships are open for good
+  // From Mon 21 Sep 2026 AEST onwards, memberships are open for good
   // (there is no end date). ?preview=open opens it early for previewing.
   const buyingOpen = useMemo(() => {
     const preview =
       typeof window !== "undefined" &&
       new URLSearchParams(window.location.search).get("preview") === "open";
-    return preview || new Date() >= new Date("2026-09-22T08:00:00+10:00");
+    return preview || new Date() >= new Date("2026-09-21T00:00:00+10:00");
   }, []);
 
   // Sends the visitor to sign up / log in, then on to the plans page.
@@ -570,13 +570,13 @@ export default function Home() {
       <UpcomingMasterclasses buyingOpen={buyingOpen} onJoin={joinAcademy} />
 
       {/* ── Launch Week promo ──
-           Visible only between 8:00am AEST Tue 22 Sep 2026 and 11:59pm AEST Fri 25 Sep 2026.
+           Visible only between Mon 21 Sep 2026 AEST and 11:59pm AEST Fri 25 Sep 2026.
            AEST is UTC+10. Adjust the ISO strings in the date check above to change the window. */}
       {isLaunchWeekActive && (
         <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "4rem 0 5.5rem" }}>
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
-              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, SEPT 22 TO 25</p>
+              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}><p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p></p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
                 Founding member pricing: USD 649/year
               </h2>
