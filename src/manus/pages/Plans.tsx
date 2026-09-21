@@ -97,17 +97,21 @@ export default function Plans() {
                   </ul>
                   <Button
                     className="w-full"
-                    disabled={isAdmin || !choice}
+                    disabled={isAdmin || !choice || (isGuide && !INDIVIDUAL_COURSE_OPEN)}
                     onClick={() => {
                       if (!choice) return;
-                      if (choice === "guide") { navigate("/choose-course"); return; }
+                      if (choice === "guide") {
+                        if (!INDIVIDUAL_COURSE_OPEN) return;
+                        navigate("/choose-course");
+                        return;
+                      }
                       setSelectedPlan(choice);
                     }}
                   >
                     {isAdmin
                       ? "Not required for admin"
                       : choice === "guide"
-                        ? "Choose your course"
+                        ? (INDIVIDUAL_COURSE_OPEN ? "Choose your course" : "Opens soon")
                         : choice
                           ? `Choose ${choice}`
                           : "Contact us"}
