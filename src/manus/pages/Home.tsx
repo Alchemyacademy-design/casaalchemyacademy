@@ -862,7 +862,7 @@ export default function Home() {
                         {plan.cta}
                         <span className="arrow" aria-hidden="true">→</span>
                       </button>
-                    ) : buyingOpen ? (
+                    ) : buyingOpen && plan.name !== "Individual Course" ? (
                       <button onClick={joinAcademy} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
                         {`Join ${plan.name}`}
                         <span className="arrow" aria-hidden="true">→</span>
