@@ -244,6 +244,12 @@ export default function CourseCheckout() {
 
         {step === "choose" && (
           <>
+            {error && (
+              <div className="mb-5 p-3 flex gap-2 text-sm" style={{ backgroundColor: "rgba(159,58,56,0.08)", border: "1px solid rgba(159,58,56,0.25)", color: "#9f3a38", fontFamily: "'DM Sans', sans-serif" }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{error}</span>
+              </div>
+            )}
             {isLoading ? (
               <div className="flex items-center gap-2 text-sm"><Loader2 className="animate-spin" size={16} /> Loading courses…</div>
             ) : courses.length === 0 ? (
