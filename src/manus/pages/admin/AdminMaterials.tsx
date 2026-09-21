@@ -633,6 +633,20 @@ function MaterialRow({
           />
           Downloadable
         </label>
+        <label className="flex items-center gap-1.5">
+          <Switch
+            checked={material.coming_soon}
+            onCheckedChange={async (checked) => {
+              try {
+                await updateMaterial(material.id, { coming_soon: checked });
+                onChanged();
+              } catch (e) {
+                toast.error(errorMessage(e));
+              }
+            }}
+          />
+          Coming soon
+        </label>
       </div>
 
       {editing ? (
