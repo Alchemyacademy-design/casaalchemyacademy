@@ -4,7 +4,7 @@ import { Check, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SubscribeModal from "@/manus/components/SubscribeModal";
-import { INDIVIDUAL_COURSE_OPEN } from "@/manus/pages/Home";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 import BackNav from "@/manus/components/BackNav";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } from "@/manus/hooks/usePublicContent";
