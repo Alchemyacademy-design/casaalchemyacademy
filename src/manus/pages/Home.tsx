@@ -828,9 +828,10 @@ export default function Home() {
                   {plan.best && <span className="plan-detail-badge">Best value</span>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
                     <p className="plan-detail-name" style={{ marginBottom: 0 }}>{plan.name}</p>
-                    {plan.name !== "Individual Course" && (
+                    {plan.name !== "Individual Course" && !buyingOpen && (
                       <Lock size={18} style={{ color: "var(--aa-text-mid)", opacity: 0.55, flexShrink: 0 }} aria-label="Membership closed" />
                     )}
+
                   </div>
                   <p className="plan-card-price">
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
