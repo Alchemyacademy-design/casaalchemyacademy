@@ -5,6 +5,7 @@ import SubscribeModal from "@/manus/components/SubscribeModal";
 import { Link } from "react-router-dom";
 import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 
 const STATIC_FALLBACK = [
   { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on." },
