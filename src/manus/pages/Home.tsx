@@ -100,6 +100,8 @@ const TESTIMONIALS = [
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();
+  // Exclusive Deals (incl. the Casa Consult member rate) are annual-only.
+  const { hasDeals } = useEntitlements();
   const navigate = useNavigate();
   useEffect(() => {
     // Signed-in visitors bypass the marketing landing page.
