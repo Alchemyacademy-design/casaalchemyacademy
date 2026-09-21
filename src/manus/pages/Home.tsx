@@ -3,6 +3,7 @@ import WaitlistDialog from "@/manus/components/WaitlistDialog";
 import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
+import { useEntitlements } from "@/manus/hooks/useEntitlements";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
@@ -99,6 +100,8 @@ const TESTIMONIALS = [
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();
+  // Exclusive Deals (incl. the Casa Consult member rate) are annual-only.
+  const { hasDeals } = useEntitlements();
   const navigate = useNavigate();
   useEffect(() => {
     // Signed-in visitors bypass the marketing landing page.
@@ -457,7 +460,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
                   {[
                     {
-                      title: "Casa Consult for Alchemy Academy Members",
+                      title: "Casa Consult for Alchemy Academy Annual Members",
                       price: "AUD $295",
                       href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
                       memberOnly: true,
@@ -512,7 +515,7 @@ export default function Home() {
                             onClick={() => {
                               if (!isAuthenticated) {
                                 navigate(getLoginUrl());
-                              } else if (!isMember) {
+                              } else if (!hasDeals) {
                                 setShowMemberNotice(true);
                               } else {
                                 navigate("/deals/casa-consult");
@@ -525,7 +528,7 @@ export default function Home() {
                           </button>
                           {showMemberNotice && (
                             <div className="mt-3 text-xs flex items-start gap-2" style={{ color: "var(--aa-olive-dark)" }}>
-                              <span>This rate is exclusive to active Alchemy Academy members.</span>
+                              <span>This rate is exclusive to Annual Alchemy Academy members.</span>
                               <Link to="/plans" className="underline whitespace-nowrap" style={{ color: "var(--aa-gold)" }}>
                                 View plans
                               </Link>
@@ -710,7 +713,7 @@ export default function Home() {
                   { feature: "Private events", annual: "check", monthly: "", selected: "" },
                   { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Exclusive Deals", annual: "check", monthly: "check", selected: "" },
+                  { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
                   { feature: "Cancel policy", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
@@ -797,8 +800,8 @@ export default function Home() {
                     "Quizzes and completion certificates",
                     "The A Tribe private community forum",
                     "Expert Masterclasses",
-                    "The Reading Room, the suppliers directory and Exclusive Deals, for as long as your membership is active",
-                    "Does not include private events",
+                    "The Reading Room and the suppliers directory",
+                    "Does not include private events or Exclusive Deals",
                     "Cancel anytime, access runs to the end of the paid month",
                   ],
                 },

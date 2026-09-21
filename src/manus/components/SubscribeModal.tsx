@@ -23,7 +23,7 @@ const PLAN_LABELS: Record<string, { label: string; price: string; sub: string }>
   monthly: {
     label: "Monthly Membership",
     price: "US$99 / month",
-    sub: "Billed monthly, no lock-in. Cancel anytime. Includes all courses, community, members events, magazine, suppliers directory and exclusive deals.",
+    sub: "Billed monthly, no lock-in. Cancel anytime. Includes all courses, community, Expert Masterclasses, magazine and suppliers directory. Does not include private events or exclusive deals.",
   },
   guide: {
     label: "Single Course",
