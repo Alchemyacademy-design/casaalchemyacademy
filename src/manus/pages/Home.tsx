@@ -851,6 +851,11 @@ export default function Home() {
                         {plan.cta}
                         <span className="arrow" aria-hidden="true">→</span>
                       </button>
+                    ) : buyingOpen ? (
+                      <button onClick={joinAcademy} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        {`Join ${plan.name}`}
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </button>
                     ) : (
                       <span
                         style={{
@@ -869,6 +874,7 @@ export default function Home() {
                         Opens soon
                       </span>
                     )}
+
                   </div>
                 </div>
               ))}
