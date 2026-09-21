@@ -18,12 +18,13 @@ export type SupportMaterial = {
   file_size: number | null;
   is_downloadable: boolean;
   is_public: boolean;
+  coming_soon: boolean;
   sort_order: number;
   created_at: string;
 };
 
 const SELECT =
-  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,sort_order,created_at";
+  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,coming_soon,sort_order,created_at";
 
 export const MAX_MATERIAL_BYTES = 50 * 1024 * 1024;
 
@@ -213,7 +214,10 @@ export async function createMaterialLink(params: {
 export async function updateMaterial(
   id: number,
   patch: Partial<
-    Pick<SupportMaterial, "title" | "description" | "external_url" | "is_downloadable" | "is_public" | "sort_order">
+    Pick<
+      SupportMaterial,
+      "title" | "description" | "external_url" | "is_downloadable" | "is_public" | "coming_soon" | "sort_order"
+    >
   >,
 ) {
   const { error } = await supabase.from("lesson_attachments").update(patch).eq("id", id);
@@ -234,6 +238,7 @@ export async function deleteMaterial(material: SupportMaterial) {
  * browser download — the file always opens inline in a new tab.
  */
 export async function getMaterialUrl(material: SupportMaterial): Promise<string> {
+  if (material.coming_soon) throw new Error("This material is coming soon.");
   if (material.external_url) return material.external_url;
   if (!material.storage_path) throw new Error("Material has no file.");
   const { data, error } = await supabase.storage
@@ -245,6 +250,7 @@ export async function getMaterialUrl(material: SupportMaterial): Promise<string>
 
 /** Signed URL meant for inline viewing (never forces a download). */
 export async function getMaterialPreviewUrl(material: SupportMaterial): Promise<string> {
+  if (material.coming_soon) throw new Error("This material is coming soon.");
   if (material.external_url) return material.external_url;
   if (!material.storage_path) throw new Error("Material has no file.");
   const { data, error } = await supabase.storage
@@ -258,6 +264,7 @@ export type MaterialPreviewKind = "pdf" | "image" | "audio" | "text" | "none";
 
 /** What can be rendered inline, straight inside the lesson page. */
 export function previewKindOf(material: SupportMaterial): MaterialPreviewKind {
+  if (material.coming_soon) return "none";
   if (material.external_url) return "none";
   const hint = `${material.file_type ?? ""} ${material.file_name ?? ""}`.toLowerCase();
   if (/pdf/.test(hint)) return "pdf";

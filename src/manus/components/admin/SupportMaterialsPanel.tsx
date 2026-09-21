@@ -264,6 +264,20 @@ function MaterialRow({ material, onChanged }: { material: SupportMaterial; onCha
         />
         Downloadable
       </label>
+      <label className="flex items-center gap-1.5 text-[11px] text-foreground/60">
+        <Switch
+          checked={material.coming_soon}
+          onCheckedChange={async (checked) => {
+            try {
+              await updateMaterial(material.id, { coming_soon: checked });
+              onChanged();
+            } catch (e) {
+              toast.error(errorMessage(e));
+            }
+          }}
+        />
+        Coming soon
+      </label>
       <Button type="button" size="sm" variant="outline" className="min-h-[36px]" onClick={open} disabled={busy}>
         {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
       </Button>

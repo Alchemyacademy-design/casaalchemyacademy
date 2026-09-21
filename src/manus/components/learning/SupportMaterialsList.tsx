@@ -75,6 +75,25 @@ function MaterialItem({ material }: { material: SupportMaterial }) {
     }
   }
 
+  if (material.coming_soon) {
+    return (
+      <div className="overflow-hidden rounded-lg border border-border/40 bg-card/30 opacity-60">
+        <div className="flex min-h-[44px] items-center gap-3 p-3">
+          <FileText className="h-4 w-4 shrink-0 text-foreground/40" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-medium">{material.title ?? material.file_name}</span>
+            {material.description ? (
+              <span className="block truncate text-xs text-foreground/60">{material.description}</span>
+            ) : null}
+          </span>
+          <span className="shrink-0 rounded-full border border-border/60 px-2.5 py-1 text-[11px] uppercase tracking-wide text-foreground/60">
+            Coming soon
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="overflow-hidden rounded-lg border border-border/60 bg-card/50 transition-colors hover:border-primary/50">
       <div className="flex min-h-[44px] items-center gap-3 p-3">
