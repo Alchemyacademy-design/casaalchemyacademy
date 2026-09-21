@@ -3213,6 +3213,33 @@ export type Database = {
         }
         Returns: Json
       }
+      internal_apply_stripe_course_payment: {
+        Args: {
+          p_amount: number
+          p_course_id: number
+          p_currency: string
+          p_livemode: boolean
+          p_metadata?: Json
+          p_stripe_checkout_session_id: string
+          p_stripe_customer_id: string
+          p_stripe_event_created_at: string
+          p_stripe_event_id: string
+          p_stripe_payment_intent_id: string
+          p_stripe_price_id: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      internal_apply_stripe_course_refund: {
+        Args: {
+          p_metadata?: Json
+          p_reason: string
+          p_stripe_event_created_at: string
+          p_stripe_event_id: string
+          p_stripe_payment_intent_id: string
+        }
+        Returns: Json
+      }
       internal_apply_stripe_invoice_paid: {
         Args: {
           p_amount: number

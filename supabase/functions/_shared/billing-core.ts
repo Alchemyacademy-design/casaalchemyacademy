@@ -545,6 +545,127 @@ async function applyAnnualCheckoutPayment(
   }
 }
 
+// --- One-time single course purchases (US$159, 3 months access) ------------
+// Strictly additive: subscription activation still flows through invoice.paid.
+type UntypedRpc = { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
+
+async function applyCourseCheckoutPayment(
+  supabase: SupabaseAdmin,
+  stripe: Stripe,
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+) {
+  if (session.mode !== "payment") throw new IgnoredEvent("course_checkout_not_payment_mode");
+  if (session.payment_status !== "paid") throw new IgnoredEvent("course_checkout_not_paid");
+  if (session.livemode !== event.livemode) throw new BillingError("course_checkout_livemode_mismatch");
+
+  let userId = metadataUserId(session.metadata)
+    ?? parseClientReference(session.client_reference_id).userId;
+  if (!userId) {
+    userId = await resolveOrProvisionUserByEmail(supabase, session.customer_details?.email);
+  }
+  if (!userId) throw new BillingError(`Course Checkout session ${session.id} missing supabase_user_id`);
+
+  const courseId = metadataCourseId(session.metadata)
+    ?? parseClientReference(session.client_reference_id).courseId;
+  if (!courseId) throw new BillingError(`Course Checkout session ${session.id} missing course_id`);
+
+  const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 2 });
+  if (lineItems.data.length !== 1 || lineItems.data[0].quantity !== 1) {
+    throw new BillingError(`Course Checkout session ${session.id} must have one line item`);
+  }
+  const priceId = lineItems.data[0].price?.id ?? null;
+  if (!priceId) throw new BillingError(`Course Checkout session ${session.id} missing Price`);
+
+  const mapping = await priceMapping(supabase, priceId, event.livemode);
+  if (mapping.plan_key !== "individual_course") throw new BillingError(`Course Checkout session ${session.id} plan mismatch`);
+  if (mapping.currency.toLowerCase() !== "usd") throw new BillingError(`Course Checkout session ${session.id} currency mismatch`);
+  if (mapping.unit_amount !== 15900) throw new BillingError(`Course Checkout session ${session.id} unit_amount mismatch`);
+  if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
+    throw new BillingError(`Course Checkout session ${session.id} must use a one-time Price`);
+  }
+  if (mapping.active !== true) throw new BillingError(`Course Checkout session ${session.id} Price is not active`);
+  if (mapping.livemode !== event.livemode) throw new BillingError("course_price_livemode_mismatch");
+
+  if (typeof session.amount_total !== "number" || session.amount_total <= 0) {
+    throw new BillingError(`Course Checkout session ${session.id} has no positive paid amount`);
+  }
+  const customerId = objectId(session.customer);
+  if (!customerId) throw new BillingError(`Course Checkout session ${session.id} missing Customer`);
+  const paymentIntentId = objectId(session.payment_intent);
+  if (!paymentIntentId) throw new BillingError(`Course Checkout session ${session.id} missing PaymentIntent`);
+
+  const { data: course, error: courseError } = await supabase
+    .from("courses").select("id").eq("id", courseId).eq("status", "published").maybeSingle();
+  if (courseError) throw courseError;
+  if (!course) throw new BillingError(`Course ${courseId} is not purchasable`);
+
+  const { data, error } = await (supabase as unknown as UntypedRpc).rpc("internal_apply_stripe_course_payment", {
+    p_stripe_event_id: event.id,
+    p_stripe_event_created_at: new Date(session.created * 1000).toISOString(),
+    p_user_id: userId,
+    p_course_id: courseId,
+    p_stripe_checkout_session_id: session.id,
+    p_stripe_customer_id: customerId,
+    p_stripe_price_id: mapping.stripe_price_id,
+    p_stripe_payment_intent_id: paymentIntentId,
+    p_amount: session.amount_total,
+    p_currency: mapping.currency,
+    p_livemode: event.livemode,
+    p_metadata: {
+      ...session.metadata,
+      source_event_type: event.type,
+      stripe_event_id: event.id,
+    },
+  });
+  if (error) throw error;
+  if ((data as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+    throw new IgnoredEvent("duplicate_course_checkout_event");
+  }
+
+  try {
+    await sendPostPaymentWelcomeEmail({
+      supabase,
+      userId,
+      fallbackEmail: session.customer_details?.email ?? null,
+      planKey: "individual_course",
+      checkoutSessionId: session.id,
+    });
+  } catch (err) {
+    console.error("[applyCourseCheckoutPayment] welcome email failed", err);
+  }
+}
+
+// Routes a one-time Checkout Session to the right apply function by Price
+// mapping. Only the mapping lookup is guarded; apply errors propagate.
+async function applyOneTimeCheckoutPayment(
+  supabase: SupabaseAdmin,
+  stripe: Stripe,
+  event: Stripe.Event,
+  session: Stripe.Checkout.Session,
+) {
+  let mapping: Awaited<ReturnType<typeof priceMapping>>;
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
+    const priceId = items.data[0]?.price?.id ?? null;
+    if (!priceId) throw new Error("no price");
+    mapping = await priceMapping(supabase, priceId, event.livemode);
+  } catch {
+    throw new IgnoredEvent("unknown_one_time_price");
+  }
+  if (mapping.plan_key === "annual_member") {
+    await applyAnnualCheckoutPayment(supabase, stripe, event, session);
+    return;
+  }
+  if (mapping.plan_key === "individual_course") {
+    await applyCourseCheckoutPayment(supabase, stripe, event, session);
+    return;
+  }
+  throw new IgnoredEvent("one_time_price_not_supported");
+}
+
+
+
 async function applySubscriptionState(supabase: SupabaseAdmin, event: Stripe.Event, subscription: Stripe.Subscription, statusOverride?: string, stripe?: Stripe) {
   const userId = metadataUserId(subscription.metadata)
     ?? await resolveUserIdForSubscription(supabase, subscription, stripe);
@@ -665,6 +786,22 @@ async function revokeByCharge(supabase: SupabaseAdmin, stripe: Stripe, event: St
   if (!chargeId) throw new IgnoredEvent(`${reason}_without_charge`);
   const { charge, payment, paymentIntentId } = await paymentForCharge(supabase, stripe, chargeId);
   const subscriptionId = payment?.stripe_subscription_id ?? null;
+  // One-time course payment (no subscription): revoke via the course refund RPC.
+  if (payment && !subscriptionId && paymentIntentId) {
+    const { data: refundData, error: refundError } = await (supabase as unknown as UntypedRpc)
+      .rpc("internal_apply_stripe_course_refund", {
+        p_stripe_event_id: event.id,
+        p_stripe_event_created_at: eventCreatedAt(event),
+        p_stripe_payment_intent_id: paymentIntentId,
+        p_reason: reason,
+        p_metadata: { source_event_type: event.type, charge_id: charge.id },
+      });
+    if (refundError) throw refundError;
+    if ((refundData as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+      throw new IgnoredEvent(`duplicate_${reason}_event`);
+    }
+    return;
+  }
   if (!subscriptionId) throw new IgnoredEvent(`${reason}_without_subscription`);
   const { data, error } = await supabase.rpc("internal_apply_stripe_access_revocation", {
     p_stripe_event_id: event.id,
@@ -692,26 +829,17 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
       const session = event.data.object as Stripe.Checkout.Session;
       await recordCheckoutSession(supabase, stripe, session, event);
       if (session.mode === "payment") {
-        // Route one-time payments (annual) by inspecting the Price mapping —
+        // Route one-time payments (annual or single course) by Price mapping —
         // Payment Links can't inject metadata.plan_key from the URL.
-        const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
-        const priceId = items.data[0]?.price?.id ?? null;
-        if (priceId) {
-          try {
-            const mapping = await priceMapping(supabase, priceId, event.livemode);
-            if (mapping.plan_key === "annual_member") {
-              await applyAnnualCheckoutPayment(supabase, stripe, event, session);
-              return;
-            }
-          } catch { /* unknown price — fall through to ignored */ }
-        }
+        await applyOneTimeCheckoutPayment(supabase, stripe, event, session);
+        return;
       }
       throw new IgnoredEvent("subscription_checkout_records_only_invoice_paid_activates");
     }
     case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
       await recordCheckoutSession(supabase, stripe, session, event);
-      await applyAnnualCheckoutPayment(supabase, stripe, event, session);
+      await applyOneTimeCheckoutPayment(supabase, stripe, event, session);
       return;
     }
     case "checkout.session.async_payment_failed":

@@ -8,15 +8,15 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 
-const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/fZu4gA5Fn4Wr6A53uOaZi05";
-
 const CHARITIES = [
   { id: "lighthouse", name: "The Lighthouse for the Community" },
   { id: "acasa", name: "A Casa Org" },
 ];
 
+const CHECKOUT_ERROR = "We could not start checkout. Please try again, or contact support.";
+
 const INCLUDED = [
-  "Every lesson of the course you choose — videos and written guides",
+  "Every lesson of the course you choose: videos and written guides",
   "Access to the Master Guides for that course",
   "Quizzes and the completion certificate in your name",
   "3 months of access from the moment your payment is confirmed",
@@ -88,25 +88,7 @@ export default function CourseCheckout() {
     } catch (err) {
       console.error("checkout error", err);
     }
-
-    // Fallback: hosted Payment Link, carrying the buyer's identity so the
-    // webhook can still resolve the account and the course after payment.
-    const link = new URL(FALLBACK_PAYMENT_LINK);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const current = sessionData.session?.user;
-    if (current?.email) {
-      link.searchParams.set("prefilled_email", current.email);
-      // Payment Links only forward `client_reference_id`, so the chosen course
-      // is encoded alongside the user id and decoded by the Stripe webhook.
-      link.searchParams.set("client_reference_id", `${current.id}__c${courseId}`);
-    } else if (email) {
-      link.searchParams.set("prefilled_email", email.trim().toLowerCase());
-    }
-    link.searchParams.set("utm_content", `course_${courseId}`);
-    link.searchParams.set("utm_source", "course_checkout");
-    if (selectedCharity) link.searchParams.set("utm_campaign", selectedCharity);
-    toast.success("Redirecting to secure Stripe checkout…");
-    breakOutAndGo(link.toString());
+    setError(CHECKOUT_ERROR);
   };
 
   const handleContinueToAccount = () => {
@@ -182,7 +164,10 @@ export default function CourseCheckout() {
   };
 
   // Single-course purchases are switched off: never render the buy flow.
-  if (!INDIVIDUAL_COURSE_OPEN) {
+  // ?preview=courses opens it for testing without changing the global flag.
+  const courseSalesOpen = INDIVIDUAL_COURSE_OPEN
+    || (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("preview") === "courses");
+  if (!courseSalesOpen) {
     return (
       <div className="min-h-screen" style={{ backgroundColor: "var(--aa-cream)", color: "var(--aa-text-dark)" }}>
         <header style={{ borderBottom: "1px solid var(--aa-cream-dark)", backgroundColor: "var(--aa-white)" }}>
@@ -236,18 +221,18 @@ export default function CourseCheckout() {
 
       <div className="container py-12 md:py-16 max-w-5xl">
         <div className="max-w-3xl mb-10">
-          <p className="section-label mb-3">One course · USD 159 · One-time payment</p>
+          <p className="section-label mb-3">One course · USD 159 · One time payment</p>
           <h1 className="font-serif text-3xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1.15 }}>
-            Choose the room you want to get right — and stop guessing.
+            Choose the room you want to get right, and stop guessing.
           </h1>
           <p className="text-base md:text-lg leading-relaxed mb-4" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-            One wrong tile, one wrong sofa, one wrong paint colour can cost you thousands — and years of looking at
+            One wrong tile, one wrong sofa, one wrong paint colour can cost you thousands, and years of looking at
             something you never loved. For less than the price of a single design consultation, you get the exact
             method Lorena uses with private clients, for the one space that matters to you right now.
           </p>
           <p className="text-sm leading-relaxed" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>
             Pick your course below. You'll create your account in the next step and your course is attached to it
-            automatically — access is released the moment Stripe confirms your payment.
+            automatically. Access is released the moment Stripe confirms your payment.
           </p>
         </div>
 
@@ -259,6 +244,12 @@ export default function CourseCheckout() {
 
         {step === "choose" && (
           <>
+            {error && (
+              <div className="mb-5 p-3 flex gap-2 text-sm" style={{ backgroundColor: "rgba(159,58,56,0.08)", border: "1px solid rgba(159,58,56,0.25)", color: "#9f3a38", fontFamily: "'DM Sans', sans-serif" }}>
+                <AlertCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>{error}</span>
+              </div>
+            )}
             {isLoading ? (
               <div className="flex items-center gap-2 text-sm"><Loader2 className="animate-spin" size={16} /> Loading courses…</div>
             ) : courses.length === 0 ? (
@@ -400,7 +391,7 @@ export default function CourseCheckout() {
                 {(selected as { short_description?: string | null }).short_description ?? selected.subtitle ?? ""}
               </p>
               <div className="font-serif mb-5" style={{ fontSize: "2.25rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>
-                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one-time</span>
+                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one time</span>
               </div>
               <ul className="space-y-2">
                 {INCLUDED.map((item) => (
