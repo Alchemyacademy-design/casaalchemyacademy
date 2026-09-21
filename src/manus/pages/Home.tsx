@@ -457,7 +457,7 @@ export default function Home() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
                   {[
                     {
-                      title: "Casa Consult for Alchemy Academy Annual Members",
+                      title: "Casa Consult for Alchemy Academy Members",
                       price: "AUD $295",
                       href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
                       memberOnly: true,
@@ -710,7 +710,7 @@ export default function Home() {
                   { feature: "Private events", annual: "check", monthly: "", selected: "" },
                   { feature: "The Reading Room", annual: "check", monthly: "check", selected: "" },
                   { feature: "Suppliers directory", annual: "check", monthly: "check", selected: "" },
-                  { feature: "Exclusive Deals", annual: "check", monthly: "", selected: "" },
+                  { feature: "Exclusive Deals", annual: "check", monthly: "check", selected: "" },
                   { feature: "Cancel policy", annual: "No lock-in, cancel anytime, renews automatically after 1 year*", monthly: "No lock-in, cancel anytime, renews automatically after 1 month*", selected: "One-time payment, no automatic renewal" },
                 ].map((row, idx) => (
                   <tr key={idx} style={{ borderBottom: "1px solid var(--aa-cream-dark)" }}>
@@ -797,8 +797,8 @@ export default function Home() {
                     "Quizzes and completion certificates",
                     "The A Tribe private community forum",
                     "Expert Masterclasses",
-                    "The Reading Room and the suppliers directory",
-                    "Does not include private events or Exclusive Deals",
+                    "The Reading Room, the suppliers directory and Exclusive Deals, for as long as your membership is active",
+                    "Does not include private events",
                     "Cancel anytime, access runs to the end of the paid month",
                   ],
                 },
