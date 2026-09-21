@@ -115,13 +115,38 @@ export default function Home() {
   // ── Launch Week promo visibility ──
   // AEST is UTC+10 (no daylight saving in September). Update the ISO strings
   // below to change the promo window; the section only renders while the current
-  // time falls between start and end.
+  // time falls between start and end. Adding ?preview=open to the page address
+  // shows it early for previewing.
+  const isPreviewOpen = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("preview") === "open",
+    [],
+  );
   const isLaunchWeekActive = useMemo(() => {
+    if (isPreviewOpen) return true;
     const start = new Date("2026-09-22T08:00:00+10:00");
     const end = new Date("2026-09-25T23:59:59+10:00");
     const now = new Date();
     return now >= start && now <= end;
+  }, [isPreviewOpen]);
+
+  // ── Buying mode ──
+  // From 8:00am Tue 22 Sep 2026 AEST onwards, memberships are open for good
+  // (there is no end date). ?preview=open opens it early for previewing.
+  const buyingOpen = useMemo(() => {
+    const preview =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("preview") === "open";
+    return preview || new Date() >= new Date("2026-09-22T08:00:00+10:00");
   }, []);
+
+  // Sends the visitor to sign up / log in, then on to the plans page.
+  // The login page already supports a `next` target (see safe-next.ts).
+  const joinAcademy = () => {
+    navigate(`${getLoginUrl()}?next=${encodeURIComponent("/plans")}`);
+  };
+
 
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
