@@ -4,6 +4,7 @@ import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
@@ -98,11 +99,6 @@ const TESTIMONIALS = [
     quote: "We have a very challengingly narrow block and having her help on guiding us on how to use the spaces has been life-changing! She has great knowledge of suppliers and was able to match our style and needs.",
   },
 ];
-
-// Single-course purchases are temporarily switched off (the Stripe price still
-// bills monthly). Set this back to true to re-enable the "Choose Course" button
-// on the Individual Course card (and on the Plans page, which imports it).
-export const INDIVIDUAL_COURSE_OPEN = false;
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();

@@ -5,6 +5,7 @@ import SubscribeModal from "@/manus/components/SubscribeModal";
 import { Link } from "react-router-dom";
 import { usePublishedCourses } from "@/manus/hooks/usePublicContent";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 
 const STATIC_FALLBACK = [
   { number: 1, title: "Colour", tagline: "Discover how to use the same intricate colour techniques designers rely on." },
@@ -153,6 +154,10 @@ export default function Guides() {
                 {selectedModule?.entitled && selectedModule.href ? (
                   <Link to={selectedModule.href} className="btn-gold w-full flex items-center justify-center gap-2">
                     Open course <ArrowRight size={14} />
+                  </Link>
+                ) : !INDIVIDUAL_COURSE_OPEN ? (
+                  <Link to="/plans" className="btn-gold w-full flex items-center justify-center gap-2">
+                    See membership plans <ArrowRight size={14} />
                   </Link>
                 ) : (
                   <button
