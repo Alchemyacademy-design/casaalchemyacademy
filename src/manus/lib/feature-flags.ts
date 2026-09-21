@@ -8,9 +8,9 @@ export const INDIVIDUAL_COURSE_OPEN = false;
 // Link. Outside the window the regular US$708 annual link is used.
 export const LAUNCH_ANNUAL_PAYMENT_LINK = "https://buy.stripe.com/fZueVe7Nv3Sne2x5CWaZi0c";
 
-// Launch window: Tue 22 Sept 2026 8:00am AEST to Fri 25 Sept 2026 11:59pm AEST.
+// Launch window: Mon 21 Sept 2026 AEST to Fri 25 Sept 2026 11:59pm AEST.
 // To change the window, edit the two dates below (+10:00 means Sydney time).
-const LAUNCH_START = new Date("2026-09-22T08:00:00+10:00");
+const LAUNCH_START = new Date("2026-09-21T00:00:00+10:00");
 const LAUNCH_END = new Date("2026-09-25T23:59:59+10:00");
 
 export function isLaunchPricingActive(): boolean {
