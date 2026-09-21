@@ -786,6 +786,22 @@ async function revokeByCharge(supabase: SupabaseAdmin, stripe: Stripe, event: St
   if (!chargeId) throw new IgnoredEvent(`${reason}_without_charge`);
   const { charge, payment, paymentIntentId } = await paymentForCharge(supabase, stripe, chargeId);
   const subscriptionId = payment?.stripe_subscription_id ?? null;
+  // One-time course payment (no subscription): revoke via the course refund RPC.
+  if (payment && !subscriptionId && paymentIntentId) {
+    const { data: refundData, error: refundError } = await (supabase as unknown as UntypedRpc)
+      .rpc("internal_apply_stripe_course_refund", {
+        p_stripe_event_id: event.id,
+        p_stripe_event_created_at: eventCreatedAt(event),
+        p_stripe_payment_intent_id: paymentIntentId,
+        p_reason: reason,
+        p_metadata: { source_event_type: event.type, charge_id: charge.id },
+      });
+    if (refundError) throw refundError;
+    if ((refundData as { result?: string } | null)?.result === "processed_ignored_duplicate") {
+      throw new IgnoredEvent(`duplicate_${reason}_event`);
+    }
+    return;
+  }
   if (!subscriptionId) throw new IgnoredEvent(`${reason}_without_subscription`);
   const { data, error } = await supabase.rpc("internal_apply_stripe_access_revocation", {
     p_stripe_event_id: event.id,
