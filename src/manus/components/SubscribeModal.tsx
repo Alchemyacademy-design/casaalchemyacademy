@@ -55,7 +55,8 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
   const [selectedCharity, setSelectedCharity] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const planInfo = PLAN_LABELS[type];
+  const launchAnnual = type === "annual" && isLaunchPricingActive();
+  const planInfo = launchAnnual ? LAUNCH_ANNUAL_INFO : PLAN_LABELS[type];
 
   const handleContinue = async () => {
     if (!selectedCharity || isLoading) return;
