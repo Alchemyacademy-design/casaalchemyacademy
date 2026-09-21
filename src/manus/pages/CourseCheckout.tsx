@@ -88,25 +88,7 @@ export default function CourseCheckout() {
     } catch (err) {
       console.error("checkout error", err);
     }
-
-    // Fallback: hosted Payment Link, carrying the buyer's identity so the
-    // webhook can still resolve the account and the course after payment.
-    const link = new URL(FALLBACK_PAYMENT_LINK);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const current = sessionData.session?.user;
-    if (current?.email) {
-      link.searchParams.set("prefilled_email", current.email);
-      // Payment Links only forward `client_reference_id`, so the chosen course
-      // is encoded alongside the user id and decoded by the Stripe webhook.
-      link.searchParams.set("client_reference_id", `${current.id}__c${courseId}`);
-    } else if (email) {
-      link.searchParams.set("prefilled_email", email.trim().toLowerCase());
-    }
-    link.searchParams.set("utm_content", `course_${courseId}`);
-    link.searchParams.set("utm_source", "course_checkout");
-    if (selectedCharity) link.searchParams.set("utm_campaign", selectedCharity);
-    toast.success("Redirecting to secure Stripe checkout…");
-    breakOutAndGo(link.toString());
+    setError(CHECKOUT_ERROR);
   };
 
   const handleContinueToAccount = () => {
