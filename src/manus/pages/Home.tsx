@@ -99,6 +99,11 @@ const TESTIMONIALS = [
   },
 ];
 
+// Single-course purchases are temporarily switched off (the Stripe price still
+// bills monthly). Set this back to true to re-enable the "Choose Course" button
+// on the Individual Course card (and on the Plans page, which imports it).
+export const INDIVIDUAL_COURSE_OPEN = false;
+
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();
   // Exclusive Deals (incl. the Casa Consult member rate) are annual-only.
@@ -816,8 +821,8 @@ export default function Home() {
                   per: "",
                   sub: "One-time payment",
                   save: "No commitment",
-                  cta: "Choose Course",
-                  action: () => navigate("/choose-course"),
+                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
+                  action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
@@ -857,7 +862,7 @@ export default function Home() {
                         {plan.cta}
                         <span className="arrow" aria-hidden="true">→</span>
                       </button>
-                    ) : buyingOpen ? (
+                    ) : buyingOpen && plan.name !== "Individual Course" ? (
                       <button onClick={joinAcademy} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
                         {`Join ${plan.name}`}
                         <span className="arrow" aria-hidden="true">→</span>
