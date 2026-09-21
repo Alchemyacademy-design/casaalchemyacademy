@@ -565,6 +565,8 @@ export default function Home() {
         </div>
       </section>
 
+      <UpcomingMasterclasses buyingOpen={buyingOpen} onJoin={joinAcademy} />
+
       {/* ── Launch Week promo ──
            Visible only between 8:00am AEST Tue 22 Sep 2026 and 11:59pm AEST Fri 25 Sep 2026.
            AEST is UTC+10. Adjust the ISO strings in the date check above to change the window. */}
