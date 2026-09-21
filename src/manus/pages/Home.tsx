@@ -817,6 +817,7 @@ export default function Home() {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
                   best: false,
+                  was: null,
                   amount: "159",
                   per: "",
                   sub: "One-time payment",
