@@ -569,18 +569,19 @@ export default function Home() {
         <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "4rem 0 5.5rem" }}>
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
-              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK · SEPT 22–25</p>
+              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, SEPT 22 TO 25</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
                 Founding member pricing: USD 649/year
               </h2>
               <p className="mb-3" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Regular price USD 708/year — save a full month, locked in for as long as you stay a member.
+                Regular price USD 708/year, save a full month, locked in for as long as you stay a member.
               </p>
               <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Plus a free Mini-Casa Consult of 30 minutes for the first 10 founding members.
+                Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.
               </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn">
-                Join the Waitlist
+              <button onClick={joinAcademy} className="cta-btn">
+                Join Alchemy Academy
+
                 <span className="arrow" aria-hidden="true">→</span>
               </button>
             </div>
