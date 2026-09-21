@@ -115,13 +115,38 @@ export default function Home() {
   // ── Launch Week promo visibility ──
   // AEST is UTC+10 (no daylight saving in September). Update the ISO strings
   // below to change the promo window; the section only renders while the current
-  // time falls between start and end.
+  // time falls between start and end. Adding ?preview=open to the page address
+  // shows it early for previewing.
+  const isPreviewOpen = useMemo(
+    () =>
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("preview") === "open",
+    [],
+  );
   const isLaunchWeekActive = useMemo(() => {
+    if (isPreviewOpen) return true;
     const start = new Date("2026-09-22T08:00:00+10:00");
     const end = new Date("2026-09-25T23:59:59+10:00");
     const now = new Date();
     return now >= start && now <= end;
+  }, [isPreviewOpen]);
+
+  // ── Buying mode ──
+  // From 8:00am Tue 22 Sep 2026 AEST onwards, memberships are open for good
+  // (there is no end date). ?preview=open opens it early for previewing.
+  const buyingOpen = useMemo(() => {
+    const preview =
+      typeof window !== "undefined" &&
+      new URLSearchParams(window.location.search).get("preview") === "open";
+    return preview || new Date() >= new Date("2026-09-22T08:00:00+10:00");
   }, []);
+
+  // Sends the visitor to sign up / log in, then on to the plans page.
+  // The login page already supports a `next` target (see safe-next.ts).
+  const joinAcademy = () => {
+    navigate(`${getLoginUrl()}?next=${encodeURIComponent("/plans")}`);
+  };
+
 
   const submitContact = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -544,18 +569,19 @@ export default function Home() {
         <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "4rem 0 5.5rem" }}>
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
-              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK · SEPT 22–25</p>
+              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, SEPT 22 TO 25</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
                 Founding member pricing: USD 649/year
               </h2>
               <p className="mb-3" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Regular price USD 708/year — save a full month, locked in for as long as you stay a member.
+                Regular price USD 708/year, save a full month, locked in for as long as you stay a member.
               </p>
               <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Plus a free Mini-Casa Consult of 30 minutes for the first 10 founding members.
+                Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.
               </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn">
-                Join the Waitlist
+              <button onClick={joinAcademy} className="cta-btn">
+                Join Alchemy Academy
+
                 <span className="arrow" aria-hidden="true">→</span>
               </button>
             </div>
@@ -697,7 +723,7 @@ export default function Home() {
               </tbody>
             </table>
             </div>
-            {/* Single shared waitlist CTA for the two locked membership plans (pre-launch). */}
+            {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
             <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "2.5rem", marginBottom: "0" }}>
               <p
                 style={{
@@ -707,7 +733,7 @@ export default function Home() {
                   marginBottom: "0.5rem",
                 }}
               >
-                Memberships open soon.
+                {buyingOpen ? "Memberships are open." : "Memberships open soon."}
               </p>
               <p
                 style={{
@@ -719,11 +745,14 @@ export default function Home() {
                   margin: "0 auto 1.5rem",
                 }}
               >
-                Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch.
+                {buyingOpen
+                  ? "Choose the Annual or Monthly Member plan and join today."
+                  : "Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch."}
               </p>
-              <button onClick={() => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
-                Join the Waitlist
+              <button onClick={buyingOpen ? joinAcademy : () => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
+                {buyingOpen ? "Join Alchemy Academy" : "Join the Waitlist"}
                 <span className="arrow" aria-hidden="true">→</span>
+
               </button>
             </div>
             <div className="plan-details">
@@ -799,9 +828,10 @@ export default function Home() {
                   {plan.best && <span className="plan-detail-badge">Best value</span>}
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
                     <p className="plan-detail-name" style={{ marginBottom: 0 }}>{plan.name}</p>
-                    {plan.name !== "Individual Course" && (
+                    {plan.name !== "Individual Course" && !buyingOpen && (
                       <Lock size={18} style={{ color: "var(--aa-text-mid)", opacity: 0.55, flexShrink: 0 }} aria-label="Membership closed" />
                     )}
+
                   </div>
                   <p className="plan-card-price">
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
@@ -819,6 +849,11 @@ export default function Home() {
                     {plan.cta && plan.action ? (
                       <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
                         {plan.cta}
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </button>
+                    ) : buyingOpen ? (
+                      <button onClick={joinAcademy} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        {`Join ${plan.name}`}
                         <span className="arrow" aria-hidden="true">→</span>
                       </button>
                     ) : (
@@ -839,6 +874,7 @@ export default function Home() {
                         Opens soon
                       </span>
                     )}
+
                   </div>
                 </div>
               ))}
