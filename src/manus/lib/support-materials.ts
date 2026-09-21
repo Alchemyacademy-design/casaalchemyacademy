@@ -264,6 +264,7 @@ export type MaterialPreviewKind = "pdf" | "image" | "audio" | "text" | "none";
 
 /** What can be rendered inline, straight inside the lesson page. */
 export function previewKindOf(material: SupportMaterial): MaterialPreviewKind {
+  if (material.coming_soon) return "none";
   if (material.external_url) return "none";
   const hint = `${material.file_type ?? ""} ${material.file_name ?? ""}`.toLowerCase();
   if (/pdf/.test(hint)) return "pdf";
