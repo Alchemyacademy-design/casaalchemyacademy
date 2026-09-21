@@ -99,6 +99,11 @@ const TESTIMONIALS = [
   },
 ];
 
+// Single-course purchases are temporarily switched off (the Stripe price still
+// bills monthly). Set this back to true to re-enable the "Choose Course" button
+// on the Individual Course card (and on the Plans page, which imports it).
+export const INDIVIDUAL_COURSE_OPEN = false;
+
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();
   // Exclusive Deals (incl. the Casa Consult member rate) are annual-only.
