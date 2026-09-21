@@ -6,6 +6,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
+import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { toast } from "sonner";
@@ -564,6 +565,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <UpcomingMasterclasses buyingOpen={buyingOpen} onJoin={joinAcademy} />
 
       {/* ── Launch Week promo ──
            Visible only between 8:00am AEST Tue 22 Sep 2026 and 11:59pm AEST Fri 25 Sep 2026.

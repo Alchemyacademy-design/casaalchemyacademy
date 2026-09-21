@@ -3131,6 +3131,18 @@ export type Database = {
           region: string
         }[]
       }
+      get_public_upcoming_workshops: {
+        Args: never
+        Returns: {
+          cover_image_path: string
+          description: string
+          ends_at: string
+          id: number
+          slug: string
+          starts_at: string
+          title: string
+        }[]
+      }
       get_public_workshop: {
         Args: { p_slug: string }
         Returns: {
