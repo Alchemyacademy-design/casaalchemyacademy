@@ -391,7 +391,7 @@ export default function CourseCheckout() {
                 {(selected as { short_description?: string | null }).short_description ?? selected.subtitle ?? ""}
               </p>
               <div className="font-serif mb-5" style={{ fontSize: "2.25rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>
-                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one-time</span>
+                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one time</span>
               </div>
               <ul className="space-y-2">
                 {INCLUDED.map((item) => (
