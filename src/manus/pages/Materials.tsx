@@ -74,6 +74,24 @@ function MaterialCard({ material, context }: { material: SupportMaterial; contex
     }
   }
 
+  if (material.coming_soon) {
+    return (
+      <div className="flex w-full min-h-[56px] items-center gap-3 rounded-xl border border-border/40 bg-card/30 p-4 text-left opacity-60">
+        <FileText className="h-5 w-5 shrink-0 text-foreground/40" />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium">{material.title ?? material.file_name}</span>
+          <span className="block truncate text-xs text-foreground/60">
+            {material.description ? `${material.description} · ` : ""}
+            {context}
+          </span>
+        </span>
+        <span className="shrink-0 rounded-full border border-border/60 px-2.5 py-1 text-[11px] uppercase tracking-wide text-foreground/60">
+          Coming soon
+        </span>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
