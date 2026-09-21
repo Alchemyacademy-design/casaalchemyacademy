@@ -47,7 +47,7 @@ function assertOfferKey(value: unknown): OfferKey {
 
 function expectedTerms(offerKey: OfferKey): ExpectedTerms {
   if (offerKey === "individual_course") {
-    return { currency: "usd", unit_amount: 15900, interval: "month", interval_count: 1, mode: "subscription" };
+    return { currency: "usd", unit_amount: 15900, interval: null, interval_count: null, mode: "payment" };
   }
   if (offerKey === "monthly_member") {
     return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
