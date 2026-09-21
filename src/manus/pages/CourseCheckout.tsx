@@ -8,15 +8,15 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 
-const FALLBACK_PAYMENT_LINK = "https://buy.stripe.com/fZu4gA5Fn4Wr6A53uOaZi05";
-
 const CHARITIES = [
   { id: "lighthouse", name: "The Lighthouse for the Community" },
   { id: "acasa", name: "A Casa Org" },
 ];
 
+const CHECKOUT_ERROR = "We could not start checkout. Please try again, or contact support.";
+
 const INCLUDED = [
-  "Every lesson of the course you choose — videos and written guides",
+  "Every lesson of the course you choose: videos and written guides",
   "Access to the Master Guides for that course",
   "Quizzes and the completion certificate in your name",
   "3 months of access from the moment your payment is confirmed",

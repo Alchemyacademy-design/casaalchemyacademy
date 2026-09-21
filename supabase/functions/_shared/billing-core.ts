@@ -839,7 +839,7 @@ export async function processBillingEvent(supabase: SupabaseAdmin, stripe: Strip
     case "checkout.session.async_payment_succeeded": {
       const session = event.data.object as Stripe.Checkout.Session;
       await recordCheckoutSession(supabase, stripe, session, event);
-      await applyAnnualCheckoutPayment(supabase, stripe, event, session);
+      await applyOneTimeCheckoutPayment(supabase, stripe, event, session);
       return;
     }
     case "checkout.session.async_payment_failed":
