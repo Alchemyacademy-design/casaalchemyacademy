@@ -129,7 +129,12 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
         </button>
 
         <p className="section-label mb-2">{planInfo.label}</p>
-        <div className="font-serif mb-1" style={{ fontSize: "2.5rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>{planInfo.price}</div>
+        <div className="font-serif mb-1" style={{ fontSize: "2.5rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>
+          {launchAnnual && (
+            <span style={{ fontSize: "1.4rem", textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7, marginRight: "0.6rem" }}>US$708</span>
+          )}
+          {planInfo.price}
+        </div>
         <p className="text-xs mb-8" style={{ color: "var(--aa-text-light)", fontFamily: "'DM Sans', sans-serif" }}>{planInfo.sub}</p>
 
         <div className="mb-6" style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.5rem" }}>

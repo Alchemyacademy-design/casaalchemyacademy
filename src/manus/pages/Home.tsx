@@ -768,10 +768,11 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
+                  was: isLaunchWeekActive ? "USD 708" : null,
                   amount: isLaunchWeekActive ? "649" : "59",
                   per: isLaunchWeekActive ? "/ year" : "/ month",
                   sub: isLaunchWeekActive
-                    ? "Launch price, locked in while you stay a member. Regular price USD 708"
+                    ? "Launch price, locked in while you stay a member"
                     : "USD 708 billed annually",
                   save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
                   cta: null,
@@ -793,6 +794,7 @@ export default function Home() {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
                   best: false,
+                  was: null,
                   amount: "99",
                   per: "/ month",
                   sub: "Billed monthly",
@@ -815,6 +817,7 @@ export default function Home() {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
                   best: false,
+                  was: null,
                   amount: "159",
                   per: "",
                   sub: "One-time payment",
@@ -843,6 +846,20 @@ export default function Home() {
 
                   </div>
                   <p className="plan-card-price">
+                    {plan.was && (
+                      <span
+                        style={{
+                          textDecoration: "line-through",
+                          textDecorationColor: "#b3261e",
+                          color: "var(--aa-text-mid)",
+                          opacity: 0.7,
+                          fontSize: "1.1rem",
+                          marginRight: "0.5rem",
+                        }}
+                      >
+                        {plan.was}
+                      </span>
+                    )}
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
                     <span className="sub">{plan.sub}</span>

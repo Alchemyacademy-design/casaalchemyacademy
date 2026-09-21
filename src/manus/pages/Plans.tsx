@@ -87,7 +87,17 @@ export default function Plans() {
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
                   <div className="mb-4">
                     {priceLabel && (
-                      <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>{priceLabel}</div>
+                      <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
+                        {isAnnual && isLaunchPricingActive() && (
+                          <span
+                            className="mr-2 text-lg"
+                            style={{ textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7 }}
+                          >
+                            US$708
+                          </span>
+                        )}
+                        {priceLabel}
+                      </div>
                     )}
                     {!priceLabel && (
                       <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
