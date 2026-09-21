@@ -821,8 +821,8 @@ export default function Home() {
                   per: "",
                   sub: "One-time payment",
                   save: "No commitment",
-                  cta: "Choose Course",
-                  action: () => navigate("/choose-course"),
+                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
+                  action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
                   intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
                   items: [
                     "Full access to the one course you select, for 3 months",
