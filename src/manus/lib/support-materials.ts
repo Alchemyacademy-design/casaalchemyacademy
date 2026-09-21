@@ -238,6 +238,7 @@ export async function deleteMaterial(material: SupportMaterial) {
  * browser download — the file always opens inline in a new tab.
  */
 export async function getMaterialUrl(material: SupportMaterial): Promise<string> {
+  if (material.coming_soon) throw new Error("This material is coming soon.");
   if (material.external_url) return material.external_url;
   if (!material.storage_path) throw new Error("Material has no file.");
   const { data, error } = await supabase.storage
