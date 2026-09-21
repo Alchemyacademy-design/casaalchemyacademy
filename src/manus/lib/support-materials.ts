@@ -18,12 +18,13 @@ export type SupportMaterial = {
   file_size: number | null;
   is_downloadable: boolean;
   is_public: boolean;
+  coming_soon: boolean;
   sort_order: number;
   created_at: string;
 };
 
 const SELECT =
-  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,sort_order,created_at";
+  "id,lesson_id,module_id,course_id,material_kind,title,description,file_name,storage_bucket,storage_path,external_url,file_type,file_size,is_downloadable,is_public,coming_soon,sort_order,created_at";
 
 export const MAX_MATERIAL_BYTES = 50 * 1024 * 1024;
 
