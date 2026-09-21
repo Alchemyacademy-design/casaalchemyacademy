@@ -576,7 +576,7 @@ export default function Home() {
         <section style={{ backgroundColor: "var(--aa-olive-dark)", padding: "4rem 0 5.5rem" }}>
           <div className="container">
             <div className="max-w-2xl mx-auto text-center">
-              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}><p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p></p>
+              <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
                 Founding member pricing: USD 649/year
               </h2>
