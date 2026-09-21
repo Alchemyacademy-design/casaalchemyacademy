@@ -68,7 +68,10 @@ export default function SubscribeModal({ type, courseId, onClose }: SubscribeMod
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData.session?.user;
 
-      const baseUrl = PAYMENT_LINKS[type];
+      const baseUrl =
+        type === "annual" && isLaunchPricingActive()
+          ? LAUNCH_ANNUAL_PAYMENT_LINK
+          : PAYMENT_LINKS[type];
       const url = new URL(baseUrl);
       // Prefill email + pass client_reference_id when the visitor is already
       // signed in. Guests can pay without an account — the webhook resolves

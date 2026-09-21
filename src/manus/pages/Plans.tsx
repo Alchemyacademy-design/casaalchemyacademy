@@ -4,7 +4,7 @@ import { Check, Sparkles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import SubscribeModal from "@/manus/components/SubscribeModal";
-import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
+import { INDIVIDUAL_COURSE_OPEN, isLaunchPricingActive } from "@/manus/lib/feature-flags";
 import BackNav from "@/manus/components/BackNav";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } from "@/manus/hooks/usePublicContent";
@@ -78,7 +78,10 @@ export default function Plans() {
               const isAnnual = plan.key === "annual_member";
               const isGuide = plan.key === "individual_course";
               const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : isGuide ? "guide" : null;
-              const priceLabel = formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
+              const priceLabel =
+                isAnnual && isLaunchPricingActive()
+                  ? "US$649 / year, launch price"
+                  : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
