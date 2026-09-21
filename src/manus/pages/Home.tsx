@@ -768,10 +768,11 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
+                  was: isLaunchWeekActive ? "USD 708" : null,
                   amount: isLaunchWeekActive ? "649" : "59",
                   per: isLaunchWeekActive ? "/ year" : "/ month",
                   sub: isLaunchWeekActive
-                    ? "Launch price, locked in while you stay a member. Regular price USD 708"
+                    ? "Launch price, locked in while you stay a member"
                     : "USD 708 billed annually",
                   save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
                   cta: null,
