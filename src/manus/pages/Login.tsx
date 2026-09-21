@@ -200,8 +200,9 @@ export default function Login() {
         <p className="text-center text-sm text-foreground/70">
           Don't have an account?{" "}
           <button
-            onClick={() => navigate("/signup")}
-            className="text-accent hover:text-accent/80 font-medium transition"
+            type="button"
+            onClick={() => navigate(withNext("/signup", readNextFromLocation()))}
+            className="relative z-10 text-accent hover:text-accent/80 font-medium transition"
           >
             Sign up
           </button>
@@ -210,8 +211,9 @@ export default function Login() {
         {/* Reset Password Link */}
         <p className="text-center text-sm text-foreground/70 mt-4">
           <button
+            type="button"
             onClick={() => navigate("/reset-password")}
-            className="text-accent hover:text-accent/80 font-medium transition"
+            className="relative z-10 text-accent hover:text-accent/80 font-medium transition"
           >
             Forgot password?
           </button>

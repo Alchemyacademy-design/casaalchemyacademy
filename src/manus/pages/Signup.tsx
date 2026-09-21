@@ -129,7 +129,7 @@ export default function Signup() {
             <div className="flex flex-col sm:flex-row gap-2 pl-8">
               <Button
                 type="button"
-                onClick={() => navigate("/login")}
+                onClick={() => navigate(withNext("/login", readNextFromLocation()))}
                 className="w-full sm:w-auto"
                 style={{ backgroundColor: "var(--aa-gold)" }}
               >
@@ -278,8 +278,9 @@ export default function Signup() {
         <p className="text-center text-sm text-foreground/70">
           Already have an account?{" "}
           <button
-            onClick={() => navigate("/login")}
-            className="text-accent hover:text-accent/80 font-medium transition"
+            type="button"
+            onClick={() => navigate(withNext("/login", readNextFromLocation()))}
+            className="relative z-10 text-accent hover:text-accent/80 font-medium transition"
           >
             Sign in
           </button>
