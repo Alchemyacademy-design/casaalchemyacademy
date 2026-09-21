@@ -1188,6 +1188,7 @@ export type Database = {
       }
       lesson_attachments: {
         Row: {
+          coming_soon: boolean
           course_id: number | null
           created_at: string
           created_by: string | null
@@ -1209,6 +1210,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          coming_soon?: boolean
           course_id?: number | null
           created_at?: string
           created_by?: string | null
@@ -1230,6 +1232,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          coming_soon?: boolean
           course_id?: number | null
           created_at?: string
           created_by?: string | null
