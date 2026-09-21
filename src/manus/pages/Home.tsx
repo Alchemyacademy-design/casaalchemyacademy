@@ -4,6 +4,7 @@ import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
 import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
