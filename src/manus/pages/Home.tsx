@@ -6,6 +6,7 @@ import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
+import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { toast } from "sonner";
