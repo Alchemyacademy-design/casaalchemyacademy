@@ -578,13 +578,13 @@ export default function Home() {
             <div className="max-w-2xl mx-auto text-center">
               <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
-                Founding member pricing: USD 54.08/month
+                Founding member offer: USD 59/month, plus a free month
               </h2>
               <p className="mb-3" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Billed USD 649 yearly. Regular price USD 59/month (USD 708 yearly). Save a full month, locked in for as long as you stay a member.
+                Join as an Annual Member this week and pay USD 649 for your first year instead of USD 708. That is 12 months for the price of 11, locked in for as long as you stay a member.
               </p>
               <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.
+                Plus a mini Casa Consult with Lorena (30 minutes) for everyone who joins before Friday.
               </p>
               <button onClick={joinAcademy} className="cta-btn">
                 Join Alchemy Academy
@@ -866,6 +866,9 @@ export default function Home() {
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
                     <span className="sub">{plan.sub}</span>
+                    {plan.bonuses?.map((bonus) => (
+                      <span key={bonus} className="save">{bonus}</span>
+                    ))}
                     <span className="save">{plan.save}</span>
                   </p>
                   <p className="plan-detail-intro">{plan.intro}</p>
