@@ -97,12 +97,12 @@ export default function Plans() {
                   <div className="mb-4">
                     {priceLabel && (
                       <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                        {annualLaunch && (
+                        {isAnnual && (
                           <span
                             className="mr-2 text-lg"
                             style={{ textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7 }}
                           >
-                            US$59 / month
+                            US$99 / month
                           </span>
                         )}
                         {priceLabel}
@@ -110,6 +110,13 @@ export default function Plans() {
                     )}
                     {billingNote && (
                       <p className="text-xs text-foreground/60">{billingNote}</p>
+                    )}
+                    {bonusLines.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        {bonusLines.map((b) => (
+                          <span key={b} className="text-[11px] uppercase tracking-wide rounded-full px-2 py-1 bg-accent/10 text-accent">{b}</span>
+                        ))}
+                      </div>
                     )}
                     {!priceLabel && (
                       <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
