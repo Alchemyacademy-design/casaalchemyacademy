@@ -78,26 +78,35 @@ export default function Plans() {
               const isAnnual = plan.key === "annual_member";
               const isGuide = plan.key === "individual_course";
               const choice: SubscriptionChoice = isMonthly ? "monthly" : isAnnual ? "annual" : isGuide ? "guide" : null;
-              const priceLabel =
-                isAnnual && isLaunchPricingActive()
-                  ? "US$649 / year, launch price"
-                  : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
+              const annualLaunch = isAnnual && isLaunchPricingActive();
+              // Membership prices always display as a monthly figure; the yearly total is a secondary line.
+              const priceLabel = isAnnual
+                ? (annualLaunch ? "US$54.08 / month" : "US$59 / month")
+                : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
+              const billingNote = isAnnual
+                ? (annualLaunch
+                    ? "US$649 billed yearly, launch price locked in while you stay a member"
+                    : "US$708 billed yearly")
+                : null;
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
                   <div className="mb-4">
                     {priceLabel && (
                       <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                        {isAnnual && isLaunchPricingActive() && (
+                        {annualLaunch && (
                           <span
                             className="mr-2 text-lg"
                             style={{ textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7 }}
                           >
-                            US$708
+                            US$59 / month
                           </span>
                         )}
                         {priceLabel}
                       </div>
+                    )}
+                    {billingNote && (
+                      <p className="text-xs text-foreground/60">{billingNote}</p>
                     )}
                     {!priceLabel && (
                       <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>

@@ -578,10 +578,10 @@ export default function Home() {
             <div className="max-w-2xl mx-auto text-center">
               <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
-                Founding member pricing: USD 649/year
+                Founding member pricing: USD 54.08/month
               </h2>
               <p className="mb-3" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Regular price USD 708/year, save a full month, locked in for as long as you stay a member.
+                Billed USD 649 yearly. Regular price USD 59/month (USD 708 yearly). Save a full month, locked in for as long as you stay a member.
               </p>
               <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
                 Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.
@@ -768,11 +768,11 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
-                  was: isLaunchWeekActive ? "USD 708" : null,
-                  amount: isLaunchWeekActive ? "649" : "59",
-                  per: isLaunchWeekActive ? "/ year" : "/ month",
+                  was: isLaunchWeekActive ? "USD 59/month" : null,
+                  amount: isLaunchWeekActive ? "54.08" : "59",
+                  per: "/ month",
                   sub: isLaunchWeekActive
-                    ? "Launch price, locked in while you stay a member"
+                    ? "USD 649 billed yearly, launch price locked in while you stay a member"
                     : "USD 708 billed annually",
                   save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
                   cta: null,
