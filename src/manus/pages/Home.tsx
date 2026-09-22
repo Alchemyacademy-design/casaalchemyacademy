@@ -578,13 +578,13 @@ export default function Home() {
             <div className="max-w-2xl mx-auto text-center">
               <p className="section-label mb-4" style={{ color: "var(--aa-gold)" }}>LAUNCH WEEK, UNTIL FRIDAY 25 SEPT</p>
               <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-cream)", fontWeight: 300, lineHeight: 1.2 }}>
-                Founding member pricing: USD 54.08/month
+                Founding member offer: USD 59/month, plus a free month
               </h2>
               <p className="mb-3" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Billed USD 649 yearly. Regular price USD 59/month (USD 708 yearly). Save a full month, locked in for as long as you stay a member.
+                Join as an Annual Member this week and pay USD 649 for your first year instead of USD 708. That is 12 months for the price of 11, locked in for as long as you stay a member.
               </p>
               <p className="mb-8" style={{ color: "rgba(245,240,232,0.65)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
-                Plus a free 30 minute Casa Consult with Lorena for everyone who joins before Friday.
+                Plus a mini Casa Consult with Lorena (30 minutes) for everyone who joins before Friday.
               </p>
               <button onClick={joinAcademy} className="cta-btn">
                 Join Alchemy Academy
@@ -768,13 +768,14 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
-                  was: isLaunchWeekActive ? "USD 59/month" : null,
-                  amount: isLaunchWeekActive ? "54.08" : "59",
+                  was: "USD 99 / month",
+                  amount: "59",
                   per: "/ month",
                   sub: isLaunchWeekActive
-                    ? "USD 649 billed yearly, launch price locked in while you stay a member"
-                    : "USD 708 billed annually",
-                  save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
+                    ? "USD 649 billed yearly: 12 months for the price of 11"
+                    : "USD 708 billed yearly",
+                  bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
+                  save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
                   cta: null,
                   action: null,
                   intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
@@ -798,6 +799,7 @@ export default function Home() {
                   amount: "99",
                   per: "/ month",
                   sub: "Billed monthly",
+                  bonuses: null,
                   save: "No commitment",
                   cta: null,
                   action: null,
@@ -821,6 +823,7 @@ export default function Home() {
                   amount: "159",
                   per: "",
                   sub: "One-time payment",
+                  bonuses: null,
                   save: "No commitment",
                   cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
                   action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
@@ -863,6 +866,9 @@ export default function Home() {
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
                     <span className="sub">{plan.sub}</span>
+                    {plan.bonuses?.map((bonus) => (
+                      <span key={bonus} className="save">{bonus}</span>
+                    ))}
                     <span className="save">{plan.save}</span>
                   </p>
                   <p className="plan-detail-intro">{plan.intro}</p>
