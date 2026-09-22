@@ -768,13 +768,14 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
-                  was: isLaunchWeekActive ? "USD 59/month" : null,
-                  amount: isLaunchWeekActive ? "54.08" : "59",
+                  was: "USD 99 / month",
+                  amount: "59",
                   per: "/ month",
                   sub: isLaunchWeekActive
-                    ? "USD 649 billed yearly, launch price locked in while you stay a member"
-                    : "USD 708 billed annually",
-                  save: isLaunchWeekActive ? "Launch week only" : "Save USD 480",
+                    ? "USD 649 billed yearly: 12 months for the price of 11"
+                    : "USD 708 billed yearly",
+                  bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
+                  save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
                   cta: null,
                   action: null,
                   intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
