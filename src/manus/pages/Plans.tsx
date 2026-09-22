@@ -81,13 +81,16 @@ export default function Plans() {
               const annualLaunch = isAnnual && isLaunchPricingActive();
               // Membership prices always display as a monthly figure; the yearly total is a secondary line.
               const priceLabel = isAnnual
-                ? (annualLaunch ? "US$54.08 / month" : "US$59 / month")
+                ? "US$59 / month"
                 : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
               const billingNote = isAnnual
                 ? (annualLaunch
-                    ? "US$649 billed yearly, launch price locked in while you stay a member"
+                    ? "US$649 billed yearly: 12 months for the price of 11"
                     : "US$708 billed yearly")
                 : null;
+              const bonusLines = annualLaunch
+                ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena", "Launch week only, until Fri 25 Sept"]
+                : [];
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
