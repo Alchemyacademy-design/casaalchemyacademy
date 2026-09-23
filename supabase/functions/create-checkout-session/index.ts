@@ -148,8 +148,18 @@ Deno.serve((request) => {
     .eq("plan_key", offerKey)
     .eq("livemode", livemode)
     .eq("currency", terms.currency)
-    .eq("active", true)
-    .eq("is_checkout_default", true);
+    .eq("active", true);
+
+  if (annualLaunch) {
+    // The founding week price is not the checkout default, so it is selected by
+    // its exact canonical terms instead.
+    priceQuery = priceQuery
+      .eq("unit_amount", LAUNCH_ANNUAL_UNIT_AMOUNT)
+      .eq("recurring_interval", "year")
+      .eq("recurring_interval_count", 1);
+  } else {
+    priceQuery = priceQuery.eq("is_checkout_default", true);
+  }
 
   if (offerKey === "individual_course" && courseId !== null) {
     priceQuery = priceQuery.or(`course_id.eq.${courseId},course_id.is.null`);
