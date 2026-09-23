@@ -45,14 +45,32 @@ function assertOfferKey(value: unknown): OfferKey {
   throw new Error("INVALID_OFFER_KEY");
 }
 
-function expectedTerms(offerKey: OfferKey): ExpectedTerms {
+// Founding launch window. Must stay in sync with isLaunchPricingActive()
+// in src/manus/lib/feature-flags.ts and isLaunchWeekActive in Home.tsx:
+// Mon 21 Sept 2026 00:00 AEST to Fri 25 Sept 2026 23:59:59 AEST.
+const LAUNCH_WINDOW_START_MS = Date.parse("2026-09-20T14:00:00Z");
+const LAUNCH_WINDOW_END_MS = Date.parse("2026-09-25T13:59:59Z");
+const LAUNCH_ANNUAL_UNIT_AMOUNT = 64900;
+
+// Server side only. The client never influences which price is used.
+function isLaunchWindowActive(now = Date.now()): boolean {
+  return now >= LAUNCH_WINDOW_START_MS && now <= LAUNCH_WINDOW_END_MS;
+}
+
+function expectedTerms(offerKey: OfferKey, launchActive: boolean): ExpectedTerms {
   if (offerKey === "individual_course") {
     return { currency: "usd", unit_amount: 15900, interval: null, interval_count: null, mode: "payment" };
   }
   if (offerKey === "monthly_member") {
     return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
   }
-  return { currency: "usd", unit_amount: 70800, interval: "year", interval_count: 1, mode: "subscription" };
+  return {
+    currency: "usd",
+    unit_amount: launchActive ? LAUNCH_ANNUAL_UNIT_AMOUNT : 70800,
+    interval: "year",
+    interval_count: 1,
+    mode: "subscription",
+  };
 }
 
 function safeMetadataValue(value: unknown): string | null {
