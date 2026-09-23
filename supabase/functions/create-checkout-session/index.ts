@@ -45,14 +45,32 @@ function assertOfferKey(value: unknown): OfferKey {
   throw new Error("INVALID_OFFER_KEY");
 }
 
-function expectedTerms(offerKey: OfferKey): ExpectedTerms {
+// Founding launch window. Must stay in sync with isLaunchPricingActive()
+// in src/manus/lib/feature-flags.ts and isLaunchWeekActive in Home.tsx:
+// Mon 21 Sept 2026 00:00 AEST to Fri 25 Sept 2026 23:59:59 AEST.
+const LAUNCH_WINDOW_START_MS = Date.parse("2026-09-20T14:00:00Z");
+const LAUNCH_WINDOW_END_MS = Date.parse("2026-09-25T13:59:59Z");
+const LAUNCH_ANNUAL_UNIT_AMOUNT = 64900;
+
+// Server side only. The client never influences which price is used.
+function isLaunchWindowActive(now = Date.now()): boolean {
+  return now >= LAUNCH_WINDOW_START_MS && now <= LAUNCH_WINDOW_END_MS;
+}
+
+function expectedTerms(offerKey: OfferKey, launchActive: boolean): ExpectedTerms {
   if (offerKey === "individual_course") {
     return { currency: "usd", unit_amount: 15900, interval: null, interval_count: null, mode: "payment" };
   }
   if (offerKey === "monthly_member") {
     return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
   }
-  return { currency: "usd", unit_amount: 70800, interval: "year", interval_count: 1, mode: "subscription" };
+  return {
+    currency: "usd",
+    unit_amount: launchActive ? LAUNCH_ANNUAL_UNIT_AMOUNT : 70800,
+    interval: "year",
+    interval_count: 1,
+    mode: "subscription",
+  };
 }
 
 function safeMetadataValue(value: unknown): string | null {
@@ -109,7 +127,9 @@ Deno.serve((request) => {
   const supabase = supabaseAdmin();
   const stripe = stripeClient();
   const livemode = expectedLivemode();
-  const terms = expectedTerms(offerKey);
+  const launchActive = isLaunchWindowActive();
+  const annualLaunch = offerKey === "annual_member" && launchActive;
+  const terms = expectedTerms(offerKey, launchActive);
 
   if (courseId !== null) {
     const { data: course, error: courseError } = await supabase
@@ -128,8 +148,18 @@ Deno.serve((request) => {
     .eq("plan_key", offerKey)
     .eq("livemode", livemode)
     .eq("currency", terms.currency)
-    .eq("active", true)
-    .eq("is_checkout_default", true);
+    .eq("active", true);
+
+  if (annualLaunch) {
+    // The founding week price is not the checkout default, so it is selected by
+    // its exact canonical terms instead.
+    priceQuery = priceQuery
+      .eq("unit_amount", LAUNCH_ANNUAL_UNIT_AMOUNT)
+      .eq("recurring_interval", "year")
+      .eq("recurring_interval_count", 1);
+  } else {
+    priceQuery = priceQuery.eq("is_checkout_default", true);
+  }
 
   if (offerKey === "individual_course" && courseId !== null) {
     priceQuery = priceQuery.or(`course_id.eq.${courseId},course_id.is.null`);
@@ -145,6 +175,7 @@ Deno.serve((request) => {
     : prices?.[0];
 
   if (!price) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
+  if (annualLaunch && (prices?.length ?? 0) !== 1) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
   if (
     price.unit_amount !== terms.unit_amount ||
     price.recurring_interval !== terms.interval ||
@@ -219,6 +250,8 @@ Deno.serve((request) => {
     stripe_price_id: price.stripe_price_id,
     ...(courseId ? { course_id: String(courseId) } : {}),
     ...(charityId ? { charity_id: charityId } : {}),
+    // Marks founding week annual buyers, who receive the free mini Casa Consult.
+    ...(annualLaunch ? { launch_offer: "founding_week" } : {}),
   };
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
