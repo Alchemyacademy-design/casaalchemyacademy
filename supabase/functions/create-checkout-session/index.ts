@@ -127,7 +127,9 @@ Deno.serve((request) => {
   const supabase = supabaseAdmin();
   const stripe = stripeClient();
   const livemode = expectedLivemode();
-  const terms = expectedTerms(offerKey);
+  const launchActive = isLaunchWindowActive();
+  const annualLaunch = offerKey === "annual_member" && launchActive;
+  const terms = expectedTerms(offerKey, launchActive);
 
   if (courseId !== null) {
     const { data: course, error: courseError } = await supabase
