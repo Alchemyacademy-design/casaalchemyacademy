@@ -11,6 +11,16 @@ import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } fr
 
 type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
 
+// Display only overrides so the plan copy stays accurate regardless of the stored text.
+const PLAN_DESCRIPTION: Record<string, string> = {
+  annual_member:
+    "Full annual access at the best value. Includes every course, community, members events, magazine, exclusive deals, and Live Classes with Lorena. One payment covers 12 months.",
+  monthly_member:
+    "Complete monthly access to every course, the community, Expert Masterclasses, magazine and suppliers directory. Cancel anytime.",
+  individual_course:
+    "One time purchase for 3 months of access to a single course, including all lesson materials, quizzes and completion certificate.",
+};
+
 const FALLBACK_PRICE_LABEL: Record<string, string> = {
   monthly_member: "US$99 / month",
   annual_member: "US$708 / year",
