@@ -81,30 +81,23 @@ export default function Plans() {
               const annualLaunch = isAnnual && isLaunchPricingActive();
               // Membership prices always display as a monthly figure; the yearly total is a secondary line.
               const priceLabel = isAnnual
-                ? "US$59 / month"
-                : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
-              const billingNote = isAnnual
-                ? (annualLaunch
-                    ? "US$649 billed yearly: 12 months for the price of 11"
-                    : "US$708 billed yearly")
-                : null;
+                ? "USD 59 / month"
+                : isGuide
+                  ? "USD 159 one time"
+                  : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
+              const billingNote = isAnnual && !annualLaunch ? "USD 708 billed yearly" : null;
               const bonusLines = annualLaunch
                 ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena", "Launch week only, until Fri 25 Sept"]
-                : [];
+                : isAnnual
+                  ? ["Save USD 480"]
+                  : [];
+              const description = PLAN_DESCRIPTION[plan.key] ?? plan.description;
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
                   <div className="mb-4">
                     {priceLabel && (
                       <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                        {isAnnual && (
-                          <span
-                            className="mr-2 text-lg"
-                            style={{ textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7 }}
-                          >
-                            US$99 / month
-                          </span>
-                        )}
                         {priceLabel}
                       </div>
                     )}
