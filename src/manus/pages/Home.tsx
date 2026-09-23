@@ -847,23 +847,9 @@ export default function Home() {
 
                   </div>
                   <p className="plan-card-price">
-                    {plan.was && (
-                      <span
-                        style={{
-                          textDecoration: "line-through",
-                          textDecorationColor: "#b3261e",
-                          color: "var(--aa-text-mid)",
-                          opacity: 0.7,
-                          fontSize: "1.1rem",
-                          marginRight: "0.5rem",
-                        }}
-                      >
-                        {plan.was}
-                      </span>
-                    )}
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
-                    <span className="sub">{plan.sub}</span>
+                    {plan.sub && <span className="sub">{plan.sub}</span>}
                     {plan.bonuses?.map((bonus) => (
                       <span key={bonus} className="save">{bonus}</span>
                     ))}
