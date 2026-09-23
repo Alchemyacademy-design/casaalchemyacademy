@@ -175,6 +175,7 @@ Deno.serve((request) => {
     : prices?.[0];
 
   if (!price) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
+  if (annualLaunch && (prices?.length ?? 0) !== 1) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
   if (
     price.unit_amount !== terms.unit_amount ||
     price.recurring_interval !== terms.interval ||
@@ -249,6 +250,8 @@ Deno.serve((request) => {
     stripe_price_id: price.stripe_price_id,
     ...(courseId ? { course_id: String(courseId) } : {}),
     ...(charityId ? { charity_id: charityId } : {}),
+    // Marks founding week annual buyers, who receive the free mini Casa Consult.
+    ...(annualLaunch ? { launch_offer: "founding_week" } : {}),
   };
 
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
