@@ -770,7 +770,7 @@ export default function Home() {
                   best: true,
                   amount: "59",
                   per: "/ month",
-                  sub: isLaunchWeekActive ? "" : "USD 708 billed yearly",
+                  sub: isLaunchWeekActive ? "USD 649 billed yearly" : "USD 708 billed yearly",
                   bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
                   save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
                   cta: null,

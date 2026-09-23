@@ -102,7 +102,7 @@ export default function Plans() {
                 : isGuide
                   ? "USD 159 one time"
                   : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
-              const billingNote = isAnnual && !annualLaunch ? "USD 708 billed yearly" : null;
+              const billingNote = isAnnual ? (annualLaunch ? "USD 649 billed yearly" : "USD 708 billed yearly") : null;
               const bonusLines = annualLaunch
                 ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena", "Launch week only, until Fri 25 Sept"]
                 : isAnnual
