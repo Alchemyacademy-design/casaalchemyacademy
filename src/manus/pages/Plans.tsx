@@ -89,7 +89,7 @@ export default function Plans() {
           <p className="text-sm text-foreground/70">No plans available yet.</p>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan) => {
+            {[...plans].sort((a, b) => planRank(a.key) - planRank(b.key)).map((plan) => {
               const features = planFeatures(plan);
               const isMonthly = plan.key === "monthly_member";
               const isAnnual = plan.key === "annual_member";
