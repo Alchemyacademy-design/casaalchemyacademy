@@ -768,12 +768,9 @@ export default function Home() {
                   name: "Annual Member",
                   price: "USD 708 billed once a year (USD 59/month)",
                   best: true,
-                  was: "USD 99 / month",
                   amount: "59",
                   per: "/ month",
-                  sub: isLaunchWeekActive
-                    ? "USD 649 billed yearly: 12 months for the price of 11"
-                    : "USD 708 billed yearly",
+                  sub: isLaunchWeekActive ? "" : "USD 708 billed yearly",
                   bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
                   save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
                   cta: null,
@@ -795,7 +792,6 @@ export default function Home() {
                   name: "Monthly Member",
                   price: "USD 99 per month, no lock-in",
                   best: false,
-                  was: null,
                   amount: "99",
                   per: "/ month",
                   sub: "Billed monthly",
@@ -819,7 +815,6 @@ export default function Home() {
                   name: "Individual Course",
                   price: "USD 159 one-time, per course",
                   best: false,
-                  was: null,
                   amount: "159",
                   per: "",
                   sub: "One-time payment",
@@ -849,23 +844,9 @@ export default function Home() {
 
                   </div>
                   <p className="plan-card-price">
-                    {plan.was && (
-                      <span
-                        style={{
-                          textDecoration: "line-through",
-                          textDecorationColor: "#b3261e",
-                          color: "var(--aa-text-mid)",
-                          opacity: 0.7,
-                          fontSize: "1.1rem",
-                          marginRight: "0.5rem",
-                        }}
-                      >
-                        {plan.was}
-                      </span>
-                    )}
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
-                    <span className="sub">{plan.sub}</span>
+                    {plan.sub && <span className="sub">{plan.sub}</span>}
                     {plan.bonuses?.map((bonus) => (
                       <span key={bonus} className="save">{bonus}</span>
                     ))}

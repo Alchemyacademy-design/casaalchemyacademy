@@ -11,6 +11,16 @@ import { useMembershipPlans, useStripePriceDefaults, formatStripePriceLabel } fr
 
 type SubscriptionChoice = "monthly" | "annual" | "guide" | null;
 
+// Display only overrides so the plan copy stays accurate regardless of the stored text.
+const PLAN_DESCRIPTION: Record<string, string> = {
+  annual_member:
+    "Full annual access at the best value. Includes every course, community, members events, magazine, exclusive deals, and Live Classes with Lorena. One payment covers 12 months.",
+  monthly_member:
+    "Complete monthly access to every course, the community, Expert Masterclasses, magazine and suppliers directory. Cancel anytime.",
+  individual_course:
+    "One time purchase for 3 months of access to a single course, including all lesson materials, quizzes and completion certificate.",
+};
+
 const FALLBACK_PRICE_LABEL: Record<string, string> = {
   monthly_member: "US$99 / month",
   annual_member: "US$708 / year",
@@ -81,30 +91,23 @@ export default function Plans() {
               const annualLaunch = isAnnual && isLaunchPricingActive();
               // Membership prices always display as a monthly figure; the yearly total is a secondary line.
               const priceLabel = isAnnual
-                ? "US$59 / month"
-                : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
-              const billingNote = isAnnual
-                ? (annualLaunch
-                    ? "US$649 billed yearly: 12 months for the price of 11"
-                    : "US$708 billed yearly")
-                : null;
+                ? "USD 59 / month"
+                : isGuide
+                  ? "USD 159 one time"
+                  : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
+              const billingNote = isAnnual && !annualLaunch ? "USD 708 billed yearly" : null;
               const bonusLines = annualLaunch
                 ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena", "Launch week only, until Fri 25 Sept"]
-                : [];
+                : isAnnual
+                  ? ["Save USD 480"]
+                  : [];
+              const description = PLAN_DESCRIPTION[plan.key] ?? plan.description;
               return (
                 <Card key={plan.key} className="p-6 flex flex-col">
                   <h2 className="font-serif text-2xl mb-2" style={{ color: "var(--aa-olive-dark)" }}>{plan.name}</h2>
                   <div className="mb-4">
                     {priceLabel && (
                       <div className="font-serif text-2xl mb-1" style={{ color: "var(--aa-olive-dark)", fontWeight: 300 }}>
-                        {isAnnual && (
-                          <span
-                            className="mr-2 text-lg"
-                            style={{ textDecoration: "line-through", textDecorationColor: "#b3261e", color: "var(--aa-text-mid)", opacity: 0.7 }}
-                          >
-                            US$99 / month
-                          </span>
-                        )}
                         {priceLabel}
                       </div>
                     )}
@@ -122,7 +125,7 @@ export default function Plans() {
                       <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
                     )}
                   </div>
-                  {plan.description && <p className="text-sm text-foreground/70 mb-5">{plan.description}</p>}
+                  {description && <p className="text-sm text-foreground/70 mb-5">{description}</p>}
                   <ul className="space-y-2 mb-6 flex-1">
                     {features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />{f}</li>
