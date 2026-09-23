@@ -21,6 +21,13 @@ const PLAN_DESCRIPTION: Record<string, string> = {
     "One time purchase for 3 months of access to a single course, including all lesson materials, quizzes and completion certificate.",
 };
 
+// Display order: Annual, Monthly, Single Course. Unknown keys go last.
+const PLAN_ORDER = ["annual_member", "monthly_member", "individual_course"];
+const planRank = (key: string) => {
+  const i = PLAN_ORDER.indexOf(key);
+  return i === -1 ? PLAN_ORDER.length : i;
+};
+
 const FALLBACK_PRICE_LABEL: Record<string, string> = {
   monthly_member: "US$99 / month",
   annual_member: "US$708 / year",
@@ -82,7 +89,7 @@ export default function Plans() {
           <p className="text-sm text-foreground/70">No plans available yet.</p>
         ) : (
           <div className="grid md:grid-cols-3 gap-6">
-            {plans.map((plan) => {
+            {[...plans].sort((a, b) => planRank(a.key) - planRank(b.key)).map((plan) => {
               const features = planFeatures(plan);
               const isMonthly = plan.key === "monthly_member";
               const isAnnual = plan.key === "annual_member";
