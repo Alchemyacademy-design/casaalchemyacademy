@@ -125,7 +125,7 @@ export default function Plans() {
                       <span className="text-xs text-foreground/60 uppercase tracking-wide">{plan.duration}</span>
                     )}
                   </div>
-                  {plan.description && <p className="text-sm text-foreground/70 mb-5">{plan.description}</p>}
+                  {description && <p className="text-sm text-foreground/70 mb-5">{description}</p>}
                   <ul className="space-y-2 mb-6 flex-1">
                     {features.map((f) => (
                       <li key={f} className="flex items-center gap-2 text-sm"><Check className="w-4 h-4 text-accent" />{f}</li>
