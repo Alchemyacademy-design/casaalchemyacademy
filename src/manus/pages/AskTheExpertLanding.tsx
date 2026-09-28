@@ -18,6 +18,11 @@ type PublicWorkshop = {
   cover_image_path: string | null;
 };
 
+/** Never show dashes in member facing copy. */
+function noDashes(text: string): string {
+  return text.replace(/ [-–—] /g, ": ");
+}
+
 function formatWhen(startsAt: string, endsAt: string | null): string {
   const start = new Date(startsAt);
   const date = start.toLocaleDateString(undefined, {
@@ -30,8 +35,9 @@ function formatWhen(startsAt: string, endsAt: string | null): string {
   const end = endsAt
     ? new Date(endsAt).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })
     : null;
-  return `${date} · ${time}${end ? `–${end}` : ""}`;
+  return `${date} · ${time}${end ? ` to ${end}` : ""}`;
 }
+
 
 export default function AskTheExpertLanding() {
   const { slug = "" } = useParams();
@@ -61,7 +67,8 @@ export default function AskTheExpertLanding() {
 
   useEffect(() => {
     if (!workshop) return;
-    document.title = `${workshop.title} — Save your seat | Alchemy Academy`;
+    document.title = `${noDashes(workshop.title)} | Save your seat | Alchemy Academy`;
+
   }, [workshop]);
 
   const calendarItem = useMemo<CalendarItem | null>(() => {
@@ -173,7 +180,7 @@ export default function AskTheExpertLanding() {
               className="font-serif text-2xl leading-snug sm:text-3xl"
               style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}
             >
-              {workshop.title}
+              {noDashes(workshop.title)}
             </h1>
             <p
               className="mt-2 text-xs uppercase tracking-[0.12em]"
@@ -183,9 +190,10 @@ export default function AskTheExpertLanding() {
             </p>
             {workshop.description && (
               <p className="mt-5 whitespace-pre-line text-[15px] leading-relaxed" style={{ color: "var(--aa-text-mid)" }}>
-                {workshop.description}
+                {noDashes(workshop.description)}
               </p>
             )}
+
 
             <hr className="my-8" style={{ border: "none", borderTop: "1px solid var(--aa-cream-dark)" }} />
 
