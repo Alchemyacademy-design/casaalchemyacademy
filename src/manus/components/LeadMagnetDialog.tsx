@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { hasRegisteredForWorkshop, markLeadPopupDismissed, markWorkshopRegistered, shouldShowLeadPopup } from "@/manus/lib/lead-magnet";
 import { useAuth } from "@/manus/hooks/useAuth";
-import printBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
+import printBanner from "@/assets/hot-to-mix-prints.png";
 
 type Workshop = {
   id: number;
@@ -79,7 +79,7 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
 
   const printSession = /gabrielle/i.test(session.description ?? "") && /print/i.test(`${session.title} ${session.description}`);
   const heading = printSession ? "How to mix prints with Gabrielle" : session.title.replace(/ [-–—] /g, ": ");
-  const cover = printSession ? printBanner.url : resolveAssetUrl(session.cover_image_path);
+  const cover = printSession ? printBanner : resolveAssetUrl(session.cover_image_path);
   const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -111,7 +111,7 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
       if (!next && step !== "confirmed") markLeadPopupDismissed();
     }}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md gap-0 overflow-y-auto rounded-md border-border bg-background p-0 sm:max-w-md">
-        {cover && <img src={cover} alt={printSession ? "How to mix prints" : heading} className="aspect-[2.3/1] w-full object-cover" />}
+        {cover && <img src={cover} alt={printSession ? "Print and fabric patterns" : heading} className="aspect-[2.3/1] w-full object-cover" />}
         <div className="space-y-4 p-5 sm:p-7">
           <DialogHeader className="text-left">
             <p className="text-xs font-semibold uppercase text-primary">Ask the Expert LIVE</p>
