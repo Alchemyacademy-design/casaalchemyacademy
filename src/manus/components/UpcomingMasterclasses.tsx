@@ -98,8 +98,9 @@ export default function UpcomingMasterclasses() {
           </h2>
           <p style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontSize: "1rem" }}>
             Sit down live with the experts behind the design decisions. Bring your questions and ask them directly.
-            Included with Annual and Monthly membership.
+            Open to everyone, live. Every session is recorded and kept inside the Academy, for members only.
           </p>
+
         </div>
 
         <div className="relative">
@@ -150,26 +151,27 @@ export default function UpcomingMasterclasses() {
                     </h3>
                     {w.description && (
                       <p className="mc-clamp" style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.9rem", color: "var(--aa-text-mid)" }}>
-                        {noDashes(w.description)}
-                      </p>
+                      {noDashes(w.description)}
+                    </p>
                     )}
                     <span
                       className="self-start"
                       style={{ display: "inline-flex", padding: "0.25rem 0.7rem", borderRadius: 999, background: "var(--aa-cream)", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.68rem", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 600 }}
                     >
-                      Included with membership
+                      Replay for members only
                     </span>
                     <div className="mt-auto pt-4">
-                      {buyingOpen ? (
-                        <button type="button" onClick={onJoin} className="cta-btn">
-                          Join to attend
-                        </button>
+                      {w.slug ? (
+                        <Link to={`/ask-the-expert/${w.slug}`} className="cta-btn">
+                          Save your seat
+                        </Link>
                       ) : (
                         <a href="#offers" className="cta-btn">
-                          See plans
+                          Save your seat
                         </a>
                       )}
                     </div>
+
                   </div>
                 </article>
               );
