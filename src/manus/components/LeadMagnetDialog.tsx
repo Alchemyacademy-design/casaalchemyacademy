@@ -27,7 +27,7 @@ function formatSession(iso: string, timeZone?: string): string {
 }
 
 /** Home-only popup. The public session feed supplies the next published live workshop. */
-export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number }) {
+export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number }) {
   const { isAuthenticated } = useAuth();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<"intro" | "form" | "confirmed">("intro");
