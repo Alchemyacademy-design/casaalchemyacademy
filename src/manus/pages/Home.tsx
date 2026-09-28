@@ -567,7 +567,7 @@ export default function Home() {
         </div>
       </section>
 
-      <UpcomingMasterclasses buyingOpen={buyingOpen} onJoin={joinAcademy} />
+      <UpcomingMasterclasses />
 
       {/* ── Launch Week promo ──
            Visible only between Mon 21 Sep 2026 AEST and 11:59pm AEST Fri 25 Sep 2026.
