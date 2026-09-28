@@ -203,9 +203,10 @@ export default function AskTheExpertLanding() {
                   <CheckCircle2 size={20} style={{ color: "var(--aa-gold)" }} /> You're in!
                 </p>
                 <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "var(--aa-text-mid)" }}>
-                  Your seat for <strong>{workshop.title}</strong> on {when} is confirmed. We've emailed your
-                  confirmation — the private class link will be sent by email closer to the session.
+                  Your seat for <strong>{noDashes(workshop.title)}</strong> on {when} is confirmed. We've emailed your
+                  confirmation. The private class link will be sent by email closer to the session.
                 </p>
+
                 {calendarItem && (
                   <div className="mt-6 flex flex-wrap gap-3">
                     <a
@@ -234,9 +235,10 @@ export default function AskTheExpertLanding() {
                   Save your seat
                 </h2>
                 <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>
-                  Free to attend. Leave your details and we'll email your confirmation — the private class link
+                  Free to attend. Leave your details and we'll email your confirmation. The private class link
                   follows closer to the date.
                 </p>
+
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <label className="block text-xs uppercase tracking-[0.1em]" style={{ color: "var(--aa-text-light)" }}>
