@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CalendarPlus, Download, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { markWorkshopRegistered } from "@/manus/lib/lead-magnet";
 import { gcalRenderUrl, icsDataUrl, icsFileName, type CalendarItem } from "@/lib/calendar-links";
 
 type PublicWorkshop = {
@@ -110,6 +111,7 @@ export default function AskTheExpertLanding() {
       if (data && (data as { error?: string }).error) {
         throw new Error((data as { error?: string }).error);
       }
+      markWorkshopRegistered(workshop.id);
       setConfirmed(true);
     } catch (err) {
       console.error("capture-lead failed:", err);

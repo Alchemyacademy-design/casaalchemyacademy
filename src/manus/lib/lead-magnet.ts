@@ -4,6 +4,17 @@ const DISMISS_KEY = "casa.leadPopupDismissedAt";
 const SUBMIT_KEY = "casa.leadSubmittedAt";
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
+/** Remember a confirmed live session on this browser, independently of popup dismissal. */
+export function hasRegisteredForWorkshop(id: number): boolean {
+  try { return window.localStorage.getItem(`casa.workshopRegistered.${id}`) === "true"; }
+  catch { return false; }
+}
+
+export function markWorkshopRegistered(id: number): void {
+  try { window.localStorage.setItem(`casa.workshopRegistered.${id}`, "true"); }
+  catch { /* Storage is optional. */ }
+}
+
 export type LeadSource = "popup" | "quiz" | "waitlist";
 
 export interface LeadPayload {
