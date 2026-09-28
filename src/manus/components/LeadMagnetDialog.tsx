@@ -75,7 +75,7 @@ export default function LeadMagnetDialog({ delayMs = 10000 }: { delayMs?: number
     return () => window.removeEventListener("open-lead-magnet", onOpen);
   }, [eligible, session?.starts_at]);
 
-  if ((!eligible && step !== "confirmed") || (!open && !eligible) || new Date(session.starts_at).getTime() <= Date.now()) return null;
+  if (!session || ((!eligible && step !== "confirmed") || (!open && !eligible)) || new Date(session.starts_at).getTime() <= Date.now()) return null;
 
   const printSession = /gabrielle/i.test(session.description ?? "") && /print/i.test(`${session.title} ${session.description}`);
   const heading = printSession ? "How to mix prints with Gabrielle" : session.title.replace(/ [-–—] /g, ": ");
