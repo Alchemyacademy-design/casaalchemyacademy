@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+
 
 type PublicWorkshop = {
   id: number;
@@ -39,13 +41,8 @@ function formatSydney(iso: string): string {
   return `${day}, ${time} Sydney time`;
 }
 
-export default function UpcomingMasterclasses({
-  buyingOpen,
-  onJoin,
-}: {
-  buyingOpen: boolean;
-  onJoin: () => void;
-}) {
+export default function UpcomingMasterclasses() {
+
   const scroller = useRef<HTMLDivElement>(null);
   const [canScroll, setCanScroll] = useState(false);
 
