@@ -13,6 +13,7 @@ import {
 } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 
 type TabKey = "events" | "workshops" | "calendar";
 
@@ -196,6 +197,7 @@ export default function Events() {
                     title={w.title}
                     description={w.description}
                     cover={w.cover_image_path}
+                    workshop
                     date={w.starts_at}
                     footer={hasWorkshopAccess && w.replay_url ? (
                       <a href={w.replay_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs mt-2 hover:underline" style={{ color: "var(--aa-accent)" }}>
@@ -270,7 +272,7 @@ function SectionBlock({
 
 function CardGrid({ children, two }: { children: React.ReactNode; two?: boolean }) {
   return (
-    <div className={`grid grid-cols-1 gap-6 ${two ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3"}`}>
+    <div className={`grid grid-cols-1 gap-6 ${two ? "md:grid-cols-2 items-start" : "md:grid-cols-2 lg:grid-cols-3"}`}>
       {children}
     </div>
   );
@@ -404,13 +406,7 @@ function WorkshopCard({ workshop, registered, isAuthenticated, canJoin, onRegist
   };
   return (
     <article className="rounded-lg overflow-hidden border" style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}>
-      {workshop.cover_image_path && (
-        <div
-          className="aspect-[16/9] w-full"
-          style={{ backgroundImage: `url('${workshop.cover_image_path}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}
-          aria-hidden="true"
-        />
-      )}
+      <WorkshopCover src={workshop.cover_image_path} alt={workshop.title} />
       <div className="p-6">
         <div className="mb-3 flex items-center gap-3 text-sm" style={{ color: "var(--aa-text-mid)" }}>
           <span className="inline-flex items-center gap-1.5"><Calendar size={14} style={{ color: "var(--aa-gold)" }} />{fmtDate(workshop.starts_at)}</span>
@@ -443,16 +439,17 @@ function WorkshopCard({ workshop, registered, isAuthenticated, canJoin, onRegist
   );
 }
 
-function PastCard({ title, description, cover, date, footer }: {
+function PastCard({ title, description, cover, date, footer, workshop }: {
   title: string;
   description?: string | null;
   cover?: string | null;
   date: string;
   footer?: React.ReactNode;
+  workshop?: boolean;
 }) {
   return (
     <article className="rounded-lg border overflow-hidden opacity-90" style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}>
-      {cover && (
+      {workshop ? <WorkshopCover src={cover} alt={title} /> : cover && (
         <div
           className="aspect-[16/9] w-full"
           style={{ backgroundImage: `url('${cover}')`, backgroundSize: "cover", backgroundPosition: "center", backgroundColor: "var(--aa-cream-dark)" }}

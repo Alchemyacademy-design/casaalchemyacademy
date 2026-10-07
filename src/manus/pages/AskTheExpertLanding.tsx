@@ -7,6 +7,7 @@ import { Link, useParams } from "react-router-dom";
 import { CalendarPlus, Download, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { markWorkshopRegistered } from "@/manus/lib/lead-magnet";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 import { gcalRenderUrl, icsDataUrl, icsFileName, type CalendarItem } from "@/lib/calendar-links";
 
 type PublicWorkshop = {
@@ -161,21 +162,15 @@ export default function AskTheExpertLanding() {
           className="overflow-hidden rounded-xl border"
           style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}
         >
-          {workshop.cover_image_path && (
-            <div className="relative min-h-[200px] overflow-hidden bg-primary sm:min-h-[280px]">
-              <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${workshop.cover_image_path})` }}
-                aria-hidden="true"
-              />
+            <div className="relative overflow-hidden">
+              <WorkshopCover src={workshop.cover_image_path} alt={noDashes(workshop.title)} />
               <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/15 to-transparent" aria-hidden="true" />
-              <div className="relative z-10 flex min-h-[200px] items-end p-5 sm:min-h-[280px] sm:p-7">
+              <div className="absolute inset-0 z-10 flex items-end p-5 sm:p-7">
                 <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/85">
                   Ask the Expert LIVE
                 </span>
               </div>
             </div>
-          )}
 
           <div className="p-6 sm:p-9">
             <h1

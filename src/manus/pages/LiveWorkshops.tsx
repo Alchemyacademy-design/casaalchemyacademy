@@ -4,6 +4,7 @@ import { Calendar, Clock, ExternalLink, Loader2, Lock, CheckCircle2 } from "luci
 import { useUpcomingWorkshops, usePastWorkshops, useMyRegistrations, useRegisterForTarget } from "@/manus/hooks/usePublicContent";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { useEntitlements } from "@/manus/hooks/useEntitlements";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 
 function fmtDate(iso: string) {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
@@ -37,16 +38,7 @@ function StatusPill({ status }: { status: "available" | "coming_soon" }) {
 function Thumb({ src, status, dim }: { src?: string | null; status: "available" | "coming_soon"; dim?: boolean }) {
   return (
     <div className="relative">
-      <div
-        className={`aspect-[16/9] w-full ${dim ? "opacity-80" : ""}`}
-        style={{
-          backgroundImage: src ? `url('${src}')` : undefined,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundColor: "var(--aa-cream-dark)",
-        }}
-        aria-hidden="true"
-      />
+      <WorkshopCover src={src} alt="" className={dim ? "opacity-80" : ""} />
       <div className="absolute top-3 right-3">
         <StatusPill status={status} />
       </div>
@@ -81,7 +73,7 @@ export default function LiveWorkshops() {
             ) : upcoming.length === 0 ? (
               <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>No workshops scheduled yet.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-6">
                 {upcoming.map((w) => {
                   const isReg = registered.has(w.id);
                   return (
@@ -129,7 +121,7 @@ export default function LiveWorkshops() {
             ) : past.length === 0 ? (
               <p className="text-sm" style={{ color: "var(--aa-text-mid)" }}>No past workshops yet.</p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 items-start gap-6">
                 {past.map((w) => {
                   // A past workshop is watchable only once the recording is in
                   // place and the member's plan includes workshops.
