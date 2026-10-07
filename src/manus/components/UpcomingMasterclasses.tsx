@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 
 
 type PublicWorkshop = {
@@ -127,9 +127,8 @@ export default function UpcomingMasterclasses() {
             </>
           )}
 
-          <div ref={scroller} className="mc-row flex gap-6 overflow-x-auto snap-x snap-mandatory pb-2">
+          <div ref={scroller} className="mc-row flex items-start gap-6 overflow-x-auto snap-x snap-mandatory pb-2">
             {items.map((w) => {
-              const cover = resolveAssetUrl(w.cover_image_path);
               return (
                 <article
                   key={w.id}
@@ -137,11 +136,7 @@ export default function UpcomingMasterclasses() {
                   className="snap-start shrink-0 w-[85%] md:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] flex flex-col"
                   style={{ background: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}
                 >
-                  {cover ? (
-                    <img src={cover} alt={noDashes(w.title)} className="w-full h-auto" loading="lazy" />
-                  ) : (
-                    <div style={{ width: "100%", aspectRatio: "3 / 2", background: "var(--aa-cream-dark)" }} />
-                  )}
+                  <WorkshopCover src={w.cover_image_path} alt={noDashes(w.title)} loading="lazy" />
                   <div className="p-6 flex flex-col gap-3 flex-1">
                     <p style={{ fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--aa-gold)", fontWeight: 600 }}>
                       {formatSydney(w.starts_at)}

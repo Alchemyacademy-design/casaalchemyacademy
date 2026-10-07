@@ -4,7 +4,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 import { hasRegisteredForWorkshop, markLeadPopupDismissed, markWorkshopRegistered, shouldShowLeadPopup } from "@/manus/lib/lead-magnet";
 import { useAuth } from "@/manus/hooks/useAuth";
 
@@ -78,7 +78,6 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
 
   const printSession = /gabrielle/i.test(session.description ?? "") && /print/i.test(`${session.title} ${session.description}`);
   const heading = printSession ? "How to mix prints with Gabrielle" : session.title.replace(/ [-–—] /g, ": ");
-  const cover = resolveAssetUrl(session.cover_image_path);
   const localZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -110,7 +109,7 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
       if (!next && step !== "confirmed") markLeadPopupDismissed();
     }}>
       <DialogContent className="max-h-[calc(100dvh-2rem)] w-[calc(100%-2rem)] max-w-md gap-0 overflow-y-auto rounded-md border-border bg-background p-0 sm:max-w-md">
-        {cover && <img src={cover} alt={heading} className="aspect-[4/3] w-full object-cover object-top" />}
+        <WorkshopCover src={session.cover_image_path} alt={heading} />
         <div className="space-y-4 p-5 sm:p-7">
           <DialogHeader className="text-left">
             <p className="text-xs font-semibold uppercase text-primary">Ask the Expert LIVE</p>
