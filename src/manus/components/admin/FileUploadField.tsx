@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Upload, ExternalLink, FileText, Video as VideoIcon, Image as ImageIcon, X } from "lucide-react";
 import { toast } from "sonner";
 import { uploadPublicAsset } from "@/manus/lib/admin-content";
+import WorkshopCover from "@/manus/components/WorkshopCover";
 
 interface Props {
   value: string | null;
@@ -116,7 +117,11 @@ export default function FileUploadField({
   return (
     <div className="space-y-2">
       {value && showPreview && kind === "image" && (
-        <div className="relative w-40 h-28 bg-muted rounded overflow-hidden border">
+        folder === "workshops" ? (
+          <div className="w-40 rounded overflow-hidden border">
+            <WorkshopCover src={value} alt="" />
+          </div>
+        ) : <div className="relative w-40 h-28 bg-muted rounded overflow-hidden border">
           <img
             src={value}
             alt=""
