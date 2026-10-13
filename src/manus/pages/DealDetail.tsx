@@ -7,6 +7,8 @@ import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { PartnerDealCover, PartnerDealDescription } from "@/manus/components/PartnerDealContent";
 
 const SCHEDULING_URL = "https://calendly.com/contact-casaalchemystudio/30min";
 const TERMS_VERSION = "1.0";
@@ -51,6 +53,7 @@ export default function DealDetail() {
   const trackClick = useTrackDealClick();
   const { user } = useAuth();
   const publicRate = searchParams.get("rate") === "public";
+  const isCasaConsult = slug === "casa-consult";
   const deal = useMemo(() => {
     const found = deals.find((d) => d.slug === slug);
     if (found) return found;
@@ -89,7 +92,7 @@ export default function DealDetail() {
 
   const refreshStatus = useMemo(
     () => async (emailOverride?: string) => {
-      if (!slug) return;
+      if (!slug || !isCasaConsult) return;
       const probeEmail = (emailOverride ?? email ?? user?.email ?? "").trim().toLowerCase();
       const { data, error } = await supabase.rpc("deal_booking_status", {
         p_deal_slug: slug,
@@ -106,7 +109,7 @@ export default function DealDetail() {
         accepted_at: next.accepted_at ?? null,
       });
     },
-    [slug, email, user?.email],
+    [slug, email, user?.email, isCasaConsult],
   );
 
   useEffect(() => {
@@ -195,7 +198,7 @@ export default function DealDetail() {
 
 
 
-  if (isLoading || statusLoading) {
+  if (isLoading || (isCasaConsult && statusLoading)) {
     return (
       <MemberLayout requireAuth={!isPublicRate}>
         <div className="p-6 md:p-10" style={{ backgroundColor: "var(--aa-cream)" }}>
@@ -220,6 +223,33 @@ export default function DealDetail() {
 
   const cover = resolveAssetUrl((deal as { cover_image_path?: string | null }).cover_image_path);
   const priceLabel = (deal as { price_label?: string | null }).price_label;
+
+  if (!isCasaConsult) {
+    return (
+      <MemberLayout requireAuth={!isPublicRate}>
+        <div className="p-6 md:p-10 bg-[var(--aa-cream)]">
+          <Link to="/deals" className="text-xs text-[var(--aa-gold)]">← Back to deals</Link>
+          <h1 className="mt-4 mb-3 font-serif text-3xl font-light text-[var(--aa-olive-dark)] md:text-4xl">{deal.title}</h1>
+          <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[320px_1fr]">
+            <div className="overflow-hidden rounded-xl border border-[var(--aa-cream-dark)]">
+              <PartnerDealCover src={deal.cover_image_path} title={deal.title} />
+            </div>
+            <div>
+              {priceLabel && <p className="mb-3 text-xs font-semibold text-[var(--aa-gold)]">{priceLabel}</p>}
+              {deal.description && <p className="mb-6 max-w-2xl text-sm font-light leading-relaxed text-[var(--aa-text-mid)]"><PartnerDealDescription text={deal.description} /></p>}
+              {deal.external_url && (
+                <Button asChild className="btn-gold text-xs uppercase">
+                  <a href={deal.external_url} target="_blank" rel="noopener noreferrer" onClick={() => trackClick.mutate(deal.id)}>
+                    Visit partner <ExternalLink size={12} />
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </MemberLayout>
+    );
+  }
 
   const steps = [
     { n: 1, label: "Terms & conditions", icon: FileText },

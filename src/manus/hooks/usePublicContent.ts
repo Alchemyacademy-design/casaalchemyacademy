@@ -3,6 +3,7 @@ import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 import { toast } from "sonner";
+import { orderDeals } from "@/manus/lib/deal-order";
 
 type EventRow = Database["public"]["Tables"]["events"]["Row"];
 type WorkshopRow = Database["public"]["Tables"]["live_workshops"]["Row"];
@@ -292,7 +293,7 @@ export function useActiveDeals() {
         .eq("status", "published")
         .order("starts_at", { ascending: false, nullsFirst: false });
       if (error) throw error;
-      return data ?? [];
+      return orderDeals(data ?? []);
     },
   });
 }
