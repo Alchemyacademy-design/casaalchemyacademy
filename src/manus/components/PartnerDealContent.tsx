@@ -1,4 +1,5 @@
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import type { ReactNode } from "react";
 
 export function PartnerDealCover({ src, title, membersOnly = false }: {
   src?: string | null;
@@ -21,7 +22,7 @@ export function PartnerDealCover({ src, title, membersOnly = false }: {
 export function PartnerDealDescription({ text }: { text: string }) {
   // Keep the exact displayed text while making Australian mobile numbers callable.
   const mobile = /(?<!\d)(?:04\d{2}[ \t]?\d{3}[ \t]?\d{3}|\+61[ \t]?4\d{2}[ \t]?\d{3}[ \t]?\d{3})(?!\d)/g;
-  const parts = [];
+  const parts: ReactNode[] = [];
   let offset = 0;
   for (const match of text.matchAll(mobile)) {
     const index = match.index ?? 0;
