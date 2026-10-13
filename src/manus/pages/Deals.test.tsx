@@ -44,7 +44,7 @@ describe("exclusive deal presentation", () => {
     expect(mocks.track).toHaveBeenCalledWith(2);
     expect(screen.getByRole("link", { name: "0418 213 216" })).toHaveAttribute("href", "tel:0418213216");
     expect(screen.getByRole("img", { name: partner.title })).toHaveClass("h-auto", "w-full", "object-contain");
-    expect(screen.getByText(/Full discount details/)).toBeVisible();
+    expect(screen.getAllByText(/Full discount details/)).toHaveLength(2);
   });
 
   it("renders partner detail without booking steps or booking requests", () => {

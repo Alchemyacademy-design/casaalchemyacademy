@@ -113,6 +113,7 @@ export default function DealDetail() {
   );
 
   useEffect(() => {
+    if (!isCasaConsult) return;
     let cancelled = false;
     (async () => {
       setStatusLoading(true);
@@ -123,7 +124,7 @@ export default function DealDetail() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug, user?.id]);
+  }, [slug, user?.id, isCasaConsult]);
 
   const maxStep = status.payment_verified ? 3 : status.terms_accepted ? 2 : 1;
   const step = Math.min(desiredStep, maxStep);
