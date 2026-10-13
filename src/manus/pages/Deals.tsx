@@ -64,7 +64,7 @@ export default function Deals() {
                 style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}
               >
                 {!isCasaConsult ? (
-                  <PartnerDealCover src={deal.cover_image_path} title={deal.title} membersOnly />
+                  <PartnerDealCover src={deal.cover_image_path} title={deal.title} />
                 ) : (
                 <div className="relative min-h-[190px] overflow-hidden bg-primary">
                   {cover ? (
@@ -84,11 +84,6 @@ export default function Deals() {
                     />
                   )}
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/80 via-foreground/15 to-transparent" aria-hidden="true" />
-                  <div className="relative z-10 flex min-h-[190px] items-end p-5">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/80">
-                      Members only
-                    </span>
-                  </div>
                 </div>
                 )}
                 <div className="flex flex-1 flex-col p-6">

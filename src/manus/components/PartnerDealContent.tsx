@@ -1,20 +1,14 @@
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import type { ReactNode } from "react";
 
-export function PartnerDealCover({ src, title, membersOnly = false }: {
+export function PartnerDealCover({ src, title }: {
   src?: string | null;
   title: string;
-  membersOnly?: boolean;
 }) {
   const cover = resolveAssetUrl(src);
   return (
-    <div className={`relative bg-[var(--aa-white)] p-5 ${membersOnly ? "pt-12" : ""} ${cover ? "" : "min-h-32"}`}>
+    <div className={`relative bg-[var(--aa-white)] p-5 ${cover ? "" : "min-h-32"}`}>
       {cover && <img src={cover} alt={title} className="block h-auto w-full object-contain" />}
-      {membersOnly && (
-        <span className="absolute left-3 top-3 rounded-full border border-[var(--aa-cream-dark)] bg-[var(--aa-cream)] px-3 py-1 text-[10px] font-semibold uppercase text-[var(--aa-text-mid)]">
-          Members only
-        </span>
-      )}
     </div>
   );
 }
