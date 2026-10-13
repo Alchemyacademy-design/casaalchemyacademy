@@ -60,7 +60,7 @@ export default function Deals() {
               return (
               <article
                 key={deal.id}
-                className="group relative flex h-full flex-col overflow-hidden rounded-xl border transition duration-300 hover:-translate-y-1 hover:shadow-float"
+                className={`group relative flex ${isCasaConsult ? "h-full" : "h-auto"} flex-col overflow-hidden rounded-xl border transition duration-300 hover:-translate-y-1 hover:shadow-float`}
                 style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}
               >
                 {!isCasaConsult ? (
