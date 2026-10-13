@@ -4,8 +4,9 @@
 - [ ] Request publishing after the owner decides whether to address the three critical security findings first.
 
 # Partner discount deals
-- [ ] Keep Casa Consult first, then sort partners by created_at and id ascending wherever listed.
-- [ ] Preserve full partner descriptions and make Australian mobile numbers tappable on cards and detail pages.
-- [ ] Separate partner redemption links and direct pages from Casa Consult booking.
-- [ ] Show partner logos uncropped and align deal cards to the top.
-- [ ] Verify the changes and request publishing after checking security results.
+- [x] Keep Casa Consult first, then sort partners by created_at and id ascending in member deal lists.
+- [x] Preserve full partner descriptions and make Australian mobile numbers tappable on cards and detail pages.
+- [x] Separate partner redemption links and direct pages from Casa Consult booking.
+- [x] Show partner logos uncropped and align deal cards to the top.
+- [x] Verify using targeted tests and desktop/390px display fixtures; leave unpublished under the replacement request.
+- [ ] Signed-in end-to-end check with real deals: blocked by external unmanaged sign-in; partner records remain drafts.

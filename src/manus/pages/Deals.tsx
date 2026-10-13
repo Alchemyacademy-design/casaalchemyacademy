@@ -4,6 +4,8 @@ import { ExternalLink, Sparkles, Clock, ArrowRight } from "lucide-react";
 import { useActiveDeals } from "@/manus/hooks/usePublicContent";
 import { useTrackDealClick } from "@/manus/hooks/useTrackDealClick";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
+import { Button } from "@/components/ui/button";
+import { PartnerDealCover, PartnerDealDescription } from "@/manus/components/PartnerDealContent";
 
 export default function Deals() {
   const { data: deals = [], isLoading } = useActiveDeals();
@@ -50,16 +52,20 @@ export default function Deals() {
             </p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 items-start gap-6">
             {active.map((deal) => {
+              const isCasaConsult = deal.slug === "casa-consult";
               const cover = resolveAssetUrl((deal as { cover_image_path?: string | null }).cover_image_path);
               const priceLabel = (deal as { price_label?: string | null }).price_label;
               return (
               <article
                 key={deal.id}
-                className="group relative flex h-full flex-col overflow-hidden rounded-xl border transition duration-300 hover:-translate-y-1 hover:shadow-float"
+                className={`group relative flex ${isCasaConsult ? "h-full" : "h-auto"} flex-col overflow-hidden rounded-xl border transition duration-300 hover:-translate-y-1 hover:shadow-float`}
                 style={{ backgroundColor: "var(--aa-white)", borderColor: "var(--aa-cream-dark)" }}
               >
+                {!isCasaConsult ? (
+                  <PartnerDealCover src={deal.cover_image_path} title={deal.title} membersOnly />
+                ) : (
                 <div className="relative min-h-[190px] overflow-hidden bg-primary">
                   {cover ? (
                     <div
@@ -84,6 +90,7 @@ export default function Deals() {
                     </span>
                   </div>
                 </div>
+                )}
                 <div className="flex flex-1 flex-col p-6">
                 <div className="flex items-center gap-2 mb-3">
                   <Sparkles size={14} style={{ color: "var(--aa-gold)" }} />
@@ -113,7 +120,7 @@ export default function Deals() {
                     className="text-xs mb-4 leading-relaxed"
                     style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}
                   >
-                    {deal.description}
+                    {isCasaConsult ? deal.description : <PartnerDealDescription text={deal.description} />}
                   </p>
                 )}
                 {deal.ends_at && (
@@ -124,7 +131,7 @@ export default function Deals() {
                     <Clock size={11} /> Ends {new Date(deal.ends_at).toLocaleDateString()}
                   </p>
                 )}
-                {deal.slug ? (
+                {isCasaConsult ? (
                   <Link
                     to={`/deals/${deal.slug}`}
                     className="mt-auto flex items-center gap-2 text-xs"
@@ -133,16 +140,17 @@ export default function Deals() {
                     Book Now <ArrowRight size={12} />
                   </Link>
                 ) : deal.external_url ? (
+                  <Button asChild variant="ghost" className="mt-auto h-auto justify-start self-start px-0 py-0 text-xs text-[var(--aa-gold)] hover:bg-transparent hover:text-[var(--aa-gold)]">
                   <a
                     href={deal.external_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackClick.mutate(deal.id)}
-                    className="mt-auto flex items-center gap-2 text-xs"
                     style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontWeight: 500 }}
                   >
                     Redeem offer <ExternalLink size={12} />
                   </a>
+                  </Button>
                 ) : null}
                 </div>
               </article>
