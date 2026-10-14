@@ -184,11 +184,16 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
     </article>
   );
 
-  return canVisit ? (
-    <Link to={href!} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
-      {content}
-    </Link>
-  ) : (
-    content
+  return (
+    <>
+      {canVisit ? (
+        <Link to={href!} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
+      {gate}
+    </>
   );
 }
