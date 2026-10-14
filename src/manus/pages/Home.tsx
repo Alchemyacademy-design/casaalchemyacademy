@@ -364,7 +364,7 @@ export default function Home() {
       </section>
 
       {/* ── Modules ── */}
-      <section id="modules" style={{ backgroundColor: "var(--aa-cream)", padding: "6rem 0" }}>
+      <section id="modules" style={{ backgroundColor: "var(--aa-cream)", padding: "6rem 0 0" }}>
         <div className="container">
           <div className="max-w-xl mb-14">
             <p className="section-label mb-4">The Curriculum</p>
@@ -436,8 +436,8 @@ export default function Home() {
               </div>
             </div>
 
-            <DealTicker />
           </div>
+          <DealTicker />
         </div>
       </section>
 

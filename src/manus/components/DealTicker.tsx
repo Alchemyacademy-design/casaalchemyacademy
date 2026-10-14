@@ -17,7 +17,7 @@ export default function DealTicker() {
   if (isError || !data?.length) return null;
 
   return (
-    <section aria-labelledby="exclusive-deals-heading" className="aa-deal-ticker-section col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4">
+    <section aria-labelledby="exclusive-deals-heading" className="aa-deal-ticker-section">
       <h3 id="exclusive-deals-heading" className="aa-deal-ticker-heading font-serif text-2xl mb-8">EXCLUSIVE DEALS</h3>
       <div className="aa-deal-ticker-strip">
         <div className="aa-deal-ticker-track">

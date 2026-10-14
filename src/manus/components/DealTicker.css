@@ -1,4 +1,4 @@
-.aa-deal-ticker-section { min-width: 0; width: 100%; }
+.aa-deal-ticker-section { min-width: 0; width: 100%; padding-block: 3rem; }
 .aa-deal-ticker-heading { color: var(--aa-olive-dark); font-weight: 400; text-align: center; text-transform: uppercase; }
 .aa-deal-ticker-strip { width: 100%; overflow: hidden; background: var(--aa-olive-dark); color: var(--aa-cream); }
 .aa-deal-ticker-track { display: flex; width: max-content; animation: aa-deal-ticker-scroll 65s linear infinite; }
