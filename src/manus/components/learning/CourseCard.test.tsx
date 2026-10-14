@@ -79,11 +79,12 @@ describe("CourseCard", () => {
     expect(screen.getByRole("link", { name: /review/i })).toBeInTheDocument();
   });
 
-  it("landing variant uses 'View Course' label", () => {
+  it("landing variant shows a 'Purchase here' button instead of the old sales line", () => {
     renderCard({
       variant: "landing",
       course: { id: 1, title: "X", href: "/courses/1" },
     });
-    expect(screen.getByRole("link", { name: /view course/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /purchase here/i })).toBeInTheDocument();
+    expect(screen.queryByText(/available with subscription/i)).toBeNull();
   });
 });
