@@ -3,10 +3,10 @@ import WaitlistDialog from "@/manus/components/WaitlistDialog";
 import { getLoginUrl } from "@/manus/const";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/manus/hooks/useAuth";
-import { useEntitlements } from "@/manus/hooks/useEntitlements";
 import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
 import { useHomeCourses } from "@/manus/hooks/usePublicContent";
 import CourseCard, { type CourseCardData } from "@/manus/components/learning/CourseCard";
+import DealTicker from "@/manus/components/DealTicker";
 import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
@@ -102,8 +102,6 @@ const TESTIMONIALS = [
 
 export default function Home() {
   const { user, isAuthenticated, isAdmin, isMember } = useAuth();
-  // Exclusive Deals (incl. the Casa Consult member rate) are annual-only.
-  const { hasDeals } = useEntitlements();
   const navigate = useNavigate();
   useEffect(() => {
     // Signed-in visitors bypass the marketing landing page.
@@ -115,7 +113,6 @@ export default function Home() {
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactStatus, setContactStatus] = useState<"idle" | "success" | "error">("idle");
   const [contactError, setContactError] = useState<string | null>(null);
-  const [showMemberNotice, setShowMemberNotice] = useState(false);
 
   // ── Launch Week promo visibility ──
   // AEST is UTC+10 (no daylight saving in September). Update the ISO strings
@@ -439,130 +436,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Membership Perks Card */}
-            <div
-              className="col-span-1 sm:col-span-2 lg:col-span-3 xl:col-span-4"
-              style={{
-                border: "1px solid var(--aa-cream-dark)",
-                backgroundImage: "url('/img/perks.jpg')",
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                minHeight: "280px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-                padding: "1.75rem",
-                position: "relative",
-                overflow: "hidden",
-              }}
-            >
-              <div className="absolute inset-0 bg-black/60" />
-              <div className="relative z-10 w-full">
-                <h3 className="font-serif text-2xl mb-8" style={{ color: "var(--aa-cream)", fontWeight: 400, textAlign: "center", textTransform: "uppercase" }}>EXCLUSIVE DEALS</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-4xl mx-auto">
-                  {[
-                    {
-                      title: "Casa Consult for Alchemy Academy Annual Members",
-                      price: "AUD $295",
-                      href: "https://buy.stripe.com/eVqeVe3xffB5bUp2qKaZi09",
-                      memberOnly: true,
-                    },
-                    {
-                      title: "Casa Consult for non-members of Alchemy Academy",
-                      price: "AUD $395",
-                      href: "https://buy.stripe.com/dRmeVe9VDagLbUp5CWaZi08",
-                      memberOnly: false,
-                    },
-                  ].map((deal) => (
-                    <div
-                      key={deal.title}
-                      style={{
-                        backgroundColor: "var(--aa-cream)",
-                        border: "1px solid var(--aa-cream-dark)",
-                        padding: "1.75rem",
-                        display: "flex",
-                        flexDirection: "column",
-                        textAlign: "left",
-                      }}
-                    >
-                      <p className="section-label mb-3" style={{ color: "var(--aa-gold)" }}>Book in your first hour here</p>
-                      <h4 className="font-serif text-2xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 400, lineHeight: 1.25 }}>
-                        {deal.title}
-                      </h4>
-                      <div style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.25rem", marginBottom: "1.25rem" }}>
-                        <p className="font-serif" style={{ color: "var(--aa-olive-dark)", fontSize: "2.25rem", fontWeight: 300, lineHeight: 1.1 }}>
-                          {deal.price}{" "}
-                          <span style={{ fontSize: "0.8rem", letterSpacing: "0.08em", color: "var(--aa-text-mid)" }}>+ GST</span>
-                        </p>
-                        <p style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontSize: "0.8rem", marginTop: "0.35rem" }}>
-                          Per 1-Hour Session
-                        </p>
-                      </div>
-                      <ul className="space-y-2 mb-6" style={{ borderTop: "1px solid var(--aa-cream-dark)", paddingTop: "1.25rem" }}>
-                        {[
-                          "One-on-one video call with Lorena Couto (or site visit if within the area)",
-                          "Project Review",
-                          "Advice on colours, finishes, fixtures and fittings",
-                          "Product sourcing and purchasing list",
-                        ].map((item) => (
-                          <li key={item} style={{ color: "var(--aa-text-mid)", fontFamily: "'Manrope', sans-serif", fontSize: "0.9rem", fontWeight: 300 }}>
-                            - {item}
-                          </li>
-                        ))}
-                      </ul>
-                      {deal.memberOnly ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (!isAuthenticated) {
-                                navigate(getLoginUrl());
-                              } else if (!hasDeals) {
-                                setShowMemberNotice(true);
-                              } else {
-                                navigate("/deals/casa-consult");
-                              }
-                            }}
-                            className="mt-auto"
-                            style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none", border: "none", cursor: "pointer" }}
-                          >
-                            Book a Casa Consult →
-                          </button>
-                          {showMemberNotice && (
-                            <div className="mt-3 text-xs flex items-start gap-2" style={{ color: "var(--aa-olive-dark)" }}>
-                              <span>This rate is exclusive to Annual Alchemy Academy members.</span>
-                              <Link to="/plans" className="underline whitespace-nowrap" style={{ color: "var(--aa-gold)" }}>
-                                View plans
-                              </Link>
-                              <button
-                                type="button"
-                                onClick={() => setShowMemberNotice(false)}
-                                className="ml-auto"
-                                style={{ color: "var(--aa-text-mid)", lineHeight: 1 }}
-                                aria-label="Dismiss notice"
-                              >
-                                ×
-                              </button>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <Link
-                          to="/deals/casa-consult?rate=public"
-                          className="mt-auto"
-                          style={{ background: "var(--aa-olive-dark)", color: "var(--aa-cream)", fontSize: "0.75rem", fontFamily: "'Manrope', sans-serif", fontWeight: 500, padding: "0.9rem 1rem", display: "block", width: "100%", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.08em", textDecoration: "none" }}
-                        >
-                          Book a Casa Consult →
-                        </Link>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <p style={{ textAlign: "center", color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif", fontSize: "0.75rem", letterSpacing: "0.04em", marginTop: "1.25rem", opacity: 0.85 }}>
-                  *More exclusive deals inside the Academy
-                </p>
-              </div>
-            </div>
+            <DealTicker />
           </div>
         </div>
       </section>
