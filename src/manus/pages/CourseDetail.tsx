@@ -1,4 +1,5 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
+import CoursePurchaseGate from "@/manus/components/learning/CoursePurchaseGate";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -115,6 +116,7 @@ export default function CourseDetail() {
     entitlementCourseIds: (activeEntitlements ?? []).map((item) => Number(item.course_id)).filter(Boolean),
   };
   const accessible = !course || canAccessCourse(course.id, course.access_plan_keys, accessState);
+  const [gateOpen, setGateOpen] = useState(false);
 
   const allLessons = useMemo<Lesson[]>(
     () => (course?.course_modules ?? []).flatMap((module) => module.lessons),
@@ -415,6 +417,7 @@ export default function CourseDetail() {
           </aside>
         </div>
       </MemberPage>
+      {gateOpen && course ? <CoursePurchaseGate open={gateOpen} onOpenChange={setGateOpen} courseId={Number(course.id)} courseTitle={course.title} /> : null}
     </MemberLayout>
   );
 }
