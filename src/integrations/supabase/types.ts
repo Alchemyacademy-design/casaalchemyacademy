@@ -3077,6 +3077,16 @@ export type Database = {
           xp: number
         }[]
       }
+      get_individual_course_prices: {
+        Args: never
+        Returns: {
+          course_id: number
+          cover_image_path: string
+          currency: string
+          title: string
+          unit_amount: number
+        }[]
+      }
       get_my_alchemist_stats: { Args: never; Returns: Json }
       get_public_certificate: {
         Args: { slug: string }
