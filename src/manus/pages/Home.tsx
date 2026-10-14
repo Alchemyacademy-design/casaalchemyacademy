@@ -558,7 +558,7 @@ export default function Home() {
               }
             `}</style>
             {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
-            <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "2.5rem", marginBottom: "0" }}>
+            <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "0", marginBottom: "0" }}>
               <p
                 style={{
                   fontFamily: "'Instrument Serif', Georgia, serif",
