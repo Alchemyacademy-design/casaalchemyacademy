@@ -11,7 +11,7 @@ import UpcomingMasterclasses from "@/manus/components/UpcomingMasterclasses";
 import LeadMagnetDialog from "@/manus/components/LeadMagnetDialog";
 import LeadMagnetForm from "@/manus/components/LeadMagnetForm";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import freeLessonBanner from "@/assets/how-to-mix-prints-banner.png.asset.json";
 const lorenaPhoto = { url: "/img/lorena.jpg" };
 
@@ -481,7 +481,7 @@ export default function Home() {
               Access the knowledge, at the depth that suits you now.
             </h2>
           </div>
-          <div className="overflow-x-auto max-w-5xl mx-auto pricing-shell">
+          <div className="max-w-5xl mx-auto pricing-shell">
             <style>{`
               @keyframes slideInUp {
                 from { opacity: 0; transform: translateY(20px); }
@@ -525,37 +525,27 @@ export default function Home() {
               .cta-btn:hover .arrow { transform: translateX(4px); }
               .currency-note { text-align: center; color: var(--aa-cream); opacity: 0.6; font-family: 'DM Sans', sans-serif; font-size: 0.72rem; letter-spacing: 0.06em; margin-top: 1.25rem; }
               .cooling-off-note { text-align: center; color: var(--aa-gold); font-family: 'DM Sans', sans-serif; font-size: 0.75rem; letter-spacing: 0.04em; margin-top: 0.75rem; }
-              .plan-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin-top: 2.5rem; }
-              .plan-detail-card { background: var(--aa-white); border: 1px solid var(--aa-cream-dark); border-top: 3px solid var(--aa-gold); padding: 1.5rem; text-align: left; transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; display: flex; flex-direction: column; }
-              .plan-detail-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px -18px rgba(145,69,33,0.55); }
-              .plan-detail-card.is-best { border-top-width: 5px; box-shadow: 0 14px 34px -16px rgba(145,69,33,0.6); }
-              .plan-detail-card.is-best:hover { transform: translateY(-5px); }
-              .plan-detail-name { font-family: 'Manrope', sans-serif; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.18em; text-transform: uppercase; color: var(--aa-gold); margin-bottom: 0.5rem; }
-              .plan-detail-price { font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600; color: var(--aa-olive-dark); margin-bottom: 0.75rem; }
-              .plan-detail-intro { font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.6; margin-bottom: 1rem; }
-              .plan-detail-card ul { list-style: none; margin: 0; padding: 0; flex: 1; }
-              .plan-detail-card li { position: relative; padding-left: 1.1rem; margin-bottom: 0.55rem; font-family: 'DM Sans', sans-serif; font-size: 0.82rem; font-weight: 300; color: var(--aa-text-mid); line-height: 1.55; }
-              .plan-detail-card li::before { content: "✓"; position: absolute; left: 0; top: 0; color: var(--aa-gold); font-size: 0.78rem; }
-              .plan-detail-cta { display: block; margin-top: auto; padding-top: 1.25rem; }
+              .plan-detail-cta { display: block; padding-top: 1.25rem; }
               .plan-detail-badge { display: inline-block; background: var(--aa-gold); color: var(--aa-cream); font-family: 'Manrope', sans-serif; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; margin-bottom: 0.75rem; box-shadow: 0 3px 10px -2px rgba(145,69,33,0.35); }
-              .plan-card-price { margin: 0 0 1.1rem; text-align: left; }
+              .plan-card-price { margin: 0; text-align: center; min-height: 8rem; }
+              .pricing-price-row { border-top: 1px solid var(--aa-cream-dark); }
+              .pricing-price-label { padding: 1.25rem 1.5rem; color: var(--aa-olive-dark); font-family: 'DM Sans', sans-serif; font-weight: 300; text-align: left; }
+              .pricing-price-row .cta-cell { vertical-align: top; }
+              .pricing-price-row .cta-btn { font-size: .75rem; letter-spacing: .12em; padding: 1rem .75rem; min-height: 64px; }
+              .pricing-price-row .plan-detail-badge { display: table; margin: 0 auto .75rem; }
+              .pricing-price-row td:not(:nth-child(2)) { padding-top: 4.1rem !important; }
               .plan-card-price .cur { font-size: 0.72rem; letter-spacing: 0.16em; font-weight: 700; color: var(--aa-gold); display: inline-block; margin-right: 0.35rem; vertical-align: 0.4em; }
-              .plan-card-price .amt { font-family: 'Instrument Serif', serif; font-size: 2.8rem; font-weight: 400; color: var(--aa-olive-dark); letter-spacing: -0.02em; animation: priceGlow 3s ease-in-out infinite; }
+              .plan-card-price .amt { font-family: 'Instrument Serif', serif; font-size: 2.8rem; font-weight: 400; color: var(--aa-olive-dark); letter-spacing: 0; animation: priceGlow 3s ease-in-out infinite; }
               .plan-card-price .per { font-size: 0.78rem; font-weight: 600; color: var(--aa-text-mid); text-transform: uppercase; letter-spacing: 0.12em; margin-left: 0.25rem; }
               .plan-card-price .sub { display: block; font-size: 0.8rem; font-weight: 300; color: var(--aa-text-mid); margin-top: 0.45rem; }
               .plan-card-price .save { display: inline-block; font-size: 0.72rem; font-weight: 700; color: var(--aa-gold); letter-spacing: 0.1em; margin-top: 0.45rem; text-transform: uppercase; background: rgba(218,180,105,0.12); padding: 3px 8px; border-radius: 6px; }
               .pricing-shell { display: flex; flex-direction: column; }
               .mobile-table-note { display: block; text-align: center; color: var(--aa-cream); opacity: .7; font-family: 'DM Sans', sans-serif; font-size: .75rem; letter-spacing: .06em; margin: 2.5rem 0 .75rem; }
               .pricing-table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 12px; }
-              @media (max-width: 900px) { .plan-details { grid-template-columns: 1fr; } .plan-detail-card.is-best { transform: none; } .plan-detail-card.is-best:hover { transform: translateY(-5px); } }
               @media (max-width: 767px) {
-                .plan-details { gap: 1.25rem; }
                 table.pricing-table { display: table; min-width: 660px; }
                 table.pricing-table th, table.pricing-table td { padding: .85rem .7rem !important; font-size: .76rem; }
                 .currency-note { margin-top: 1rem; }
-                .plan-detail-card { padding: 1.5rem; border-radius: 14px; position: relative; }
-                .plan-detail-card.is-best { }
-                .plan-detail-price { font-size: 1rem; }
                 .plan-card-price .amt { font-size: 2.4rem; }
                 .plan-detail-cta .cta-btn { min-height: 54px; font-size: 0.82rem; }
                 .cta-btn-primary { min-height: 58px; font-size: 0.88rem; }
@@ -601,6 +591,66 @@ export default function Home() {
                     <td style={{ padding: "1.25rem 1.5rem", textAlign: "center", color: "var(--aa-olive-dark)", fontFamily: "'DM Sans', sans-serif" }}>{row.selected === "check" ? "✓" : row.selected}</td>
                   </tr>
                 ))}
+                <tr className="pricing-price-row">
+                  <th scope="row" className="pricing-price-label">Price</th>
+              {[
+                {
+                  name: "Annual Member",
+                  best: true,
+                  amount: "59",
+                  per: "/ month",
+                  sub: isLaunchWeekActive ? "USD 649 billed yearly" : "USD 708 billed yearly",
+                  bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
+                  save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
+                  cta: null,
+                  action: null,
+                },
+              ].map((plan) => (
+                    <td key={plan.name} className="cta-cell">
+                      {plan.best && <span className="plan-detail-badge">Best value</span>}
+                  <p className="plan-card-price">
+                    <span className="cur">USD</span><span className="amt">{plan.amount}</span>
+                    {plan.per && <span className="per">{plan.per}</span>}
+                    {plan.sub && <span className="sub">{plan.sub}</span>}
+                    {plan.bonuses?.map((bonus) => (
+                      <span key={bonus} className="save">{bonus}</span>
+                    ))}
+                    <span className="save">{plan.save}</span>
+                  </p>
+                  <div className="plan-detail-cta">
+                    {plan.cta && plan.action ? (
+                      <Button onClick={plan.action} className={`whitespace-normal h-auto cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        {plan.cta}
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </Button>
+                    ) : buyingOpen && plan.name !== "Individual Course" ? (
+                      <Button onClick={joinAcademy} className={`whitespace-normal h-auto cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        {`Join ${plan.name}`}
+                        <span className="arrow" aria-hidden="true">→</span>
+                      </Button>
+                    ) : (
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "0.7rem 1.6rem",
+                          border: "1px dashed var(--aa-cream-dark)",
+                          borderRadius: "999px",
+                          color: "var(--aa-olive-dark)",
+                          opacity: 0.65,
+                          fontFamily: "'DM Sans', sans-serif",
+                          fontSize: "0.72rem",
+                          letterSpacing: "0.14em",
+                          textTransform: "uppercase",
+                        }}
+                      >
+                        Opens soon
+                      </span>
+                    )}
+
+                  </div>
+                    </td>
+                  ))}
+                </tr>
               </tbody>
             </table>
             </div>
@@ -635,136 +685,6 @@ export default function Home() {
                 <span className="arrow" aria-hidden="true">→</span>
 
               </button>
-            </div>
-            <div className="plan-details">
-              {[
-                {
-                  name: "Annual Member",
-                  price: "USD 708 billed once a year (USD 59/month)",
-                  best: true,
-                  amount: "59",
-                  per: "/ month",
-                  sub: isLaunchWeekActive ? "USD 649 billed yearly" : "USD 708 billed yearly",
-                  bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
-                  save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
-                  cta: null,
-                  action: null,
-                  intro: "The complete academy for 12 months, everything we make, plus the parts that are members-only.",
-                  items: [
-                    "Unlimited access to every course in the library for 12 months, including all courses released during your year",
-                    "All video lessons, written guides and Master Guides",
-                    "Quizzes and a completion certificate for every course you finish",
-                    "The A Tribe private community forum",
-                    "Expert Masterclasses",
-                    "Private events and invitations",
-                    "The Reading Room",
-                    "Suppliers directory and Exclusive Deals",
-                    "Save USD 480 compared with paying monthly",
-                  ],
-                },
-                {
-                  name: "Monthly Member",
-                  price: "USD 99 per month, no lock-in",
-                  best: false,
-                  amount: "99",
-                  per: "/ month",
-                  sub: "Billed monthly",
-                  bonuses: null,
-                  save: "No commitment",
-                  cta: null,
-                  action: null,
-                  intro: "Full library access, month by month. Cancel whenever you want.",
-                  items: [
-                    "Unlimited access to every course while your subscription is active",
-                    "All video lessons, written guides and Master Guides",
-                    "Quizzes and completion certificates",
-                    "The A Tribe private community forum",
-                    "Expert Masterclasses",
-                    "The Reading Room and the suppliers directory",
-                    "Does not include private events or Exclusive Deals",
-                    "Cancel anytime, access runs to the end of the paid month",
-                  ],
-                },
-                {
-                  name: "Individual Course",
-                  price: "USD 159 one-time, per course",
-                  best: false,
-                  amount: "159",
-                  per: "",
-                  sub: "One-time payment",
-                  bonuses: null,
-                  save: "No commitment",
-                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
-                  action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
-                  intro: "One course, chosen by you. Perfect when there is a single room or project you need to get right.",
-                  items: [
-                    "Full access to the one course you select, for 3 months",
-                    "All lessons of that course: videos, written guides and worksheets",
-                    "Master Guides for that course",
-                    "Quiz and completion certificate in your name",
-                    "Your own member account with progress tracking",
-                    "Does not include the community, Expert Masterclasses, events, The Reading Room, or Exclusive Deals",
-                    "You can upgrade to a membership at any time",
-                  ],
-                },
-              ].map((plan) => (
-                <div key={plan.name} className={`plan-detail-card${plan.best ? " is-best" : ""}`}>
-                  {plan.best && <span className="plan-detail-badge">Best value</span>}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                    <p className="plan-detail-name" style={{ marginBottom: 0 }}>{plan.name}</p>
-                    {plan.name !== "Individual Course" && !buyingOpen && (
-                      <Lock size={18} style={{ color: "var(--aa-text-mid)", opacity: 0.55, flexShrink: 0 }} aria-label="Membership closed" />
-                    )}
-
-                  </div>
-                  <p className="plan-card-price">
-                    <span className="cur">USD</span><span className="amt">{plan.amount}</span>
-                    {plan.per && <span className="per">{plan.per}</span>}
-                    {plan.sub && <span className="sub">{plan.sub}</span>}
-                    {plan.bonuses?.map((bonus) => (
-                      <span key={bonus} className="save">{bonus}</span>
-                    ))}
-                    <span className="save">{plan.save}</span>
-                  </p>
-                  <p className="plan-detail-intro">{plan.intro}</p>
-                  <ul>
-                    {plan.items.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                  <div className="plan-detail-cta">
-                    {plan.cta && plan.action ? (
-                      <button onClick={plan.action} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
-                        {plan.cta}
-                        <span className="arrow" aria-hidden="true">→</span>
-                      </button>
-                    ) : buyingOpen && plan.name !== "Individual Course" ? (
-                      <button onClick={joinAcademy} className={`cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
-                        {`Join ${plan.name}`}
-                        <span className="arrow" aria-hidden="true">→</span>
-                      </button>
-                    ) : (
-                      <span
-                        style={{
-                          display: "inline-block",
-                          padding: "0.7rem 1.6rem",
-                          border: "1px dashed var(--aa-cream-dark)",
-                          borderRadius: "999px",
-                          color: "var(--aa-olive-dark)",
-                          opacity: 0.65,
-                          fontFamily: "'DM Sans', sans-serif",
-                          fontSize: "0.72rem",
-                          letterSpacing: "0.14em",
-                          textTransform: "uppercase",
-                        }}
-                      >
-                        Opens soon
-                      </span>
-                    )}
-
-                  </div>
-                </div>
-              ))}
             </div>
             <p className="currency-note">All prices are in US Dollars (USD).</p>
             <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
