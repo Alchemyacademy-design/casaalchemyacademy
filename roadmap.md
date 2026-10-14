@@ -1,7 +1,7 @@
 # Public landing deals ticker
-- [ ] Replace the old Casa Consult cards with an RPC-driven ticker.
-- [ ] Check live data, desktop/390px layout, hover pause, reduced motion and empty/error handling.
-- [ ] Request publication after a fresh security check.
+- [x] Replace the old Casa Consult cards with an RPC-driven ticker.
+- [x] Check live data, desktop/390px layout, hover pause, reduced motion and empty/error handling.
+- [x] Request publication after a fresh security check.
 
 # Workshop cover images
 - [x] Show complete workshop covers everywhere, preserving copy and access rules.
