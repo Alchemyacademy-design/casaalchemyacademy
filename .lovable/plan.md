@@ -6,7 +6,9 @@
 These are each product's only active price, so nothing blocks the work.
 
 ## 1. Price records (database)
-- `public.stripe_prices`: add two rows with plan_key `individual_course`, course_id 1 and 12, the price and product ids above, usd, 39900 and 15900, livemode true, active true, is_checkout_default true, recurring fields null.
+- Right before the change, read both prices from Stripe again and stop if either no longer matches. (Stripe confirmed this turn that `price_1TjV3NK9GJLTk49T3X0aKpmq` is USD 15900, one_time, live.)
+- Dominating Compositions: update the existing row id 2 (currently stored as AUD, recurring month x3, inactive) to usd, 15900, recurring fields null, plan_key `individual_course`, course_id 12, product prod_UiwxdgrcqKGV5q, livemode true, active true, is_checkout_default true. No duplicate row.
+- The Path to a Colourful Life: insert one new row (plan_key `individual_course`, course_id 1, `price_1UQH5CK9GJLTk49Ti2zWxbEJ`, prod_VR9NPGPhPthJBG, usd, 39900, recurring fields null, livemode true, active true, is_checkout_default true).
 - Row id 7 (the generic USD 159 monthly one): set active false and is_checkout_default false.
 - `create-checkout-session`: only use the price row for that exact course (drop the fallback to a generic row with course_id null), check the price against the course's own amount instead of the fixed 15900, and send back COURSE_NOT_PURCHASABLE when a course has no price of its own.
 - New public helper `get_individual_course_prices()` that returns course id, slug, title, cover and amount for live, active, one-off course prices. Visitors can read it, and it shows no Stripe ids. The gate, /choose-course and the landing "From" price all read from it.
@@ -16,11 +18,12 @@ These are each product's only active price, so nothing blocks the work.
 
 ## 3. Course purchase gate
 - `CourseCard.tsx`: for courses the viewer can't open, replace "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY" with a "Purchase here" button. The same button goes on the locked state of `CourseDetail.tsx`.
-- New `CoursePurchaseGate` pop-up with three options, in this order:
-  1. Annual member: USD 59 / month, every course, billed yearly (USD 708), "Best value" tag. Uses the existing Join Annual action.
-  2. Monthly member: USD 99 / month, every course, cancel anytime. Uses the existing Join Monthly action.
-  3. This course only: USD [price], one-time payment, 6 months access. Starts that course's checkout through the existing flow (signed-out visitors log in first, then come back).
+- New `CoursePurchaseGate` pop-up whose goal is to make Annual the obvious choice. Three options, in this order:
+  1. Annual member, the visually emphasised option (larger card, gold border, filled primary button): USD 59 / month, every course, billed yearly (USD 708), "Best value" tag. Uses the existing Join Annual action. Below it is a short value line, "Every course for a year, for less than the price of two courses", shown only when USD 708 is less than or close to the course's own price (within about twice the course price, so it shows for the USD 399 course and not for the USD 159 course).
+  2. Monthly member (secondary style): USD 99 / month, every course, cancel anytime. Uses the existing Join Monthly action.
+  3. This course only (quiet outline style): USD [price], one-time payment, 6 months access. Starts that course's checkout through the existing flow (signed-out visitors log in first, then come back).
   If a course has no price of its own, only options 1 and 2 show.
+  Note: USD 708 is more than USD 399, so "less than the price of one course" wouldn't be true for either course. For the USD 399 course I'll use the accurate "less than the price of two courses". Tell me if you'd rather drop the line.
 
 ## 4. Turn on individual course sales
 - `feature-flags.ts`: set `INDIVIDUAL_COURSE_OPEN = true`.
