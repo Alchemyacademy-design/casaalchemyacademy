@@ -545,7 +545,7 @@ async function applyAnnualCheckoutPayment(
   }
 }
 
-// --- One-time single course purchases (US$159, 3 months access) ------------
+// --- One-time single course purchases (own price per course, 6 months access)
 // Strictly additive: subscription activation still flows through invoice.paid.
 type UntypedRpc = { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> };
 
@@ -580,7 +580,9 @@ async function applyCourseCheckoutPayment(
   const mapping = await priceMapping(supabase, priceId, event.livemode);
   if (mapping.plan_key !== "individual_course") throw new BillingError(`Course Checkout session ${session.id} plan mismatch`);
   if (mapping.currency.toLowerCase() !== "usd") throw new BillingError(`Course Checkout session ${session.id} currency mismatch`);
-  if (mapping.unit_amount !== 15900) throw new BillingError(`Course Checkout session ${session.id} unit_amount mismatch`);
+  // Each course has its own price row; the paid price must belong to this course.
+  if (mapping.course_id !== courseId) throw new BillingError(`Course Checkout session ${session.id} course price mismatch`);
+  if (typeof mapping.unit_amount !== "number" || mapping.unit_amount <= 0) throw new BillingError(`Course Checkout session ${session.id} unit_amount mismatch`);
   if (mapping.recurring_interval !== null || mapping.recurring_interval_count !== null) {
     throw new BillingError(`Course Checkout session ${session.id} must use a one-time Price`);
   }

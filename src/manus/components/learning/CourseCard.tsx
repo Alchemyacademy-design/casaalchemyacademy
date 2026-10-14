@@ -49,9 +49,9 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   const isLanding = variant === "landing";
   const canVisit = Boolean(href && !comingSoon && !isLanding);
   const [gateOpen, setGateOpen] = useState(false);
-  const gate = (
+  const gate = gateOpen ? (
     <CoursePurchaseGate open={gateOpen} onOpenChange={setGateOpen} courseId={course.id} courseTitle={title} />
-  );
+  ) : null;
 
 
 

@@ -7,6 +7,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/manus/hooks/useAuth";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { INDIVIDUAL_COURSE_OPEN } from "@/manus/lib/feature-flags";
+import { formatUsd, useIndividualCoursePrices } from "@/manus/hooks/useIndividualCoursePrices";
 
 const CHARITIES = [
   { id: "lighthouse", name: "The Lighthouse for the Community" },
@@ -19,7 +20,7 @@ const INCLUDED = [
   "Every lesson of the course you choose: videos and written guides",
   "Access to the Master Guides for that course",
   "Quizzes and the completion certificate in your name",
-  "3 months of access from the moment your payment is confirmed",
+  "6 months of access from the moment your payment is confirmed",
   "Your own member account, with progress tracking",
 ];
 
@@ -40,7 +41,9 @@ function breakOutAndGo(url: string) {
 
 export default function CourseCheckout() {
   const navigate = useNavigate();
-  const { data: courses = [], isLoading } = useQuery({
+  const { data: prices = [], isLoading: pricesLoading } = useIndividualCoursePrices();
+  const priceFor = (id: number) => prices.find((p) => p.course_id === Number(id));
+  const { data: allCourses = [], isLoading: coursesLoading } = useQuery({
     queryKey: ["purchasable-courses"],
     queryFn: async () => {
       const { data, error } = await supabase.rpc("get_purchasable_courses");
@@ -57,8 +60,15 @@ export default function CourseCheckout() {
     staleTime: 5 * 60 * 1000,
   });
   const { isAuthenticated, user } = useAuth();
+  // Only courses with their own one-off price can be bought on their own.
+  const courses = allCourses.filter((c) => Boolean(priceFor(Number(c.id))));
+  const isLoading = pricesLoading || coursesLoading;
 
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const n = Number(new URLSearchParams(window.location.search).get("course"));
+    return Number.isInteger(n) && n > 0 ? n : null;
+  });
   const [selectedCharity, setSelectedCharity] = useState<string>("");
   const [step, setStep] = useState<"choose" | "account">("choose");
   const [fullName, setFullName] = useState("");
@@ -277,6 +287,7 @@ export default function CourseCheckout() {
                       <div className="p-5">
                         <div className="flex items-start justify-between gap-3 mb-2">
                           <h3 className="font-serif text-xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 400, lineHeight: 1.2 }}>{course.title}</h3>
+                          <p className="text-sm mt-1" style={{ color: "var(--aa-gold)", fontFamily: "'DM Sans', sans-serif" }}>USD {formatUsd(priceFor(id)!.unit_amount)} one-time, 6 months access</p>
                           {active && <Check size={18} style={{ color: "var(--aa-gold)", flexShrink: 0 }} />}
                         </div>
                         <p className="text-xs leading-relaxed" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
@@ -391,7 +402,7 @@ export default function CourseCheckout() {
                 {(selected as { short_description?: string | null }).short_description ?? selected.subtitle ?? ""}
               </p>
               <div className="font-serif mb-5" style={{ fontSize: "2.25rem", color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1 }}>
-                USD 159 <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one time</span>
+                USD {selected && priceFor(Number(selected.id)) ? formatUsd(priceFor(Number(selected.id))!.unit_amount) : ""} <span className="text-xs uppercase tracking-widest" style={{ color: "var(--aa-text-light)" }}>one time</span>
               </div>
               <ul className="space-y-2">
                 {INCLUDED.map((item) => (

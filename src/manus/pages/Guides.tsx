@@ -159,6 +159,10 @@ export default function Guides() {
                   <Link to="/plans" className="btn-gold w-full flex items-center justify-center gap-2">
                     See membership plans <ArrowRight size={14} />
                   </Link>
+                ) : true ? (
+                  <Link to="/choose-course" className="btn-gold w-full flex items-center justify-center gap-2">
+                    Choose a course <ArrowRight size={14} />
+                  </Link>
                 ) : (
                   <button
                     onClick={() => selectedModule && setShowModal(true)}
