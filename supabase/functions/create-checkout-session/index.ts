@@ -59,7 +59,8 @@ function isLaunchWindowActive(now = Date.now()): boolean {
 
 function expectedTerms(offerKey: OfferKey, launchActive: boolean): ExpectedTerms {
   if (offerKey === "individual_course") {
-    return { currency: "usd", unit_amount: 15900, interval: null, interval_count: null, mode: "payment" };
+    // unit_amount is per course and checked from the course's own price row.
+    return { currency: "usd", unit_amount: 0, interval: null, interval_count: null, mode: "payment" };
   }
   if (offerKey === "monthly_member") {
     return { currency: "usd", unit_amount: 9900, interval: "month", interval_count: 1, mode: "subscription" };
@@ -162,7 +163,7 @@ Deno.serve((request) => {
   }
 
   if (offerKey === "individual_course" && courseId !== null) {
-    priceQuery = priceQuery.or(`course_id.eq.${courseId},course_id.is.null`);
+    priceQuery = priceQuery.eq("course_id", courseId);
   } else {
     priceQuery = priceQuery.is("course_id", null);
   }
@@ -171,13 +172,17 @@ Deno.serve((request) => {
   if (priceError) throw priceError;
 
   const price = offerKey === "individual_course"
-    ? prices?.find((candidate) => candidate.course_id === courseId) ?? prices?.find((candidate) => candidate.course_id === null)
+    ? prices?.find((candidate) => candidate.course_id === courseId)
     : prices?.[0];
 
+  // Courses without their own one-off price cannot be bought individually.
+  if (!price && offerKey === "individual_course") return corsJson({ error: "COURSE_NOT_PURCHASABLE" }, 400);
   if (!price) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
   if (annualLaunch && (prices?.length ?? 0) !== 1) return corsJson({ error: "PRICE_NOT_DETERMINISTIC" }, 409);
   if (
-    price.unit_amount !== terms.unit_amount ||
+    (offerKey === "individual_course"
+      ? !(typeof price.unit_amount === "number" && price.unit_amount > 0)
+      : price.unit_amount !== terms.unit_amount) ||
     price.recurring_interval !== terms.interval ||
     price.recurring_interval_count !== terms.interval_count
   ) {
