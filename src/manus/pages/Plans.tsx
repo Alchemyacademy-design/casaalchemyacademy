@@ -18,7 +18,7 @@ const PLAN_DESCRIPTION: Record<string, string> = {
   monthly_member:
     "Complete monthly access to every course, the community, Expert Masterclasses, magazine and suppliers directory. Cancel anytime.",
   individual_course:
-    "One time purchase for 3 months of access to a single course, including all lesson materials, quizzes and completion certificate.",
+    "One time purchase for 6 months of access to a single course, including all lesson materials, quizzes and completion certificate.",
 };
 
 // Display order: Annual, Monthly, Single Course. Unknown keys go last.
@@ -31,7 +31,7 @@ const planRank = (key: string) => {
 const FALLBACK_PRICE_LABEL: Record<string, string> = {
   monthly_member: "US$99 / month",
   annual_member: "US$708 / year",
-  individual_course: "US$159 one-time",
+  individual_course: "From US$159 one-time",
 };
 
 function planFeatures(p: { all_courses: boolean; community_access: boolean; events_access: boolean; live_workshops_access: boolean; exclusive_deals_access: boolean; individual_course_access: boolean; }) {
@@ -100,7 +100,7 @@ export default function Plans() {
               const priceLabel = isAnnual
                 ? "USD 59 / month"
                 : isGuide
-                  ? "USD 159 one time"
+                  ? "From USD 159 one time"
                   : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
               const billingNote = isAnnual ? (annualLaunch ? "USD 649 billed yearly" : "USD 708 billed yearly") : null;
               const bonusLines = annualLaunch

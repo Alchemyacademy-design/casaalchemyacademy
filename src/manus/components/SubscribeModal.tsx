@@ -34,7 +34,7 @@ const PLAN_LABELS: Record<string, { label: string; price: string; sub: string }>
   },
   guide: {
     label: "Single Course",
-    price: "US$159 one-time",
+    price: "From US$159 one-time",
     sub: "One-time payment for lifetime access to a single course, billed individually. Includes all lesson materials, quizzes and completion certificate.",
   },
 };

@@ -1,8 +1,8 @@
-// Single-course purchases are temporarily switched off (the Stripe price still
-// bills monthly). Set this back to true to re-enable the "Choose Course" button
+// Single-course purchases are open: each course sold alone has its own one-off
+// Stripe price. Set this to false to switch off the "Choose Course" button
 // on the Individual Course card, the Plans page option, the /choose-course
 // purchase flow and the Master Guides purchase modal.
-export const INDIVIDUAL_COURSE_OPEN = false;
+export const INDIVIDUAL_COURSE_OPEN = true;
 
 // Launch week annual offer: US$649 / year through a dedicated Stripe Payment
 // Link. Outside the window the regular US$708 annual link is used.

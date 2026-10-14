@@ -603,7 +603,7 @@ export default function Home() {
               <tbody>
                 {[
                   { feature: "Courses available", annual: "All courses", monthly: "All courses", selected: "1 course of your choice" },
-                  { feature: "Length of access", annual: "12 months", monthly: "Renews monthly", selected: "3 months" },
+                  { feature: "Length of access", annual: "12 months", monthly: "Renews monthly", selected: "6 months" },
                   { feature: "Video lessons", annual: "check", monthly: "check", selected: "For the chosen course" },
                   { feature: "Master Guides", annual: "check", monthly: "check", selected: "For the chosen course" },
                   { feature: "Quizzes + completion certificate", annual: "check", monthly: "check", selected: "check" },
@@ -652,18 +652,19 @@ export default function Home() {
                   name: "Individual Course",
                   best: false,
                   amount: "159",
+                  from: true,
                   per: "",
-                  sub: "One-time payment",
+                  sub: "One-time payment, 6 months access",
                   bonuses: null,
                   save: "No commitment",
-                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
+                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose course" : null,
                   action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
                 },
               ].map((plan) => (
                     <td key={plan.name} className="cta-cell">
                       <span className={`plan-detail-badge${plan.best ? "" : " invisible"}`} aria-hidden={plan.best ? undefined : true}>Best value</span>
                   <p className="plan-card-price">
-                    <span className="cur">USD</span><span className="amt">{plan.amount}</span>
+                    {"from" in plan && plan.from ? <span className="cur">From </span> : null}<span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
                     {plan.sub && <span className="sub">{plan.sub}</span>}
                     {plan.bonuses?.map((bonus) => (

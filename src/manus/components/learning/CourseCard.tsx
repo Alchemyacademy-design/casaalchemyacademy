@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import CoursePurchaseGate from "@/manus/components/learning/CoursePurchaseGate";
 import { ArrowRight, CheckCircle2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProgressBar, StatusPill } from "@/manus/components/member/MemberUI";
@@ -46,6 +48,11 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
   const completed = percent === 100;
   const isLanding = variant === "landing";
   const canVisit = Boolean(href && !comingSoon && !isLanding);
+  const [gateOpen, setGateOpen] = useState(false);
+  const gate = gateOpen ? (
+    <CoursePurchaseGate open={gateOpen} onOpenChange={setGateOpen} courseId={course.id} courseTitle={title} />
+  ) : null;
+
 
 
   const content = (
@@ -122,10 +129,23 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
               {!isLanding && typeof lessonCount === "number"
                 ? `${lessonCount} lesson${lessonCount === 1 ? "" : "s"}`
                 : isLanding
-                ? "AVAILABLE WITH SUBSCRIPTION OR SOLD INDIVIDUALLY"
+                ? null
                 : "Course details"}
             </div>
           )}
+          {(isLanding || locked) && !comingSoon && !adminPreview ? (
+            <Button
+              size="sm"
+              className="w-full"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setGateOpen(true);
+              }}
+            >
+              Purchase here
+            </Button>
+          ) : null}
 
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-border/70 pt-4">
             <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -164,11 +184,16 @@ export default function CourseCard({ course, variant = "member" }: CourseCardPro
     </article>
   );
 
-  return canVisit ? (
-    <Link to={href!} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
-      {content}
-    </Link>
-  ) : (
-    content
+  return (
+    <>
+      {canVisit ? (
+        <Link to={href!} className="block h-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl">
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
+      {gate}
+    </>
   );
 }

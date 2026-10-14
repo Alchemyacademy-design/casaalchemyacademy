@@ -1,4 +1,5 @@
-import { useMemo, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
+import CoursePurchaseGate from "@/manus/components/learning/CoursePurchaseGate";
 import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { Link, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -115,6 +116,7 @@ export default function CourseDetail() {
     entitlementCourseIds: (activeEntitlements ?? []).map((item) => Number(item.course_id)).filter(Boolean),
   };
   const accessible = !course || canAccessCourse(course.id, course.access_plan_keys, accessState);
+  const [gateOpen, setGateOpen] = useState(false);
 
   const allLessons = useMemo<Lesson[]>(
     () => (course?.course_modules ?? []).flatMap((module) => module.lessons),
@@ -306,7 +308,7 @@ export default function CourseDetail() {
               <Card className="mb-8 flex items-start gap-3 border-amber-300/70 bg-amber-50/70 p-5 text-amber-950">
                 <Lock className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="text-sm leading-6">
-                  This course requires membership access. <Link to="/plans" className="font-semibold underline">View plans</Link>.
+                  This course requires membership access or a single course purchase. <button type="button" onClick={() => setGateOpen(true)} className="font-semibold underline">Purchase here</button>.
                 </div>
               </Card>
             ) : null}
@@ -381,9 +383,7 @@ export default function CourseDetail() {
                     </Button>
                   </Link>
                 ) : (
-                  <Link to="/plans" className="block">
-                    <Button variant="outline" className="w-full">View membership</Button>
-                  </Link>
+                  <Button className="w-full" onClick={() => setGateOpen(true)}>Purchase here</Button>
                 )}
                 {hasStarted && resumeLesson ? <p className="mt-3 text-xs leading-5 text-muted-foreground">Resume from: {resumeLesson.title}</p> : null}
               </div>
@@ -417,6 +417,7 @@ export default function CourseDetail() {
           </aside>
         </div>
       </MemberPage>
+      {gateOpen && course ? <CoursePurchaseGate open={gateOpen} onOpenChange={setGateOpen} courseId={Number(course.id)} courseTitle={course.title} /> : null}
     </MemberLayout>
   );
 }
