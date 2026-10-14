@@ -557,6 +557,38 @@ export default function Home() {
                 .cta-btn-primary { font-size: 0.84rem; letter-spacing: 0.16em; }
               }
             `}</style>
+            {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
+            <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "0", marginBottom: "1rem" }}>
+              <p
+                style={{
+                  fontFamily: "'Instrument Serif', Georgia, serif",
+                  fontSize: "1.5rem",
+                  color: "var(--aa-cream)",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                {buyingOpen ? "Memberships are open." : "Memberships open soon."}
+              </p>
+              <p
+                style={{
+                  fontFamily: "'DM Sans', sans-serif",
+                  fontWeight: 300,
+                  color: "var(--aa-cream)",
+                  opacity: 0.85,
+                  maxWidth: "34rem",
+                  margin: "0 auto 1.5rem",
+                }}
+              >
+                {buyingOpen
+                  ? "Choose the Annual or Monthly Member plan and join today."
+                  : "Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch."}
+              </p>
+              <button onClick={buyingOpen ? joinAcademy : () => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
+                {buyingOpen ? "Join Alchemy Academy" : "Join the Waitlist"}
+                <span className="arrow" aria-hidden="true">→</span>
+
+              </button>
+            </div>
             <p className="mobile-table-note">Visual comparison, swipe to see all plans</p>
             <div className="pricing-table-scroll">
             <table className="pricing-table" style={{ width: "100%", borderCollapse: "collapse", backgroundColor: "var(--aa-white)", border: "1px solid var(--aa-cream-dark)" }}>
@@ -675,38 +707,6 @@ export default function Home() {
                 </tr>
               </tbody>
             </table>
-            </div>
-            {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
-            <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "2.5rem", marginBottom: "0" }}>
-              <p
-                style={{
-                  fontFamily: "'Instrument Serif', Georgia, serif",
-                  fontSize: "1.5rem",
-                  color: "var(--aa-cream)",
-                  marginBottom: "0.5rem",
-                }}
-              >
-                {buyingOpen ? "Memberships are open." : "Memberships open soon."}
-              </p>
-              <p
-                style={{
-                  fontFamily: "'DM Sans', sans-serif",
-                  fontWeight: 300,
-                  color: "var(--aa-cream)",
-                  opacity: 0.85,
-                  maxWidth: "34rem",
-                  margin: "0 auto 1.5rem",
-                }}
-              >
-                {buyingOpen
-                  ? "Choose the Annual or Monthly Member plan and join today."
-                  : "Join the waitlist for the Annual or Monthly Member plan and be first in line, with early access before the public launch."}
-              </p>
-              <button onClick={buyingOpen ? joinAcademy : () => setWaitlistOpen(true)} className="cta-btn cta-btn-primary">
-                {buyingOpen ? "Join Alchemy Academy" : "Join the Waitlist"}
-                <span className="arrow" aria-hidden="true">→</span>
-
-              </button>
             </div>
             <p className="currency-note">All prices are in US Dollars (USD).</p>
             <p className="cooling-off-note">*Cooling off period of 7 days. If Alchemy Academy is not for you, receive your money back with no questions asked.</p>
