@@ -159,7 +159,7 @@ export default function Guides() {
                   <Link to="/plans" className="btn-gold w-full flex items-center justify-center gap-2">
                     See membership plans <ArrowRight size={14} />
                   </Link>
-                ) : true ? (
+                ) : INDIVIDUAL_COURSE_OPEN ? (
                   <Link to="/choose-course" className="btn-gold w-full flex items-center justify-center gap-2">
                     Choose a course <ArrowRight size={14} />
                   </Link>
