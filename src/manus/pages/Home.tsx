@@ -605,6 +605,28 @@ export default function Home() {
                   cta: null,
                   action: null,
                 },
+                {
+                  name: "Monthly Member",
+                  best: false,
+                  amount: "99",
+                  per: "/ month",
+                  sub: "Billed monthly",
+                  bonuses: null,
+                  save: "No commitment",
+                  cta: null,
+                  action: null,
+                },
+                {
+                  name: "Individual Course",
+                  best: false,
+                  amount: "159",
+                  per: "",
+                  sub: "One-time payment",
+                  bonuses: null,
+                  save: "No commitment",
+                  cta: INDIVIDUAL_COURSE_OPEN ? "Choose Course" : null,
+                  action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
+                },
               ].map((plan) => (
                     <td key={plan.name} className="cta-cell">
                       {plan.best && <span className="plan-detail-badge">Best value</span>}
