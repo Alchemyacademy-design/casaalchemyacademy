@@ -231,7 +231,7 @@ export default function CourseCheckout() {
 
       <div className="container py-12 md:py-16 max-w-5xl">
         <div className="max-w-3xl mb-10">
-          <p className="section-label mb-3">One course · USD 159 · One time payment</p>
+          <p className="section-label mb-3">One course · From USD 159 · One time payment · 6 months access</p>
           <h1 className="font-serif text-3xl md:text-5xl mb-5" style={{ color: "var(--aa-olive-dark)", fontWeight: 300, lineHeight: 1.15 }}>
             Choose the room you want to get right, and stop guessing.
           </h1>

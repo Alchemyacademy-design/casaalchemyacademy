@@ -100,7 +100,7 @@ export default function Plans() {
               const priceLabel = isAnnual
                 ? "USD 59 / month"
                 : isGuide
-                  ? "USD 159 one time"
+                  ? "From USD 159 one time"
                   : formatStripePriceLabel(priceMap[plan.key]) ?? FALLBACK_PRICE_LABEL[plan.key];
               const billingNote = isAnnual ? (annualLaunch ? "USD 649 billed yearly" : "USD 708 billed yearly") : null;
               const bonusLines = annualLaunch
