@@ -1,6 +1,6 @@
 # Plan comparison prices
-- [ ] Move landing plan prices and original actions into the final table row; remove repeated cards.
-- [ ] Check desktop and 390px scrolling, prices, and join destinations; request publication.
+- [x] Move landing plan prices and original actions into the final table row; remove repeated cards.
+- [x] Check desktop and 390px scrolling, prices, and join destinations; request publication.
 
 # Public landing deals ticker
 - [x] Replace the old Casa Consult cards with an RPC-driven ticker.

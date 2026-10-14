@@ -531,9 +531,9 @@ export default function Home() {
               .pricing-price-row { border-top: 1px solid var(--aa-cream-dark); }
               .pricing-price-label { padding: 1.25rem 1.5rem; color: var(--aa-olive-dark); font-family: 'DM Sans', sans-serif; font-weight: 300; text-align: left; }
               .pricing-price-row .cta-cell { vertical-align: top; }
-              .pricing-price-row .cta-btn { font-size: .75rem; letter-spacing: .12em; padding: 1rem .75rem; min-height: 64px; }
+              .pricing-price-row .cta-btn { color: var(--aa-cream); font-weight: 800; font-family: 'Manrope', sans-serif; font-size: .75rem; letter-spacing: .12em; padding: 1rem .75rem; min-height: 64px; }
               .pricing-price-row .plan-detail-badge { display: table; margin: 0 auto .75rem; }
-              .pricing-price-row td:not(:nth-child(2)) { padding-top: 4.1rem !important; }
+
               .plan-card-price .cur { font-size: 0.72rem; letter-spacing: 0.16em; font-weight: 700; color: var(--aa-gold); display: inline-block; margin-right: 0.35rem; vertical-align: 0.4em; }
               .plan-card-price .amt { font-family: 'Instrument Serif', serif; font-size: 2.8rem; font-weight: 400; color: var(--aa-olive-dark); letter-spacing: 0; animation: priceGlow 3s ease-in-out infinite; }
               .plan-card-price .per { font-size: 0.78rem; font-weight: 600; color: var(--aa-text-mid); text-transform: uppercase; letter-spacing: 0.12em; margin-left: 0.25rem; }
@@ -629,7 +629,7 @@ export default function Home() {
                 },
               ].map((plan) => (
                     <td key={plan.name} className="cta-cell">
-                      {plan.best && <span className="plan-detail-badge">Best value</span>}
+                      <span className={`plan-detail-badge${plan.best ? "" : " invisible"}`} aria-hidden={plan.best ? undefined : true}>Best value</span>
                   <p className="plan-card-price">
                     <span className="cur">USD</span><span className="amt">{plan.amount}</span>
                     {plan.per && <span className="per">{plan.per}</span>}
