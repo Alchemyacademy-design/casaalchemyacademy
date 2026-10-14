@@ -1,3 +1,8 @@
+# Public landing deals ticker
+- [x] Replace the old Casa Consult cards with an RPC-driven ticker.
+- [x] Check live data, desktop/390px layout, hover pause, reduced motion and empty/error handling.
+- [x] Request publication after a fresh security check.
+
 # Workshop cover images
 - [x] Show complete workshop covers everywhere, preserving copy and access rules.
 - [x] Verify desktop and mobile public gallery, event landing and popup (member/admin checks unavailable for external sign-in).

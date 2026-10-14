@@ -1015,6 +1015,7 @@ export type Database = {
           starts_at: string | null
           status: Database["public"]["Enums"]["content_status"]
           supplier_id: number | null
+          ticker_label: string | null
           title: string
           updated_at: string
         }
@@ -1031,6 +1032,7 @@ export type Database = {
           starts_at?: string | null
           status?: Database["public"]["Enums"]["content_status"]
           supplier_id?: number | null
+          ticker_label?: string | null
           title: string
           updated_at?: string
         }
@@ -1047,6 +1049,7 @@ export type Database = {
           starts_at?: string | null
           status?: Database["public"]["Enums"]["content_status"]
           supplier_id?: number | null
+          ticker_label?: string | null
           title?: string
           updated_at?: string
         }
@@ -3056,6 +3059,12 @@ export type Database = {
       deal_booking_status: {
         Args: { p_deal_slug: string; p_email?: string }
         Returns: Json
+      }
+      deal_ticker: {
+        Args: never
+        Returns: {
+          label: string
+        }[]
       }
       get_alchemist_leaderboard: {
         Args: { p_limit?: number; p_window?: string }
