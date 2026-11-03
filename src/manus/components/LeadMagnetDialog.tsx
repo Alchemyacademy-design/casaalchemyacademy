@@ -1,4 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { HoneypotField } from "@/manus/components/HoneypotField";
+import { validateLeadFields, fieldMessageFromInvokeError } from "@/manus/lib/lead-validation";
 import { useQuery } from "@tanstack/react-query";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -35,7 +37,7 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const { data } = useQuery({
     queryKey: ["public", "upcoming_masterclasses"],
@@ -83,8 +85,10 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!session || submitting) return;
+    const invalid = validateLeadFields({ name, email, phone });
+    if (invalid) { setError(invalid); return; }
     setSubmitting(true);
-    setError(false);
+    setError(null);
     try {
       const { data: response, error: requestError } = await supabase.functions.invoke("capture-lead", {
         body: {
@@ -96,8 +100,8 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
       if (requestError || !response?.ok) throw requestError ?? new Error("Registration failed");
       markWorkshopRegistered(session.id);
       setStep("confirmed");
-    } catch {
-      setError(true);
+    } catch (err) {
+      setError((await fieldMessageFromInvokeError(err)) ?? "We couldn't save your seat. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -131,8 +135,8 @@ export default function LeadMagnetDialog({ delayMs = 5000 }: { delayMs?: number 
               <label className="block text-sm text-foreground">Name<input className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-foreground" required maxLength={200} value={name} onChange={(event) => setName(event.target.value)} /></label>
               <label className="block text-sm text-foreground">Email<input className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-foreground" type="email" required maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} /></label>
               <label className="block text-sm text-foreground">Phone<input className="mt-1 w-full rounded-sm border border-input bg-background px-3 py-2 text-foreground" type="tel" required minLength={4} maxLength={40} value={phone} onChange={(event) => setPhone(event.target.value)} /></label>
-              <input tabIndex={-1} autoComplete="off" aria-hidden="true" className="absolute -left-[9999px] h-px w-px" value={website} onChange={(event) => setWebsite(event.target.value)} />
-              {error && <p role="alert" className="text-sm text-destructive">We couldn't save your seat. Please try again.</p>}
+              <HoneypotField value={website} onChange={setWebsite} />
+              {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={submitting}>{submitting && <Loader2 className="animate-spin" />}{submitting ? "Saving your seat…" : "Save your seat"}</Button>
             </form>
           )}

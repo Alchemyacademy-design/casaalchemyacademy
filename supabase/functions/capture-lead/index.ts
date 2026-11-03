@@ -4,7 +4,7 @@
 //
 // Deployed with verify_jwt = false; the function is intentionally public so
 // unauthenticated visitors can submit. Abuse protection layers:
-//   1) honeypot field (silently accepted, no side effects)
+//   1) honeypot field (flagged as honeypot_filled in metadata, not rejected)
 //   2) shape validation via zod
 //   3) IP-based rate limiting via public.lead_capture_rate_limits
 //      (5 submissions per hashed IP per rolling hour window)
@@ -27,8 +27,9 @@ const BodySchema = z.object({
   source: z.enum(["popup", "quiz", "live_workshop", "contact", "casa_consult", "waitlist"]),
   message: z.string().trim().max(5000).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
-  // Honeypot: legitimate clients leave this empty. Bots often fill it.
-  website: z.string().max(0).optional().or(z.literal("")),
+  // Honeypot: browser autofill can fill it for real people, so a filled value
+  // is recorded in metadata (honeypot_filled) instead of rejecting the lead.
+  website: z.string().max(500).optional(),
 });
 
 import { publicUrl } from "../_shared/site-url.ts";
@@ -574,19 +575,20 @@ Deno.serve(async (req) => {
 
   const parsed = BodySchema.safeParse(raw);
   if (!parsed.success) {
+    // Field names only, never values, so failures are diagnosable without PII.
+    console.warn("capture-lead invalid_payload fields:", Object.keys(parsed.error.flatten().fieldErrors).join(","));
     return new Response(
       JSON.stringify({ error: "invalid_payload", details: parsed.error.flatten().fieldErrors }),
       { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
-  const { name, firstName, lastName, email, phone, source, metadata, website, message } = parsed.data;
-  if (website && website.length > 0) {
-    // Silently accept honeypot hits but do nothing else.
-    return new Response(JSON.stringify({ ok: true, redirect: "/free-lesson" }), {
-      status: 200,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
-  }
+  const { name, firstName, lastName, email, phone, source, website, message } = parsed.data;
+  // Autofill can fill the honeypot for real visitors: process normally and
+  // flag it. Rate limiting and unique(email, source) remain the abuse guards.
+  const metadata: Record<string, unknown> | undefined =
+    website && website.trim().length > 0
+      ? { ...(parsed.data.metadata ?? {}), honeypot_filled: true }
+      : parsed.data.metadata;
 
   // Email links must always point at the public site, never at the
   // preview/sandbox origin the request happened to come from.

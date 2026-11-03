@@ -2,6 +2,8 @@
 // workshops. Deliberately outside MemberLayout and outside the member
 // registration flow: visitors leave their details, the private meeting link is
 // never rendered here (it is emailed closer to the session).
+import { HoneypotField } from "@/manus/components/HoneypotField";
+import { validateLeadFields, fieldMessageFromInvokeError } from "@/manus/lib/lead-validation";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { CalendarPlus, Download, Loader2, CheckCircle2 } from "lucide-react";
@@ -90,6 +92,8 @@ export default function AskTheExpertLanding() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!workshop || submitting) return;
+    const invalid = validateLeadFields({ name, email, phone });
+    if (invalid) { setError(invalid); return; }
     setError(null);
     setSubmitting(true);
     try {
@@ -116,7 +120,7 @@ export default function AskTheExpertLanding() {
       setConfirmed(true);
     } catch (err) {
       console.error("capture-lead failed:", err);
-      setError("We couldn't save your seat just now. Please try again in a moment.");
+      setError((await fieldMessageFromInvokeError(err)) ?? "We couldn't save your seat just now. Please try again in a moment.");
     } finally {
       setSubmitting(false);
     }
@@ -277,16 +281,8 @@ export default function AskTheExpertLanding() {
                   />
                 </label>
 
-                {/* Honeypot — hidden from humans. */}
-                <input
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  aria-hidden="true"
-                  value={website}
-                  onChange={(e) => setWebsite(e.target.value)}
-                  style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
-                />
+                {/* Honeypot, hidden from humans. */}
+                <HoneypotField value={website} onChange={setWebsite} />
 
                 {error && <p className="text-sm" style={{ color: "hsl(var(--destructive))" }}>{error}</p>}
 
