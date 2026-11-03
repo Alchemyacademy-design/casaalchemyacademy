@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { HoneypotField } from "@/manus/components/HoneypotField";
 import { z } from "zod";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -131,9 +132,7 @@ export default function WaitlistDialog({ onClose }: { onClose: () => void }) {
                 </div>
               </fieldset>
               {/* Honeypot: hidden from users, catches bots */}
-              <div aria-hidden="true" style={{ position: "absolute", left: "-10000px", width: 1, height: 1, overflow: "hidden" }}>
-                <label>Website<input tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} /></label>
-              </div>
+              <HoneypotField value={website} onChange={setWebsite} />
               <Button type="submit" disabled={busy} className="w-full">
                 {busy ? "Joining…" : "Join the Waitlist"}
               </Button>
