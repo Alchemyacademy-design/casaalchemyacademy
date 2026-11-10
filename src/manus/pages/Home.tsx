@@ -76,6 +76,10 @@ const MODULES = [
   },
 ];
 
+const TOUR_EMBED_URL = "https://play.vidyard.com/pBrz2c5ysNcCDAKeyy82EA?disable_popouts=1&type=inline";
+const TOUR_DESCRIPTION =
+  "Walk through the Academy with Lorena. The courses, the toolkits, the live sessions with experts and the community you join. Everything you need to train your eye and design your home with intention.";
+
 const BENEFITS = [
   { title: "THE A TRIBE", desc: "Connect with fellow Alchemists. Share projects, ask questions, and grow together." },
   { title: "EXPERT MASTERCLASSES", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
@@ -438,6 +442,73 @@ export default function Home() {
 
           </div>
           <DealTicker />
+        </div>
+      </section>
+
+      {/* ── Sneak peek tour video ── */}
+      <section id="tour" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "6rem 0" }}>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "VideoObject",
+              name: "A tour inside Alchemy Academy",
+              description: TOUR_DESCRIPTION,
+              embedUrl: TOUR_EMBED_URL,
+              uploadDate: "2026-11-10",
+              thumbnailUrl: "https://play.vidyard.com/pBrz2c5ysNcCDAKeyy82EA.jpg",
+            }),
+          }}
+        />
+        <div className="container">
+          <div className="max-w-2xl mx-auto text-center mb-12">
+            <p className="section-label mb-4">Sneak peek</p>
+            <h2 className="font-serif text-4xl md:text-5xl mb-5" style={{ color: "var(--aa-text-dark)", fontWeight: 300 }}>
+              See what's inside
+            </h2>
+            <p style={{ color: "var(--aa-text-dark)", fontFamily: "'Manrope', sans-serif", fontWeight: 300, lineHeight: 1.7 }}>
+              {TOUR_DESCRIPTION}
+            </p>
+          </div>
+          <div
+            style={{
+              maxWidth: "960px",
+              margin: "0 auto",
+              aspectRatio: "16 / 9",
+              borderRadius: "12px",
+              overflow: "hidden",
+              backgroundColor: "var(--aa-cream-dark)",
+              boxShadow: "0 18px 40px -18px rgba(31,10,3,0.35)",
+            }}
+          >
+            <iframe
+              src={TOUR_EMBED_URL}
+              title="A tour inside Alchemy Academy"
+              loading="lazy"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              frameBorder={0}
+              style={{ width: "100%", height: "100%", border: 0, display: "block" }}
+            />
+          </div>
+          <div className="mt-10 flex flex-col items-center gap-4">
+            <button
+              type="button"
+              onClick={buyingOpen ? joinAcademy : () => setWaitlistOpen(true)}
+              className="cta-btn cta-btn-primary"
+              style={{ maxWidth: "360px" }}
+            >
+              Join the Academy
+            </button>
+            <a
+              href="#modules"
+              className="text-xs font-semibold uppercase tracking-[0.14em] underline-offset-4 hover:underline"
+              style={{ color: "var(--aa-gold)", fontFamily: "'Manrope', sans-serif" }}
+            >
+              Browse individual courses
+            </a>
+          </div>
         </div>
       </section>
 
