@@ -76,6 +76,10 @@ const MODULES = [
   },
 ];
 
+const TOUR_EMBED_URL = "https://play.vidyard.com/pBrz2c5ysNcCDAKeyy82EA?disable_popouts=1&type=inline";
+const TOUR_DESCRIPTION =
+  "Walk through the Academy with Lorena. The courses, the toolkits, the live sessions with experts and the community you join. Everything you need to train your eye and design your home with intention.";
+
 const BENEFITS = [
   { title: "THE A TRIBE", desc: "Connect with fellow Alchemists. Share projects, ask questions, and grow together." },
   { title: "EXPERT MASTERCLASSES", desc: "Learn and interact with Lorena Couto and special guests during monthly live sessions." },
