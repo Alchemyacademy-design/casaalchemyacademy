@@ -29,9 +29,9 @@ export type PageMeta = {
 export const STATIC_PUBLIC_PAGES: PageMeta[] = [
   {
     path: "/",
-    title: "Interior Design Courses for Homeowners | Alchemy Academy",
+    title: "Learn to Design Your Own Home | Alchemy Academy",
     description:
-      "Learn to design your own home the professional way. Online interior design courses, live expert masterclasses and a members community led by Lorena Couto.",
+      "Online interior design courses with award winning designer Lorena Couto. Learn to design your own home the professional way, with a community of alchemists.",
   },
   {
     path: "/choose-course",

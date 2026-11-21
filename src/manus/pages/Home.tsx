@@ -319,9 +319,15 @@ export default function Home() {
         <div className="relative container flex items-center" style={{ minHeight: "92vh" }}>
           <div className="max-w-2xl">
             <p className="section-label mb-6" style={{ color: "rgba(245,240,232,0.7)" }}>Interior Design Education</p>
-            <h1 className="font-serif mb-6" style={{ fontSize: "clamp(2.8rem, 6vw, 5rem)", color: "var(--aa-cream)", lineHeight: 1.1, fontWeight: 300 }}>
-              Welcome,<br />Alchemist!
+            <p className="font-serif mb-4" style={{ fontSize: "clamp(1.25rem, 2.2vw, 1.6rem)", color: "rgba(245,240,232,0.9)", lineHeight: 1.2, fontWeight: 300, fontStyle: "italic" }}>
+              Welcome, Alchemist!
+            </p>
+            <h1 className="font-serif mb-5" style={{ fontSize: "clamp(2.4rem, 5vw, 4.25rem)", color: "var(--aa-cream)", lineHeight: 1.1, fontWeight: 300 }}>
+              Learn to design your own home the professional way
             </h1>
+            <p className="mb-6 max-w-xl" style={{ color: "var(--aa-cream)", fontSize: "1.2rem", lineHeight: 1.55, fontFamily: "'DM Sans', sans-serif", fontWeight: 400 }}>
+              Online interior design courses and a community of alchemists, led by award winning designer Lorena Couto.
+            </p>
             <p className="mb-8 max-w-lg" style={{ color: "rgba(245,240,232,0.85)", fontSize: "1.05rem", lineHeight: 1.7, fontFamily: "'DM Sans', sans-serif", fontWeight: 300 }}>
               Embark on a journey to redefine your relationship with your home through the joys of learning interior design. Our platform connects enthusiasts with essential theories, allowing you to train your eyes and mind to design your own life.
             </p>
