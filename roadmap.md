@@ -30,3 +30,9 @@
 - [x] One H1, unique title/description, canonical and Open Graph tags per public page; real links between public pages.
 - [x] Sitemap with lastmod, robots.txt open to AI crawlers with member/auth areas blocked, Organization/Course/Event JSON-LD, llms.txt.
 - [ ] Confirm on the live site after the next publish that addresses other than the homepage serve their own prerendered page (needs a publish).
+
+# Ask the Expert LIVE sessions
+- [x] Ali Curtis session moved to 3 Dec 2026, 7pm to 8pm Sydney time; sign ups kept.
+- [x] Confirmation and reminder emails show Sydney time; session titles, HubSpot label and session emails without dashes.
+- [x] Ended sessions show an ended message and capture-lead refuses sign ups for them.
+- [ ] Re-sync Ali's session to Google Calendar from Admin (needs an admin session).

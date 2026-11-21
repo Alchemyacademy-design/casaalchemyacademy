@@ -14,6 +14,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { z } from "npm:zod@3.23.8";
 import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
+import { formatSydneyWhen, sessionHasEnded, sessionLeadLabel, sessionTitle } from "../_shared/sydney-time.ts";
 
 const BodySchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -75,9 +76,7 @@ function labelForLead(source: LeadSource, placement?: string, workshopTitle?: st
   if (source === "casa_consult") return "Casa Consult — Terms Accepted";
   if (source === "waitlist") return placement ? `Academy Waitlist — ${placement}` : "Academy Waitlist";
   if (source === "live_workshop") {
-    return workshopTitle
-      ? `Ask the Expert LIVE — ${workshopTitle}`
-      : "Ask the Expert LIVE";
+    return sessionLeadLabel(workshopTitle);
   }
   const p = (placement ?? "").toLowerCase();
   if (p === "footer") return "Homepage Footer — Free Lesson";
@@ -432,25 +431,7 @@ async function sendWaitlistConfirmationEmail(input: {
 }
 
 function formatWorkshopWhen(startsAt: string, endsAt: string | null): string {
-  const opts: Intl.DateTimeFormatOptions = {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZoneName: "short",
-    timeZone: "UTC",
-  };
-  const start = new Date(startsAt).toLocaleString("en-AU", opts);
-  if (!endsAt) return start;
-  const end = new Date(endsAt).toLocaleTimeString("en-AU", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  });
-  return `${start} – ${end}`;
+  return formatSydneyWhen(startsAt, endsAt);
 }
 
 async function sendWorkshopConfirmationEmail(input: {
@@ -462,7 +443,7 @@ async function sendWorkshopConfirmationEmail(input: {
   pageUrl: string;
 }): Promise<"gmail" | "resend" | "failed"> {
   const firstName = input.name.trim().split(/\s+/)[0] ?? "";
-  const subject = `You're confirmed — ${input.workshopTitle}`;
+  const subject = `You're confirmed for ${input.workshopTitle}`;
   const offersUrl = publicUrl("/#offers");
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
@@ -470,18 +451,18 @@ async function sendWorkshopConfirmationEmail(input: {
       <p style="font-size:15px;line-height:1.6;">Your seat is confirmed for <strong>${input.workshopTitle}</strong>.</p>
       <p style="font-size:15px;line-height:1.6;margin:0 0 20px;"><strong>When:</strong> ${input.when}</p>
       ${input.coverUrl ? `<p style="margin:20px 0;text-align:center;"><img src="${input.coverUrl}" alt="${input.workshopTitle}" width="440" style="max-width:100%;height:auto;border-radius:4px;border:1px solid #eee;" /></p>` : ""}
-      <p style="font-size:15px;line-height:1.6;">The private class link is not published anywhere — we'll email it to you closer to the session, so keep an eye on this inbox.</p>
+      <p style="font-size:15px;line-height:1.6;">The private class link is not published anywhere. We'll email it to you closer to the session, so keep an eye on this inbox.</p>
       <p style="font-size:14px;line-height:1.6;color:#666;">Need the details again? <a href="${input.pageUrl}">${input.pageUrl}</a></p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <h2 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:20px;margin:0 0 8px;">While you wait</h2>
-      <p style="font-size:15px;line-height:1.6;">Inside the Alchemy Academy you get the full method — courses, expert masterclasses, and a community designing their own homes with intention.</p>
+      <p style="font-size:15px;line-height:1.6;">Inside the Alchemy Academy you get the full method: courses, expert masterclasses and a community designing their own homes with intention.</p>
       <p style="margin:20px 0 28px;">
         <a href="${offersUrl}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Explore the Academy plans</a>
       </p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
-  const plaintext = `You're in, ${firstName}.\n\nYour seat is confirmed for "${input.workshopTitle}".\n\nWhen: ${input.when}\n\nThe private class link is not published anywhere — we'll email it to you closer to the session.\n\nDetails: ${input.pageUrl}\n\nExplore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
+  const plaintext = `You're in, ${firstName}.\n\nYour seat is confirmed for "${input.workshopTitle}".\n\nWhen: ${input.when}\n\nThe private class link is not published anywhere. We'll email it to you closer to the session.\n\nDetails: ${input.pageUrl}\n\nExplore the Alchemy Academy plans: ${offersUrl}\n\nCasa Alchemy Studio`;
   return deliverEmail({ to: input.to, subject, html, plaintext });
 }
 
@@ -600,6 +581,35 @@ Deno.serve(async (req) => {
     auth: { persistSession: false },
   });
 
+  // Workshop context (public "Ask the Expert LIVE" landing page).
+  const workshopId = typeof metadata?.workshop_id === "number"
+    ? metadata.workshop_id
+    : typeof metadata?.workshop_id === "string" && /^\d+$/.test(metadata.workshop_id)
+      ? Number(metadata.workshop_id)
+      : null;
+  const workshopSlug = typeof metadata?.workshop_slug === "string" ? metadata.workshop_slug : null;
+  let workshop: {
+    id: number; slug: string; title: string; starts_at: string; ends_at: string | null; cover_image_path: string | null;
+  } | null = null;
+  if (source === "live_workshop" && (workshopId || workshopSlug)) {
+    let q = supabase
+      .from("live_workshops")
+      .select("id,slug,title,starts_at,ends_at,cover_image_path")
+      .limit(1);
+    q = workshopId ? q.eq("id", workshopId) : q.eq("slug", workshopSlug as string);
+    const { data: wRow, error: wErr } = await q.maybeSingle();
+    if (wErr) console.warn("workshop lookup failed:", wErr);
+    workshop = wRow ?? null;
+  }
+  const workshopTitle = workshop ? sessionTitle(workshop.title) : null;
+  // Ended sessions no longer take sign ups.
+  if (workshop && sessionHasEnded(workshop.starts_at, workshop.ends_at)) {
+    return new Response(JSON.stringify({ error: "session_ended" }), {
+      status: 410,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Upsert into public.leads (unique on lower(email), source).
   const ipHeader = req.headers.get("x-forwarded-for") ?? "";
   const ip = ipHeader.split(",")[0]?.trim() ?? "";
@@ -687,27 +697,6 @@ Deno.serve(async (req) => {
   const split = splitName(name);
   const firstname = firstName ?? split.firstname;
   const lastname = lastName ?? split.lastname;
-  // Workshop context (public "Ask the Expert LIVE" landing page).
-  const workshopId = typeof metadata?.workshop_id === "number"
-    ? metadata.workshop_id
-    : typeof metadata?.workshop_id === "string" && /^\d+$/.test(metadata.workshop_id)
-      ? Number(metadata.workshop_id)
-      : null;
-  const workshopSlug = typeof metadata?.workshop_slug === "string" ? metadata.workshop_slug : null;
-  let workshop: {
-    id: number; slug: string; title: string; starts_at: string; ends_at: string | null; cover_image_path: string | null;
-  } | null = null;
-  if (source === "live_workshop" && (workshopId || workshopSlug)) {
-    let q = supabase
-      .from("live_workshops")
-      .select("id,slug,title,starts_at,ends_at,cover_image_path")
-      .limit(1);
-    q = workshopId ? q.eq("id", workshopId) : q.eq("slug", workshopSlug as string);
-    const { data: wRow, error: wErr } = await q.maybeSingle();
-    if (wErr) console.warn("workshop lookup failed:", wErr);
-    workshop = wRow ?? null;
-  }
-  const workshopTitle = workshop?.title ?? null;
   // Casa Consult booking gate: persist the terms acceptance server-side so the
   // stepper can verify step 1 against a real record instead of localStorage.
   if (source === "casa_consult") {
@@ -803,7 +792,7 @@ Deno.serve(async (req) => {
       emailProvider = await sendWorkshopConfirmationEmail({
         to: email,
         name,
-        workshopTitle: workshop.title,
+        workshopTitle: sessionTitle(workshop.title),
         when: formatWorkshopWhen(workshop.starts_at, workshop.ends_at),
         coverUrl: workshop.cover_image_path,
         pageUrl: publicUrl(`/ask-the-expert/${workshop.slug}`),

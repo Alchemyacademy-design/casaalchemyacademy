@@ -15,6 +15,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { corsHeaders } from "npm:@supabase/supabase-js@2/cors";
 import { buildGmailRawMessage } from "../_shared/gmail-message.ts";
 import { publicUrl } from "../_shared/site-url.ts";
+import { formatSydneyWhen, sessionTitle } from "../_shared/sydney-time.ts";
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
@@ -48,23 +49,7 @@ function windowAround(minutes: number) {
 }
 
 function formatWhen(startsAt: string, endsAt: string | null): string {
-  const start = new Date(startsAt).toLocaleString("en-AU", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  });
-  if (!endsAt) return start;
-  const end = new Date(endsAt).toLocaleTimeString("en-AU", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  });
-  return `${start} – ${end}`;
+  return formatSydneyWhen(startsAt, endsAt);
 }
 
 async function deliverEmail(input: {
@@ -115,21 +100,22 @@ async function deliverEmail(input: {
 
 function reminderBody(item: Upcoming, wave: string) {
   const when = formatWhen(item.starts_at, item.ends_at);
+  const title = sessionTitle(item.title);
   const lead = wave === "1h" ? "starts in about an hour" : "is tomorrow";
-  const subject = `Reminder: ${item.title} ${lead}`;
+  const subject = `Reminder: ${title} ${lead}`;
   const joinLine = item.meeting_url
     ? `<p style="margin:24px 0;"><a href="${item.meeting_url}" style="display:inline-block;background:#b8934a;color:#fff;padding:14px 22px;border-radius:6px;text-decoration:none;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;font-size:13px;">Join the session</a></p>`
     : `<p style="font-size:15px;line-height:1.6;">We'll send the private class link by email shortly before we start.</p>`;
   const html = `
     <div style="font-family:'Manrope',system-ui,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#2a2a2a;">
-      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">${item.title} ${lead}.</h1>
+      <h1 style="font-family:'Instrument Serif',Georgia,serif;font-weight:400;font-size:28px;margin:0 0 12px;">${title} ${lead}.</h1>
       <p style="font-size:15px;line-height:1.6;margin:0 0 8px;"><strong>When:</strong> ${when}</p>
       ${joinLine}
       <p style="font-size:14px;line-height:1.6;color:#666;">See everything coming up: <a href="${publicUrl("/events")}">${publicUrl("/events")}</a></p>
       <hr style="border:none;border-top:1px solid #eee;margin:32px 0;" />
       <p style="font-size:13px;color:#888;">Casa Alchemy Studio · With love from Lorena and the team.</p>
     </div>`;
-  const plaintext = `${item.title} ${lead}.\n\nWhen: ${when}\n${item.meeting_url ? `Join: ${item.meeting_url}\n` : "We'll send the private class link by email shortly before we start.\n"}\nCasa Alchemy Studio`;
+  const plaintext = `${title} ${lead}.\n\nWhen: ${when}\n${item.meeting_url ? `Join: ${item.meeting_url}\n` : "We'll send the private class link by email shortly before we start.\n"}\nCasa Alchemy Studio`;
   return { subject, html, plaintext };
 }
 

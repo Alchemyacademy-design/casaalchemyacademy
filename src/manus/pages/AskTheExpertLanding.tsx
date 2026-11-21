@@ -3,7 +3,7 @@
 // registration flow: visitors leave their details, the private meeting link is
 // never rendered here (it is emailed closer to the session).
 import { HoneypotField } from "@/manus/components/HoneypotField";
-import { validateLeadFields, fieldMessageFromInvokeError } from "@/manus/lib/lead-validation";
+import { validateLeadFields, fieldMessageFromInvokeError, SESSION_ENDED_MESSAGE } from "@/manus/lib/lead-validation";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { applyHeadMeta } from "@/seo/head";
@@ -56,6 +56,7 @@ export default function AskTheExpertLanding() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
+  const [endedByServer, setEndedByServer] = useState(false);
 
   // Through the query cache so the build-time prerender can include the session.
   const workshopQuery = useQuery({
@@ -123,7 +124,9 @@ export default function AskTheExpertLanding() {
       setConfirmed(true);
     } catch (err) {
       console.error("capture-lead failed:", err);
-      setError((await fieldMessageFromInvokeError(err)) ?? "We couldn't save your seat just now. Please try again in a moment.");
+      const message = await fieldMessageFromInvokeError(err);
+      if (message === SESSION_ENDED_MESSAGE) { setEndedByServer(true); return; }
+      setError(message ?? "We couldn't save your seat just now. Please try again in a moment.");
     } finally {
       setSubmitting(false);
     }
@@ -161,6 +164,7 @@ export default function AskTheExpertLanding() {
   }
 
   const when = formatWhen(workshop.starts_at, workshop.ends_at);
+  const ended = endedByServer || new Date(workshop.ends_at ?? workshop.starts_at).getTime() <= Date.now();
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 sm:py-16" style={{ backgroundColor: "var(--aa-cream)" }}>
@@ -201,7 +205,23 @@ export default function AskTheExpertLanding() {
 
             <hr className="my-8" style={{ border: "none", borderTop: "1px solid var(--aa-cream-dark)" }} />
 
-            {confirmed ? (
+            {ended && !confirmed ? (
+              <div>
+                <h2 className="font-serif text-xl" style={{ color: "var(--aa-olive-dark)", fontWeight: 400 }}>
+                  This session has ended.
+                </h2>
+                <p className="mt-3 text-[15px] leading-relaxed" style={{ color: "var(--aa-text-mid)" }}>
+                  Sign ups for this session are closed.
+                </p>
+                <a
+                  href="/#masterclasses"
+                  className="mt-5 inline-flex items-center gap-2 rounded-md px-6 py-3 text-xs uppercase tracking-[0.12em]"
+                  style={{ backgroundColor: "var(--aa-gold)", color: "#fff", fontFamily: "'DM Sans', sans-serif", fontWeight: 700 }}
+                >
+                  See upcoming sessions
+                </a>
+              </div>
+            ) : confirmed ? (
               <div>
                 <p className="flex items-center gap-2 font-serif text-xl" style={{ color: "var(--aa-olive-dark)" }}>
                   <CheckCircle2 size={20} style={{ color: "var(--aa-gold)" }} /> You're in!
@@ -305,7 +325,7 @@ export default function AskTheExpertLanding() {
 
         <p className="mt-6 text-center text-xs" style={{ color: "var(--aa-text-light)" }}>
           <Link to="/" style={{ color: "var(--aa-gold)" }}>Casa Alchemy Academy</Link> · The private class link is
-          never published — we email it only to registered guests.
+          never published. We email it only to registered guests.
         </p>
       </div>
     </main>

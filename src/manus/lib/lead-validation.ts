@@ -26,12 +26,16 @@ export function messageFromDetails(details: unknown): string | null {
   return field ? LEAD_FIELD_MESSAGES[field] : null;
 }
 
-/** Reads `details` from a supabase.functions.invoke error (FunctionsHttpError) when status is 400. */
+export const SESSION_ENDED_MESSAGE = "This session has ended.";
+
+/** Reads `details` from a supabase.functions.invoke error (FunctionsHttpError) when status is 400,
+ *  or the ended session response (410) from capture-lead. */
 export async function fieldMessageFromInvokeError(err: unknown): Promise<string | null> {
   const ctx = (err as { context?: unknown } | null)?.context;
-  if (!(ctx instanceof Response) || ctx.status !== 400) return null;
+  if (!(ctx instanceof Response) || (ctx.status !== 400 && ctx.status !== 410)) return null;
   try {
     const body = await ctx.clone().json();
+    if (ctx.status === 410) return body?.error === "session_ended" ? SESSION_ENDED_MESSAGE : null;
     return messageFromDetails(body?.details);
   } catch {
     return null;
