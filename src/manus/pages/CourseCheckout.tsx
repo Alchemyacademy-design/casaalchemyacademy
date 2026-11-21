@@ -190,9 +190,9 @@ export default function CourseCheckout() {
                 by Casa Alchemy
               </div>
             </Link>
-            <button onClick={() => navigate("/")} className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
+            <Link to="/" className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
               ← Back
-            </button>
+            </Link>
           </div>
         </header>
 
@@ -223,9 +223,9 @@ export default function CourseCheckout() {
               by Casa Alchemy
             </div>
           </Link>
-          <button onClick={() => navigate("/")} className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
+          <Link to="/" className="text-xs tracking-widest uppercase" style={{ color: "var(--aa-text-mid)", fontFamily: "'DM Sans', sans-serif" }}>
             ← Back
-          </button>
+          </Link>
         </div>
       </header>
 

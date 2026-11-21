@@ -553,7 +553,7 @@ export default function Home() {
             </h2>
           </div>
           <div className="max-w-5xl mx-auto pricing-shell">
-            <style>{`
+            <style dangerouslySetInnerHTML={{ __html: `
               @keyframes slideInUp {
                 from { opacity: 0; transform: translateY(20px); }
                 to { opacity: 1; transform: translateY(0); }
@@ -627,7 +627,7 @@ export default function Home() {
                 .cta-btn { font-size: 0.78rem; letter-spacing: 0.14em; padding: 0.95rem 1rem; }
                 .cta-btn-primary { font-size: 0.84rem; letter-spacing: 0.16em; }
               }
-            `}</style>
+            ` }} />
             {/* Shared CTA for the two membership plans: waitlist before launch, join once buying is open. */}
             <div className="max-w-5xl mx-auto" style={{ textAlign: "center", marginTop: "0", marginBottom: "1rem" }}>
               <p
@@ -706,7 +706,7 @@ export default function Home() {
                   bonuses: isLaunchWeekActive ? ["+ 1 free month", "+ 1 mini Casa Consult with Lorena"] : null,
                   save: isLaunchWeekActive ? "Launch week only, until Fri 25 Sept" : "Save USD 480",
                   cta: null,
-                  action: null,
+                  href: null,
                 },
                 {
                   name: "Monthly Member",
@@ -717,7 +717,7 @@ export default function Home() {
                   bonuses: null,
                   save: "No commitment",
                   cta: null,
-                  action: null,
+                  href: null,
                 },
                 {
                   name: "Individual Course",
@@ -729,7 +729,7 @@ export default function Home() {
                   bonuses: null,
                   save: "No commitment",
                   cta: INDIVIDUAL_COURSE_OPEN ? "Choose course" : null,
-                  action: INDIVIDUAL_COURSE_OPEN ? () => navigate("/choose-course") : null,
+                  href: INDIVIDUAL_COURSE_OPEN ? "/choose-course" : null,
                 },
               ].map((plan) => (
                     <td key={plan.name} className="cta-cell">
@@ -744,10 +744,12 @@ export default function Home() {
                     <span className="save">{plan.save}</span>
                   </p>
                   <div className="plan-detail-cta">
-                    {plan.cta && plan.action ? (
-                      <Button onClick={plan.action} className={`whitespace-normal h-auto cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
-                        {plan.cta}
-                        <span className="arrow" aria-hidden="true">→</span>
+                    {plan.cta && plan.href ? (
+                      <Button asChild className={`whitespace-normal h-auto cta-btn${plan.best ? " cta-btn-primary" : ""}`}>
+                        <Link to={plan.href}>
+                          {plan.cta}
+                          <span className="arrow" aria-hidden="true">→</span>
+                        </Link>
                       </Button>
                     ) : buyingOpen && plan.name !== "Individual Course" ? (
                       <Button onClick={joinAcademy} className={`whitespace-normal h-auto cta-btn${plan.best ? " cta-btn-primary" : ""}`}>

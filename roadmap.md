@@ -24,3 +24,9 @@
 - [x] Move the "Memberships are open." heading, intro line and join button above the comparison table; keep currency and cooling-off notes below it.
 - [x] Balance spacing around the moved block and below the table; check desktop and 390px.
 - [x] Request publication.
+
+# Crawler-readable public pages
+- [x] Prerender public routes at build time with real headings, copy and links; drop the loading text from served HTML.
+- [x] One H1, unique title/description, canonical and Open Graph tags per public page; real links between public pages.
+- [x] Sitemap with lastmod, robots.txt open to AI crawlers with member/auth areas blocked, Organization/Course/Event JSON-LD, llms.txt.
+- [ ] Confirm on the live site after the next publish that addresses other than the homepage serve their own prerendered page (needs a publish).

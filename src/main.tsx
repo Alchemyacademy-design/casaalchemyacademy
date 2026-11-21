@@ -1,5 +1,5 @@
-import { QueryClientProvider } from "@tanstack/react-query";
-import { createRoot } from "react-dom/client";
+import { QueryClientProvider, hydrate, type DehydratedState } from "@tanstack/react-query";
+import { createRoot, hydrateRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./index.css";
@@ -12,12 +12,21 @@ import CrossTabQuerySync from "@/manus/components/CrossTabQuerySync";
 declare global {
   interface Window {
     __aaStartupError?: (msg: string) => void;
+    __AA_PRERENDER_STATE__?: DehydratedState;
   }
 }
 
 function removeStartupFallback() {
   const el = document.getElementById("aa-startup-fallback");
   if (el && el.parentNode) el.parentNode.removeChild(el);
+  document.documentElement.classList.remove("aa-shell");
+}
+
+/** True when #root holds the build-time HTML for the address being opened. */
+function isPrerenderedFor(container: HTMLElement): boolean {
+  const rendered = container.getAttribute("data-prerendered");
+  const current = window.location.pathname.replace(/\/+$/, "") || "/";
+  return !!rendered && rendered === current;
 }
 
 function reportStartupError(err: unknown) {
@@ -43,14 +52,31 @@ try {
   const container = document.getElementById("root");
   if (!container) throw new Error("#root element missing from index.html");
 
-  createRoot(container).render(
+  const app = (
     <QueryClientProvider client={queryClient}>
       <CrossTabQuerySync />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <App />
       </BrowserRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   );
+
+  if (isPrerenderedFor(container)) {
+    // Public page prerendered at build time: reuse its markup and the public
+    // data it was rendered with (refetched straight away, as it is stale).
+    if (window.__AA_PRERENDER_STATE__) hydrate(queryClient, window.__AA_PRERENDER_STATE__);
+    hydrateRoot(container, app, {
+      // Visitor-specific differences (local time zone, saved session) are
+      // expected; React re-renders those parts on the client.
+      onRecoverableError: (err) => console.warn("[hydrate]", err),
+    });
+  } else {
+    // App shell: the HTML may hold another page's prerender, discard it.
+    container.removeAttribute("data-prerendered");
+    container.innerHTML = "";
+    createRoot(container).render(app);
+  }
+  delete window.__AA_PRERENDER_STATE__;
   // Defer removal until after first paint so users never see a flash of empty body.
   requestAnimationFrame(() => requestAnimationFrame(removeStartupFallback));
 } catch (err) {

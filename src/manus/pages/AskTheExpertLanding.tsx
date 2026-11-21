@@ -5,6 +5,10 @@
 import { HoneypotField } from "@/manus/components/HoneypotField";
 import { validateLeadFields, fieldMessageFromInvokeError } from "@/manus/lib/lead-validation";
 import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { applyHeadMeta } from "@/seo/head";
+import { workshopMeta } from "@/seo/site";
+import { resolveAssetUrl } from "@/manus/lib/asset-url";
 import { Link, useParams } from "react-router-dom";
 import { CalendarPlus, Download, Loader2, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,8 +49,6 @@ function formatWhen(startsAt: string, endsAt: string | null): string {
 
 export default function AskTheExpertLanding() {
   const { slug = "" } = useParams();
-  const [workshop, setWorkshop] = useState<PublicWorkshop | null>(null);
-  const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -55,24 +57,25 @@ export default function AskTheExpertLanding() {
   const [error, setError] = useState<string | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
-  useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
+  // Through the query cache so the build-time prerender can include the session.
+  const workshopQuery = useQuery({
+    queryKey: ["public", "ask-the-expert", slug],
+    queryFn: async (): Promise<PublicWorkshop | null> => {
       const { data, error: rpcError } = await supabase.rpc("get_public_workshop", { p_slug: slug });
-      if (!active) return;
       if (rpcError) console.error("get_public_workshop failed:", rpcError);
       const row = Array.isArray(data) ? (data[0] as PublicWorkshop | undefined) : null;
-      setWorkshop(row ?? null);
-      setLoading(false);
-    })();
-    return () => { active = false; };
-  }, [slug]);
+      return row ?? null;
+    },
+    retry: false,
+  });
+  const workshop = workshopQuery.data ?? null;
+  const loading = workshopQuery.isPending;
 
   useEffect(() => {
     if (!workshop) return;
-    document.title = `${noDashes(workshop.title)} | Save your seat | Alchemy Academy`;
-
+    applyHeadMeta(
+      workshopMeta({ ...workshop, image: resolveAssetUrl(workshop.cover_image_path) }),
+    );
   }, [workshop]);
 
   const calendarItem = useMemo<CalendarItem | null>(() => {

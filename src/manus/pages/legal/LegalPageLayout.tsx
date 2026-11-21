@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from "react";
+import { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import BackNav from "@/manus/components/BackNav";
 
@@ -18,17 +18,9 @@ const legalNav = [
 ];
 
 export default function LegalPageLayout({ title, description, updatedAt, children }: LegalPageLayoutProps) {
-  useEffect(() => {
-    const prevTitle = document.title;
-    document.title = `${title} — Casa Alchemy Academy`;
-    const meta = document.querySelector('meta[name="description"]');
-    const prevDesc = meta?.getAttribute("content") ?? "";
-    if (meta) meta.setAttribute("content", description);
-    return () => {
-      document.title = prevTitle;
-      if (meta) meta.setAttribute("content", prevDesc);
-    };
-  }, [title, description]);
+  // Title, description and canonical come from src/seo/site.ts (RouteMeta),
+  // so the served HTML and the running app agree.
+  void description;
 
   return (
     <div className="min-h-screen" style={{ background: "var(--aa-page)" }}>
@@ -109,7 +101,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
         </div>
       </footer>
 
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .legal-content h2 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.65rem; color: var(--aa-olive-dark); margin: 2.5rem 0 0.75rem; font-weight: 400; }
         .legal-content h3 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 1.25rem; color: var(--aa-olive-dark); margin: 1.75rem 0 0.5rem; font-weight: 500; }
         .legal-content p { margin-bottom: 1rem; }
@@ -118,7 +110,7 @@ export default function LegalPageLayout({ title, description, updatedAt, childre
         .legal-content a { color: var(--aa-gold); text-decoration: underline; }
         .legal-content strong { color: var(--aa-olive-dark); }
         .legal-callout { background: var(--aa-muted-surface); border-left: 3px solid var(--aa-gold); padding: 1rem 1.25rem; margin: 1.5rem 0; border-radius: 0.15rem; }
-      `}</style>
+      ` }} />
     </div>
   );
 }

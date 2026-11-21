@@ -9,6 +9,7 @@ import { AuthProvider } from "@/manus/contexts/AuthContext";
 import RouteFallback from "@/manus/components/RouteFallback";
 import AdminGuard from "@/components/AdminGuard";
 import { lazyWithRetry } from "@/manus/lib/lazyWithRetry";
+import RouteMeta from "@/seo/RouteMeta";
 
 // Eager: shell-critical landing & auth entry points so first paint stays sync.
 import Home from "@/manus/pages/Home";
@@ -87,6 +88,7 @@ export default function App() {
         <TooltipProvider>
           <Toaster />
           <GlobalAccessController />
+          <RouteMeta />
           <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/" element={<Home />} />

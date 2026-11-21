@@ -1,14 +1,48 @@
-User-agent: Googlebot
-Allow: /
-
-User-agent: Bingbot
-Allow: /
-
-User-agent: Twitterbot
-Allow: /
-
-User-agent: facebookexternalhit
-Allow: /
+# Alchemy Academy: public pages are open to every crawler, including
+# search engines and AI assistants. Member and sign-in areas are not.
 
 User-agent: *
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: Twitterbot
+User-agent: facebookexternalhit
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-SearchBot
+User-agent: Claude-User
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot
+User-agent: Applebot-Extended
 Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /mycourses
+Disallow: /modules
+Disallow: /courses
+Disallow: /community
+Disallow: /suppliers
+Disallow: /materials
+Disallow: /certificates
+Disallow: /deals
+Disallow: /events
+Disallow: /magazine
+Disallow: /live-workshops
+Disallow: /workshops
+Disallow: /profile
+Disallow: /notifications
+Disallow: /plans
+Disallow: /activate
+Disallow: /login
+Disallow: /signup
+Disallow: /reset-password
+Disallow: /forgot-password
+Disallow: /auth/
+Disallow: /payment/
+Disallow: /c/
+Disallow: /.lovable/
+
+Sitemap: https://www.casaalchemyacademy.com/sitemap.xml

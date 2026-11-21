@@ -85,11 +85,11 @@ export default function UpcomingMasterclasses() {
 
   return (
     <section id="masterclasses" style={{ backgroundColor: "var(--aa-muted-surface)", padding: "6rem 0" }}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         .mc-row { scrollbar-width: none; -ms-overflow-style: none; -webkit-overflow-scrolling: touch; }
         .mc-row::-webkit-scrollbar { display: none; }
         .mc-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-      `}</style>
+      ` }} />
       <div className="container">
         <div className="max-w-2xl mb-10">
           <p className="section-label mb-4">Live and interactive</p>
